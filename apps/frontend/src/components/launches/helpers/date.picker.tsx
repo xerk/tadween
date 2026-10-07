@@ -1,89 +1,185 @@
-import { FC, useCallback, useState } from 'react';
+import { FC, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { Calendar, TimeInput } from '@mantine/dates';
 import { useClickOutside } from '@mantine/hooks';
-import { Button } from '@gitroom/react/form/button';
 import { isUSCitizen } from './isuscitizen.utils';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { CalendarIcon } from '@gitroom/frontend/components/ui/icons';
+
+// Tadween schedule picker: month grid + 15-minute time list in one popover,
+// replacing Mantine's Calendar / TimeInput. Same props and output as before.
+const STEP = 15;
+
 export const DatePicker: FC<{
   date: dayjs.Dayjs;
   onChange: (day: dayjs.Dayjs) => void;
 }> = (props) => {
   const { date, onChange } = props;
   const [open, setOpen] = useState(false);
+  const [month, setMonth] = useState(() => date.startOf('month'));
   const t = useT();
+  // Read after mount: localStorage / navigator don't exist during SSR.
+  const [us, setUs] = useState(false);
+  useEffect(() => setUs(isUSCitizen()), []);
+  const timeRef = useRef<HTMLDivElement>(null);
 
   const changeShow = useCallback(() => {
-    setOpen((prev) => !prev);
-  }, []);
+    setOpen((prev) => {
+      if (!prev) setMonth(date.startOf('month'));
+      return !prev;
+    });
+  }, [date]);
   const ref = useClickOutside<HTMLDivElement>(() => {
     setOpen(false);
   });
-  const changeDate = useCallback(
-    (type: 'date' | 'time') => (day: Date) => {
-      onChange(
-        newDayjs(
-          type === 'time'
-            ? date.format('YYYY-MM-DD') + ' ' + newDayjs(day).format('HH:mm:ss')
-            : newDayjs(day).format('YYYY-MM-DD') + ' ' + date.format('HH:mm:ss')
-        )
-      );
-    },
-    [date]
+
+  const set = useCallback(
+    (day: string, time: string) => onChange(newDayjs(day + ' ' + time)),
+    [onChange]
   );
+  const pickDay = (d: dayjs.Dayjs) => {
+    set(d.format('YYYY-MM-DD'), date.format('HH:mm:ss'));
+    if (!d.isSame(month, 'month')) setMonth(d.startOf('month'));
+  };
+  const pickTime = (minutes: number) =>
+    set(
+      date.format('YYYY-MM-DD'),
+      `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:00`
+    );
+
+  const weekStart = us ? 0 : 1;
+  const days = useMemo(() => {
+    const first = month.startOf('month');
+    const lead = (first.day() - weekStart + 7) % 7;
+    const start = first.subtract(lead, 'day');
+    return Array.from({ length: 42 }, (_, i) => start.add(i, 'day'));
+  }, [month, weekStart]);
+  const weekdays = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => dayjs().day((i + weekStart) % 7).format('dd')),
+    [weekStart]
+  );
+
+  const current = date.hour() * 60 + date.minute();
+  const slots = useMemo(() => {
+    const list = Array.from({ length: (24 * 60) / STEP }, (_, i) => i * STEP);
+    if (!list.includes(current)) list.push(current);
+    return list.sort((a, b) => a - b);
+  }, [current]);
+
+  useEffect(() => {
+    if (!open) return;
+    const el = timeRef.current?.querySelector('[aria-selected="true"]') as HTMLElement | null;
+    if (el && timeRef.current) timeRef.current.scrollTop = el.offsetTop - timeRef.current.clientHeight / 2 + el.clientHeight / 2;
+  }, [open]);
+
+  const today = newDayjs();
+  const label = (m: number) =>
+    dayjs().startOf('day').add(m, 'minute').format(us ? 'h:mm A' : 'HH:mm');
+
+  const onGridKey = (e: KeyboardEvent) => {
+    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const d = date.add(document.dir === 'rtl' && Math.abs(step) === 1 ? -step : step, 'day');
+    pickDay(d);
+    requestAnimationFrame(() =>
+      (ref.current?.querySelector('.tdw-dp-day[aria-pressed="true"]') as HTMLElement | null)?.focus()
+    );
+  };
+
+  const quick = [
+    { label: t('today', 'Today'), d: today },
+    { label: t('tomorrow', 'Tomorrow'), d: today.add(1, 'day') },
+    { label: t('next_week', 'Next week'), d: today.add(7, 'day') },
+  ];
+
   return (
     <div
-      className="px-[16px] border border-newTextColor/10 rounded-[8px] justify-center flex gap-[8px] items-center relative h-[44px] text-[15px] mobile:text-[14px] whitespace-nowrap font-[600] ml-[7px] mobile:ml-0 select-none flex-1"
-      onClick={changeShow}
+      className="tdw-dp-trigger px-[16px] border border-newTextColor/10 rounded-[8px] justify-center flex gap-[8px] items-center relative h-[44px] text-[15px] mobile:text-[14px] whitespace-nowrap font-[600] ml-[7px] mobile:ml-0 select-none flex-1"
       ref={ref}
     >
-      <div className="cursor-pointer">
+      <button
+        type="button"
+        className="flex gap-[8px] items-center cursor-pointer outline-none"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={changeShow}
+      >
         <CalendarIcon />
-      </div>
-      <div className="cursor-pointer">
-        {date.format(isUSCitizen() ? 'MM/DD/YYYY hh:mm A' : 'DD/MM/YYYY HH:mm')}
-      </div>
+        <span className="tabular-nums">
+          {date.format(us ? 'MM/DD/YYYY hh:mm A' : 'DD/MM/YYYY HH:mm')}
+        </span>
+      </button>
       {open && (
         <div
+          role="dialog"
+          aria-label={t('pick_date_and_time', 'Pick date and time')}
           onClick={(e) => e.stopPropagation()}
-          className="animate-fadeIn absolute bottom-[100%] mb-[16px] start-[50%] -translate-x-[50%] mobile:start-0 mobile:translate-x-0 bg-sixth border border-tableBorder text-textColor rounded-[16px] z-[300] p-[16px] flex flex-col"
+          onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
+          className="tdw-dp absolute bottom-[100%] mb-[12px] start-[50%] -translate-x-[50%] rtl:translate-x-[50%] mobile:start-0 mobile:translate-x-0 z-[300]"
         >
-          <Calendar
-            onChange={changeDate('date')}
-            value={date.toDate()}
-            dayClassName={(date, modifiers) => {
-              if (modifiers.weekend) {
-                return '!text-customColor28';
-              }
-              if (modifiers.outside) {
-                return '!text-gray';
-              }
-              if (modifiers.selected) {
-                return '!text-white !bg-seventh !outline-none';
-              }
-              return '!text-textColor';
-            }}
-            classNames={{
-              day: 'hover:bg-seventh',
-              calendarHeaderControl: 'text-textColor hover:bg-third',
-              calendarHeaderLevel: 'text-textColor hover:bg-third', // cell: 'child:!text-textColor'
-            }}
-          />
-          <TimeInput
-            onChange={changeDate('time')}
-            label="Pick time"
-            classNames={{
-              label: 'text-textColor py-[12px]',
-              input:
-                'bg-sixth h-[40px] border border-tableBorder text-textColor rounded-[4px] outline-none',
-            }}
-            defaultValue={date.toDate()}
-          />
-          <Button className="mt-[12px]" onClick={changeShow}>
-            {t('close', 'Close')}
-          </Button>
+          <div className="tdw-dp-cal">
+            <div className="tdw-dp-head">
+              <span className="tdw-dp-month">{month.format('MMMM YYYY')}</span>
+              <button type="button" className="tdw-dp-nav" aria-label={t('previous_month', 'Previous month')} onClick={() => setMonth(month.subtract(1, 'month'))}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="m15 18-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+              <button type="button" className="tdw-dp-nav" aria-label={t('next_month', 'Next month')} onClick={() => setMonth(month.add(1, 'month'))}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="m9 18 6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+            </div>
+            <div className="tdw-dp-grid" role="grid" onKeyDown={onGridKey}>
+              {weekdays.map((w, i) => (
+                <span key={i} className="tdw-dp-wd" role="columnheader">{w}</span>
+              ))}
+              {days.map((d) => {
+                const sel = d.isSame(date, 'day');
+                return (
+                  <button
+                    key={d.valueOf()}
+                    type="button"
+                    tabIndex={sel ? 0 : -1}
+                    aria-pressed={sel}
+                    aria-label={d.format('dddd, D MMMM YYYY')}
+                    data-outside={!d.isSame(month, 'month') || undefined}
+                    data-today={d.isSame(today, 'day') || undefined}
+                    data-past={d.isBefore(today, 'day') || undefined}
+                    className="tdw-dp-day"
+                    onClick={() => pickDay(d)}
+                  >
+                    {d.date()}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="tdw-dp-quick">
+              {quick.map((q) => (
+                <button key={q.label} type="button" className="tdw-dp-chip" onClick={() => pickDay(q.d)}>
+                  {q.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="tdw-dp-time">
+            <div className="tdw-dp-time-head">{t('time', 'Time')}</div>
+            <div className="tdw-dp-slots" ref={timeRef} role="listbox" aria-label={t('time', 'Time')}>
+              {slots.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  role="option"
+                  aria-selected={m === current}
+                  className="tdw-dp-slot"
+                  onClick={() => pickTime(m)}
+                >
+                  {label(m)}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="tdw-dp-done" onClick={() => setOpen(false)}>
+              {t('done', 'Done')}
+            </button>
+          </div>
         </div>
       )}
     </div>

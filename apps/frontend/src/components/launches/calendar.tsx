@@ -58,6 +58,7 @@ import copy from 'copy-to-clipboard';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -536,8 +537,10 @@ export const ListView = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col flex-1 items-center justify-center">
-        <div className="text-textColor">{t('loading', 'Loading...')}</div>
+      <div className="tdw-list-skeleton flex flex-col flex-1 gap-[10px] pt-[10px]" aria-busy="true" aria-label={t('loading', 'Loading...')}>
+        {[0, 1, 2, 3].map((i) => (
+          <span key={i} className="tdw-skeleton" style={{ height: 72, animationDelay: `${i * 80}ms` }} />
+        ))}
       </div>
     );
   }
@@ -545,7 +548,11 @@ export const ListView = () => {
   if (listPosts.length === 0) {
     return (
       <div className="flex flex-col flex-1 items-center justify-center">
-        <div className="text-textColor text-[16px]">{emptyMessage}</div>
+        <TadweenEmptyState
+          icon={listState === 'draft' ? 'drafts' : 'calendar'}
+          title={emptyMessage}
+          body={t('empty_list_hint', 'Posts you create will show up here, grouped by day.')}
+        />
       </div>
     );
   }

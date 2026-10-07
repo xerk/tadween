@@ -32,6 +32,7 @@ import { Onboarding } from '@gitroom/frontend/components/onboarding/onboarding';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { Input } from '@gitroom/react/form/input';
 import { Button } from '@gitroom/react/form/button';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 export const SVGLine = () => {
   return (
@@ -708,23 +709,12 @@ export const LaunchesComponent = () => {
               {sortedIntegrations.length === 0 &&
                 (collapseMenu === '0' || channelsOpen) && (
                   <div className="flex-1 max-h-[500px] justify-center items-center flex">
-                    <div className="flex flex-col gap-[12px] text-center">
-                      <img
-                        src={
-                          mode === 'dark'
-                            ? '/no-channels.svg'
-                            : '/no-channels-colors.svg'
-                        }
-                        alt="No channels"
-                        className="mx-auto min-w-[100%]"
-                      />
-                      <div className="font-[600] text-[20px]">
-                        {t('no_channels', 'No channels yet')}
-                      </div>
-                      <div className="text-[14px]">
-                        {t('connect_your_accounts')}
-                      </div>
-                    </div>
+                    <TadweenEmptyState
+                      size="sm"
+                      icon="channels"
+                      title={t('no_channels', 'No channels yet')}
+                      body={t('connect_your_accounts')}
+                    />
                   </div>
                 )}
               {menuIntegrations.map((menu) => (

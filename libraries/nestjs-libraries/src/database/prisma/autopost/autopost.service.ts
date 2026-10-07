@@ -210,7 +210,7 @@ export class AutopostService {
   private summarize(text: string) {
     const clean = striptags(text)
       .replace(/\s+/g, ' ')
-      .replace(/\s*The post .{0,300}? appeared first on [^.]*\.?\s*$/, '')
+      .replace(/\s*The post .{0,300}? appeared first on .*$/, '')
       .trim();
     if (clean.length <= 280) {
       return clean;
@@ -398,14 +398,17 @@ export class AutopostService {
           continue;
         }
 
-        const input = Buffer.from(await res.arrayBuffer());
-        const { width, height } = await sharp(input).rotate().metadata();
+        // Apply the EXIF orientation first: metadata() reports the stored size
+        const input = await sharp(Buffer.from(await res.arrayBuffer()))
+          .rotate()
+          .toBuffer();
+        const { width, height } = await sharp(input).metadata();
         if (!width || !height) {
           continue;
         }
 
         const ratio = width / height;
-        let img = sharp(input).rotate().flatten({ background: '#ffffff' });
+        let img = sharp(input).flatten({ background: '#ffffff' });
         if (ratio > 1.91 || ratio < 0.8) {
           img = sharp(
             await img

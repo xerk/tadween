@@ -37,7 +37,7 @@ export const mcpConnectorUrls = {
 // the agent installs the CLI itself and asks you for the API key
 export const chatOnlyMcpClients = {
   'Grok Bot':
-    'Install the Postiz CLI with `npm install -g postiz`, then install the Postiz skill with `npx skills add gitroomhq/postiz-agent`. Ask me for my Postiz API key and set it as the POSTIZ_API_KEY environment variable before using the CLI.',
+    'Install the CLI with `npm install -g postiz`, then install the skill with `npx skills add gitroomhq/postiz-agent`. Set the POSTIZ_API_URL environment variable to {API_URL}, then ask me for my API key and set it as the POSTIZ_API_KEY environment variable before using the CLI.',
 } as const;
 
 export const mcpClients = [
@@ -88,11 +88,13 @@ export const getMcpConfig = (
   client: AnyMcpClient,
   auth: McpAuth,
   mcpBase: string,
-  apiKey: string
+  apiKey: string,
+  // the public API base the CLI talks to (backend URL); defaults to mcpBase
+  apiUrl = mcpBase
 ): { config: string; hint: string } => {
   if (isChatOnlyMcpClient(client)) {
     return {
-      config: chatOnlyMcpClients[client],
+      config: chatOnlyMcpClients[client].replace('{API_URL}', apiUrl),
       hint: 'Paste this into the chat. The agent will ask you for your API key.',
     };
   }
@@ -316,7 +318,7 @@ const McpSection = ({
   mcpBase: string;
 }) => {
   const t = useT();
-  const { mcpOfficialConnectors } = useVariables();
+  const { mcpOfficialConnectors, backendUrl } = useVariables();
   const brand = useBrandLinks();
   const [activeClient, setActiveClient] = useState<AnyMcpClient>('Claude');
   // Tadween: the directory connectors sign people in to Postiz's cloud, so they
@@ -334,7 +336,8 @@ const McpSection = ({
     activeClient,
     auth,
     mcpBase,
-    user.publicApi
+    user.publicApi,
+    backendUrl
   );
 
   const baseUrl = auth === 'oauth' ? getMcpOauthUrl(mcpBase) : `${mcpBase}/mcp`;
@@ -665,38 +668,36 @@ const CliSection = ({ apiKey, apiUrl }: { apiKey: string; apiUrl: string }) => {
           </div>
         ))}
         <div className="flex flex-wrap gap-[8px]">
-          {(
-            <button
-              type="button"
-              onClick={() => setRevealed(!revealed)}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
+          <button
+            type="button"
+            onClick={() => setRevealed(!revealed)}
+            className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                {revealed ? (
-                  <>
-                    <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
-                    <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
-                    <line x1="1" y1="1" x2="23" y2="23" />
-                  </>
-                ) : (
-                  <>
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </>
-                )}
-              </svg>
-              {revealed ? t('hide', 'Hide') : t('reveal', 'Reveal')}
-            </button>
-          )}
+              {revealed ? (
+                <>
+                  <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
+                  <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </>
+              ) : (
+                <>
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </>
+              )}
+            </svg>
+            {revealed ? t('hide', 'Hide') : t('reveal', 'Reveal')}
+          </button>
           <CopyButton
             text={steps.map((s) => s.code).join(' && ')}
             label={t('copy_all', 'Copy All')}

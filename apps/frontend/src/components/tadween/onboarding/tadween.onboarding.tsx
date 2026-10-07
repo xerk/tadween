@@ -395,7 +395,7 @@ const AgentsStep: FC = () => {
   const cliCopy = fillCliSteps(backendUrl, apiKey).map((s) => s.code);
 
   const { config, hint } =
-    agent === apiTab ? { config: '', hint: '' } : getMcpConfig(agent, auth, mcpBase, apiKey);
+    agent === apiTab ? { config: '', hint: '' } : getMcpConfig(agent, auth, mcpBase, apiKey, backendUrl);
   const maskedConfig =
     revealed || auth === 'oauth' || !apiKey
       ? config

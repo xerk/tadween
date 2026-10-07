@@ -26,6 +26,15 @@ import Script from 'next/script';
 import { ChangeDirClient } from '@gitroom/frontend/components/new-layout/change.dir.client';
 
 
+// DataFast site: DATAFAST_DOMAIN, else this instance's host (was postiz.com)
+const datafastDomain = () => {
+  try {
+    return new URL(process.env.FRONTEND_URL || '').hostname;
+  } catch (e) {
+    return '';
+  }
+};
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const language = cookieStore.get(cookieName)?.value || fallbackLng;
@@ -41,10 +50,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         {!!process.env.DATAFAST_WEBSITE_ID && (
           <Script
             data-website-id={process.env.DATAFAST_WEBSITE_ID}
-            data-domain={
-              process.env.DATAFAST_DOMAIN ||
-              new URL(process.env.FRONTEND_URL || 'http://localhost').hostname
-            }
+            data-domain={process.env.DATAFAST_DOMAIN || datafastDomain()}
             src="https://datafa.st/js/script.js"
             strategy="afterInteractive"
           />

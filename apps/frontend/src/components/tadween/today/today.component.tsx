@@ -592,6 +592,10 @@ export const TodayComponent: FC = () => {
   const failed = weekPosts.filter((p) => p.state === 'ERROR');
   const attentionChannels = integrations.filter((i) => !i.disabled && (i.refreshNeeded || i.inBetweenSteps));
   const active = integrations.filter((i) => !i.disabled);
+  // Quick compose: who's writing, and which networks it goes to (one mark per network)
+  const initials = ([user?.name, user?.lastName].filter(Boolean).join(' ') || user?.email || '?')
+    .split(/\s+/).filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase();
+  const networks = Array.from(new Set(active.map((c) => c.identifier.replace(/-page$|-standalone$|-business$/, ''))));
   const noChannels = !channelsLoading && !integrations.length;
 
   const createNow = useCallback(() => create(), [create]);
@@ -651,12 +655,18 @@ export const TodayComponent: FC = () => {
         ) : (
           <>
             <button type="button" className="tdw-quick" onClick={createNow} disabled={channelsLoading}>
-              <span className="tdw-quick-avs" aria-hidden="true">
-                {active.slice(0, 4).map((c) => (
-                  <TadweenChannelAvatar key={c.id} integration={c} size={28} />
-                ))}
+              <span className="tdw-quick-me" aria-hidden="true">{initials}</span>
+              <span className="tdw-quick-text">
+                <span className="tdw-quick-ph">{t('today_quick_placeholder', 'What do you want to share today?')}</span>
+                <span className="tdw-quick-to">
+                  <span className="tdw-quick-nets" aria-hidden="true">
+                    {networks.slice(0, 5).map((id) => (
+                      <img key={id} src={id === 'youtube' ? '/icons/platforms/youtube.svg' : `/icons/platforms/${id}.png`} alt="" className="tdw-quick-net" />
+                    ))}
+                  </span>
+                  {t('today_quick_to', 'To {{count}} channels', { count: active.length })}
+                </span>
               </span>
-              <span className="tdw-quick-ph">{t('today_quick_placeholder', 'What do you want to share today?')}</span>
               <span className="tdw-quick-go" aria-hidden="true">
                 <Icon name="plus" size={16} />
               </span>

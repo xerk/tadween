@@ -45,7 +45,7 @@
 
   // ── Quick compose ───────────────────────────────────────────────────────
   .tdw-quick {
-    display: flex; align-items: center; gap: 14px; width: 100%; height: 64px; padding: 0 12px 0 14px;
+    display: flex; align-items: center; gap: 14px; width: 100%; height: 72px; padding: 0 12px 0 14px;
     border: 0; border-radius: 20px; background: var(--card); color: var(--foreground);
     box-shadow: var(--today-ring), 0 12px 32px -18px rgba(0, 0, 0, 0.28);
     font: inherit; text-align: start; cursor: text;
@@ -54,10 +54,16 @@
   .tdw-quick:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--primary), 0 0 0 5px var(--primary-soft), 0 12px 32px -18px rgba(0, 0, 0, 0.28); }
   .tdw-quick:active:not(:disabled) { transform: scale(0.992); }
   .tdw-quick:disabled { cursor: progress; opacity: 0.7; }
-  .tdw-quick-avs { display: flex; flex: none; }
-  .tdw-quick-avs .tdw-ch-avatar + .tdw-ch-avatar { margin-inline-start: -8px; }
-  .tdw-quick-avs .tdw-ch-avatar-img { box-shadow: 0 0 0 2px var(--card); }
-  .tdw-quick-ph { flex: 1; min-width: 0; font-size: 16px; color: var(--muted-foreground); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .tdw-quick-me {
+    display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%;
+    background: var(--tdw-primary-soft); color: var(--tdw-primary-strong); font-size: 14px; font-weight: 600; letter-spacing: 0.02em;
+  }
+  .tdw-quick-text { flex: 1; min-width: 0; display: grid; gap: 4px; }
+  .tdw-quick-ph { min-width: 0; font-size: 16px; line-height: 20px; color: var(--foreground); opacity: 0.55; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; transition: opacity 160ms ease; }
+  .tdw-quick:hover:not(:disabled) .tdw-quick-ph { opacity: 0.75; }
+  .tdw-quick-to { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+  .tdw-quick-nets { display: inline-flex; align-items: center; gap: 4px; }
+  .tdw-quick-net { display: block; width: 16px; height: 16px; border-radius: 4px; object-fit: cover; filter: saturate(0.85); }
   .tdw-quick-go {
     display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 14px;
     background: var(--tdw-primary-strong); color: #fff;
@@ -198,8 +204,8 @@
     .tdw-hero { padding-bottom: 0; }
     // the compose bar (or the empty state's button) is the main action
     .tdw-hero-actions { display: none; }
-    .tdw-quick-avs > :nth-child(n + 3) { display: none; }
-    .tdw-quick { height: 60px; border-radius: 18px; }
+    .tdw-quick-me { width: 36px; height: 36px; font-size: 13px; }
+    .tdw-quick { height: 68px; border-radius: 18px; }
     .tdw-quick-ph { font-size: 15px; }
     .tdw-card { padding: 18px; border-radius: 20px; }
     .tdw-grid, .tdw-grid-3 { grid-template-columns: minmax(0, 1fr); gap: 16px; }

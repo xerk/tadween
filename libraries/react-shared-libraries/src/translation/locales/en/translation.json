@@ -943,6 +943,7 @@
   "today_preview": "Preview",
   "today_published": "published",
   "today_quick_placeholder": "What do you want to share today?",
+  "today_quick_to": "To {{count}} channels",
   "today_reconnect": "Reconnect",
   "today_reconnect_body": "Reconnect to keep posts publishing.",
   "today_rhythm_basis": "Based on your last {{count}} published posts.",

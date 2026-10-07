@@ -985,6 +985,7 @@
   "today_preview": "معاينة",
   "today_published": "منشور",
   "today_quick_placeholder": "ماذا تريد أن تشارك اليوم؟",
+  "today_quick_to": "إلى {{count}} حسابات",
   "today_reconnect": "إعادة الربط",
   "today_reconnect_body": "أعد الربط حتى تستمر المنشورات في النشر.",
   "today_rhythm_basis": "بناءً على آخر {{count}} منشورًا نُشرت.",

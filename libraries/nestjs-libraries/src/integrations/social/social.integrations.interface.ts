@@ -109,6 +109,13 @@ export interface ISocialMediaIntegration {
     postDetails: PostDetails[],
     integration: Integration
   ): Promise<PostResponse[]>; // Schedules a new post
+
+  deletePost?(
+    accessToken: string,
+    integration: Integration,
+    releaseId: string,
+    externalId: string
+  ): Promise<void>; // Removes a published post from the platform when the user deletes it (externalId is the internal post id sent on publish), throws RefreshToken / BadBody on failure
 }
 
 export type PostResponse = {

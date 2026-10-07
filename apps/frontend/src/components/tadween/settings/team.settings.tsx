@@ -63,7 +63,7 @@ const useTeam = () => {
   });
 };
 
-export const InviteMember = () => {
+const InviteMember = () => {
   const modals = useModals();
   const fetch = useFetch();
   const toast = useToaster();

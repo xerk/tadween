@@ -1,0 +1,54 @@
+# Weekly: mirror gitroomhq/postiz-app main into `upstream-main`, then open (or refresh) a PR
+# from `upstream-main` into `tadween`. Review and merge it like any other PR; conflicts only
+# appear in files Tadween changed.
+name: Upstream sync
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC (09:00 Cairo)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tadween
+          fetch-depth: 0
+
+      - name: Mirror upstream main into upstream-main
+        run: |
+          git remote add upstream https://github.com/gitroomhq/postiz-app.git
+          git fetch upstream main --tags
+          git push origin refs/remotes/upstream/main:refs/heads/upstream-main --force
+          git push origin --tags || true
+
+      - name: Open or update the sync PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          behind=$(git rev-list --count origin/tadween..upstream/main)
+          if [ "$behind" = "0" ]; then echo "tadween already has everything from upstream"; exit 0; fi
+          latest=$(git describe --tags --abbrev=0 upstream/main 2>/dev/null || echo "main")
+          existing=$(gh pr list --head upstream-main --base tadween --state open --json number --jq '.[0].number')
+          body="Brings ${behind} new upstream commits from gitroomhq/postiz-app (latest tag: ${latest}).
+
+          Before merging:
+          - Resolve conflicts in files Tadween changed (theme, components, patches).
+          - Check \`patches/README.md\` — drop patches that upstream now includes.
+          - Run the app and smoke-test calendar, editor, preview and billing."
+          if [ -n "$existing" ]; then
+            gh pr edit "$existing" --body "$body"
+          else
+            gh pr create --head upstream-main --base tadween --title "Sync with Postiz upstream (${latest})" --body "$body" --label upstream-sync || \
+            gh pr create --head upstream-main --base tadween --title "Sync with Postiz upstream (${latest})" --body "$body"
+          fi

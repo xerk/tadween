@@ -928,5 +928,9 @@
   "no_upcoming_posts": "No upcoming posts scheduled",
   "page": "Page",
   "of": "of",
-  "tdw_ws_tomorrow": "Tomorrow"
+  "tdw_ws_tomorrow": "Tomorrow",
+  "tdw_ws_channels_count": "{{count}} channels",
+  "tdw_ws_channels_shown_count": "{{shown}} of {{total}} channels shown",
+  "tdw_ws_n_of_m": "{{shown}} of {{total}}",
+  "tdw_ws_filter_hint": "Click a channel to show or hide it; double-click to show only that one."
 }

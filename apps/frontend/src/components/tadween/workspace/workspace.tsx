@@ -216,7 +216,6 @@ export const CalendarWorkspace: FC<{
     <div className={clsx('tdw-ws', showSide && 'has-side', `is-${calendar.display}`)}>
       <div className="tdw-ws-main">
         <WorkspaceToolbar
-          handlers={handlers}
           hasChannels={hasChannels}
           showGenerator={showGenerator}
           onAddChannel={addProvider}
@@ -250,6 +249,9 @@ export const CalendarWorkspace: FC<{
         {hasChannels && (
           <div className="tdw-ws-sheet-filter">
             <div className="tdw-ws-label">{t('tdw_ws_show_on_calendar', 'Show on the calendar')}</div>
+            <p className="tdw-ws-hint">
+              {t('tdw_ws_filter_hint', 'Click a channel to show or hide it; double-click to show only that one.')}
+            </p>
             <ChannelStrip handlers={handlers} onAddChannel={addProvider} wrap />
           </div>
         )}

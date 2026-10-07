@@ -1,37 +1,22 @@
 'use client';
 
 // The workspace toolbar: one floating bar of translucent material holding the
-// date title, navigation, channel chips, customer picker, view switch and
-// Create. It drives Postiz's own calendar state through useCalendarNavigation
-// (the same functions <Filters /> uses), so nothing about loading changes.
-import React, { FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+// date title, navigation, the Channels control, the view switch and Create.
+// It drives Postiz's own calendar state through useCalendarNavigation (the
+// same functions <Filters /> uses), so nothing about loading changes. The
+// channels themselves (chips, filters, menus, customers, Add channel) live in
+// the "All channels" sheet the Channels control opens.
+import React, { FC, useMemo, useRef } from 'react';
 import clsx from 'clsx';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { useCalendarNavigation } from '@gitroom/frontend/components/launches/filters';
-import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
 import { NewPost } from '@gitroom/frontend/components/launches/new.post';
 import { GeneratorComponent } from '@gitroom/frontend/components/launches/generator/generator';
 import { useChannelSelection } from '@gitroom/frontend/components/launches/select.channels';
 import { Button, Icon, IconButton, SegmentedControl } from '@gitroom/frontend/components/tadween/ui';
-import {
-  ChannelAvatar,
-  ChannelMenuHandlers,
-  ChannelStrip,
-} from '@gitroom/frontend/components/tadween/workspace/channel.strip';
 
 type View = 'day' | 'week' | 'month' | 'list';
-
-// One chip; the strip's own padding + "+" + "All channels"; "Show all";
-// the compact "Channels" button that replaces the strip
-const CHIP_WIDTH = 34;
-const STRIP_EXTRA = 116;
-const RESET_WIDTH = 84;
-const CHANNELS_BUTTON = 92;
-const MAX_CHIPS = 8;
-// Once tight, the bar must gain this much before the labels come back
-// (tight itself narrows what's measured, so it needs hysteresis)
-const TIGHT_RELEASE = 160;
 
 const useTitle = () => {
   const t = useT();
@@ -58,60 +43,35 @@ const useTitle = () => {
   }, [startDate, endDate, display, t]);
 };
 
+// One small mark per network the workspace posts to (LinkedIn and LinkedIn
+// Page count once), in the order the channels are listed
+const useNetworkMarks = (channels: { identifier: string }[]) =>
+  useMemo(() => {
+    const seen = new Map<string, string>();
+    channels.forEach((c) => {
+      const network = c.identifier.split('-')[0];
+      if (!seen.has(network)) seen.set(network, c.identifier);
+    });
+    return Array.from(seen.values());
+  }, [channels]);
+
 export const WorkspaceToolbar: FC<{
-  handlers: ChannelMenuHandlers;
   hasChannels: boolean;
   showGenerator: boolean;
   onAddChannel: () => void;
   onOpenChannels: (anchor: DOMRect) => void;
   sideOpen: boolean;
   onToggleSide: () => void;
-}> = ({ handlers, hasChannels, showGenerator, onAddChannel, onOpenChannels, sideOpen, onToggleSide }) => {
+}> = ({ hasChannels, showGenerator, onAddChannel, onOpenChannels, sideOpen, onToggleSide }) => {
   const t = useT();
   const bar = useRef<HTMLElement>(null);
   const nav = useCalendarNavigation();
   const { calendar, isListView } = nav;
   const { title, year, range } = useTitle();
-  const { channels, allSelected } = useChannelSelection();
-
-  // Chips get whatever width the rest of the bar leaves (measured, since
-  // labels change with the language and view); under three, one "Channels"
-  // button takes their place and the sheet holds the full list.
-  // When even the compact bar doesn't fit, it goes "tight": Create shows only
-  // its "+" and the customer picker lives in the sheet.
-  const [chipsMax, setChipsMax] = useState(0);
-  const [tight, setTight] = useState(false);
-  const tightAt = useRef(0);
-  const measure = useCallback(() => {
-    const row = bar.current?.firstElementChild as HTMLElement | null;
-    if (!row) return;
-    const width = row.clientWidth;
-    const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
-    let used = 0;
-    for (const el of Array.from(row.children) as HTMLElement[]) {
-      if (el.matches('.tdw-ws-strip-wrap, .tdw-ws-channels, .tdw-ws-grow')) continue;
-      if (getComputedStyle(el).display === 'none') continue;
-      used += el.offsetWidth + gap;
-    }
-    const strip = STRIP_EXTRA + (allSelected ? 0 : RESET_WIDTH);
-    const next = Math.max(0, Math.min(MAX_CHIPS, Math.floor((width - used - strip - 8) / CHIP_WIDTH)));
-    setChipsMax((current) => (current === next ? current : next));
-    if (!tightAt.current && used + CHANNELS_BUTTON + gap > width) {
-      tightAt.current = width;
-      setTight(true);
-    } else if (tightAt.current && width > tightAt.current + TIGHT_RELEASE) {
-      tightAt.current = 0;
-      setTight(false);
-    }
-  }, [allSelected]);
-  useLayoutEffect(measure, [measure, title, range, isListView, sideOpen, hasChannels, showGenerator, channels.length, tight]);
-  useEffect(() => {
-    if (!bar.current) return;
-    const observer = new ResizeObserver(() => measure());
-    observer.observe(bar.current);
-    return () => observer.disconnect();
-  }, [measure]);
-  const compact = chipsMax < Math.min(3, channels.length + 1);
+  const { channels, selectedIds, allSelected } = useChannelSelection();
+  const marks = useNetworkMarks(channels);
+  const shown = channels.filter((c) => selectedIds.includes(c.id)).length;
+  const needsReconnect = channels.some((c) => c.refreshNeeded || c.inBetweenSteps);
 
   const views: { value: View; label: string }[] = [
     { value: 'day', label: t('day', 'Day') },
@@ -129,9 +89,15 @@ export const WorkspaceToolbar: FC<{
       : nav.setList();
 
   const openChannels = () => bar.current && onOpenChannels(bar.current.getBoundingClientRect());
+  const channelsLabel = allSelected
+    ? t('tdw_ws_channels_count', '{{count}} channels', { count: channels.length })
+    : t('tdw_ws_channels_shown_count', '{{shown}} of {{total}} channels shown', {
+        shown,
+        total: channels.length,
+      });
 
   return (
-    <header ref={bar} className={clsx('tdw-ui tdw-ws-bar', compact && 'is-compact', tight && 'is-tight')}>
+    <header ref={bar} className="tdw-ui tdw-ws-bar">
       <div className="tdw-ws-bar-row">
         <div className="tdw-ws-title" aria-live="polite">
           <h1>
@@ -202,41 +168,43 @@ export const WorkspaceToolbar: FC<{
           </div>
         )}
 
-        <div className="tdw-ws-customer">
-          <SelectCustomer
-            customer={calendar.customer as string}
-            onChange={(customer: string) => nav.setCustomer(customer)}
-            integrations={calendar.integrations}
-          />
-        </div>
-
-        <div className="tdw-ws-strip-wrap">
-          <ChannelStrip handlers={handlers} onAddChannel={onAddChannel} onShowAll={openChannels} max={Math.max(1, chipsMax)} />
-          <IconButton
-            icon="layout-list"
-            className="tdw-ws-allbtn"
-            label={t('tdw_ws_all_channels', 'All channels')}
-            onClick={openChannels}
-          />
-        </div>
-
+        {/* Channels: the networks in use and how many channels are shown */}
         <button
           type="button"
           className={clsx('tdw-ws-channels', !allSelected && 'is-filtered')}
           onClick={openChannels}
-          aria-label={t('tdw_ws_all_channels', 'All channels')}
-          data-tooltip-id="tooltip"
-          data-tooltip-content={t('tdw_ws_all_channels', 'All channels')}
+          aria-haspopup="dialog"
+          aria-label={`${t('tdw_ws_all_channels', 'All channels')} · ${channelsLabel}`}
         >
-          <span className="tdw-ws-stack" aria-hidden="true">
-            {channels.length ? (
-              channels.slice(0, 3).map((c) => <ChannelAvatar key={c.id} channel={c} size={24} />)
-            ) : (
-              <Icon name="layout-list" size={16} />
-            )}
+          {marks.length ? (
+            <span className="tdw-ws-marks" aria-hidden="true">
+              {marks.map((identifier) => (
+                <img
+                  key={identifier}
+                  src={
+                    identifier === 'youtube'
+                      ? '/icons/platforms/youtube.svg'
+                      : `/icons/platforms/${identifier}.png`
+                  }
+                  alt=""
+                />
+              ))}
+            </span>
+          ) : (
+            <Icon name="plug" size={15} />
+          )}
+          <span className="tdw-ws-count-label" aria-hidden="true">
+            {allSelected
+              ? channels.length
+              : t('tdw_ws_n_of_m', '{{shown}} of {{total}}', { shown, total: channels.length })}
           </span>
           <Icon name="chevron-down" size={14} />
-          {!allSelected && <i className="tdw-ws-dot" aria-label={t('tdw_ws_filtered', 'Filtered')} />}
+          {needsReconnect && (
+            <i
+              className="tdw-ws-alert-dot"
+              title={t('channel_disconnected_click_to_reconnect', 'Channel disconnected, click to reconnect.')}
+            />
+          )}
         </button>
 
         <div className="tdw-ws-views">
@@ -278,4 +246,3 @@ export const WorkspaceToolbar: FC<{
     </header>
   );
 };
-

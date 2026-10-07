@@ -89,6 +89,7 @@ export const ChannelChip: FC<{
         data-tooltip-id="tooltip"
         data-tooltip-content={`${channel.name}${status ? ` · ${status}` : ''}`}
         onClick={(e) => (e.altKey ? onSolo() : onToggle())}
+        onDoubleClick={onSolo}
       >
         <ChannelAvatar channel={channel} size={28} />
       </button>

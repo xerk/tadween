@@ -970,5 +970,9 @@
   "no_upcoming_posts": "لا توجد منشورات مجدولة قادمة",
   "page": "صفحة",
   "of": "من",
-  "tdw_ws_tomorrow": "غدًا"
+  "tdw_ws_tomorrow": "غدًا",
+  "tdw_ws_channels_count": "{{count}} قنوات",
+  "tdw_ws_channels_shown_count": "{{shown}} من {{total}} قنوات ظاهرة",
+  "tdw_ws_n_of_m": "{{shown}} من {{total}}",
+  "tdw_ws_filter_hint": "انقر على قناة لإظهارها أو إخفائها، وانقر مرتين لإظهارها وحدها."
 }

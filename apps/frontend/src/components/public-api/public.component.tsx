@@ -12,6 +12,7 @@ import { useDecisionModal } from '@gitroom/frontend/components/layout/new-modal'
 import { DeveloperComponent } from '@gitroom/frontend/components/developer/developer.component';
 import { McpClientIcon } from '@gitroom/frontend/components/public-api/mcp.client.icons';
 import clsx from 'clsx';
+import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 
 // Remote clients can't set headers, they get a URL to paste (hint = where)
 export const remoteMcpClients = {
@@ -315,9 +316,12 @@ const McpSection = ({
   mcpBase: string;
 }) => {
   const t = useT();
-  const { billingEnabled } = useVariables();
+  const { mcpOfficialConnectors } = useVariables();
+  const brand = useBrandLinks();
   const [activeClient, setActiveClient] = useState<AnyMcpClient>('Claude');
-  const officialConnectors = billingEnabled || isSelfHosted;
+  // Tadween: the directory connectors sign people in to Postiz's cloud, so they
+  // only show when MCP_OFFICIAL_CONNECTORS=true
+  const officialConnectors = !!mcpOfficialConnectors;
   // the directory connectors come first wherever they work
   const tabs: Array<'official' | McpAuth> = officialConnectors
     ? ['official', 'oauth', 'apikey']
@@ -380,14 +384,16 @@ const McpSection = ({
               </a>
             </>
           )}
+          {!!brand.docs() && (
           <a
             className="cursor-pointer px-[16px] h-[36px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
-            href="https://docs.postiz.com/mcp/introduction"
+            href={brand.docs('/mcp/introduction')}
             target="_blank"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
             {t('read_the_docs', 'Docs')}
           </a>
+          )}
         </div>
       </div>
       <div className="p-[20px] mobile:p-[14px] flex flex-col gap-[16px]">
@@ -412,7 +418,9 @@ const McpSection = ({
                   {m === 'official'
                     ? t('official_connector', 'Official connector')
                     : m === 'oauth'
-                    ? t('sign_in_no_api_key', 'Sign in with Postiz (no API key)')
+                    ? t('sign_in_no_api_key', 'Sign in with {{name}} (no API key)', {
+                        name: brand.name,
+                      })
                     : t('api_key', 'API Key')}
                 </button>
               ))}
@@ -463,7 +471,7 @@ const McpSection = ({
             {[
               ...Object.keys(remoteMcpClients),
               ...mcpClients,
-              ...Object.keys(chatOnlyMcpClients),
+              ...(officialConnectors ? Object.keys(chatOnlyMcpClients) : []),
             ].map((client) => (
               <button
                 key={client}
@@ -573,51 +581,42 @@ const McpSection = ({
   );
 };
 
-export const localCliSteps = [
+// Tadween: the CLI talks to this instance (POSTIZ_API_URL) with the API key.
+// `postiz auth:login` is left out: it signs in through Postiz's own auth server.
+export const cliSteps = [
   {
     label: 'Install the CLI',
     code: 'npm install -g postiz',
   },
   {
-    label: 'Run: postiz auth:login',
-    code: 'postiz auth:login',
-  },
-  {
-    label: 'Install the Postiz skill for your AI agent',
-    code: 'npx skills add gitroomhq/postiz-agent',
-  },
-] as const;
-
-const ciCliSteps = [
-  {
-    label: 'Install the CLI',
-    code: 'npm install -g postiz',
+    label: 'Point the CLI at this workspace',
+    code: 'export POSTIZ_API_URL="{API_URL}"',
   },
   {
     label: 'Set your API key as an environment variable',
     code: 'export POSTIZ_API_KEY="{API_KEY}"',
   },
   {
-    label: 'Install the Postiz skill for your AI agent',
+    label: 'Install the skill for your AI agent',
     code: 'npx skills add gitroomhq/postiz-agent',
   },
 ] as const;
 
-const CliSection = ({ apiKey }: { apiKey: string }) => {
+export const fillCliSteps = (apiUrl: string, apiKey: string) =>
+  cliSteps.map((step) => ({
+    ...step,
+    code: step.code.replace('{API_URL}', apiUrl).replace('{API_KEY}', apiKey),
+  }));
+
+const CliSection = ({ apiKey, apiUrl }: { apiKey: string; apiUrl: string }) => {
   const t = useT();
-  const [mode, setMode] = useState<'local' | 'ci'>('local');
+  const brand = useBrandLinks();
   const [revealed, setRevealed] = useState(false);
 
-  const steps =
-    mode === 'local'
-      ? localCliSteps.map((step) => ({ ...step }))
-      : ciCliSteps.map((step) => ({
-          ...step,
-          code: step.code.replace('{API_KEY}', apiKey),
-        }));
+  const steps = fillCliSteps(apiUrl, apiKey);
 
   const displaySteps =
-    mode === 'ci' && !revealed
+    !revealed
       ? steps.map((step) => ({
           ...step,
           code: step.code.replace(
@@ -642,36 +641,19 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
           </div>
         </div>
         <div className="flex flex-wrap gap-[6px] shrink-0 pt-[2px]">
+          {!!brand.docs() && (
           <a
             className="cursor-pointer px-[16px] h-[36px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
-            href="https://docs.postiz.com/cli/introduction"
+            href={brand.docs('/cli/introduction')}
             target="_blank"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
             {t('read_the_docs', 'Docs')}
           </a>
+          )}
         </div>
       </div>
       <div className="p-[20px] mobile:p-[14px] flex flex-col gap-[16px]">
-        <div className="flex gap-[6px]">
-          {(['local', 'ci'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              className={clsx(
-                'cursor-pointer px-[14px] h-[36px] text-[13px] font-[500] rounded-[8px] transition-colors',
-                mode === m
-                  ? 'bg-[#612BD3] text-white'
-                  : 'bg-btnSimple text-customColor18 hover:bg-boxHover hover:text-textColor'
-              )}
-              onClick={() => setMode(m)}
-            >
-              {m === 'local'
-                ? t('locally', 'Locally')
-                : t('ci_remote_servers', 'CI / Remote servers')}
-            </button>
-          ))}
-        </div>
         {displaySteps.map((step, i) => (
           <div key={i} className="flex flex-col gap-[6px]">
             <div className="text-[13px] font-[600] text-customColor18">
@@ -683,7 +665,7 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
           </div>
         ))}
         <div className="flex flex-wrap gap-[8px]">
-          {mode === 'ci' && (
+          {(
             <button
               type="button"
               onClick={() => setRevealed(!revealed)}
@@ -734,6 +716,7 @@ const PublicApiContent = () => {
   const { mutate } = useSWRConfig();
   const [reveal, setReveal] = useState(false);
   const t = useT();
+  const brand = useBrandLinks();
 
   const rotateKey = useCallback(async () => {
     const approved = await decision.open({
@@ -798,14 +781,16 @@ const PublicApiContent = () => {
             </div>
           </div>
           <div className="flex flex-wrap gap-[6px] shrink-0 pt-[2px]">
+            {!!brand.docs() && (
             <a
               className="cursor-pointer px-[16px] h-[36px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
-              href="https://docs.postiz.com/public-api"
+              href={brand.docs('/public-api')}
               target="_blank"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
             {t('read_the_docs', 'Docs')}
             </a>
+            )}
             <a
               className="cursor-pointer px-[16px] h-[36px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
               href="https://www.npmjs.com/package/n8n-nodes-postiz"
@@ -915,7 +900,7 @@ const PublicApiContent = () => {
         </div>
       </div>
 
-      <CliSection apiKey={user.publicApi} />
+      <CliSection apiKey={user.publicApi} apiUrl={backendUrl} />
 
       <McpSection user={user} mcpBase={mcpBase} />
     </div>

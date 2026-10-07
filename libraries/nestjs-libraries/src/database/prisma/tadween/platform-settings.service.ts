@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PlatformSettingsRepository } from '@gitroom/nestjs-libraries/database/prisma/tadween/platform-settings.repository';
 import {
+  BRAND_LINK_KEYS,
   Branding,
   brandingDefaults,
   FEATURE_KEYS,
@@ -115,6 +116,10 @@ export class PlatformSettingsService {
         supportEmail: branding.supportEmail || '',
         defaultLanguage: branding.defaultLanguage,
         defaultTimezone: branding.defaultTimezone || '',
+        ...BRAND_LINK_KEYS.reduce(
+          (all, key) => ({ ...all, [key]: (branding[key] || '').trim() }),
+          {} as Record<string, string>
+        ),
       },
       userId
     );

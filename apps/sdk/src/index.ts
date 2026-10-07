@@ -15,8 +15,13 @@ function toQueryString(obj: Record<string, any>): string {
 export default class Postiz {
   constructor(
     private _apiKey: string,
-    private _path = 'https://api.postiz.com'
-  ) {}
+    // Tadween: no hosted default, the API URL of your instance (or POSTIZ_API_URL)
+    private _path = process.env.POSTIZ_API_URL || ''
+  ) {
+    if (!this._path) {
+      throw new Error('Pass the API URL of your instance, or set POSTIZ_API_URL');
+    }
+  }
 
   async post(posts: CreatePostDto) {
     return (

@@ -36,7 +36,7 @@ const LANGUAGES = [
 ];
 
 const ZONES = [
-  { value: '', label: 'Each person’s browser', description: 'What Postiz does today' },
+  { value: '', label: 'Each person’s browser', description: 'The default' },
   { value: 'Africa/Cairo', label: 'Cairo', description: 'GMT+2 / +3' },
   { value: 'Asia/Riyadh', label: 'Riyadh', description: 'GMT+3' },
   { value: 'Asia/Dubai', label: 'Dubai', description: 'GMT+4' },
@@ -48,6 +48,25 @@ const ZONES = [
   { value: 'America/New_York', label: 'New York', description: 'GMT−5 / −4' },
   { value: 'UTC', label: 'UTC' },
 ];
+
+type LinkKey =
+  | 'websiteUrl'
+  | 'termsUrl'
+  | 'privacyUrl'
+  | 'docsUrl'
+  | 'supportUrl'
+  | 'tutorialVideoUrl';
+
+const LINKS: { key: LinkKey; label: string; placeholder: string; hint: string }[] = [
+  { key: 'websiteUrl', label: 'Website', placeholder: 'https://example.com', hint: 'Your public site.' },
+  { key: 'supportUrl', label: 'Help center', placeholder: 'https://example.com/help', hint: 'Where people get help.' },
+  { key: 'termsUrl', label: 'Terms of service', placeholder: 'https://example.com/terms', hint: 'Linked from sign-up.' },
+  { key: 'privacyUrl', label: 'Privacy policy', placeholder: 'https://example.com/privacy', hint: 'Linked from sign-up.' },
+  { key: 'docsUrl', label: 'Developer docs', placeholder: 'https://docs.example.com', hint: 'Base of the API, MCP and CLI docs (/public-api, /mcp, /cli).' },
+  { key: 'tutorialVideoUrl', label: 'Tutorial video', placeholder: 'https://www.youtube.com/embed/…', hint: 'An embeddable video URL, shown in onboarding.' },
+];
+
+const isUrl = (value: string) => /^https?:\/\/[^\s]+$/i.test(value.trim());
 
 export const AdminBrandingPage = () => {
   const { data, error, isLoading, mutate } = useAdminSettings();
@@ -69,8 +88,17 @@ export const AdminBrandingPage = () => {
       ? 'Enter an email address, or leave it empty.'
       : undefined;
 
+  const linkErrors = LINKS.reduce(
+    (all, { key }) =>
+      form && form[key]?.trim() && !isUrl(form[key])
+        ? { ...all, [key]: 'Enter a full http(s) URL, or leave it empty.' }
+        : all,
+    {} as Partial<Record<LinkKey, string>>
+  );
+  const hasLinkError = Object.keys(linkErrors).length > 0;
+
   const submit = async () => {
-    if (!form || nameError || emailError) return;
+    if (!form || nameError || emailError || hasLinkError) return;
     setSaving(true);
     setErr('');
     try {
@@ -78,6 +106,10 @@ export const AdminBrandingPage = () => {
         ...form,
         instanceName: form.instanceName.trim(),
         supportEmail: form.supportEmail.trim(),
+        ...LINKS.reduce(
+          (all, { key }) => ({ ...all, [key]: (form[key] || '').trim() }),
+          {} as Record<LinkKey, string>
+        ),
       });
       await mutate({ ...data!, branding: next.branding }, { revalidate: false });
       setForm(next.branding);
@@ -99,7 +131,7 @@ export const AdminBrandingPage = () => {
           <Button variant="ghost" disabled={!dirty || saving} onClick={() => data && setForm(data.branding)}>
             Discard
           </Button>
-          <Button variant="primary" disabled={!dirty || !!nameError || !!emailError} loading={saving} loadingLabel="Saving…" onClick={submit}>
+          <Button variant="primary" disabled={!dirty || !!nameError || !!emailError || hasLinkError} loading={saving} loadingLabel="Saving…" onClick={submit}>
             Save changes
           </Button>
         </div>
@@ -138,6 +170,29 @@ export const AdminBrandingPage = () => {
               hint="Replies to Tadween emails go here."
               onChange={(e) => setForm({ ...form, supportEmail: e.target.value })}
             />
+          </div>
+        )}
+      </Section>
+      <Section
+        title="Links"
+        description="Shown across the app (sign-up, developer pages, onboarding). Leave a link empty to hide it; Tadween never falls back to another product's pages."
+      >
+        {isLoading || !form ? (
+          <Skeleton height={200} radius={10} />
+        ) : (
+          <div className="grid grid-cols-2 gap-[12px] mobile:grid-cols-1 py-[4px]">
+            {LINKS.map(({ key, label, placeholder, hint }) => (
+              <Input
+                key={key}
+                label={label}
+                type="url"
+                placeholder={placeholder}
+                value={form[key] || ''}
+                error={linkErrors[key]}
+                hint={hint}
+                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+              />
+            ))}
           </div>
         )}
       </Section>

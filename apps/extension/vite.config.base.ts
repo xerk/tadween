@@ -23,6 +23,15 @@ export const baseManifest = {
     ...providers.map(p => p.hostPermission)
   ],
   permissions: [...(manifest.permissions || [])],
+  // Tadween: only this instance's app may talk to the extension (was *.postiz.com)
+  externally_connectable: {
+    matches: [
+      ...manifest.externally_connectable.matches,
+      ...(process?.env?.FRONTEND_URL
+        ? [new URL(process.env.FRONTEND_URL).origin + '/*']
+        : []),
+    ],
+  },
   version: pkg.version,
   ...merge,
   ...(localize

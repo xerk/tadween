@@ -23,7 +23,7 @@ import {
   getMcpConfig,
   isChatOnlyMcpClient,
   isSelfHosted,
-  localCliSteps,
+  fillCliSteps,
   McpAuth,
   McpClient,
   mcpClients,
@@ -38,6 +38,7 @@ import {
   Skeleton,
   TadweenScope,
 } from '@gitroom/frontend/components/tadween/ui';
+import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 
 const LINKEDIN = ['linkedin', 'linkedin-page'];
 
@@ -341,7 +342,6 @@ const otherTab = 'Other agents' as const;
 const otherAgents = mcpClients.filter((c) => !(onboardingAgents as readonly string[]).includes(c));
 const apiTab = 'API' as const;
 type OnboardingTab = OnboardingAgent | typeof otherTab | typeof apiTab;
-const cliCommands = localCliSteps.map((s) => s.code);
 
 const CopyBtn: FC<{ text: string; label: string }> = ({ text, label }) => {
   const toaster = useToaster();
@@ -379,7 +379,8 @@ const Panel: FC<{ title: ReactNode; desc?: ReactNode; children?: ReactNode; asid
 const AgentsStep: FC = () => {
   const t = useT();
   const user = useUser();
-  const { backendUrl, mcpUrl, billingEnabled } = useVariables();
+  const { backendUrl, mcpUrl, mcpOfficialConnectors } = useVariables();
+  const brand = useBrandLinks();
   const [tab, setTab] = useState<OnboardingTab>('Claude');
   const [otherAgent, setOtherAgent] = useState<McpClient>(otherAgents[0]);
   const agent: AnyMcpClient | typeof apiTab = tab === otherTab ? otherAgent : tab;
@@ -388,7 +389,10 @@ const AgentsStep: FC = () => {
   const mcpBase = mcpUrl || backendUrl;
   const apiKey = user?.publicApi || '';
   const available = !!apiKey && !!user?.tier?.public_api;
-  const officialConnectors = billingEnabled || isSelfHosted;
+  // Directory connectors sign in through Postiz's cloud: opt-in only
+  const officialConnectors = !!mcpOfficialConnectors;
+  const cliCommands = fillCliSteps(backendUrl, revealed ? apiKey : '*'.repeat(apiKey.length)).map((s) => s.code);
+  const cliCopy = fillCliSteps(backendUrl, apiKey).map((s) => s.code);
 
   const { config, hint } =
     agent === apiTab ? { config: '', hint: '' } : getMcpConfig(agent, auth, mcpBase, apiKey);
@@ -458,15 +462,17 @@ const AgentsStep: FC = () => {
           title={t('tdw_documentation', 'Documentation')}
           desc={t('tdw_api_desc', 'Use the API from your own code, n8n or any other automation.')}
           aside={
-            <a
-              className="pz-btn pz-btn-primary pz-btn-md no-underline shrink-0"
-              href="https://docs.postiz.com/public-api/introduction"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Icon name="external-link" />
-              {t('tdw_read_api_docs', 'Read the API docs')}
-            </a>
+            brand.docs() ? (
+              <a
+                className="pz-btn pz-btn-primary pz-btn-md no-underline shrink-0"
+                href={brand.docs('/public-api/introduction')}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Icon name="external-link" />
+                {t('tdw_read_api_docs', 'Read the API docs')}
+              </a>
+            ) : undefined
           }
         />
         <Panel
@@ -533,7 +539,8 @@ const AgentsStep: FC = () => {
           >
             <pre className="pz-ob-code">{cliCommands.join('\n')}</pre>
             <div className="pz-ob-actions">
-              <CopyBtn text={cliCommands.join(' && ')} label={t('tdw_commands', 'Commands')} />
+              {reveal}
+              <CopyBtn text={cliCopy.join(' && ')} label={t('tdw_commands', 'Commands')} />
             </div>
           </Panel>
         </div>
@@ -552,7 +559,13 @@ const AgentsStep: FC = () => {
       {available ? (
         <div className="pz-ob-agents">
           <div className="pz-ob-chips" role="group" aria-label={t('tdw_ob_agents_pick', 'Agent')}>
-            {[...onboardingAgents, otherTab, apiTab].map((item) => (
+            {[
+              ...onboardingAgents.filter(
+                (a) => officialConnectors || !isChatOnlyMcpClient(a)
+              ),
+              otherTab,
+              apiTab,
+            ].map((item) => (
               <button
                 key={item}
                 type="button"
@@ -604,6 +617,18 @@ const AgentsStep: FC = () => {
 /* Step 3: the tutorial video */
 const TutorialStep: FC = () => {
   const t = useT();
+  // Tadween: our own video from /admin → Branding; without one, a short wrap-up
+  const { tutorialVideoUrl } = useBrandLinks();
+  if (!tutorialVideoUrl) {
+    return (
+      <div className="text-center grid gap-[4px]">
+        <h2 className="title-1">{t('tdw_ob_done_title', 'You’re all set')}</h2>
+        <p className="pz-ob-lead">
+          {t('tdw_ob_done_lead', 'Head to your calendar and schedule your first post.')}
+        </p>
+      </div>
+    );
+  }
   return (
     <>
       <div className="text-center grid gap-[4px]">
@@ -614,7 +639,7 @@ const TutorialStep: FC = () => {
       </div>
       <div className="pz-ob-video mx-auto max-w-[880px]">
         <iframe
-          src="https://www.youtube.com/embed/BdsCVvEYgHU?si=vvhaZJ8I5oXXvVJS?autoplay=1"
+          src={tutorialVideoUrl}
           title={t('tdw_tutorial', 'Tutorial')}
           allow="autoplay"
           allowFullScreen

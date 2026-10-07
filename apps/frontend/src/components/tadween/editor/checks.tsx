@@ -11,6 +11,7 @@ import { countLength } from '@gitroom/helpers/utils/count.length';
 import { Integrations } from '@gitroom/frontend/components/launches/calendar.context';
 import { TadweenChannelAvatar } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 import { TadweenIcon } from '@gitroom/frontend/components/tadween/editor/icons';
+import { TadweenSheet } from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
 
 export interface EditorIssue {
   kind: 'empty' | 'too_long';
@@ -100,7 +101,7 @@ const IssueLabel: FC<{ issue: EditorIssue }> = ({ issue }) => {
   );
 };
 
-export const EditorChecks: FC = () => {
+export const EditorChecks: FC<{ sheet?: boolean }> = ({ sheet }) => {
   const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useClickOutside<HTMLDivElement>(() => setOpen(false));
@@ -125,6 +126,43 @@ export const EditorChecks: FC = () => {
     setHide(true);
   };
 
+  const label = issueCount
+    ? t('tdw_n_to_fix', '{{count}} to fix', { count: issueCount })
+    : t('tdw_ready_for_n', 'Ready for {{count}}', { count: total });
+
+  // phones: a compact chip in the accessory bar, the list opens in a sheet
+  if (sheet) {
+    return (
+      <>
+        <button
+          type="button"
+          className={clsx(
+            'tdw-checks tdw-cm-checks',
+            issueCount ? 'is-issues' : 'is-ok'
+          )}
+          aria-label={label}
+          aria-haspopup={issueCount ? 'dialog' : undefined}
+          onClick={() => issueCount && setOpen(true)}
+        >
+          <TadweenIcon name={issueCount ? 'alert' : 'check'} size={16} />
+          {!!issueCount && <span>{issueCount}</span>}
+        </button>
+        <TadweenSheet
+          open={open && !!issueCount}
+          onClose={() => setOpen(false)}
+          title={t('tdw_fix_before_scheduling', 'Fix before scheduling')}
+        >
+          <p className="tdw-cm-sheet-hint">
+            {t('tdw_tap_one_to_go_there', 'Tap one to go there.')}
+          </p>
+          <div className="tdw-cm-checks-list">
+            <EditorChecksList checks={checks} onJump={jump} />
+          </div>
+        </TadweenSheet>
+      </>
+    );
+  }
+
   return (
     <div ref={ref} className="tdw-checks-anchor">
       <button
@@ -135,9 +173,7 @@ export const EditorChecks: FC = () => {
         onClick={() => issueCount && setOpen(!open)}
       >
         <TadweenIcon name={issueCount ? 'alert' : 'check'} size={15} />
-        {issueCount
-          ? t('tdw_n_to_fix', '{{count}} to fix', { count: issueCount })
-          : t('tdw_ready_for_n', 'Ready for {{count}}', { count: total })}
+        {label}
       </button>
       {open && !!issueCount && (
         <div className="tdw-checks-pop" role="dialog">
@@ -145,32 +181,38 @@ export const EditorChecks: FC = () => {
             <b>{t('tdw_fix_before_scheduling', 'Fix before scheduling')}</b>
             <span>{t('tdw_tap_one_to_go_there', 'Tap one to go there.')}</span>
           </div>
-          {checks.map(({ integration, issues }) => (
-            <div key={integration.id} className="tdw-checks-group">
-              <div className="tdw-checks-who">
-                <TadweenChannelAvatar integration={integration} size={20} />
-                <span>{integration.name}</span>
-              </div>
-              {issues.map((issue, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className="tdw-checks-item"
-                  onClick={() => jump(integration)}
-                >
-                  <TadweenIcon name="type" size={14} />
-                  <IssueLabel issue={issue} />
-                  <TadweenIcon
-                    name="chevron"
-                    size={14}
-                    className="tdw-checks-go"
-                  />
-                </button>
-              ))}
-            </div>
-          ))}
+          <EditorChecksList checks={checks} onJump={jump} />
         </div>
       )}
     </div>
   );
 };
+
+// Each channel with what to fix; tapping a line goes to that channel.
+const EditorChecksList: FC<{
+  checks: ReturnType<typeof useEditorChecks>['checks'];
+  onJump: (integration: Integrations) => void;
+}> = ({ checks, onJump }) => (
+  <>
+    {checks.map(({ integration, issues }) => (
+      <div key={integration.id} className="tdw-checks-group">
+        <div className="tdw-checks-who">
+          <TadweenChannelAvatar integration={integration} size={20} />
+          <span>{integration.name}</span>
+        </div>
+        {issues.map((issue, i) => (
+          <button
+            key={i}
+            type="button"
+            className="tdw-checks-item"
+            onClick={() => onJump(integration)}
+          >
+            <TadweenIcon name="type" size={14} />
+            <IssueLabel issue={issue} />
+            <TadweenIcon name="chevron" size={14} className="tdw-checks-go" />
+          </button>
+        ))}
+      </div>
+    ))}
+  </>
+);

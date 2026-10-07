@@ -1,6 +1,13 @@
 'use client';
 
-import { FC, RefObject, useCallback, useEffect, useState } from 'react';
+import {
+  FC,
+  RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   SelectedIntegrations,
   useLaunchStore,
@@ -11,6 +18,7 @@ import { GlobalIcon } from '@gitroom/frontend/components/ui/icons';
 import { TadweenChannelAvatar } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 import { TadweenIcon } from '@gitroom/frontend/components/tadween/editor/icons';
 import { useEditorChecks } from '@gitroom/frontend/components/tadween/editor/checks';
+import { PHONE_QUERY } from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Integrations } from '@gitroom/frontend/components/launches/calendar.context';
 import {
@@ -75,6 +83,30 @@ export const SelectCurrent: FC = () => {
   const t = useT();
   const { checks } = useEditorChecks();
 
+  // phones: the strip scrolls sideways, keep the open tab in view (after a
+  // jump from the checks sheet, for example)
+  const stripRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const strip = stripRef.current;
+    const tab = strip?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (
+      !strip ||
+      !tab ||
+      !window.matchMedia(PHONE_QUERY).matches ||
+      strip.scrollWidth <= strip.clientWidth
+    ) {
+      return;
+    }
+    const box = strip.getBoundingClientRect();
+    const item = tab.getBoundingClientRect();
+    if (item.left < box.left || item.right > box.right) {
+      strip.scrollBy({
+        left: item.left + item.width / 2 - (box.left + box.width / 2),
+        behavior: 'smooth',
+      });
+    }
+  }, [current, selectedIntegrations.length]);
+
   const removeSocial = useCallback(
     (sIntegration: Integrations) => async (e: any) => {
       e.stopPropagation();
@@ -96,6 +128,7 @@ export const SelectCurrent: FC = () => {
 
   return (
     <div
+      ref={stripRef}
       role="tablist"
       aria-label={t('tdw_editing', 'Editing')}
       className={clsx(

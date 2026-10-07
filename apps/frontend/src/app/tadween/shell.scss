@@ -20,6 +20,16 @@ $tdw-mobile: '(max-width: 1025px)';
   width: var(--tdw-side-w);
   transition: width var(--tdw-side-dur) var(--tdw-ease-spring);
 
+  // The card is exactly one window tall and stays put while the page scrolls,
+  // so Settings and the account always sit at its bottom edge.
+  @media not #{$tdw-mobile} {
+    position: sticky;
+    top: 12px;
+    align-self: flex-start;
+    height: calc(100vh - 24px);
+    height: calc(100dvh - 24px);
+  }
+
   &.is-collapsed {
     @media #{$tdw-desktop} {
       --tdw-side-w: 80px;

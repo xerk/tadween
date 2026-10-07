@@ -10,5 +10,11 @@ export const Title = () => {
     return menuItems.find((item) => path.indexOf(item.path) > -1)?.name;
   }, [path]);
 
+  // Tadween: Today and the calendar lead with their own heading (greeting, month),
+  // so the top bar doesn't repeat it.
+  if (/^\/(today|launches)(\/|$)/.test(path)) {
+    return null;
+  }
+
   return <h1 className="truncate">{currentTitle}</h1>;
 };

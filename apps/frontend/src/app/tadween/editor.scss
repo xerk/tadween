@@ -530,25 +530,9 @@ body {
   }
   .tdw-pem-foot .tdw-dp-trigger { margin-inline-start: 0; }
 
-  // Phones: Postiz hides the footer and opens the composer controls from a
-  // top bar and bottom sheets; the checks chip sits next to the scope strip.
+  // Phones: the composer has its own top bar, accessory bar and sheets
+  // (composer-mobile.scss); the settings panel lives in a TadweenSheet.
   @media (max-width: 1025px) {
-    .tdw-checks { height: 36px; padding: 0 10px; font-size: 13px; }
-    .tdw-checks-pop {
-      position: fixed;
-      inset-inline: 12px;
-      top: 120px;
-      bottom: auto;
-      width: auto;
-      max-width: none;
-    }
-    // the channel settings panel doubles as a bottom sheet
-    .tdw-pem-settings {
-      border-radius: 24px 24px 0 0;
-      background: var(--tdw-popover);
-      box-shadow: var(--tdw-shadow-lg);
-    }
-    .tdw-pem-settings #social-settings { background: transparent; }
     // the sheet has its own header, the collapsible desktop row goes away
     .tdw-pem-settings-head, .tdw-pem-settings-ico { display: none; }
     // a locked channel tab keeps the lock card right under the shared text

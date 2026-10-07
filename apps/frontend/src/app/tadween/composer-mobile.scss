@@ -11,7 +11,8 @@
 // Tokens come from ../tadween.scss; social previews keep their own colours.
 
 $phone: '(max-width: 1025px)';
-$desktop: '(min-width: 1026px)';
+// the exact complement, so fractional widths (browser zoom) land in one
+$desktop: 'not all and (max-width: 1025px)';
 
 @keyframes tdw-cm-spin {
   to { transform: rotate(360deg); }

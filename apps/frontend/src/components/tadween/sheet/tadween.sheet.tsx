@@ -12,6 +12,7 @@ import React, {
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { usePresence } from '@gitroom/frontend/components/tadween/ui/overlays';
 
 // Phones get the composer's sheets from the same width upstream's `mobile:`
 // screen starts at (tailwind.config.cjs), so both layouts switch together.
@@ -88,8 +89,10 @@ export const TadweenSheet: FC<{
   const id = useId();
   const phone = usePhoneLayout();
   const active = open && (!inline || phone);
-  const [present, setPresent] = useState(active);
-  const [shown, setShown] = useState(false);
+  // enters on the frame after mounting so the spring has a start, and stays
+  // mounted through its (quicker) exit
+  const { mounted: present, state } = usePresence(active, 280);
+  const shown = state === 'open';
   const [level, setLevel] = useState<'medium' | 'large'>(
     detent === 'medium' ? 'medium' : 'large'
   );
@@ -106,26 +109,12 @@ export const TadweenSheet: FC<{
     samples: { y: number; t: number }[];
   } | null>(null);
 
-  // enter on the frame after mounting so the spring has a start, leave
-  // faster than it came in
+  // every opening starts at its first detent, with no drag left over
   useEffect(() => {
     if (active) {
-      setPresent(true);
       setLevel(detent === 'medium' ? 'medium' : 'large');
       rootRef.current?.style.setProperty('--tdw-sheet-drag', '0px');
-      let inner = 0;
-      const outer = requestAnimationFrame(() => {
-        inner = requestAnimationFrame(() => setShown(true));
-      });
-      return () => {
-        cancelAnimationFrame(outer);
-        cancelAnimationFrame(inner);
-      };
     }
-
-    setShown(false);
-    const timer = setTimeout(() => setPresent(false), 280);
-    return () => clearTimeout(timer);
   }, [active]);
 
   // focus moves into the sheet, Tab cycles inside it, Escape closes the top
@@ -274,7 +263,10 @@ export const TadweenSheet: FC<{
       return;
     }
 
-    root.dataset.detent = target.to;
+    // a fit sheet has one resting place, only a medium one changes detent
+    if (detent === 'medium') {
+      root.dataset.detent = target.to;
+    }
     root.style.setProperty('--tdw-sheet-drag', '0px');
     setLevel(target.to);
   }, [detent, restOffset]);

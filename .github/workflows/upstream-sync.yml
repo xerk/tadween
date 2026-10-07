@@ -11,6 +11,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 concurrency:
   group: upstream-sync
@@ -32,23 +33,34 @@ jobs:
           git push origin refs/remotes/upstream/main:refs/heads/upstream-main --force
           git push origin --tags || true
 
-      - name: Open or update the sync PR
+      - name: Open or update the sync PR (or an issue with a compare link)
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # A fine-grained PAT (Contents, Pull requests, Workflows: read/write on xerk/tadween) saved as
+          # SYNC_TOKEN lets the job open the PR itself. The built-in token can't open PRs that touch
+          # .github/workflows, so without it the job opens an issue with a one-click compare link.
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+          ISSUE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
           behind=$(git rev-list --count origin/tadween..upstream/main)
           if [ "$behind" = "0" ]; then echo "tadween already has everything from upstream"; exit 0; fi
           latest=$(git describe --tags --abbrev=0 upstream/main 2>/dev/null || echo "main")
-          existing=$(gh pr list --head upstream-main --base tadween --state open --json number --jq '.[0].number')
+          title="Sync with Postiz upstream (${latest})"
+          compare="https://github.com/${REPO}/compare/tadween...upstream-main?expand=1"
           body="Brings ${behind} new upstream commits from gitroomhq/postiz-app (latest tag: ${latest}).
 
           Before merging:
           - Resolve conflicts in files Tadween changed (theme, components, patches).
-          - Check \`patches/README.md\` — drop patches that upstream now includes.
+          - Check patches/README.md and drop patches that upstream now includes.
           - Run the app and smoke-test calendar, editor, preview and billing."
-          if [ -n "$existing" ]; then
-            gh pr edit "$existing" --body "$body"
-          else
-            gh pr create --head upstream-main --base tadween --title "Sync with Postiz upstream (${latest})" --body "$body" --label upstream-sync || \
-            gh pr create --head upstream-main --base tadween --title "Sync with Postiz upstream (${latest})" --body "$body"
-          fi
+          existing=$(gh pr list -R "$REPO" --head upstream-main --base tadween --state open --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then gh pr edit "$existing" -R "$REPO" --title "$title" --body "$body"; exit 0; fi
+          if gh pr create -R "$REPO" --head upstream-main --base tadween --title "$title" --body "$body"; then exit 0; fi
+          echo "Could not open the PR with this token; opening an issue instead."
+          export GH_TOKEN="$ISSUE_TOKEN"
+          issue=$(gh issue list -R "$REPO" --state open --search "Sync with Postiz upstream in:title" --json number --jq '.[0].number')
+          ibody="${body}
+
+          **Open the PR:** ${compare}
+          (Add a SYNC_TOKEN secret to let this workflow open it automatically.)"
+          if [ -n "$issue" ]; then gh issue edit "$issue" -R "$REPO" --title "$title" --body "$ibody"; else gh issue create -R "$REPO" --title "$title" --body "$ibody"; fi

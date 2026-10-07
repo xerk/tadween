@@ -1,0 +1,261 @@
+// Tadween theme overlay.
+//
+// Re-themes Postiz without editing its components, so upstream syncs stay clean:
+//   1. --tdw-* tokens from the Tadween design system (light + dark).
+//   2. Postiz's own --new-* / --color-* variables remapped onto those tokens.
+//   3. Selector-level overrides for colours Postiz hardcodes (Tailwind arbitrary
+//      classes like bg-[#612BD3] and SVG fill/stroke attributes).
+//   4. Base polish: fonts, focus ring, selection, scrollbars, motion, auth art.
+//
+// Loaded from global.scss right after colors.scss. Postiz puts the theme class
+// (.dark / .light) on <body>, so everything below is scoped the same way.
+// Social previews (--linkedin-*, --facebook-* …) are deliberately untouched:
+// a preview shows the destination, not Tadween.
+
+// ── 1 + 2. Tokens and the Postiz variable map ───────────────────────────────
+:root {
+  --tdw-ease-spring: linear(0, 0.0571, 0.1793, 0.3192, 0.4533, 0.571, 0.6691, 0.7483, 0.8106, 0.8587, 0.8954, 0.9231, 0.9437, 0.959, 0.9703, 0.9785, 0.9845, 0.9889, 0.992, 0.9943, 0.9959, 0.9971, 0.9979, 0.9985, 1);
+  --tdw-ease-bounce: linear(0, 0.0821, 0.2558, 0.4481, 0.6212, 0.7598, 0.8615, 0.9306, 0.9739, 0.9986, 1.0106, 1.0148, 1.0147, 1.0125, 1.0096, 1.0068, 1.0045, 1.0027, 1.0014, 1.0006, 1.0002, 0.9999, 0.9998, 0.9998, 1);
+  --tdw-radius-sm: 6px;
+  --tdw-radius-md: 10px;
+  --tdw-radius-lg: 14px;
+  --tdw-radius-xl: 20px;
+
+  .light {
+    --tdw-background: #f5f5f7;
+    --tdw-card: #ffffff;
+    --tdw-popover: #ffffff;
+    --tdw-muted: #ebebef;
+    --tdw-accent: #f0f0f3;
+    --tdw-foreground: #1d1d1f;
+    --tdw-muted-foreground: #68686e;
+    --tdw-border: #e2e2e7;
+    --tdw-input: #8a8a90;
+    --tdw-primary: #0b7062;
+    --tdw-primary-strong: #0b7062; // fills that carry white text
+    --tdw-primary-soft: #e2f3ef;
+    --tdw-on-primary: #ffffff;
+    --tdw-smart: #94580a;
+    --tdw-smart-strong: #94580a;
+    --tdw-smart-soft: #fbf1de;
+    --tdw-success: #1d7a3c;
+    --tdw-warning: #b54708;
+    --tdw-destructive: #cc1f2f;
+    --tdw-ring: #0b7062;
+    --tdw-scrim: rgba(0, 0, 0, 0.32);
+    --tdw-shadow-sm: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --tdw-shadow-md: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.08);
+    --tdw-shadow-lg: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 16px 48px rgba(0, 0, 0, 0.14);
+
+    // Postiz "new" layer
+    --new-back-drop: rgba(0, 0, 0, 0.32);
+    --new-settings: var(--tdw-muted);
+    --new-sep: var(--tdw-border);
+    --new-border: var(--tdw-border);
+    --new-bgColor: var(--tdw-background);
+    --new-bgColorInner: var(--tdw-card);
+    --new-bgLineColor: var(--tdw-border);
+    --new-textItemFocused: var(--tdw-primary);
+    --new-textItemBlur: var(--tdw-muted-foreground);
+    --new-boxFocused: var(--tdw-primary-soft);
+    --new-textColor: 29 29 31;
+    --new-blockSeparator: var(--tdw-border);
+    --new-btn-simple: var(--tdw-muted);
+    --new-btn-text: var(--tdw-foreground);
+    --new-btn-primary: var(--tdw-primary-strong);
+    --new-ai-btn: var(--tdw-smart-strong);
+    --new-box-hover: var(--tdw-accent);
+    --new-table-border: var(--tdw-border);
+    --new-table-header: var(--tdw-accent);
+    --new-table-text: var(--tdw-muted-foreground);
+    --new-table-text-focused: var(--tdw-primary);
+    --new-big-strips: var(--tdw-accent);
+    --new-col-color: var(--tdw-muted);
+    --new-menu-dots: var(--tdw-muted-foreground);
+    --new-menu-hover: var(--tdw-foreground);
+    --menu-shadow: var(--tdw-shadow-md);
+    --popup-color: rgba(0, 0, 0, 0.32);
+
+    // Postiz "color" layer — purples become Nile, neutrals become Tadween greys
+    --color-primary: var(--tdw-background);
+    --color-secondary: var(--tdw-card);
+    --color-text: var(--tdw-foreground);
+    --color-third: var(--tdw-card);
+    --color-forth: var(--tdw-primary-strong);
+    --color-seventh: var(--tdw-primary);
+    --color-gray: var(--tdw-muted-foreground);
+    --color-input-text: var(--tdw-muted-foreground);
+    --color-table-border: var(--tdw-border);
+    --color-custom4: var(--tdw-primary);
+    --color-custom7: var(--tdw-primary);
+    --color-custom11: var(--tdw-primary);
+    --color-custom12: #a7d9cf;
+    --color-custom28: #6cbfae;
+    --color-custom29: #0b3f37;
+    --color-custom30: var(--tdw-border);
+    --color-custom41: #bfe6dd;
+    --color-custom45: var(--tdw-primary);
+    --color-custom50: #0b3f37;
+    --color-custom51: var(--tdw-primary);
+  }
+
+  .dark {
+    --tdw-background: #0b0b0c;
+    --tdw-card: #161618;
+    --tdw-popover: #1c1c1f;
+    --tdw-muted: #232326;
+    --tdw-accent: #1c1c1f;
+    --tdw-foreground: #f5f5f7;
+    --tdw-muted-foreground: #a0a0a7;
+    --tdw-border: #2a2a2e;
+    --tdw-input: #6a6a72;
+    --tdw-primary: #3fcfb4; // text, links, rings, selected states
+    --tdw-primary-strong: #0b7062; // fills with white text (6:1); the light teal fails white
+    --tdw-primary-soft: #0f2c27;
+    --tdw-on-primary: #03231d;
+    --tdw-smart: #f2b54a;
+    --tdw-smart-strong: #94580a;
+    --tdw-smart-soft: #2b2109;
+    --tdw-success: #5bd47f;
+    --tdw-warning: #ff9f5a;
+    --tdw-destructive: #ff6b6b;
+    --tdw-ring: #3fcfb4;
+    --tdw-scrim: rgba(0, 0, 0, 0.56);
+    --tdw-shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.5);
+    --tdw-shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 4px 16px rgba(0, 0, 0, 0.6);
+    --tdw-shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px rgba(0, 0, 0, 0.7);
+
+    --new-back-drop: #000000;
+    --new-settings: var(--tdw-popover);
+    --new-border: var(--tdw-border);
+    --new-bgColor: var(--tdw-background);
+    --new-bgColorInner: var(--tdw-card);
+    --new-sep: var(--tdw-border);
+    --new-bgLineColor: var(--tdw-muted);
+    --new-textItemFocused: var(--tdw-primary);
+    --new-textItemBlur: var(--tdw-muted-foreground);
+    --new-boxFocused: var(--tdw-primary-soft);
+    --new-textColor: 245 245 247;
+    --new-blockSeparator: var(--tdw-border);
+    --new-btn-simple: var(--tdw-muted);
+    --new-btn-text: var(--tdw-foreground);
+    --new-btn-primary: var(--tdw-primary-strong);
+    --new-ai-btn: var(--tdw-smart-strong);
+    --new-box-hover: var(--tdw-accent);
+    --new-table-border: var(--tdw-border);
+    --new-table-header: var(--tdw-accent);
+    --new-table-text: var(--tdw-muted-foreground);
+    --new-table-text-focused: var(--tdw-primary);
+    --new-small-strips: #141416;
+    --new-big-strips: #111113;
+    --new-col-color: var(--tdw-muted);
+    --new-menu-dots: var(--tdw-muted-foreground);
+    --new-menu-hover: var(--tdw-foreground);
+    --menu-shadow: var(--tdw-shadow-md);
+    --popup-color: rgba(0, 0, 0, 0.56);
+
+    --color-primary: var(--tdw-background);
+    --color-secondary: var(--tdw-card);
+    --color-text: var(--tdw-foreground);
+    --color-third: var(--tdw-card);
+    --color-forth: var(--tdw-primary-strong);
+    --color-seventh: var(--tdw-primary);
+    --color-gray: var(--tdw-muted-foreground);
+    --color-input-text: var(--tdw-muted-foreground);
+    --color-table-border: var(--tdw-border);
+    --color-custom4: var(--tdw-primary);
+    --color-custom7: var(--tdw-primary);
+    --color-custom11: var(--tdw-primary);
+    --color-custom12: #8fd9c9;
+    --color-custom28: #6cbfae;
+    --color-custom29: #0f2c27;
+    --color-custom30: var(--tdw-primary-strong);
+    --color-custom41: #bfe6dd;
+    --color-custom45: var(--tdw-primary);
+    --color-custom50: #0f2c27;
+    --color-custom51: var(--tdw-primary);
+  }
+}
+
+// ── 3. Colours Postiz hardcodes (no component edits) ───────────────────────
+// `body` raises specificity above Tailwind's own utility of the same name.
+body {
+  .bg-\[\#612BD3\], .bg-\[\#612bd3\], .hover\:bg-\[\#612BD3\]:hover { background-color: var(--tdw-primary-strong); }
+  .text-\[\#612BD3\], .text-\[\#612bd3\] { color: var(--tdw-primary); }
+  .border-\[\#612BD3\], .hover\:border-\[\#612BD3\]:hover, .hover\:border-\[\#612bd3\]:hover, .focus\:border-\[\#612BD3\]:focus { border-color: var(--tdw-primary); }
+  .scrollbar-thumb-\[\#612AD5\] { --scrollbar-thumb: var(--tdw-input) !important; }
+  // Postiz's pink accent (#FC69FF) becomes Nile; its AI pink (#D82D7E) becomes Papyrus
+  .bg-\[\#FC69FF\] { background-color: var(--tdw-primary); }
+  .text-\[\#FC69FF\] { color: var(--tdw-primary); }
+  .border-\[\#FC69FF\] { border-color: var(--tdw-primary); }
+  .bg-\[\#D82D7E\] { background-color: var(--tdw-smart-strong); }
+
+  [fill='#612BD3' i], [fill='#612AD5' i] { fill: var(--tdw-primary-strong); }
+  [stroke='#612BD3' i] { stroke: var(--tdw-primary); }
+  [stroke='#FC69FF' i] { stroke: var(--tdw-primary); }
+
+  // Postiz's hardcoded near-black auth surfaces
+  .bg-\[\#0E0E0E\] { background-color: var(--tdw-background); }
+  .bg-\[\#1A1919\] { background-color: var(--tdw-card); }
+
+  // Postiz login/register marketing art is replaced by a calm Tadween panel
+  .bg-loginBg { background-image: none; background-color: var(--tdw-background); }
+  .bg-loginBox {
+    background-image: none;
+    background-color: var(--tdw-primary-soft);
+  }
+}
+
+// ── 4. Base polish ──────────────────────────────────────────────────────────
+body {
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+html[dir='rtl'] body,
+html[lang='ar'] body {
+  font-family: var(--font-plex-arabic), var(--font-geist), system-ui, sans-serif;
+}
+
+// Postiz removes every outline (`body * { outline: none !important }`).
+// Keyboard users get a solid Nile ring back; mouse clicks stay ring-free.
+body *:focus-visible {
+  outline: 2px solid var(--tdw-ring) !important;
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--tdw-primary-soft);
+  color: var(--tdw-foreground);
+}
+
+// Thin, quiet scrollbars
+body * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--tdw-input) transparent;
+}
+
+// Buttons and controls: press feedback on pointer-down, spring easing
+body button:not(:disabled) {
+  transition: transform 100ms ease-out, background-color 180ms ease, border-color 180ms ease, color 180ms ease, opacity 180ms ease;
+}
+body button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body button:not(:disabled):active { transform: none; }
+  body *, body *::before, body *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// Typeface: the variables come from app/fonts.ts on <body class="tdw-font …">
+body.tdw-font,
+.tdw-font {
+  font-family: var(--font-geist), var(--font-plex-arabic), system-ui, -apple-system, 'Segoe UI', sans-serif;
+}

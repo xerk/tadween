@@ -122,7 +122,8 @@ module.exports = {
         loginBg: 'url(/auth/bg-login.png)',
       },
       fontFamily: {
-        sans: ['Helvetica Neue'],
+        sans: ['var(--font-geist)', 'var(--font-plex-arabic)', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'ui-monospace', 'SF Mono', 'Menlo', 'monospace'],
       },
       animation: {
         fade: 'fadeOut 0.5s ease-in-out',

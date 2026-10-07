@@ -71,6 +71,8 @@ import {
   EditorLockCard,
   EditorScopeNote,
 } from '@gitroom/frontend/components/tadween/editor/scope';
+import { EditorChecks } from '@gitroom/frontend/components/tadween/editor/checks';
+import { ComposerCounter } from '@gitroom/frontend/components/tadween/composer-mobile/counter.sheet';
 
 const MAX_UPLOAD_SIZE = 1024 * 1024 * 1024; // 1 GB
 
@@ -891,6 +893,16 @@ export const Editor: FC<{
     return null;
   }
 
+  const information = (
+    <InformationComponent
+      isPicture={pictures?.length > 0}
+      chars={chars}
+      totalChars={valueWithoutHtml.length}
+      totalAllowedChars={props.totalChars}
+      text={valueWithoutHtml}
+    />
+  );
+
   return (
     <div
       className={clsx(
@@ -998,15 +1010,7 @@ export const Editor: FC<{
                             insertImages(editorRef?.current?.editor, media)
                         : undefined
                     }
-                    information={
-                      <InformationComponent
-                        isPicture={pictures?.length > 0}
-                        chars={chars}
-                        totalChars={valueWithoutHtml.length}
-                        totalAllowedChars={props.totalChars}
-                        text={valueWithoutHtml}
-                      />
-                    }
+                    information={information}
                     toolBar={
                       <div className="flex gap-[5px] mobile:gap-[4px]">
                         <SignatureBox editor={editorRef?.current?.editor} />
@@ -1092,7 +1096,9 @@ export const Editor: FC<{
                           ? clsx(
                               'post-toolbar mobile:fixed mobile:bottom-0 mobile:inset-x-0 mobile:items-center mobile:px-[16px] mobile:py-[12px] mobile:bg-newBgColorInner',
                               // the picker opens from the bar and has to cover the top bar
-                              emojiPickerOpen ? 'mobile:z-[500]' : 'mobile:z-[440]'
+                              emojiPickerOpen ? 'mobile:z-[500]' : 'mobile:z-[440]',
+                              // Tadween: above the keyboard the bar drops its safe-area inset
+                              !!keyboard && 'is-keyboard'
                             )
                           : 'mobile:hidden'
                         : undefined
@@ -1102,7 +1108,14 @@ export const Editor: FC<{
                     }
                     toolBarEnd={
                       flat && active ? (
-                        <div className="hidden mobile:flex">{toolBarEnd}</div>
+                        // Tadween: the counter ring and the checks chip end the bar
+                        <div className="tdw-cm-acc-end hidden mobile:flex">
+                          <ComposerCounter text={valueWithoutHtml}>
+                            {information}
+                          </ComposerCounter>
+                          <EditorChecks sheet={true} />
+                          {toolBarEnd}
+                        </div>
                       ) : undefined
                     }
                     onChange={(value) => {

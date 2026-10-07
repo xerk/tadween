@@ -997,5 +997,13 @@
   "today_up_next": "التالي",
   "today_week": "الأسبوع",
   "today_week_of": "أسبوع {{date}}",
-  "today_when_you_post": "متى تنشر عادةً"
+  "today_when_you_post": "متى تنشر عادةً",
+  "tdw_cm_new_post": "منشور جديد",
+  "tdw_cm_edit_post": "تعديل المنشور",
+  "tdw_cm_publish_options": "خيارات النشر",
+  "tdw_cm_write": "كتابة",
+  "tdw_cm_when_to_post": "موعد النشر",
+  "tdw_cm_none": "لا شيء",
+  "tdw_cm_repeat_on": "مفعّل",
+  "tdw_cm_repeat_never": "أبدًا"
 }

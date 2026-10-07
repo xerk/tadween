@@ -36,11 +36,11 @@ export const Textarea: FC<
   return (
     <div
       className={clsx(
-        'flex flex-col gap-[6px]',
+        'tdw-field flex flex-col gap-[6px]',
         props.disabled && 'opacity-50'
       )}
     >
-      <div className={`text-[14px]`}>
+      <div className="tdw-field-label text-[14px]">
         <TranslatedLabel
           label={label}
           translationKey={translationKey}
@@ -50,12 +50,15 @@ export const Textarea: FC<
       <textarea
         {...(disableForm ? {} : form.register(props.name))}
         className={clsx(
-          'bg-input min-h-[150px] p-[16px] outline-none border-fifth border rounded-[4px] text-inputText placeholder-inputText',
+          'tdw-field-box tdw-textarea bg-newBgColorInner min-h-[150px] p-[16px] outline-none border-newTableBorder border rounded-[8px] text-textColor placeholder-inputText',
+          !!err && 'is-invalid',
           className
         )}
         {...rest}
       />
-      <div className="text-red-400 text-[12px]">{err || <>&nbsp;</>}</div>
+      <div className="tdw-field-error text-red-400 text-[12px]">
+        {err || <>&nbsp;</>}
+      </div>
     </div>
   );
 };

@@ -233,8 +233,8 @@ export const Select: FC<
   const isPlaceholder = !selected || selected.value === '';
 
   return (
-    <div className={clsx('flex flex-col', label ? 'gap-[6px]' : '')}>
-      <div className={`text-[14px]`}>
+    <div className={clsx('tdw-field flex flex-col', label ? 'gap-[6px]' : '')}>
+      <div className="tdw-field-label text-[14px]">
         <TranslatedLabel
           label={label}
           translationKey={translationKey}
@@ -318,7 +318,9 @@ export const Select: FC<
           )
         : null}
       {!hideErrors && (
-        <div className="text-red-400 text-[12px]">{err || <>&nbsp;</>}</div>
+        <div className="tdw-field-error text-red-400 text-[12px]">
+          {err || <>&nbsp;</>}
+        </div>
       )}
     </div>
   );

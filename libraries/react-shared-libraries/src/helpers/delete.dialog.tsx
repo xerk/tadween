@@ -14,6 +14,7 @@ export const deleteDialog = async (
     approveLabel:
       confirmButton || i18next.t('yes_delete_it', 'Yes, delete it!'),
     cancelLabel: cancelButton || i18next.t('no_cancel', 'No, cancel!'),
-    destructive,
+    // Tadween: the default "Yes, delete it!" confirm is a destructive one
+    destructive: destructive ?? !confirmButton,
   });
 };

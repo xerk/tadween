@@ -179,7 +179,7 @@ export const Component: FC<{
         onClick={closeModalFunction}
         style={{ zIndex }}
         className={clsx(
-          'fixed flex left-0 top-0 min-w-full min-h-full bg-popup transition-all animate-fadeIn overflow-y-auto text-newTextColor',
+          'tdw-modal-scrim fixed flex left-0 top-0 min-w-full min-h-full bg-popup transition-all animate-fadeIn overflow-y-auto text-newTextColor',
           !modal.fullScreen && 'pb-[50px]'
         )}
       >
@@ -191,7 +191,9 @@ export const Component: FC<{
                 : {}
             }
             className={clsx(
-              'absolute min-w-full mobile:w-full',
+              'tdw-modal-frame absolute min-w-full mobile:w-full',
+              // phones: a plain dialog rises as a bottom sheet (CSS only)
+              !modal.fullScreen && !modal.top && !modal.height && 'is-sheet',
               !modal.fullScreen
                 ? modal.top
                   ? ''
@@ -203,11 +205,11 @@ export const Component: FC<{
             )}
           >
             <div
+              data-destructive={modal.destructive ? 'true' : undefined}
               className={clsx(
                 !modal.removeLayout &&
-                  'gap-[40px] p-[32px] mobile:gap-[24px] mobile:p-[16px]',
-                'bg-newBgColorInner mx-auto flex flex-col w-fit rounded-[24px] mobile:rounded-[16px] relative mobile:!max-w-full',
-                modal.destructive && 'border-2 border-red-700',
+                  'gap-[20px] p-[24px] mobile:gap-[16px] mobile:p-[20px]',
+                'tdw-modal bg-newBgColorInner mx-auto flex flex-col w-fit rounded-[20px] relative mobile:!max-w-full',
                 modal.size ? '' : 'min-w-[600px] mobile:min-w-0 mobile:w-full',
                 modal.fullScreen && 'h-full'
               )}
@@ -220,16 +222,17 @@ export const Component: FC<{
               })}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center">
-                <div className="text-[24px] mobile:text-[20px] mobile:pe-[28px] font-[600] flex-1">
+              <div className="tdw-modal-head flex items-center">
+                <div className="tdw-modal-title text-[20px] mobile:text-[18px] pe-[36px] font-[600] flex-1">
                   {modal.title}
                 </div>
                 {typeof modal.withCloseButton === 'undefined' ||
                 modal.withCloseButton ? (
                   <div className="cursor-pointer">
                     <button
-                      className="outline-none absolute end-[20px] top-[20px] mobile:end-[12px] mobile:top-[12px] mantine-UnstyledButton-root mantine-ActionIcon-root hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"
+                      className="tdw-modal-close outline-none absolute end-[16px] top-[16px] cursor-pointer"
                       type="button"
+                      aria-label="Close"
                       onClick={closeModalFunction}
                     >
                       <svg
@@ -358,20 +361,12 @@ export const DecisionModal: FC<{
 }) => {
   const { closeCurrent } = useModals();
   return (
-    <div className="flex flex-col">
-      <div className="max-w-[600px]">{description}</div>
-      <div className="flex gap-[12px] mt-[16px]">
-        <Button
-          className={destructive ? '!bg-red-800' : undefined}
-          onClick={() => {
-            resolution(true);
-            closeCurrent();
-          }}
-        >
-          {approveLabel}
-        </Button>
+    <div className="tdw-confirm flex flex-col">
+      <div className="tdw-confirm-desc max-w-[600px]">{description}</div>
+      <div className="tdw-confirm-actions flex justify-end gap-[8px] mt-[20px]">
         {!onlyApprove && (
           <Button
+            secondary={true}
             onClick={() => {
               resolution(false);
               closeCurrent();
@@ -380,6 +375,15 @@ export const DecisionModal: FC<{
             {cancelLabel}
           </Button>
         )}
+        <Button
+          className={destructive ? 'is-danger' : undefined}
+          onClick={() => {
+            resolution(true);
+            closeCurrent();
+          }}
+        >
+          {approveLabel}
+        </Button>
       </div>
     </div>
   );
@@ -431,6 +435,8 @@ export const useDecisionModal = () => {
           title,
           askClose: false,
           destructive,
+          // a confirm is a small dialog, not a 600px panel
+          size: 460,
           onClose: () => res(false),
           children: (
             <DecisionModal

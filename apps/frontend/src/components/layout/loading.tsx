@@ -2,24 +2,28 @@
 
 import { FC } from 'react';
 
+// Tadween: one quiet ring spinner everywhere (styles: app/tadween/consistency.scss).
+// A white spinner sits on a filled button, so it takes the text colour; any other
+// colour (Postiz's purple) becomes the Nile accent.
 const Spinner: FC<{
   type?: string;
   color?: string;
   width?: number;
   height?: number;
-}> = ({ color = '#612bd3', width = 100, height = 100 }) => {
-  const size = Math.min(width, height);
-  const borderWidth = Math.max(2, Math.round(size / 8));
+}> = ({ color, width = 100, height = 100 }) => {
+  const size = Math.min(width, height, 48);
+  const onFill = !!color && /^#fff(fff)?$/i.test(color);
 
   return (
-    <div
+    <span
+      className="tdw-spinner"
+      role="status"
+      aria-label="Loading"
       style={{
         width: size,
         height: size,
-        border: `${borderWidth}px solid transparent`,
-        borderTopColor: color,
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
+        borderWidth: Math.max(2, Math.round(size / 10)),
+        ...(onFill ? {} : { color: 'var(--tdw-primary)' }),
       }}
     />
   );
@@ -27,17 +31,15 @@ const Spinner: FC<{
 
 export { Spinner as default };
 
+// Page and panel loading: a small spinner, not a 100px wheel
 export const LoadingComponent: FC<{
   width?: number;
   height?: number;
 }> = (props) => {
+  const size = Math.min(props.width || 28, props.height || 28, 40);
   return (
-    <div className="flex-1 flex justify-center pt-[100px]">
-      <Spinner
-        color="#612bd3"
-        width={props.width || 100}
-        height={props.height || 100}
-      />
+    <div className="tdw-loading flex-1 flex justify-center pt-[96px]">
+      <Spinner width={size} height={size} />
     </div>
   );
 };

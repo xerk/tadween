@@ -1,5 +1,14 @@
 import { Input } from '@gitroom/react/form/input';
-import { ChangeEventHandler, FC, useCallback, useMemo, useState } from 'react';
+import {
+  ChangeEventHandler,
+  FC,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { useClickAway } from '@uidotdev/usehooks';
 import useSWR, { useSWRConfig } from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
@@ -551,12 +560,13 @@ const ManageBilling = () => {
   }, []);
 
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-red-700 text-white cursor-pointer whitespace-nowrap"
+    <button
+      type="button"
+      className="tdw-adminbar-item"
       onClick={handleClick}
     >
       {t('manage_billing', 'Manage Billing')}
-    </div>
+    </button>
   );
 };
 
@@ -704,12 +714,13 @@ const AddAnnouncement = () => {
   }, []);
 
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-green-700 text-white cursor-pointer whitespace-nowrap"
+    <button
+      type="button"
+      className="tdw-adminbar-item"
       onClick={handleClick}
     >
       {t('add_announcement', 'Add Announcement')}
-    </div>
+    </button>
   );
 };
 
@@ -790,12 +801,13 @@ const AddTeamMember = () => {
   }, []);
 
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-teal-700 text-white cursor-pointer whitespace-nowrap"
+    <button
+      type="button"
+      className="tdw-adminbar-item"
       onClick={handleClick}
     >
       {t('add_team_member', 'Add Team Member')}
-    </div>
+    </button>
   );
 };
 
@@ -805,12 +817,13 @@ const ViewErrors = () => {
     window.location.href = '/admin/errors';
   }, []);
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-blue-700 text-white cursor-pointer whitespace-nowrap"
+    <button
+      type="button"
+      className="tdw-adminbar-item"
       onClick={handleClick}
     >
       {t('view_errors', 'View Errors')}
-    </div>
+    </button>
   );
 };
 
@@ -820,12 +833,13 @@ const ViewStats = () => {
     window.location.href = '/admin/stats';
   }, []);
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-purple-700 text-white cursor-pointer whitespace-nowrap"
+    <button
+      type="button"
+      className="tdw-adminbar-item"
       onClick={handleClick}
     >
       {t('view_stats', 'View Stats')}
-    </div>
+    </button>
   );
 };
 
@@ -842,12 +856,13 @@ const ImportDebugPost = () => {
   }, []);
 
   return (
-    <div
-      className="px-[10px] rounded-[4px] bg-yellow-600 text-white cursor-pointer whitespace-nowrap"
+    <button
+      type="button"
+      className="tdw-adminbar-item"
       onClick={handleClick}
     >
       {t('import_debug_post', 'Import Debug Post')}
-    </div>
+    </button>
   );
 };
 
@@ -958,6 +973,7 @@ const SwitchUser = () => {
     <div className="relative flex items-center gap-[10px]">
       <div className="flex-1 min-w-[220px]">
         <Input
+          className="tdw-adminbar-search"
           autoComplete="off"
           placeholder={t('select_user_to_switch_to', 'Select user to switch to')}
           name="switchUser"
@@ -979,22 +995,23 @@ const SwitchUser = () => {
         onClick={doSwitch}
         loading={switching}
         disabled={!selected}
-        className="rounded-[4px] whitespace-nowrap"
+        secondary={true}
+        className="tdw-adminbar-btn whitespace-nowrap"
       >
         {t('switch_user', 'Switch User')}
       </Button>
       {!!mapData?.length && !selected && (
         <>
           <div
-            className="bg-primary/80 fixed start-0 top-0 w-full h-full z-[998]"
+            className="tdw-adminbar-scrim fixed start-0 top-0 w-full h-full z-[998]"
             onClick={() => setName('')}
           />
-          <div className="absolute top-[100%] start-0 w-max min-w-full max-w-[90vw] bg-sixth border border-customColor6 text-textColor z-[999]">
+          <div className="tdw-adminbar-results absolute top-[100%] start-0 w-max min-w-full max-w-[90vw] text-textColor z-[999]">
             {mapData.map((item: any) => (
               <div
                 onClick={pick(item)}
                 key={item?.id}
-                className="p-[10px] border-b border-customColor6 hover:bg-tableBorder cursor-pointer whitespace-nowrap truncate"
+                className="tdw-adminbar-result cursor-pointer whitespace-nowrap truncate"
               >
                 {t('user_1', 'user:')}
                 {item?.id?.split('-')?.at(-1)} -{' '}
@@ -1005,6 +1022,50 @@ const SwitchUser = () => {
             ))}
           </div>
         </>
+      )}
+    </div>
+  );
+};
+
+// Tadween: the admin tools sit behind one quiet "more" button
+const AdminBarMenu: FC<{ children: ReactNode }> = ({ children }) => {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const ref = useClickAway<HTMLDivElement>(() => setOpen(false));
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        className="tdw-adminbar-more"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={t('tdw_admin_tools', 'Admin tools')}
+        onClick={() => setOpen(!open)}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="5" cy="12" r="1.8" />
+          <circle cx="12" cy="12" r="1.8" />
+          <circle cx="19" cy="12" r="1.8" />
+        </svg>
+      </button>
+      {open && (
+        <div
+          className="tdw-adminbar-menu"
+          role="menu"
+          onClick={() => setOpen(false)}
+        >
+          {children}
+        </div>
       )}
     </div>
   );
@@ -1072,75 +1133,81 @@ export const Impersonate = () => {
     );
   }, [data]);
   return (
-    <div>
-      <div className="bg-forth h-[52px] mobile:h-auto mobile:py-[8px] mobile:px-[8px] flex justify-center items-center border-input border rounded-[8px] text-white">
-        <div
-          className={`relative flex flex-col ${
-            user?.impersonate ? 'w-full px-[20px] mobile:px-0' : 'w-[600px] mobile:w-full'
-          }`}
-        >
-          <div className="relative z-[1]">
-            {user?.impersonate ? (
-              <div className="text-center flex justify-center items-center gap-[10px] mobile:flex-wrap">
-                <div className="whitespace-nowrap">
-                  {t('currently_impersonating', 'Currently Impersonating')}
-                </div>
-                <div>
-                  <div
-                    className="px-[10px] rounded-[4px] bg-red-500 text-white cursor-pointer"
-                    onClick={stopImpersonating}
-                  >
-                    X
-                  </div>
-                </div>
-                {user?.tier?.current === 'FREE' && <Subscription />}
-                {user?.tier?.team_members && <AddTeamMember />}
-                {billingEnabled && <ManageBilling />}
-                <SwitchUser />
-              </div>
-            ) : (
-              <div className="flex items-center gap-[10px] mobile:flex-wrap">
-                <div className="flex-1 mobile:basis-full">
-                  <Input
-                    autoComplete="off"
-                    placeholder="Write the user details"
-                    name="impersonate"
-                    disableForm={true}
-                    label=""
-                    removeError={true}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
-                <ImportDebugPost />
-                <AddAnnouncement />
-                <ViewErrors />
-                <ViewStats />
+    <div className="tdw-adminbar">
+      <span className="tdw-adminbar-badge">{t('admin', 'Admin')}</span>
+      <div className="relative flex-1 min-w-0">
+        {user?.impersonate ? (
+          <div className="tdw-adminbar-row">
+            <span className="tdw-adminbar-note">
+              {t('currently_impersonating', 'Currently Impersonating')}
+            </span>
+            <button
+              type="button"
+              className="tdw-adminbar-item is-danger"
+              onClick={stopImpersonating}
+              aria-label={t('stop_impersonating', 'Stop impersonating')}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" />
+              </svg>
+              {t('stop', 'Stop')}
+            </button>
+            {user?.tier?.current === 'FREE' && (
+              <div className="tdw-adminbar-select">
+                <Subscription />
               </div>
             )}
+            {user?.tier?.team_members && <AddTeamMember />}
+            {billingEnabled && <ManageBilling />}
+            <SwitchUser />
           </div>
-          {!!data?.length && (
-            <>
-              <div
-                className="bg-primary/80 fixed start-0 top-0 w-full h-full z-[998]"
-                onClick={() => setName('')}
+        ) : (
+          <div className="tdw-adminbar-row">
+            <div className="flex-1 min-w-0 max-w-[420px] mobile:max-w-none">
+              <Input
+                className="tdw-adminbar-search"
+                autoComplete="off"
+                placeholder={t(
+                  'tdw_impersonate_placeholder',
+                  'Find a user to impersonate (name, email or org)'
+                )}
+                name="impersonate"
+                disableForm={true}
+                label=""
+                removeError={true}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
-              <div className="absolute top-[100%] w-max min-w-full max-w-[90vw] start-0 bg-sixth border border-customColor6 text-textColor z-[999]">
-                {mapData?.map((user: any) => (
-                  <div
-                    onClick={setUser(user?.id)}
-                    key={user?.id}
-                    className="p-[10px] border-b border-customColor6 hover:bg-tableBorder cursor-pointer whitespace-nowrap truncate"
-                  >
-                    {t('user_1', 'user:')}
-                    {user?.id?.split('-')?.at(-1)} - {user?.name} - {user?.email}{' '}
-                    - {user?.orgName} ({user?.role} / {user?.tier})
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+            </div>
+            <AdminBarMenu>
+              <ImportDebugPost />
+              <AddAnnouncement />
+              <ViewErrors />
+              <ViewStats />
+            </AdminBarMenu>
+          </div>
+        )}
+        {!!data?.length && (
+          <>
+            <div
+              className="tdw-adminbar-scrim fixed start-0 top-0 w-full h-full z-[998]"
+              onClick={() => setName('')}
+            />
+            <div className="tdw-adminbar-results absolute top-[100%] w-max min-w-full max-w-[90vw] start-0 text-textColor z-[999]">
+              {mapData?.map((user: any) => (
+                <div
+                  onClick={setUser(user?.id)}
+                  key={user?.id}
+                  className="tdw-adminbar-result cursor-pointer whitespace-nowrap truncate"
+                >
+                  {t('user_1', 'user:')}
+                  {user?.id?.split('-')?.at(-1)} - {user?.name} - {user?.email}{' '}
+                  - {user?.orgName} ({user?.role} / {user?.tier})
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -239,7 +239,7 @@ export const DEFAULT_PLANS: DefaultPlan[] = [
     teamMembers: -1,
     postsPerMonth: -1,
     aiCredits: 300,
-    features: ['15 channels', 'Unlimited team members', 'Approval workflow', 'Shared calendar and tags', 'Agent and MCP access'],
+    features: ['15 channels', 'Unlimited team members', 'Preview links for clients', 'Shared calendar and tags', 'Agent and MCP access'],
     position: 2,
   },
   {

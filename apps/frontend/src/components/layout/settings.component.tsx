@@ -16,8 +16,6 @@ import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useSWRConfig } from 'swr';
-import clsx from 'clsx';
-import { TeamsComponent } from '@gitroom/frontend/components/settings/teams.component';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
 import { useSearchParams } from 'next/navigation';
@@ -29,10 +27,16 @@ import { Sets } from '@gitroom/frontend/components/sets/sets';
 import { SignaturesComponent } from '@gitroom/frontend/components/settings/signatures.component';
 import { Autopost } from '@gitroom/frontend/components/autopost/autopost';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { SVGLine } from '@gitroom/frontend/components/launches/launches.component';
 import { GlobalSettings } from '@gitroom/frontend/components/settings/global.settings';
 import { ApprovedAppsComponent } from '@gitroom/frontend/components/approved-apps/approved-apps.component';
 import { useFeatures } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import EmailNotificationsComponent from '@gitroom/frontend/components/settings/email-notifications.component';
+import { TeamSettings } from '@gitroom/frontend/components/tadween/settings/team.settings';
+import {
+  SettingsNav,
+  SettingsNavItem,
+  SettingsPageHeader,
+} from '@gitroom/frontend/components/tadween/settings/settings.nav';
 export const SettingsPopup: FC<{
   getRef?: Ref<any>;
 }> = (props) => {
@@ -88,89 +92,158 @@ export const SettingsPopup: FC<{
   // Tadween: tabs for features the super admin switched off are hidden
   const isOn = useFeatures();
   const list = useMemo(() => {
-    const arr = [];
-    arr.push({ tab: 'global_settings', label: t('global_settings', 'Global Settings') });
+    const arr: SettingsNavItem[] = [];
+    arr.push({
+      tab: 'global_settings',
+      group: 'account',
+      icon: 'settings',
+      label: t('tdw_set_general', 'General'),
+      description: t(
+        'tdw_set_general_desc',
+        'Time format, how links are handled, and your account.'
+      ),
+    });
+    arr.push({
+      tab: 'notifications',
+      group: 'account',
+      icon: 'bell',
+      label: t('tdw_set_notifications', 'Notifications'),
+      description: t(
+        'tdw_set_notifications_desc',
+        'Which emails Tadween sends you.'
+      ),
+    });
     // Populate tabs based on user permissions
-    if (user?.tier?.team_members && isGeneral) {
-      arr.push({ tab: 'teams', label: t('teams', 'Teams') });
-    }
-    if (user?.tier?.webhooks && isOn('webhooks')) {
-      arr.push({ tab: 'webhooks', label: t('webhooks_1', 'Webhooks') });
-    }
-    if (user?.tier?.autoPost && isOn('autopost')) {
-      arr.push({ tab: 'autopost', label: t('auto_post', 'Auto Post') });
-    }
-    if (user?.tier.current !== 'FREE' && isOn('sets')) {
-      arr.push({ tab: 'sets', label: t('sets', 'Sets') });
+    // Tadween: Members (USER) can't list or invite the team (the API refuses them), so hide the page.
+    if (user?.tier?.team_members && isGeneral && user?.role !== 'USER') {
+      arr.push({
+        tab: 'teams',
+        group: 'workspace',
+        icon: 'users',
+        label: t('tdw_set_team', 'Team'),
+        description: t(
+          'tdw_set_team_desc',
+          'People who can write, schedule and manage this workspace.'
+        ),
+      });
     }
     if (user?.tier.current !== 'FREE' && isOn('signatures')) {
-      arr.push({ tab: 'signatures', label: t('signatures', 'Signatures') });
+      arr.push({
+        tab: 'signatures',
+        group: 'workspace',
+        icon: 'signature',
+        label: t('signatures', 'Signatures'),
+        description: t(
+          'tdw_set_signatures_desc',
+          'Sign-offs, hashtags and links you add to posts in one click.'
+        ),
+      });
+    }
+    if (user?.tier.current !== 'FREE' && isOn('sets')) {
+      arr.push({
+        tab: 'sets',
+        group: 'workspace',
+        icon: 'layers',
+        label: t('sets', 'Sets'),
+        description: t(
+          'tdw_set_sets_desc',
+          'Saved channel groups with a starting text, for posts you make often.'
+        ),
+      });
+    }
+    if (user?.tier?.autoPost && isOn('autopost')) {
+      arr.push({
+        tab: 'autopost',
+        group: 'automation',
+        icon: 'rss',
+        label: t('tdw_set_autopost', 'Auto post'),
+        description: t(
+          'tdw_set_autopost_desc',
+          'Turn new items in an RSS feed into posts or drafts.'
+        ),
+      });
+    }
+    if (user?.tier?.webhooks && isOn('webhooks')) {
+      arr.push({
+        tab: 'webhooks',
+        group: 'automation',
+        icon: 'webhook',
+        label: t('webhooks_1', 'Webhooks'),
+        description: t(
+          'tdw_set_webhooks_desc',
+          'Send an HTTP request when a post is published.'
+        ),
+      });
     }
     if (user?.tier?.public_api && isGeneral && showLogout && isOn('publicApi')) {
-      arr.push({ tab: 'api', label: t('developers', 'Developers') });
+      arr.push({
+        tab: 'api',
+        group: 'developers',
+        icon: 'key',
+        label: t('tdw_set_api', 'API & MCP'),
+        description: t(
+          'tdw_set_api_desc',
+          'Use Tadween from your code, the CLI or an AI agent.'
+        ),
+      });
     }
-    arr.push({ tab: 'approved_apps', label: t('approved_apps', 'Approved Apps') });
+    arr.push({
+      tab: 'approved_apps',
+      group: 'developers',
+      icon: 'shield',
+      label: t('tdw_set_approved_apps', 'Approved apps'),
+      description: t(
+        'tdw_set_approved_apps_desc',
+        'Apps and agents you have allowed into this workspace.'
+      ),
+    });
 
     return arr;
   }, [user, isGeneral, showLogout, t, isOn]);
+  const current = list.find((p) => p.tab === tab) || list[0];
 
   useEffect(() => {
     loadProfile();
   }, []);
 
   return (
-    <>
-      <div className="bg-newBgColorInner p-[20px] mobile:p-[12px] flex flex-col transition-all w-[260px] mobile:w-full">
-        <div className="flex flex-1 flex-col gap-[15px] mobile:flex-row mobile:gap-[8px] mobile:overflow-x-auto mobile:pb-[6px] scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
-          {list.map(({ tab: tabKey, label }) => (
-            <div
-              key={tabKey}
-              className={clsx(
-                'cursor-pointer flex items-center gap-[12px] group/profile hover:bg-boxHover rounded-e-[8px] mobile:shrink-0 mobile:whitespace-nowrap mobile:rounded-[8px] mobile:px-[12px] mobile:py-[8px]',
-                tabKey === tab && 'bg-boxHover'
-              )}
-              onClick={() => setTab(tabKey)}
-            >
-              <div
-                className={clsx(
-                  'h-full w-[4px] rounded-s-[3px] opacity-0 group-hover/profile:opacity-100 transition-opacity mobile:hidden',
-                  tabKey === tab && 'opacity-100'
-                )}
-              >
-                <SVGLine />
-              </div>
-              {label}
-            </div>
-          ))}
-        </div>
-        <div>
-          {showLogout && (
-            <div className="mt-4 mobile:mt-[8px]">
+    <div className="tdw-settings">
+      <SettingsNav
+        items={list}
+        current={tab}
+        onChange={setTab}
+        footer={
+          showLogout ? (
+            <div className="tdw-settings-logout">
               <LogoutComponent />
             </div>
-          )}
-        </div>
-      </div>
-      <div className="bg-newBgColorInner flex-1 min-w-0 flex-col flex p-[20px] mobile:p-[12px] gap-[12px]">
+          ) : null
+        }
+      />
+      <div className="tdw-settings-body" key={tab}>
+        <SettingsPageHeader
+          title={current.label}
+          description={current.description}
+        />
         <FormProvider {...form}>
           <form onSubmit={form.handleSubmit(submit)}>
             {!!getRef && (
               <button type="submit" className="hidden" ref={getRef}></button>
             )}
-            <div
-              className={clsx(
-                'w-full mx-auto gap-[24px] flex flex-col relative',
-                !getRef && 'rounded-[4px]'
-              )}
-            >
+            <div className="tdw-settings-page">
               {tab === 'global_settings' && (
                 <div>
                   <GlobalSettings />
                 </div>
               )}
-              {tab === 'teams' && !!user?.tier?.team_members && isGeneral && (
+              {tab === 'notifications' && (
                 <div>
-                  <TeamsComponent />
+                  <EmailNotificationsComponent />
+                </div>
+              )}
+              {tab === 'teams' && !!user?.tier?.team_members && isGeneral && user?.role !== 'USER' && (
+                <div>
+                  <TeamSettings />
                 </div>
               )}
 
@@ -216,7 +289,7 @@ export const SettingsPopup: FC<{
           </form>
         </FormProvider>
       </div>
-    </>
+    </div>
   );
 };
 export const SettingsComponent = () => {

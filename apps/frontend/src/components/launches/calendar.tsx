@@ -58,6 +58,7 @@ import copy from 'copy-to-clipboard';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -344,6 +345,15 @@ export const DayView = () => {
 export const WeekView = () => {
   const { startDate, endDate } = useCalendar();
   const t = useT();
+  // Tadween: open the week scrolled to the working day (7:00, or an hour before now if later)
+  const weekScrollRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = weekScrollRef.current;
+    if (!el) return;
+    const target = Math.max(7, newDayjs().hour() - 1);
+    const row = el.querySelector<HTMLElement>(`[data-tdw-hour="${target}"]`);
+    if (row) el.scrollTop = row.offsetTop - 70;
+  }, [startDate]);
 
   // Use dayjs to get localized day names
   const localizedDays = useMemo(() => {
@@ -366,7 +376,7 @@ export const WeekView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 relative">
-        <div className="grid [grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] tablet:[grid-template-columns:72px_repeat(7,_minmax(100px,_1fr))] gap-[4px] rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+        <div ref={weekScrollRef} className="grid [grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] tablet:[grid-template-columns:72px_repeat(7,_minmax(100px,_1fr))] gap-[4px] rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
           <div className="z-10 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"></div>
           {localizedDays.map((day, index) => (
             <div
@@ -392,7 +402,13 @@ export const WeekView = () => {
           ))}
           {hours.map((hour) => (
             <Fragment key={hour}>
-              <div className="p-2 pe-4 tablet:px-[4px] text-center items-center justify-center flex text-[14px] tablet:text-[12px] tablet:whitespace-nowrap text-newTableText">
+              <div
+                data-tdw-hour={hour}
+                className={clsx(
+                  'p-2 pe-4 tablet:px-[4px] text-center items-center justify-center flex text-[14px] tablet:text-[12px] tablet:whitespace-nowrap text-newTableText',
+                  hour === newDayjs().hour() && 'tdw-now-hour'
+                )}
+              >
                 {convertTimeFormatBasedOnLocality(hour)}
               </div>
               {localizedDays.map((day, indexDay) => (
@@ -521,8 +537,10 @@ export const ListView = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col flex-1 items-center justify-center">
-        <div className="text-textColor">{t('loading', 'Loading...')}</div>
+      <div className="tdw-list-skeleton flex flex-col flex-1 gap-[10px] pt-[10px]" aria-busy="true" aria-label={t('loading', 'Loading...')}>
+        {[0, 1, 2, 3].map((i) => (
+          <span key={i} className="tdw-skeleton" style={{ height: 72, animationDelay: `${i * 80}ms` }} />
+        ))}
       </div>
     );
   }
@@ -530,7 +548,11 @@ export const ListView = () => {
   if (listPosts.length === 0) {
     return (
       <div className="flex flex-col flex-1 items-center justify-center">
-        <div className="text-textColor text-[16px]">{emptyMessage}</div>
+        <TadweenEmptyState
+          icon={listState === 'draft' ? 'drafts' : 'calendar'}
+          title={emptyMessage}
+          body={t('empty_list_hint', 'Posts you create will show up here, grouped by day.')}
+        />
       </div>
     );
   }
@@ -1047,22 +1069,23 @@ const CalendarItem: FC<{
     }),
     []
   );
+  // Tadween chip: status tint + channel + time/tag + title; actions float in on hover.
+  const stateKey =
+    state === 'ERROR' ? 'failed' : state === 'DRAFT' ? 'draft' : state === 'PUBLISHED' ? 'published' : 'scheduled';
+  const tagColor = post?.tags?.[0]?.tag?.color;
+  const canStats = !((post.integration.providerIdentifier === 'x' && disableXAnalytics) || !post.releaseId);
+  const onStats = post.releaseId === 'missing' ? missingRelease : statistics;
   return (
     <div
       // @ts-ignore
       ref={dragRef}
-      className={clsx(
-        'w-full flex h-full flex-1 flex-col group',
-        'relative',
-        state === 'ERROR' && 'rounded-[10px] ring-2 ring-red-500'
-      )}
-      style={{
-        opacity,
-      }}
+      data-state={stateKey}
+      className={clsx('tdw-chip group', `tdw-chip--${display}`, isBeforeNow && 'is-past')}
+      style={{ opacity }}
     >
       {state === 'ERROR' && (
         <div
-          className="absolute -top-[6px] -left-[6px] z-20 w-[18px] h-[18px] rounded-full bg-red-500 flex items-center justify-center text-white text-[11px] font-bold cursor-pointer"
+          className="tdw-chip-error"
           data-tooltip-id="tooltip"
           data-tooltip-content={post.error || 'An error occurred while publishing this post'}
         >
@@ -1071,126 +1094,62 @@ const CalendarItem: FC<{
       )}
       {showCreationMethodBadge && (
         <div className="absolute -bottom-[4px] -right-[4px] z-10">
-          <CreationMethodBadge
-            creationMethod={post.creationMethod}
-            ringColor="var(--new-bgColor)"
-          />
+          <CreationMethodBadge creationMethod={post.creationMethod} ringColor="var(--new-bgColor)" />
         </div>
       )}
-      <div
-        className={clsx(
-          'text-white text-[11px] max-h-[24px] h-[24px] min-h-[24px] w-full rounded-tr-[10px] rounded-tl-[10px] flex items-center justify-center gap-[10px] px-[5px] bg-btnPrimary'
-        )}
-        style={{
-          backgroundColor: post?.tags?.[0]?.tag?.color,
-        }}
-      >
-        <div
-          className={clsx(
-            post?.tags?.[0]?.tag?.color ? 'mix-blend-difference' : '',
-            'group-hover:hidden cursor-pointer'
-          )}
-        >
-          {post.tags.map((p) => p.tag.name).join(', ')}
-        </div>
-        {copyDebugJson && (
-          <div
-            className={clsx(
-              'hidden group-hover:block hover:underline cursor-pointer',
-              post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
-            )}
-            onClick={copyDebugJson}
-          >
-            <CopyDebug />
-          </div>
-        )}
-        <div
-          className={clsx(
-            'hidden group-hover:block hover:underline cursor-pointer',
-            post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
-          )}
-          onClick={duplicatePost}
-        >
-          <Duplicate />
-        </div>
-        <div
-          className={clsx(
-            'hidden group-hover:block hover:underline cursor-pointer',
-            post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
-          )}
-          onClick={preview}
-        >
-          <Preview />
-        </div>{' '}
-        {((post.integration.providerIdentifier === 'x' && disableXAnalytics) || !post.releaseId) ? (
-          <></>
-        ) : post.releaseId === 'missing' && missingRelease ? (
-          <div
-            className={clsx(
-              'hidden group-hover:block hover:underline cursor-pointer',
-              post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
-            )}
-            onClick={missingRelease}
-          >
-            <Statistics />
-          </div>
-        ) : post.releaseId !== 'missing' ? (
-          <div
-            className={clsx(
-              'hidden group-hover:block hover:underline cursor-pointer',
-              post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
-            )}
-            onClick={statistics}
-          >
-            <Statistics />
-          </div>
-        ) : (
-          <></>
-        )}{' '}
-        <div
-          className={clsx(
-            'hidden group-hover:block hover:underline cursor-pointer',
-            post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
-          )}
-          onClick={deletePost}
-        >
-          <DeletePost />
-        </div>
-      </div>
-      <div
-        onClick={editPost}
-        className={clsx(
-          'gap-[5px] w-full flex h-full flex-1 rounded-br-[10px] rounded-bl-[10px] p-[8px] text-[14px] bg-newColColor',
-          'relative',
-          isBeforeNow && '!grayscale'
-        )}
-      >
-        <div className={clsx('relative min-w-[20px]')}>
+      <div onClick={editPost} className="tdw-chip-body">
+        <div className="tdw-chip-avatar">
+          <img src={post.integration.picture! || '/no-picture.jpg'} alt="" />
           <img
-            className="w-[20px] h-[20px] rounded-[8px]"
-            src={post.integration.picture! || '/no-picture.jpg'}
-          />
-          <img
-            className="w-[12px] h-[12px] rounded-[8px] absolute z-10 top-[10px] end-0 border border-fifth"
+            className="tdw-chip-network"
             src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
+            alt=""
           />
         </div>
-        <div className="w-full flex-1 flex flex-col min-h-[40px]">
-          <div className="text-start">
-            {state === 'DRAFT' ? t('draft', 'Draft') + ': ' : ''}
+        <div className="tdw-chip-main">
+          <div className="tdw-chip-meta">
+            <span className="tdw-chip-time">
+              {state === 'DRAFT'
+                ? t('draft', 'Draft')
+                : newDayjs(post.publishDate).local().format(isUSCitizen() ? 'hh:mm A' : 'HH:mm')}
+            </span>
+            {!!post.tags.length && (
+              <span className="tdw-chip-tag">
+                <i style={{ backgroundColor: tagColor || 'var(--tdw-muted-foreground)' }} />
+                {post.tags.map((p) => p.tag.name).join(', ')}
+              </span>
+            )}
           </div>
-            <div className="w-full relative">
-              <div className="absolute top-0 start-0 w-full text-ellipsis break-words line-clamp-1 text-start">
-                {stripHtmlValidation('none', post.content, false, true, false) ||
-                  t('no_content', 'no content')}
-              </div>
-            </div>
+          <div className="tdw-chip-title">
+            {stripHtmlValidation('none', post.content, false, true, false) || t('no_content', 'no content')}
+          </div>
         </div>
-        {showTime && (
-          <div className="text-textColor/50 text-[12px] whitespace-nowrap flex items-center">
+        {showTime && state === 'DRAFT' && (
+          <div className="tdw-chip-time whitespace-nowrap">
             {newDayjs(post.publishDate).local().format(isUSCitizen() ? 'hh:mm A' : 'HH:mm')}
           </div>
         )}
+      </div>
+      <div className="tdw-chip-acts" onClick={(e) => e.stopPropagation()}>
+        {copyDebugJson && (
+          <button type="button" className="tdw-chip-act" onClick={copyDebugJson}>
+            <CopyDebug />
+          </button>
+        )}
+        <button type="button" className="tdw-chip-act" onClick={duplicatePost}>
+          <Duplicate />
+        </button>
+        <button type="button" className="tdw-chip-act" onClick={preview}>
+          <Preview />
+        </button>
+        {canStats && (post.releaseId !== 'missing' || missingRelease) && (
+          <button type="button" className="tdw-chip-act" onClick={onStats}>
+            <Statistics />
+          </button>
+        )}
+        <button type="button" className="tdw-chip-act is-danger" onClick={deletePost}>
+          <DeletePost />
+        </button>
       </div>
     </div>
   );

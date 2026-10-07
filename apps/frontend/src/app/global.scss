@@ -1,5 +1,9 @@
 @use './colors.scss';
 @use './tadween.scss';
+@use './tadween/ui-kit.scss';
+@use './tadween/shell.scss';
+@use './tadween/editor.scss';
+@use './tadween/settings.scss';
 @use './tadween/billing.scss';
 @use './polonto.css';
 @use '@uppy/core/dist/style.css' as uppyCore;

@@ -19,10 +19,11 @@ interface Announcement {
   createdAt: string;
 }
 
-const colorStyles: Record<AnnouncementColor, { bg: string; hover: string }> = {
-  INFO: { bg: 'bg-blue-600', hover: 'hover:bg-blue-500' },
-  WARNING: { bg: 'bg-amber-600', hover: 'hover:bg-amber-500' },
-  ERROR: { bg: 'bg-red-600', hover: 'hover:bg-red-500' },
+// Tadween: banners keep a neutral surface; only the icon carries the tone.
+const tones: Record<AnnouncementColor, 'info' | 'warning' | 'error'> = {
+  INFO: 'info',
+  WARNING: 'warning',
+  ERROR: 'error',
 };
 
 const useAnnouncements = () => {
@@ -128,20 +129,26 @@ export const AnnouncementBanner: FC = () => {
   if (!announcements?.length) return null;
 
   const latest = announcements[0];
-  const style = colorStyles[latest.color] || colorStyles.INFO;
+  const tone = tones[latest.color] || 'info';
 
   return (
-    <div
-      className={`${style.bg} ${style.hover} text-white px-[16px] py-[8px] text-center cursor-pointer rounded-[8px] text-[14px] font-[500] transition-colors`}
+    <button
+      type="button"
+      className="tdw-banner"
+      data-tone={tone}
       onClick={handleClick(latest)}
     >
-      {latest.title}
+      <svg className="tdw-banner-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="currentColor" />
+        <path d={tone === 'info' ? 'M12 11v5.5M12 7.6h.01' : 'M12 7v5.5M12 16.4h.01'} stroke="var(--tdw-card, #fff)" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+      <span className="tdw-banner-text">{latest.title}</span>
       {announcements.length > 1 && (
-        <span className="ml-[8px] opacity-70">
+        <span className="tdw-banner-meta">
           (+{announcements.length - 1} {t('more', 'more')})
         </span>
       )}
       <style>{`#left-menu {padding-top: ${user?.isSuperAdmin ? '100px !important;' : '60px !important;'}`}</style>
-    </div>
+    </button>
   );
 };

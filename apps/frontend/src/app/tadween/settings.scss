@@ -1,0 +1,492 @@
+// Tadween settings styles (phase 4). Loaded from global.scss after ui-kit.scss.
+//
+// Settings shell (components/tadween/settings/settings.nav.tsx): grouped side nav
+// whose icon tile fills Nile when selected, a page header, and inset grouped
+// sections (label left, control right, hairlines between rows).
+// Postiz's own settings panels (webhooks, auto post, sets, signatures, global
+// settings, developers, approved apps) are re-skinned by selector inside
+// .tdw-settings-page so their files stay untouched, the same approach as
+// tadween.scss §3. `body` raises specificity above Tailwind's utilities.
+
+@keyframes tdw-set-in {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+body {
+  // ── Shell ─────────────────────────────────────────────────────────────────
+  .tdw-settings {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    background: var(--tdw-background);
+    color: var(--tdw-foreground);
+    border-radius: inherit;
+  }
+
+  .tdw-settings-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px 12px 16px;
+    border-inline-end: 1px solid var(--tdw-border);
+    min-width: 0;
+  }
+  .tdw-settings-groups { display: flex; flex-direction: column; gap: 18px; flex: 1; }
+  .tdw-settings-group { display: grid; gap: 2px; }
+  .tdw-settings-glabel {
+    padding: 0 10px 4px;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    color: var(--tdw-muted-foreground);
+  }
+  .tdw-settings-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: 36px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 9px;
+    background: none;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tdw-foreground);
+    text-align: start;
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover { background: var(--tdw-accent); }
+    &.is-active { background: var(--tdw-card); box-shadow: var(--tdw-shadow-sm); }
+    &:active { transform: none; }
+  }
+  .tdw-settings-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .tdw-settings-ico {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    background: var(--tdw-muted);
+    color: var(--tdw-muted-foreground);
+    transition: background-color 180ms ease, color 180ms ease;
+  }
+  .tdw-settings-item.is-active .tdw-settings-ico {
+    background: var(--tdw-primary);
+    color: var(--tdw-on-primary);
+  }
+
+  // Log out sits quietly under the nav (Postiz's LogoutComponent, unchanged).
+  .tdw-settings-foot { padding: 12px 10px 0; border-top: 1px solid var(--tdw-border); }
+  .tdw-settings-logout {
+    font-size: 13px;
+    line-height: 18px;
+    .text-red-400 { color: var(--tdw-muted-foreground); transition: color 150ms ease; }
+    > div:hover .text-red-400 { color: var(--tdw-destructive); }
+  }
+
+  .tdw-settings-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    max-width: 920px;
+    min-width: 0;
+    padding: 28px 40px 48px;
+    box-sizing: border-box;
+    animation: tdw-set-in 220ms ease both;
+  }
+  .tdw-settings-head {
+    display: grid;
+    gap: 4px;
+    h2 { margin: 0; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em; }
+  }
+  .tdw-set-desc { margin: 0; font-size: 13px; line-height: 18px; color: var(--tdw-muted-foreground); }
+
+  // ── Inset grouped section ────────────────────────────────────────────────
+  .tdw-set-sec { border-radius: var(--tdw-radius-lg); background: var(--tdw-card); box-shadow: var(--tdw-shadow-sm); min-width: 0; }
+  .tdw-set-sec-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    h3 { margin: 0; font-size: 15px; line-height: 20px; font-weight: 600; }
+    .tdw-set-desc { margin-top: 2px; }
+  }
+  .tdw-set-sec-body { display: grid; gap: 4px; padding: 0 20px 20px; }
+
+  // Postiz buttons inside settings: a little smaller and rounder
+  .tdw-settings-body button.bg-forth,
+  .tdw-settings-body button.bg-third,
+  .tdw-invite button.bg-forth,
+  .tdw-invite button.bg-third {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .tdw-settings-body button.bg-third,
+  .tdw-invite button.bg-third {
+    background: var(--tdw-muted);
+    color: var(--tdw-foreground);
+    &:hover { background: var(--tdw-accent); box-shadow: inset 0 0 0 1px var(--tdw-border); }
+  }
+  .tdw-btn-inner { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+
+  // ── Postiz panels re-skinned as grouped sections ───────────────────────────
+  .tdw-settings-page {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+
+    // A stack of panels (General) gets the same rhythm as our sections
+    > div > .flex.flex-col:not(:has(> h3)) { gap: 16px; }
+
+    // Panel with its own heading (Webhooks, Auto post, Sets, Signatures,
+    // Approved apps): the whole block becomes one section, its heading the
+    // section title, its bordered box the section body.
+    .flex.flex-col:has(> h3.text-\[20px\]),
+    .flex.flex-col:has(> div > h3.text-\[20px\]) {
+      background: var(--tdw-card);
+      border-radius: var(--tdw-radius-lg);
+      box-shadow: var(--tdw-shadow-sm);
+      padding: 16px 20px 20px;
+    }
+    // (Approved apps nests its heading one level down: only the outer block is the card)
+    .flex.flex-col:has(> div > h3.text-\[20px\]) {
+      gap: 14px;
+      > .flex.flex-col:has(> h3.text-\[20px\]) { padding: 0; background: none; box-shadow: none; border-radius: 0; }
+    }
+    h3.text-\[20px\] { margin: 0; font-size: 15px; line-height: 20px; font-weight: 600; }
+    h3.text-\[20px\] + .text-customColor18,
+    h3.text-\[20px\] ~ .text-customColor18.mt-\[4px\] {
+      margin-top: 2px;
+      font-size: 13px;
+      line-height: 18px;
+      color: var(--tdw-muted-foreground);
+    }
+
+    // Postiz's bordered panel (bg-sixth border-fifth)
+    .bg-sixth.border-fifth {
+      margin: 0;
+      padding: 6px 20px 10px;
+      gap: 0;
+      border: 0;
+      border-radius: var(--tdw-radius-lg);
+      background: var(--tdw-card);
+      box-shadow: var(--tdw-shadow-sm);
+    }
+    // …flattened when it sits inside a section that already has the card
+    .flex.flex-col:has(> h3.text-\[20px\]) > .bg-sixth.border-fifth,
+    .flex.flex-col:has(> div > h3.text-\[20px\]) > .bg-sixth.border-fifth {
+      margin-top: 14px;
+      padding: 0;
+      background: transparent;
+      box-shadow: none;
+      border-radius: 0;
+    }
+    // Panel title (Email Notifications, Shortlink Settings, Delete Account…)
+    .bg-sixth.border-fifth > .mt-\[4px\] {
+      margin: 0;
+      padding: 12px 0 8px;
+      font-size: 15px;
+      line-height: 20px;
+      font-weight: 600;
+    }
+    // Rows: label + description left, control right, hairlines between
+    .bg-sixth.border-fifth > .flex.items-center.justify-between {
+      gap: 20px;
+      padding: 12px 0;
+      border-top: 1px solid var(--tdw-border);
+      .text-\[14px\] { font-size: 14px; line-height: 20px; font-weight: 500; }
+      .text-\[12px\] { margin-top: 2px; font-size: 13px; line-height: 18px; color: var(--tdw-muted-foreground); }
+    }
+    .bg-sixth.border-fifth > .mt-\[4px\] + .flex.items-center.justify-between { border-top: 0; }
+    // A panel with a title and one bare control (Date Metrics) reads as one row
+    .bg-sixth.border-fifth:has(> .mt-\[4px\]):not(:has(> .justify-between)) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+      align-items: center;
+      gap: 20px;
+      padding-block: 10px;
+      > .mt-\[4px\] { padding: 0; font-size: 14px; font-weight: 500; }
+      .text-red-400:empty, .text-red-400:not(:has(*)) { display: none; } // reserved error line
+    }
+    .animate-pulse { padding: 12px 0; color: var(--tdw-muted-foreground); font-size: 14px; }
+
+    // Delete account: a destructive button, not Postiz's dark red block
+    .\!bg-red-800 {
+      background: transparent !important;
+      color: var(--tdw-destructive) !important;
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tdw-destructive) 40%, transparent);
+      &:hover { background: color-mix(in srgb, var(--tdw-destructive) 10%, transparent) !important; }
+    }
+
+    // Lists Postiz draws as grids (Name · URL · Edit · Delete): header row
+    // muted, hairline under it, compact buttons.
+    .grid.w-full.gap-y-\[10px\] {
+      row-gap: 0 !important;
+      font-size: 14px;
+      line-height: 20px;
+      > div { min-height: 44px; min-width: 0; border-top: 1px solid var(--tdw-border); overflow-wrap: anywhere; }
+      > div.flex-col { padding-inline-end: 12px; }
+      // header row: text-only cells
+      > div:not([class]), > div.text-center:not(.flex) {
+        display: flex;
+        align-items: center;
+        min-height: 32px;
+        border-top: 0;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        color: var(--tdw-muted-foreground);
+      }
+      > div.text-center:not(.flex) { justify-content: center; }
+      button.bg-forth { height: 30px; padding: 0 12px; font-size: 13px; background: var(--tdw-muted); color: var(--tdw-foreground); }
+      button.bg-forth:hover { background: var(--tdw-accent); }
+    }
+  }
+
+  // ── Team ────────────────────────────────────────────────────────────────
+  .tdw-team { display: flex; flex-direction: column; gap: 16px; }
+  .tdw-team-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 6px; }
+  .tdw-team-search {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 9px;
+    background: var(--tdw-muted);
+    color: var(--tdw-muted-foreground);
+    transition: box-shadow 150ms ease, background-color 150ms ease;
+    &:focus-within { background: var(--tdw-card); box-shadow: 0 0 0 2px var(--tdw-ring); }
+    input {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      border: 0;
+      outline: 0 !important;
+      background: none;
+      font: inherit;
+      font-size: 14px;
+      color: var(--tdw-foreground);
+      &::placeholder { color: var(--tdw-muted-foreground); }
+    }
+  }
+  .tdw-seg {
+    display: inline-flex;
+    padding: 2px;
+    gap: 2px;
+    border-radius: 10px;
+    background: var(--tdw-muted);
+  }
+  .tdw-seg-item {
+    height: 30px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--tdw-muted-foreground);
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover { color: var(--tdw-foreground); }
+    &.is-on { background: var(--tdw-popover); color: var(--tdw-foreground); box-shadow: var(--tdw-shadow-sm); }
+  }
+  .tdw-members { list-style: none; margin: 0; padding: 0; display: grid; }
+  .tdw-member {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto 32px;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 4px;
+    border-top: 1px solid var(--tdw-border);
+    animation: tdw-set-in 200ms ease both;
+    &:first-child { border-top: 0; }
+  }
+  .tdw-member-av {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--tdw-primary-soft);
+    color: var(--tdw-primary);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .tdw-member-who { display: grid; gap: 1px; min-width: 0; > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+  .tdw-member-name { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--tdw-foreground); }
+  .tdw-member-email { font-size: 13px; line-height: 18px; color: var(--tdw-muted-foreground); }
+  .tdw-you {
+    margin-inline-start: 8px;
+    padding: 1px 7px;
+    border-radius: 6px;
+    background: var(--tdw-muted);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--tdw-muted-foreground);
+    vertical-align: 1px;
+  }
+  .tdw-member-role {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--tdw-muted-foreground);
+    box-shadow: inset 0 0 0 1px var(--tdw-border);
+    white-space: nowrap;
+    &.is-owner { box-shadow: none; svg { color: var(--tdw-smart); } }
+  }
+  .tdw-member-more { display: flex; justify-content: flex-end; }
+  .tdw-icon-btn {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--tdw-muted-foreground);
+    cursor: pointer;
+    &:hover { background: var(--tdw-accent); color: var(--tdw-foreground); }
+    &.is-danger:hover { color: var(--tdw-destructive); background: color-mix(in srgb, var(--tdw-destructive) 10%, transparent); }
+  }
+  .tdw-member-empty {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    padding: 28px 0 20px;
+    color: var(--tdw-muted-foreground);
+    text-align: center;
+  }
+  .tdw-roles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tdw-role-card {
+    padding: 14px 16px;
+    border-radius: var(--tdw-radius-md);
+    box-shadow: inset 0 0 0 1px var(--tdw-border);
+    ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; line-height: 18px; color: var(--tdw-muted-foreground); }
+    li { display: flex; gap: 8px; align-items: flex-start; svg { flex: none; margin-top: 3px; color: var(--tdw-success); } }
+  }
+  .tdw-role-card-h { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; font-weight: 600; svg { color: var(--tdw-primary); } }
+
+  // ── Invite dialog (rendered in Postiz's modal) ───────────────────────────
+  .tdw-invite {
+    display: grid;
+    gap: 16px;
+    width: min(480px, calc(100vw - 64px));
+    padding: 0;
+    > .flex-col:has(> input), > .flex-col:has(input[name='email']) { margin-bottom: -12px; }
+    box-sizing: border-box;
+    color: var(--tdw-foreground);
+  }
+  .tdw-invite-roles {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    legend { padding: 0; margin-bottom: 6px; font-size: 14px; }
+  }
+  .tdw-role-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tdw-role-option,
+  .tdw-invite-check {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: var(--tdw-radius-md);
+    box-shadow: inset 0 0 0 1px var(--tdw-border);
+    background: var(--tdw-card);
+    cursor: pointer;
+    transition: box-shadow 150ms ease;
+    &:hover { box-shadow: inset 0 0 0 1px var(--tdw-input); }
+  }
+  .tdw-role-option {
+    input { position: absolute; opacity: 0; pointer-events: none; }
+    &.is-on { box-shadow: inset 0 0 0 2px var(--tdw-primary); }
+    &:has(input:focus-visible) { outline: 2px solid var(--tdw-ring); outline-offset: 2px; }
+  }
+  .tdw-role-dot {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    border-radius: 50%;
+    border: 1.5px solid var(--tdw-input);
+    box-sizing: border-box;
+    transition: border 220ms var(--tdw-ease-bounce);
+  }
+  .tdw-role-option.is-on .tdw-role-dot { border: 5px solid var(--tdw-primary); }
+  .tdw-role-text { display: grid; gap: 2px; min-width: 0; }
+  .tdw-role-label { font-size: 14px; line-height: 20px; font-weight: 500; }
+  .tdw-role-desc { font-size: 13px; line-height: 18px; color: var(--tdw-muted-foreground); }
+  .tdw-invite-check {
+    box-shadow: none;
+    padding: 0;
+    background: transparent;
+    &:hover { box-shadow: none; }
+    input { flex: none; width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--tdw-primary); cursor: pointer; }
+  }
+  .tdw-invite-foot { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+
+  // ── Narrow screens: groups become one scrolling row above the page ─────────
+  @media (max-width: 760px) {
+    .tdw-settings { grid-template-columns: minmax(0, 1fr); }
+    .tdw-settings-nav {
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      border-inline-end: 0;
+      border-bottom: 1px solid var(--tdw-border);
+      scrollbar-width: none;
+      &::-webkit-scrollbar { display: none; }
+    }
+    .tdw-settings-groups { flex-direction: row; gap: 2px; flex: none; }
+    .tdw-settings-group { display: flex; gap: 2px; }
+    .tdw-settings-glabel { display: none; }
+    .tdw-settings-item { width: auto; padding-inline-end: 12px; }
+    .tdw-settings-foot { flex: none; padding: 0 4px; border-top: 0; white-space: nowrap; }
+    .tdw-settings-body { padding: 20px 16px 32px; gap: 16px; }
+    .tdw-set-sec-head { flex-wrap: wrap; padding: 14px 16px; }
+    .tdw-set-sec-body { padding: 0 16px 16px; }
+    .tdw-settings-page .flex.flex-col:has(> h3.text-\[20px\]) { padding: 14px 16px 16px; }
+    .tdw-settings-page .bg-sixth.border-fifth { padding-inline: 16px; }
+    .tdw-settings-page .bg-sixth.border-fifth > .flex.items-center.justify-between {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      > .w-\[200px\] { width: 100%; }
+      > button { align-self: flex-start; }
+    }
+    .tdw-settings-page .bg-sixth.border-fifth:has(> .mt-\[4px\]):not(:has(> .justify-between)) {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+      padding-block: 14px;
+    }
+    .tdw-member { grid-template-columns: auto minmax(0, 1fr) 32px; row-gap: 6px; }
+    .tdw-member-role { grid-column: 2; grid-row: 2; justify-self: start; }
+    .tdw-member-more { grid-column: 3; grid-row: 1; }
+    .tdw-roles, .tdw-role-options { grid-template-columns: minmax(0, 1fr); }
+    .tdw-team-search { min-width: 0; flex-basis: 100%; }
+  }
+}

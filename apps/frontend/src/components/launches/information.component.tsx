@@ -174,7 +174,8 @@ export const InformationComponent: FC<{
       className={clsx(
         'tdw-counter',
         isOver ? 'is-over' : (isNear || showStripLinkWarning) && 'is-near',
-        open && 'is-open'
+        open && 'is-open',
+        !selectedIntegrations.length && 'mobile:hidden'
       )}
     >
       <button

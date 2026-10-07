@@ -26,7 +26,7 @@ Apply the schema with `pnpm run prisma-db-push`. Every reader catches a missing 
 
 ### Defaults and seeding
 
-- Features default to on. `TADWEEN_DISABLED_FEATURES="plugs,ugc"` turns them off until the admin saves a value.
+- Features default to on, except the Postiz partner shortcuts `ugc` (AgentMedia UGC videos) and `affiliate`, which start off. `TADWEEN_DISABLED_FEATURES="plugs,agent"` turns features off and `TADWEEN_ENABLED_FEATURES="ugc"` turns the partner shortcuts on, until the admin saves a value.
 - Registration falls back to `DISABLE_REGISTRATION` (closed), then `INVITE_ONLY_REGISTRATION` (invite), then open.
 - Providers default to LinkedIn and LinkedIn Page first, followed by Postiz's own order, all enabled. `HIDDEN_PROVIDERS` still hides a provider whatever the setting says.
 - Plans are seeded **on request**: Admin → Plans → "Add the Tadween plans" creates Creator, Pro, Team and Agency from the design system. Their prices are **placeholders**. Seeding is not automatic because it would change what an existing instance charges.

@@ -14,8 +14,6 @@ import { LogoTextComponent } from '@gitroom/frontend/components/ui/logo-text.com
 import { useTadweenPricing } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { capitalize } from 'lodash';
 import clsx from 'clsx';
-import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
-import { CheckIconComponent } from '@gitroom/frontend/components/ui/check.icon.component';
 import {
   FAQComponent,
   FAQSection,
@@ -23,11 +21,23 @@ import {
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useDubClickId } from '@gitroom/frontend/components/layout/dubAnalytics';
-import SafeImage from '@gitroom/react/helpers/safe.image';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import useCookie from 'react-use-cookie';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
 import { DeveloperIconComponent } from '@gitroom/frontend/components/developer/developer.icon.component';
+import {
+  Button,
+  Icon,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
+import {
+  BillingPeriod,
+  formatUsd,
+  monthlyEquivalent,
+  PeriodToggle,
+  useTierMeta,
+} from '@gitroom/frontend/components/tadween/billing/pricing';
+import { PaymentFormSkeleton } from '@gitroom/frontend/components/tadween/billing/billing.skeleton';
 
 const ModeComponent = dynamic(
   () => import('@gitroom/frontend/components/layout/mode.component'),
@@ -61,6 +71,7 @@ export const FirstBillingComponent = () => {
   const [datafast_session_id] = useCookie('datafast_session_id', '');
   // Tadween: plans from /admin (falls back to Postiz's pricing map)
   const { visible, nameFor, hasPlans, plans, planFor } = useTadweenPricing();
+  const tierMeta = useTierMeta();
   useEffect(() => {
     if (hasPlans && !planFor(tier)) {
       setTier(plans[0].tier);
@@ -91,12 +102,12 @@ export const FirstBillingComponent = () => {
 
   const showYouTube = () => {
     modals.openModal({
-      title: 'Grow Fast With Postiz (Play the video)',
+      title: t('tdw_see_how_it_works', 'See how it works'),
       children: (
         <iframe
-          className="h-full aspect-video min-w-[800px]"
+          className="h-full aspect-video min-w-[800px] mobile:min-w-0 mobile:w-full"
           src="https://www.youtube.com/embed/BdsCVvEYgHU?si=vvhaZJ8I5oXXvVJS?autoplay=1"
-          title="Postiz Tutorial"
+          title={t('tdw_tutorial', 'Tutorial')}
           allow="autoplay"
           allowFullScreen
         />
@@ -118,114 +129,84 @@ export const FirstBillingComponent = () => {
 
   const price = useMemo(() => visible(false), [visible]);
 
-  const JoinOver = () => {
-    return (
-      <>
-        <div className="text-[46px] font-[600] leading-[110%] tablet:text-[36px] mobile:!text-[30px] whitespace-pre-line text-balance">
-          {t('billing_join_over', 'Join Over')}{' '}
-          <span className="text-[#FC69FF]">
-            {t('billing_entrepreneurs_count', '20,000+ Entrepreneurs')}
-          </span>{' '}
-          {t('billing_who_use', 'who use')}{' '}
-          {t(
-            'billing_postiz_grow_social',
-            'Postiz To Grow Their Social Presence'
-          )}
-        </div>
-
-        <div className="flex" onClick={showYouTube}>
-          <div className="tablet:mb-[32px] cursor-pointer mt-[32px] flex gap-[10px] items-center underline hover:font-[700]">
-            <div>
-              <SafeImage
-                className="text-[12px]"
-                src="/icons/platforms/youtube.svg"
-                width={22.5}
-                height={16}
-                alt="YouTube"
-              />
-            </div>
-            <div>See the power of Postiz (click here)</div>
-          </div>
-        </div>
-
-        {!!user?.allowTrial && (
-          <div className="flex mt-[32px] mb-[10px] gap-[15px] tablet:mt-[32px] tablet:mb-[32px] text-[16px] font-[500] mobile:flex-col">
-            <div className="flex gap-[8px]">
-              <div>
-                <CheckIconComponent />
-              </div>
-              <div>{t('billing_no_risk_trial', '100% No-Risk Free Trial')}</div>
-            </div>
-            <div className="flex-1 flex gap-[8px] justify-center mobile:justify-start">
-              <div>
-                <CheckIconComponent />
-              </div>
-              <div>
-                {t(
-                  'billing_pay_nothing_7_days',
-                  'Pay NOTHING for the first 7-days'
-                )}
-              </div>
-            </div>
-            <div className="flex gap-[8px]">
-              <div>
-                <CheckIconComponent />
-              </div>
-              <div>
-                {t('billing_cancel_anytime', 'Cancel anytime, from settings')}
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  };
+  // Tadween: design-system presentation; data, Stripe and checkout are Postiz's
+  const save = tierMeta.save;
+  const notice = (text: string) => (
+    <div className="tdw-paywall-notice" role="status">
+      <Icon name="triangle-alert" />
+      <div>{text}</div>
+    </div>
+  );
 
   return (
-    <div className="blurMe flex flex-1 flex-col bg-newBgColorInner pb-[60px] mobile:pb-[100px]">
-      <div className="h-[92px] px-[80px] tablet:px-[32px] mobile:!px-[16px] py-[20px] flex border-b border-newColColor">
-        <div className="flex-1 flex items-center text-textColor">
-          <LogoTextComponent />
-        </div>
-        <div className="flex items-center">
-          <div className="flex gap-[20px] text-textItemBlur">
-            <OrganizationSelector />
-            <div className="hover:text-newTextColor">
-              <ModeComponent />
-            </div>
-            <div className="w-[1px] h-[20px] bg-blockSeparator" />
-            <LanguageComponent />
-            <div className="w-[1px] h-[20px] bg-blockSeparator" />
-            <AttachToFeedbackIcon />
-            <DeveloperIconComponent />
-            {/*<NotificationComponent />*/}
-            <div className="hover:text-newTextColor">
-              {user?.tier.current === 'FREE' && (
-                <LogoutComponent isIcon={true} />
-              )}
-            </div>
+    <TadweenScope className="blurMe tdw-paywall">
+      <header className="tdw-paywall-top">
+        <LogoTextComponent />
+        <span className="grow" />
+        <div className="tdw-paywall-tools">
+          <OrganizationSelector />
+          <div className="hover:text-newTextColor">
+            <ModeComponent />
+          </div>
+          <span className="sep" />
+          <LanguageComponent />
+          <span className="sep" />
+          <AttachToFeedbackIcon />
+          <DeveloperIconComponent />
+          {/*<NotificationComponent />*/}
+          <div className="hover:text-newTextColor">
+            {user?.tier.current === 'FREE' && <LogoutComponent isIcon={true} />}
           </div>
         </div>
-      </div>
-      <div className="flex px-[80px] tablet:px-[32px] mobile:!px-[16px] flex-1 flex-row tablet:flex-none tablet:flex-col-reverse">
-        <div className="flex-1 py-[40px] tablet:pt-[80px] flex flex-col pe-[40px] tablet:pe-0">
-          <div className="block tablet:hidden">
-            <JoinOver />
+      </header>
+      <main className="tdw-paywall-main">
+        <div className="tdw-paywall-hero" style={{ gridColumn: '1 / -1' }}>
+          <h1>
+            {t('tdw_paywall_title', 'Plan your LinkedIn week with Tadween')}
+          </h1>
+          <p>
+            {t(
+              'tdw_paywall_lead',
+              'Schedule posts for your profile and the company pages you manage, and publish on time.'
+            )}
+          </p>
+          <div className="flex flex-wrap items-center gap-[16px]">
+            {!!user?.allowTrial && (
+              <ul className="tdw-paywall-checks">
+                <li>
+                  <Icon name="check" />
+                  {t('tdw_trial_7_days', '7-day free trial')}
+                </li>
+                <li>
+                  <Icon name="check" />
+                  {t('tdw_pay_nothing_today', 'Pay nothing today')}
+                </li>
+                <li>
+                  <Icon name="check" />
+                  {t('tdw_cancel_from_settings', 'Cancel any time from settings')}
+                </li>
+              </ul>
+            )}
+            <Button variant="ghost" size="sm" icon="play" onClick={showYouTube}>
+              {t('tdw_see_how_it_works', 'See how it works')}
+            </Button>
           </div>
+        </div>
+        <section className="tdw-paywall-pane">
           {data?.blocked ? (
-            <div className="mt-[24px] p-[24px] rounded-[20px] border-[1.5px] border-newColColor text-[16px] font-[500]">
-              {t(
+            notice(
+              t(
                 'billing_other_account_subscribed',
                 'Another account with this email already has an active subscription. Please log off and sign in to that account to manage your subscription.'
-              )}
-            </div>
+              )
+            )
           ) : stripeFailed ? (
-            <div className="mt-[24px] p-[24px] rounded-[20px] border-[1.5px] border-newColColor text-[16px] font-[500]">
-              {t(
+            notice(
+              t(
                 'billing_stripe_load_failed',
                 'The payment form could not be loaded. Please disable ad blockers or privacy extensions for this page and reload.'
-              )}
-            </div>
+              )
+            )
           ) : !isLoading && data && stripe ? (
             <EmbeddedBilling
               stripe={stripe}
@@ -234,94 +215,72 @@ export const FirstBillingComponent = () => {
               autoApplyCoupon={data.auto_apply_coupon}
             />
           ) : (
-            <LoadingComponent />
+            <PaymentFormSkeleton />
           )}
-        </div>
-        <div className="flex flex-col ps-[40px] tablet:!ps-[0] border-l border-newColColor py-[40px] mobile:!pt-[24px] tablet:border-none tablet:pb-0">
-          <div className="top-[20px] sticky">
-            <div className="hidden tablet:block">
-              <JoinOver />
+        </section>
+        <aside className="tdw-paywall-side">
+          <div className="sticky">
+            <div className="flex flex-wrap items-center justify-between gap-[12px]">
+              <h2 className="title-2 m-0">
+                {t('tdw_choose_a_plan', 'Choose a plan')}
+              </h2>
+              <PeriodToggle
+                value={period as BillingPeriod}
+                onChange={setPeriod}
+                save={save}
+              />
             </div>
-            <div className="flex mb-[24px] mobile:flex-col">
-              <div className="flex-1 text-[24px] font-[700]">
-                {t('billing_choose_plan', 'Choose a Plan')}
-              </div>
-              <div className="h-[44px] px-[6px] mobile:px-0 flex items-center justify-center mobile:justify-start gap-[12px] border border-newColColor rounded-[12px] select-none">
-                <div
-                  className={clsx(
-                    'h-[32px] mobile:flex-1 rounded-[6px] text-[16px] px-[12px] flex justify-center items-center',
-                    period === 'MONTHLY'
-                      ? 'bg-boxFocused text-textItemFocused'
-                      : 'cursor-pointer'
-                  )}
-                  onClick={() => setPeriod('MONTHLY')}
+            <div
+              className="tdw-paywall-plans"
+              role="radiogroup"
+              aria-label={t('tdw_plan', 'Plan')}
+            >
+              {price.map(([key, value]) => (
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={key === tier}
+                  onClick={() => setTier(key)}
+                  key={key}
+                  className="tdw-plan-pick"
                 >
-                  {t('billing_monthly', 'Monthly')}
-                </div>
-                <div
-                  className={clsx(
-                    'gap-[10px] h-[32px] mobile:flex-1 rounded-[6px] text-[16px] px-[12px] flex justify-center items-center',
-                    period === 'YEARLY'
-                      ? 'bg-boxFocused text-textItemFocused'
-                      : 'cursor-pointer'
-                  )}
-                  onClick={() => setPeriod('YEARLY')}
-                >
-                  <div>{t('billing_yearly', 'Yearly')}</div>
-                  <div className="bg-[#AA0FA4] text-[white] px-[8px] rounded-[4px] mobile:hidden">
-                    {t('billing_20_percent_off', '20% Off')}
-                  </div>
-                </div>
-              </div>
+                  <span className="name">
+                    {nameFor(key, tierMeta.name(key) || capitalize(key))}
+                  </span>
+                  {tierMeta.popular(key) ? (
+                    <span className="pz-plan-flag">
+                      {t('tdw_most_popular', 'Most popular')}
+                    </span>
+                  ) : null}
+                  <span key={period} className="price">
+                    {formatUsd(
+                      monthlyEquivalent(value, period as BillingPeriod)
+                    )}{' '}
+                    <span className="per">{t('tdw_per_month', '/ month')}</span>
+                  </span>
+                  <span className="caption pz-muted">
+                    {period === 'YEARLY'
+                      ? t('tdw_billed_yearly', 'Billed {{amount}} yearly', {
+                          amount: formatUsd(value.year_price),
+                        })
+                      : t('tdw_billed_monthly', 'Billed monthly')}
+                  </span>
+                </button>
+              ))}
             </div>
-            <div className="grid grid-cols-2 gap-[8px] mobile:!grid-cols-2 tablet:grid-cols-4">
-              {price.map(
-                ([key, value]) => (
-                  <div
-                    onClick={() => setTier(key)}
-                    key={key}
-                    className={clsx(
-                      'cursor-pointer select-none w-[266px] h-[138px] tablet:w-full tablet:h-[124px] p-[24px] tablet:p-[15px] rounded-[20px] flex flex-col',
-                      key === tier
-                        ? 'border-[1.5px] border-[#618DFF]'
-                        : 'border-[1.5px] border-newColColor'
-                    )}
-                  >
-                    <div className="text-[20px] mobile:text-[18px] font-[500]">
-                      {nameFor(key, capitalize(key))}
-                    </div>
-                    <div className="text-[24px] mobile:text-[18px] font-[400]">
-                      <span className="text-[44px] mobile:text-[30px] font-[600]">
-                        $
-                        {
-                          value[
-                            period === 'MONTHLY' ? 'month_price' : 'year_price'
-                          ]
-                        }
-                      </span>{' '}
-                      {period === 'MONTHLY'
-                        ? t('billing_per_month', '/ month')
-                        : t('billing_per_year', '/ year')}
-                    </div>
-                  </div>
-                ),
-                []
-              )}
-            </div>
-            <div className="flex flex-col mt-[54px] gap-[24px] tablet:mt-[40px]">
-              <div className="text-[24px] font-[700]">
-                {t('billing_features', 'Features')}
-              </div>
+            <div className="grid gap-[12px]">
+              <h3 className="headline m-0">
+                {t('tdw_whats_included', 'What’s included')}
+              </h3>
               <BillingFeatures tier={tier} />
             </div>
-            <div className="flex flex-col mobile:hidden tablet:hidden">
-              {/*<div>asd</div>*/}
+            <div className="pz-faq mobile:hidden tablet:hidden">
               <FAQComponent />
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </aside>
+      </main>
+    </TadweenScope>
   );
 };
 
@@ -416,26 +375,13 @@ export const BillingFeatures: FC<{ tier: string }> = ({ tier }) => {
   };
 
   return (
-    <div className="grid grid-cols-2 mobile:grid-cols-1 gap-y-[8px] gap-x-[32px]">
+    <ul className="pz-plan-list grid-cols-2 mobile:grid-cols-1" style={{ columnGap: 24 }}>
       {features.map((feature) => (
-        <div key={feature.key} className="flex items-center gap-[8px]">
-          <div>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="17"
-              height="17"
-              viewBox="0 0 17 17"
-              fill="none"
-            >
-              <path
-                d="M11.825 0H4.84167C1.80833 0 0 1.80833 0 4.84167V11.8167C0 14.8583 1.80833 16.6667 4.84167 16.6667H11.8167C14.85 16.6667 16.6583 14.8583 16.6583 11.825V4.84167C16.6667 1.80833 14.8583 0 11.825 0ZM12.3167 6.41667L7.59167 11.1417C7.475 11.2583 7.31667 11.325 7.15 11.325C6.98333 11.325 6.825 11.2583 6.70833 11.1417L4.35 8.78333C4.10833 8.54167 4.10833 8.14167 4.35 7.9C4.59167 7.65833 4.99167 7.65833 5.23333 7.9L7.15 9.81667L11.4333 5.53333C11.675 5.29167 12.075 5.29167 12.3167 5.53333C12.5583 5.775 12.5583 6.16667 12.3167 6.41667Z"
-                fill="currentColor"
-              />
-            </svg>
-          </div>
-          <div>{renderFeature(feature)}</div>
-        </div>
+        <li key={feature.key}>
+          <Icon name="check" />
+          {renderFeature(feature)}
+        </li>
       ))}
-    </div>
+    </ul>
   );
 };

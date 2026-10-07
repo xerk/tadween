@@ -11,7 +11,11 @@ import {
 } from '@stripe/react-stripe-js/checkout';
 import { modeEmitter } from '@gitroom/frontend/components/layout/mode.component';
 import useCookie from 'react-use-cookie';
-import { Button } from '@gitroom/react/form/button';
+import {
+  Button,
+  Icon,
+  Input,
+} from '@gitroom/frontend/components/tadween/ui';
 import dayjs from 'dayjs';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
@@ -53,8 +57,14 @@ export const EmbeddedBilling: FC<{
     return null;
   }
 
+  // Tadween: Stripe's form follows the theme tokens of the current mode
+  const token = (name: string, fallback: string) =>
+    (typeof document !== 'undefined' &&
+      getComputedStyle(document.body).getPropertyValue(name).trim()) ||
+    fallback;
+
   return (
-    <div className="flex flex-col w-full pt-[48px] billing-form flex-1 tablet:pt-0">
+    <div className="flex flex-col w-full billing-form flex-1">
       <CheckoutProvider
         stripe={stripe}
         options={{
@@ -62,19 +72,32 @@ export const EmbeddedBilling: FC<{
           elementsOptions: {
             appearance: {
               variables: {
-                colorText: mode === 'dark' ? '#ffffff' : '#0e0e0e',
-                borderRadius: '8px',
-                colorBackground: mode === 'dark' ? '#1E1E1E' : '#FFFFFF',
+                colorText: token(
+                  '--tdw-foreground',
+                  mode === 'dark' ? '#ffffff' : '#0e0e0e'
+                ),
+                colorTextSecondary: token('--tdw-muted-foreground', '#68686e'),
+                colorPrimary: token('--tdw-primary', '#0b7062'),
+                colorDanger: token('--tdw-destructive', '#cc1f2f'),
+                borderRadius: '10px',
+                colorBackground: token(
+                  '--tdw-card',
+                  mode === 'dark' ? '#1E1E1E' : '#FFFFFF'
+                ),
               },
               rules: {
                 '.Label': {
                   fontSize: '14px',
-                  fontWeight: '600',
-                  marginBottom: '8px',
+                  fontWeight: '500',
+                  marginBottom: '6px',
                 },
                 '.Input': {
                   height: '44px',
-                  backgroundColor: mode === 'dark' ? '#1E1E1E' : '#FFFFFF',
+                  backgroundColor: token(
+                    '--tdw-card',
+                    mode === 'dark' ? '#1E1E1E' : '#FFFFFF'
+                  ),
+                  borderColor: token('--tdw-input', '#8a8a90'),
                 },
               },
             },
@@ -147,9 +170,9 @@ const StripeInputs: FC<{
       {/*  <BillingAddressElement />*/}
       {/*</div>*/}
       <div>
-        <h4 className="mb-[32px] text-[24px] font-[700]">
-          {checkout.type === 'loading' ? '' : t('billing_payment', 'Payment')}
-        </h4>
+        <h2 className="title-2 mt-0 mb-[20px]">
+          {checkout.type === 'loading' ? '' : t('tdw_payment', 'Payment')}
+        </h2>
         <PaymentElement
           id="payment-element"
           options={{
@@ -164,7 +187,8 @@ const StripeInputs: FC<{
         )}
         {ready && <SubmitBar loading={loading} />}
         {checkout.type === 'loading' ? null : (
-          <div className="mt-[24px] text-[16px] font-[600] flex gap-[4px] items-center">
+          <div className="mt-[20px] caption pz-muted flex gap-[6px] items-center">
+            <Icon name="lock" size={14} />
             <div>
               {t('billing_powered_by_stripe', 'Secure payments processed by')}
             </div>
@@ -219,11 +243,11 @@ const PriceBreakdown: FC = () => {
       : t('billing_yearly', 'Yearly');
 
   return (
-    <div className="mt-[40px]">
-      <h4 className="mb-[16px] text-[24px] font-[700]">
-        {t('billing_order_summary', 'Order Summary')}
-      </h4>
-      <div className="rounded-[12px] border border-newColColor p-[20px] flex flex-col gap-[12px]">
+    <div className="mt-[28px]">
+      <h3 className="headline mt-0 mb-[12px]">
+        {t('tdw_order_summary', 'Order summary')}
+      </h3>
+      <div className="tdw-summary">
         {/* Plan */}
         <div className="flex justify-between items-center">
           <div className="flex flex-col">
@@ -268,14 +292,14 @@ const PriceBreakdown: FC = () => {
         )}
 
         {/* Divider */}
-        <div className="border-t border-newColColor my-[4px]" />
+        <div className="tdw-summary-sep" />
 
         {/* Due today */}
         <div className="flex justify-between items-center">
           <span className="font-[600] text-textColor">
             {t('billing_due_today', 'Due today')}
           </span>
-          <span className="font-[700] text-[18px] text-textColor">
+          <span className="time text-[18px] leading-[24px] text-textColor">
             {dueToday}
           </span>
         </div>
@@ -290,13 +314,11 @@ const PriceBreakdown: FC = () => {
           </div>
         )}
 
-        <div className="text-[12px]">
-          <strong>
-            {t(
-              'billing_cancel_notice',
-              'Cancel anytime from settings without talking to a person and never be charged.'
-            )}
-          </strong>
+        <div className="caption pz-muted">
+          {t(
+            'tdw_billing_cancel_notice',
+            'Cancel any time from settings without talking to anyone, and you will not be charged.'
+          )}
         </div>
       </div>
     </div>
@@ -375,24 +397,11 @@ const AppliedCouponDisplay: FC<{
 
   return (
     <div className="flex flex-col gap-[8px]">
-      <div className="flex items-center gap-[12px] p-[16px] rounded-[12px] border border-[#AA0FA4]/30 bg-[#AA0FA4]/10">
+      <div className="tdw-coupon">
         <div className="flex-1">
           <div className="flex items-center gap-[8px] flex-wrap">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#FC69FF"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-            <span className="font-[600] text-[#FC69FF]">{appliedCode}</span>
+            <Icon name="circle-check" size={18} />
+            <span className="font-[600]">{appliedCode}</span>
             <span className="text-[14px] text-textColor/70">
               {t('billing_discount_applied', 'applied')}
               {discountDisplay && ` (${discountDisplay})`}
@@ -507,7 +516,7 @@ export const CouponInput: FC<{ autoApplyCoupon?: string }> = ({
   // Show applied coupon (either manually applied or pre-applied from backend)
   if (effectiveAppliedCode) {
     return (
-      <div className="mt-[40px]">
+      <div className="mt-[28px]">
         <AppliedCouponDisplay
           appliedCode={effectiveAppliedCode}
           checkout={checkout}
@@ -521,11 +530,11 @@ export const CouponInput: FC<{ autoApplyCoupon?: string }> = ({
   // Show "Have a promo code?" link
   if (!showInput) {
     return (
-      <div className="mt-[40px]">
+      <div className="mt-[28px]">
         <button
           type="button"
           onClick={() => setShowInput(true)}
-          className="text-[16px] text-textColor/60 hover:text-textColor font-[500] flex items-center gap-[8px] transition-colors"
+          className="pz-link-btn !text-[14px] flex items-center gap-[8px]"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -540,7 +549,7 @@ export const CouponInput: FC<{ autoApplyCoupon?: string }> = ({
           >
             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
           </svg>
-          {t('billing_have_discount_coupon', 'Have a discount coupon?')}
+          {t('tdw_have_coupon', 'Have a discount coupon?')}
         </button>
       </div>
     );
@@ -548,11 +557,11 @@ export const CouponInput: FC<{ autoApplyCoupon?: string }> = ({
 
   // Show input field
   return (
-    <div className="mt-[40px]">
+    <div className="mt-[28px]">
       <div className="flex items-center gap-[12px] mb-[12px]">
-        <h4 className="text-[18px] font-[600] text-textColor">
-          {t('billing_discount_coupon', 'Discount Coupon')}
-        </h4>
+        <h3 className="headline m-0">
+          {t('tdw_discount_coupon', 'Discount coupon')}
+        </h3>
         <button
           type="button"
           onClick={() => {
@@ -565,14 +574,15 @@ export const CouponInput: FC<{ autoApplyCoupon?: string }> = ({
         </button>
       </div>
       <div className="flex gap-[12px]">
-        <input
+        <Input
           type="text"
           value={couponCode}
           onChange={(e) => setCouponCode(e.target.value)}
-          placeholder={t('billing_enter_coupon_code', 'Enter coupon code')}
+          placeholder={t('tdw_enter_coupon_code', 'Enter coupon code')}
+          aria-label={t('tdw_discount_coupon', 'Discount coupon')}
           disabled={isApplying}
           autoFocus
-          className="flex-1 h-[44px] px-[16px] rounded-[8px] border border-newColColor bg-newBgColor text-textColor placeholder:text-textColor/50 focus:outline-none focus:border-boxFocused disabled:opacity-50"
+          className="flex-1"
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
@@ -584,16 +594,14 @@ export const CouponInput: FC<{ autoApplyCoupon?: string }> = ({
             }
           }}
         />
-        <button
-          type="button"
+        <Button
           onClick={() => handleApplyCoupon()}
-          disabled={isApplying || !couponCode.trim()}
-          className="h-[44px] px-[24px] rounded-[8px] bg-boxFocused text-textItemFocused font-[600] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          disabled={!couponCode.trim()}
+          loading={isApplying}
+          loadingLabel={t('tdw_applying', 'Applying…')}
         >
-          {isApplying
-            ? t('billing_applying', 'Applying...')
-            : t('billing_apply', 'Apply')}
-        </button>
+          {t('tdw_apply', 'Apply')}
+        </Button>
       </div>
     </div>
   );
@@ -607,45 +615,30 @@ const SubmitBar: FC<{ loading: boolean }> = ({ loading }) => {
   }
 
   return (
-    <div className="animate-fadeIn h-[92px] mobile:h-auto fixed bottom-0 w-full px-[12px] pb-[12px] left-0 bg-newBgColor z-[100]">
-      <div className="w-full h-full border-t border-newColColor bg-newBgColorInner px-[80px] tablet:px-[33px] mobile:!px-[16px] flex mobile:flex-col gap-[32px] mobile:gap-[16px] justify-end items-center font-[400] text-[14px] text-[#A3A3A3] mobile:py-[16px]">
-        {checkout.checkout.recurring?.trial?.trialEnd ? (
-          <div>
-            {t('billing_your_7_day_trial_is', 'Your 7-day trial is')}{' '}
-            <span className="text-textColor font-[600]">
-              {t('billing_100_percent_free', '100% free')}
-            </span>{' '}
-            {t('billing_ending', 'ending')}{' '}
-            <br className="hidden mobile:block" />
-            <span className="text-textColor font-[600]">
-              {dayjs(
-                checkout.checkout.recurring?.trial?.trialEnd * 1000
-              ).format('MMMM D, YYYY')}{' '}
-              —{' '}
-            </span>
-            <span className="text-textColor font-[600]">
-              {t(
-                'billing_cancel_anytime_short',
-                'Cancel anytime from settings'
-              )}
-            </span>
-          </div>
-        ) : null}
+    <div className="tdw-paybar">
+      {checkout.checkout.recurring?.trial?.trialEnd ? (
         <div>
-          <Button
-            className="h-[42px] rounded-[10px] mobile:w-full"
-            type="submit"
-            loading={loading}
-          >
-            {checkout.checkout.recurring?.trial?.trialEnd
-              ? t(
-                  'billing_pay_0_start_trial',
-                  'Pay $0 Today - Start your free trial!'
-                )
-              : t('billing_pay_now', 'Pay Now')}
-          </Button>
+          {t('tdw_trial_free_until', 'Your 7-day trial is free until')}{' '}
+          <strong>
+            {dayjs(checkout.checkout.recurring?.trial?.trialEnd * 1000).format(
+              'D MMMM YYYY'
+            )}
+          </strong>
+          {'. '}
+          {t('tdw_cancel_from_settings', 'Cancel any time from settings')}
         </div>
-      </div>
+      ) : null}
+      <Button
+        variant="primary"
+        size="lg"
+        className="mobile:w-full"
+        type="submit"
+        loading={loading}
+      >
+        {checkout.checkout.recurring?.trial?.trialEnd
+          ? t('tdw_start_trial_pay_0', 'Start free trial, pay $0 today')
+          : t('tdw_pay_now', 'Pay now')}
+      </Button>
     </div>
   );
 };

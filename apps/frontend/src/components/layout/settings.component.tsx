@@ -111,7 +111,8 @@ export const SettingsPopup: FC<{
       ),
     });
     // Populate tabs based on user permissions
-    if (user?.tier?.team_members && isGeneral) {
+    // Tadween: Members (USER) can't list or invite the team (the API refuses them), so hide the page.
+    if (user?.tier?.team_members && isGeneral && user?.role !== 'USER') {
       arr.push({
         tab: 'teams',
         group: 'workspace',
@@ -237,7 +238,7 @@ export const SettingsPopup: FC<{
                   <EmailNotificationsComponent />
                 </div>
               )}
-              {tab === 'teams' && !!user?.tier?.team_members && isGeneral && (
+              {tab === 'teams' && !!user?.tier?.team_members && isGeneral && user?.role !== 'USER' && (
                 <div>
                   <TeamSettings />
                 </div>

@@ -11,7 +11,7 @@ import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/se
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
 import dynamic from 'next/dynamic';
 import { LogoTextComponent } from '@gitroom/frontend/components/ui/logo-text.component';
-import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import { useTadweenPricing } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { capitalize } from 'lodash';
 import clsx from 'clsx';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
@@ -59,6 +59,13 @@ export const FirstBillingComponent = () => {
   const t = useT();
   const [datafast_visitor_id] = useCookie('datafast_visitor_id', '');
   const [datafast_session_id] = useCookie('datafast_session_id', '');
+  // Tadween: plans from /admin (falls back to Postiz's pricing map)
+  const { visible, nameFor, hasPlans, plans, planFor } = useTadweenPricing();
+  useEffect(() => {
+    if (hasPlans && !planFor(tier)) {
+      setTier(plans[0].tier);
+    }
+  }, [hasPlans]);
 
   useEffect(() => {
     const stripePromise = loadStripe(stripeClient);
@@ -109,10 +116,7 @@ export const FirstBillingComponent = () => {
     }
   );
 
-  const price = useMemo(
-    () => Object.entries(pricing).filter(([key, value]) => key !== 'FREE'),
-    []
-  );
+  const price = useMemo(() => visible(false), [visible]);
 
   const JoinOver = () => {
     return (
@@ -284,7 +288,7 @@ export const FirstBillingComponent = () => {
                     )}
                   >
                     <div className="text-[20px] mobile:text-[18px] font-[500]">
-                      {capitalize(key)}
+                      {nameFor(key, capitalize(key))}
                     </div>
                     <div className="text-[24px] mobile:text-[18px] font-[400]">
                       <span className="text-[44px] mobile:text-[30px] font-[600]">
@@ -329,7 +333,13 @@ type FeatureItem = {
 
 export const BillingFeatures: FC<{ tier: string }> = ({ tier }) => {
   const t = useT();
+  const { pricing, planFor } = useTadweenPricing();
   const features = useMemo(() => {
+    // Tadween: a plan's own bullets replace the generated list
+    const planFeatures = planFor(tier)?.features || [];
+    if (planFeatures.length) {
+      return planFeatures.map((f) => ({ key: f, defaultValue: f }));
+    }
     const currentPricing = pricing[tier];
     const channelsOr = currentPricing.channel;
     const list: FeatureItem[] = [];
@@ -392,7 +402,7 @@ export const BillingFeatures: FC<{ tier: string }> = ({ tier }) => {
       });
     }
     return list;
-  }, [tier]);
+  }, [tier, pricing, planFor]);
 
   const renderFeature = (feature: FeatureItem) => {
     const translatedText = t(feature.key, feature.defaultValue);

@@ -7,6 +7,8 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { MenuItem } from '@gitroom/frontend/components/new-layout/menu-item';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { AgentMediaModal } from '@gitroom/frontend/components/layout/agent.media.modal';
+import { useFeatures } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import { AdminMenuIcon } from '@gitroom/frontend/components/tadween/admin/admin.menu.icon';
 
 interface MenuItemInterface {
   name: string;
@@ -22,6 +24,9 @@ export const useMenuItem = () => {
   const { isGeneral } = useVariables();
   const t = useT();
   const { openModal } = useModals();
+  // Tadween: features the super admin switched off are hidden from the menu
+  const isOn = useFeatures();
+  const user = useUser();
 
   const handleAgentMediaClick = useCallback(() => {
     openModal({
@@ -71,6 +76,7 @@ export const useMenuItem = () => {
         </svg>
       ),
       path: '/agents',
+      hide: !isOn('agent'),
     },
     {
       name: t('analytics', 'Analytics'),
@@ -92,6 +98,7 @@ export const useMenuItem = () => {
         </svg>
       ),
       path: '/analytics',
+      hide: !isOn('analytics'),
     },
     {
       name: t('media', 'Media'),
@@ -113,6 +120,7 @@ export const useMenuItem = () => {
         </svg>
       ),
       path: '/media',
+      hide: !isOn('media'),
     },
     {
       name: t('plugs', 'Plugs'),
@@ -134,6 +142,7 @@ export const useMenuItem = () => {
         </svg>
       ),
       path: '/plugs',
+      hide: !isOn('plugs'),
     },
     {
       name: t('integrations', 'Integrations'),
@@ -155,6 +164,7 @@ export const useMenuItem = () => {
         </svg>
       ),
       path: '/third-party',
+      hide: !isOn('thirdParty'),
     },
   ] satisfies MenuItemInterface[] as MenuItemInterface[];
 
@@ -188,9 +198,16 @@ export const useMenuItem = () => {
         </svg>
       ),
       path: '#',
+      hide: !isOn('ugc'),
       role: ['ADMIN', 'SUPERADMIN', 'USER'],
       requireBilling: true,
       onClick: handleAgentMediaClick,
+    },
+    {
+      name: t('admin', 'Admin'),
+      icon: <AdminMenuIcon />,
+      path: '/admin',
+      hide: !(user as { admin?: boolean })?.admin,
     },
     {
       name: t('settings', 'Settings'),

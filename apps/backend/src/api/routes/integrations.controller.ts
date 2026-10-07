@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
   Param,
   Post,
   Put,
@@ -10,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
+import { ProviderSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-settings.service';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization, User } from '@prisma/client';
@@ -44,7 +46,8 @@ export class IntegrationsController {
     private _integrationManager: IntegrationManager,
     private _integrationService: IntegrationService,
     private _postService: PostsService,
-    private _refreshIntegrationService: RefreshIntegrationService
+    private _refreshIntegrationService: RefreshIntegrationService,
+    private _providerSettings: ProviderSettingsService
   ) {}
 
   @Post('/provider/:id/connect')
@@ -219,6 +222,12 @@ export class IntegrationsController {
         .includes(integration)
     ) {
       throw new Error('Integration not allowed');
+    }
+
+    // Tadween: a provider the super admin disabled can't be newly connected.
+    // Reconnecting (refresh) an existing channel still works.
+    if (!refresh && !(await this._providerSettings.isEnabled(integration))) {
+      throw new HttpException('This channel type is turned off', 400);
     }
 
     // A provider migrated via MIGRATE_PROVIDERS reconnects through its target

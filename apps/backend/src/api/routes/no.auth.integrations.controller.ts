@@ -24,6 +24,7 @@ import {
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
+import { ProviderSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-settings.service';
 
 @ApiTags('Integrations')
 @Controller('/integrations')
@@ -32,12 +33,15 @@ export class NoAuthIntegrationsController {
     private _integrationManager: IntegrationManager,
     private _integrationService: IntegrationService,
     private _refreshIntegrationService: RefreshIntegrationService,
-    private _organizationService: OrganizationService
+    private _organizationService: OrganizationService,
+    private _providerSettings: ProviderSettingsService
   ) {}
 
   @Get('/')
-  getIntegrations() {
-    return this._integrationManager.getAllIntegrations();
+  async getIntegrations() {
+    const all = await this._integrationManager.getAllIntegrations();
+    // Tadween: hide providers the super admin disabled and apply their order
+    return { ...all, social: await this._providerSettings.apply(all.social) };
   }
 
   @Post('/social-connect/:integration')

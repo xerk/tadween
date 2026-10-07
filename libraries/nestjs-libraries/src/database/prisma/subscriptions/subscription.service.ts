@@ -6,13 +6,15 @@ import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/o
 import { Organization } from '@prisma/client';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
+import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
 
 @Injectable()
 export class SubscriptionService {
   constructor(
     private readonly _subscriptionRepository: SubscriptionRepository,
     private readonly _integrationService: IntegrationService,
-    private readonly _organizationService: OrganizationService
+    private readonly _organizationService: OrganizationService,
+    private readonly _plans: PlansService
   ) {}
 
   getSubscriptionByOrganizationId(organizationId: string) {
@@ -336,7 +338,7 @@ export class SubscriptionService {
     const checkFromMonth = date.subtract(1, 'month');
     const imageGenerationCount =
       checkType === 'ai_images'
-        ? pricing[type].image_generation_count
+        ? (await this._plans.getPricing())[type].image_generation_count
         : checkType === 'clipping_minutes'
         ? pricing[type].clipping_minutes
         : pricing[type].generate_videos;
@@ -364,7 +366,7 @@ export class SubscriptionService {
       false,
       makeId(5),
       userId,
-      pricing[subscription].channel!,
+      (await this._plans.getPricing())[subscription].channel!,
       subscription,
       'MONTHLY',
       null,

@@ -11,6 +11,9 @@
 // (.dark / .light) on <body>, so everything below is scoped the same way.
 // Social previews (--linkedin-*, --facebook-* …) are deliberately untouched:
 // a preview shows the destination, not Tadween.
+//   5. The Tadween UI kit (components/tadween/ui), scoped to `.tdw-ui`.
+
+@use '../components/tadween/ui/tadween-ui.scss';
 
 // ── 1 + 2. Tokens and the Postiz variable map ───────────────────────────────
 :root {

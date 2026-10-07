@@ -29,6 +29,7 @@ import { Autopost } from '@gitroom/frontend/components/autopost/autopost';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { GlobalSettings } from '@gitroom/frontend/components/settings/global.settings';
 import { ApprovedAppsComponent } from '@gitroom/frontend/components/approved-apps/approved-apps.component';
+import { useFeatures } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import EmailNotificationsComponent from '@gitroom/frontend/components/settings/email-notifications.component';
 import { TeamSettings } from '@gitroom/frontend/components/tadween/settings/team.settings';
 import {
@@ -88,6 +89,8 @@ export const SettingsPopup: FC<{
   const [tab, setTab] = useState('global_settings');
 
   const t = useT();
+  // Tadween: tabs for features the super admin switched off are hidden
+  const isOn = useFeatures();
   const list = useMemo(() => {
     const arr: SettingsNavItem[] = [];
     arr.push({
@@ -124,7 +127,7 @@ export const SettingsPopup: FC<{
         ),
       });
     }
-    if (user?.tier.current !== 'FREE') {
+    if (user?.tier.current !== 'FREE' && isOn('signatures')) {
       arr.push({
         tab: 'signatures',
         group: 'workspace',
@@ -136,7 +139,7 @@ export const SettingsPopup: FC<{
         ),
       });
     }
-    if (user?.tier.current !== 'FREE') {
+    if (user?.tier.current !== 'FREE' && isOn('sets')) {
       arr.push({
         tab: 'sets',
         group: 'workspace',
@@ -148,7 +151,7 @@ export const SettingsPopup: FC<{
         ),
       });
     }
-    if (user?.tier?.autoPost) {
+    if (user?.tier?.autoPost && isOn('autopost')) {
       arr.push({
         tab: 'autopost',
         group: 'automation',
@@ -160,7 +163,7 @@ export const SettingsPopup: FC<{
         ),
       });
     }
-    if (user?.tier?.webhooks) {
+    if (user?.tier?.webhooks && isOn('webhooks')) {
       arr.push({
         tab: 'webhooks',
         group: 'automation',
@@ -172,7 +175,7 @@ export const SettingsPopup: FC<{
         ),
       });
     }
-    if (user?.tier?.public_api && isGeneral && showLogout) {
+    if (user?.tier?.public_api && isGeneral && showLogout && isOn('publicApi')) {
       arr.push({
         tab: 'api',
         group: 'developers',
@@ -196,7 +199,7 @@ export const SettingsPopup: FC<{
     });
 
     return arr;
-  }, [user, isGeneral, showLogout, t]);
+  }, [user, isGeneral, showLogout, t, isOn]);
   const current = list.find((p) => p.tab === tab) || list[0];
 
   useEffect(() => {

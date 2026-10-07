@@ -1,1 +1,546 @@
 // Tadween editor styles (phase 4). Loaded from global.scss after ui-kit.scss.
+//
+// The create / edit post modal (components/new-launch/*):
+//   · channel avatar with network badge      (tadween/editor/channel.avatar.tsx)
+//   · scope strip: All channels + one tab per channel   (new-launch/select.current.tsx)
+//   · lock card and "own version" note       (tadween/editor/scope.tsx)
+//   · character counter + per-channel list   (launches/information.component.tsx)
+//   · checks chip                            (tadween/editor/checks.tsx)
+//   · settings panel, footer buttons, split "Add to calendar ▾ Post now"
+// Tokens come from ../tadween.scss. `body` raises specificity above Tailwind
+// utilities on the same elements. Social previews are not touched here.
+
+@keyframes tdw-ed-pop {
+  from { opacity: 0; transform: scale(0.96) translateY(4px); }
+}
+@keyframes tdw-ed-fade {
+  from { opacity: 0; transform: translateY(4px); }
+}
+@keyframes tdw-ed-dot {
+  from { transform: scale(0); }
+}
+
+body {
+  // ── Channel avatar ───────────────────────────────────────────────────────
+  .tdw-ch-avatar {
+    position: relative;
+    display: inline-block;
+    flex: none;
+  }
+  .tdw-ch-avatar-img {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .tdw-ch-avatar-net {
+    position: absolute;
+    inset-inline-end: -3px;
+    bottom: -2px;
+    width: 12px !important;
+    height: 12px !important;
+    min-width: 12px;
+    border-radius: 3px;
+    box-shadow: 0 0 0 1.5px var(--tdw-card);
+  }
+  .tdw-ch-dot {
+    position: absolute;
+    top: -4px;
+    inset-inline-end: -4px;
+    display: grid;
+    place-items: center;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    color: var(--tdw-on-primary);
+    box-shadow: 0 0 0 2px var(--tdw-card);
+    animation: tdw-ed-dot 320ms var(--tdw-ease-bounce);
+    &.is-custom { background: var(--tdw-primary); }
+    &.is-error { background: var(--tdw-destructive); }
+  }
+
+  // ── Scope strip ──────────────────────────────────────────────────────────
+  .tdw-scope-strip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--tdw-muted);
+    overflow-x: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+  }
+  .tdw-scope {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 12px 0 8px;
+    border: 0;
+    border-radius: 9px;
+    background: none;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--tdw-muted-foreground);
+    cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+    &:first-child { padding-inline-start: 12px; }
+    > svg { width: 15px; height: 15px; }
+    &:hover { color: var(--tdw-foreground); }
+    &.is-on {
+      background: var(--tdw-card);
+      color: var(--tdw-foreground);
+      box-shadow: var(--tdw-shadow-sm);
+    }
+  }
+  .tdw-scope-name {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tdw-scope-sep {
+    flex: none;
+    width: 1px;
+    height: 18px;
+    margin: 0 4px;
+    background: var(--tdw-border);
+  }
+  .tdw-scope-item {
+    position: relative;
+    flex: none;
+  }
+  .tdw-scope-x {
+    position: absolute;
+    top: -3px;
+    inset-inline-end: -3px;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--tdw-foreground);
+    color: var(--tdw-card);
+    opacity: 0;
+    transform: scale(0.8);
+    cursor: pointer;
+    transition: opacity 150ms ease, transform 200ms var(--tdw-ease-spring);
+  }
+  .tdw-scope-item:hover .tdw-scope-x,
+  .tdw-scope-x:focus-visible {
+    opacity: 1;
+    transform: none;
+  }
+  .tdw-scope-x:hover { background: var(--tdw-destructive); color: #fff; }
+  @media (hover: none) {
+    .tdw-scope-x { opacity: 1; transform: none; }
+  }
+
+  // ── "Own version" note and the lock card ─────────────────────────────────
+  .tdw-scope-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 0 2px 6px;
+    font-size: 13px;
+    color: var(--tdw-muted-foreground);
+    animation: tdw-ed-fade 200ms ease both;
+    > svg { flex: none; color: var(--tdw-primary); }
+  }
+  .tdw-link-btn {
+    margin-inline-start: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-weight: 600;
+    color: var(--tdw-primary);
+    cursor: pointer;
+    &:hover { text-decoration: underline; text-underline-offset: 3px; }
+  }
+  .tdw-locked {
+    opacity: 0.55;
+    filter: saturate(0.6);
+    pointer-events: none;
+    user-select: none;
+  }
+  .tdw-lock {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    margin: 0 12px 12px;
+    padding: 14px 16px;
+    border-radius: var(--tdw-radius-lg);
+    background: var(--tdw-card);
+    color: var(--tdw-foreground);
+    box-shadow: var(--tdw-shadow-md);
+    animation: tdw-ed-fade 220ms ease both;
+  }
+  .tdw-lock-ico {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--tdw-muted);
+    color: var(--tdw-muted-foreground);
+  }
+  .tdw-lock-copy {
+    b { display: block; font-size: 14px; font-weight: 600; line-height: 20px; }
+    p { margin: 2px 0 0; font-size: 13px; line-height: 18px; color: var(--tdw-muted-foreground); }
+  }
+  .tdw-lock-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: var(--tdw-radius-md);
+    background: var(--tdw-primary-strong);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    &:hover { filter: brightness(1.08); }
+  }
+  @media (max-width: 720px) {
+    .tdw-lock { grid-template-columns: auto minmax(0, 1fr); }
+    .tdw-lock-btn { grid-column: 1 / -1; justify-content: center; }
+  }
+
+  // ── Character counter ────────────────────────────────────────────────────
+  .tdw-counter {
+    position: relative;
+    --tdw-counter-ink: var(--tdw-primary);
+    &.is-near { --tdw-counter-ink: var(--tdw-warning); }
+    &.is-over { --tdw-counter-ink: var(--tdw-destructive); }
+  }
+  .tdw-counter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--tdw-muted-foreground);
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    cursor: pointer;
+    > svg { transform: rotate(-90deg); }
+    &:hover { background: var(--tdw-accent); }
+  }
+  .is-near > .tdw-counter-btn,
+  .is-over > .tdw-counter-btn { color: var(--tdw-counter-ink); font-weight: 600; }
+  .tdw-counter-track { fill: none; stroke: var(--tdw-border); stroke-width: 2.5; }
+  .tdw-counter-fill {
+    fill: none;
+    stroke: var(--tdw-counter-ink);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 400ms var(--tdw-ease-spring), stroke 150ms ease;
+  }
+  .tdw-limits {
+    position: absolute;
+    z-index: 300;
+    bottom: calc(100% + 6px);
+    inset-inline-end: 0;
+    display: none;
+    width: 300px;
+    max-width: calc(100vw - 32px);
+    padding: 6px;
+    border-radius: 12px;
+    background: var(--tdw-popover);
+    color: var(--tdw-foreground);
+    box-shadow: var(--tdw-shadow-md);
+    animation: tdw-ed-pop 160ms ease both;
+    // keeps hover alive across the gap above the button
+    &::after { content: ''; position: absolute; inset-inline: 0; top: 100%; height: 8px; }
+  }
+  .tdw-counter.is-open .tdw-limits { display: block; }
+  @media (hover: hover) {
+    .tdw-counter:hover .tdw-limits { display: block; }
+  }
+  .tdw-limits-h { padding: 4px 6px 6px; font-size: 12px; font-weight: 500; color: var(--tdw-muted-foreground); }
+  .tdw-limits-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .tdw-limits-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tdw-limits-net { color: var(--tdw-muted-foreground); }
+  .tdw-limits-num {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--tdw-muted-foreground);
+    white-space: nowrap;
+  }
+  .tdw-limits-row.is-over .tdw-limits-num { color: var(--tdw-destructive); font-weight: 600; }
+  .tdw-limits-empty,
+  .tdw-limits-note { margin: 4px 6px; font-size: 12px; line-height: 17px; color: var(--tdw-muted-foreground); }
+  .tdw-limits-empty { color: var(--tdw-warning); }
+
+  // ── Checks chip ──────────────────────────────────────────────────────────
+  .tdw-checks-anchor { position: relative; display: flex; }
+  .tdw-checks {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 44px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--tdw-muted-foreground);
+    cursor: default;
+    &.is-ok svg { color: var(--tdw-success); }
+    &.is-issues {
+      color: var(--tdw-foreground);
+      box-shadow: inset 0 0 0 1px var(--tdw-border);
+      cursor: pointer;
+      svg { color: var(--tdw-destructive); }
+      &:hover { background: var(--tdw-accent); }
+    }
+  }
+  .tdw-checks-pop {
+    position: absolute;
+    z-index: 300;
+    bottom: calc(100% + 6px);
+    inset-inline-start: 0;
+    width: 340px;
+    max-width: calc(100vw - 24px);
+    max-height: min(420px, 60vh);
+    overflow: auto;
+    padding: 6px;
+    border-radius: 12px;
+    background: var(--tdw-popover);
+    color: var(--tdw-foreground);
+    box-shadow: var(--tdw-shadow-md);
+    animation: tdw-ed-pop 160ms ease both;
+  }
+  .tdw-checks-h {
+    display: grid;
+    gap: 2px;
+    padding: 8px 10px 6px;
+    font-size: 14px;
+    span { font-size: 12px; color: var(--tdw-muted-foreground); }
+  }
+  .tdw-checks-group { padding: 4px 0; }
+  .tdw-checks-group + .tdw-checks-group { border-top: 1px solid var(--tdw-border); }
+  .tdw-checks-who {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px 2px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .tdw-checks-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    font-size: 13px;
+    line-height: 18px;
+    text-align: start;
+    color: var(--tdw-foreground);
+    cursor: pointer;
+    > svg:first-child { flex: none; margin-top: 2px; color: var(--tdw-muted-foreground); }
+    > span { flex: 1; }
+    &:hover { background: var(--tdw-accent); }
+  }
+  .tdw-checks-go {
+    flex: none;
+    margin-top: 2px;
+    color: var(--tdw-muted-foreground);
+    opacity: 0;
+    transition: opacity 150ms ease, transform 150ms ease;
+  }
+  .tdw-checks-item:hover .tdw-checks-go { opacity: 1; transform: translateX(2px); }
+  html[dir='rtl'] & .tdw-checks-go { transform: scaleX(-1); }
+  html[dir='rtl'] & .tdw-checks-item:hover .tdw-checks-go { transform: scaleX(-1) translateX(2px); }
+
+  // ── Settings panel (#wrapper-settings) ───────────────────────────────────
+  .tdw-settings {
+    border-radius: var(--tdw-radius-lg);
+    background: var(--tdw-card);
+    box-shadow: var(--tdw-shadow-sm);
+  }
+  .tdw-settings-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 14px;
+    border: 0;
+    background: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tdw-foreground);
+    text-align: start;
+    cursor: pointer;
+    > svg { color: var(--tdw-muted-foreground); }
+    &:hover { background: var(--tdw-accent); }
+    &.is-open { border-bottom: 1px solid var(--tdw-border); }
+  }
+  .tdw-settings-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  }
+  .tdw-settings-ico {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--tdw-muted);
+    color: var(--tdw-muted-foreground);
+    svg path { stroke: currentColor; }
+  }
+  .tdw-settings #social-settings {
+    gap: 8px;
+    padding: 8px;
+    background: var(--tdw-background);
+  }
+  .tdw-settings-card {
+    border-radius: 12px;
+    background: var(--tdw-card) !important;
+    box-shadow: inset 0 0 0 1px var(--tdw-border);
+    padding: 4px 14px 14px !important;
+  }
+  .tdw-settings-who {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  // The writing surface itself shows no ring; the caret is enough.
+  #social-content .ProseMirror:focus-visible { outline: none !important; }
+
+  // ── Footer ───────────────────────────────────────────────────────────────
+  .tdw-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: var(--tdw-radius-md);
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+  .tdw-btn-primary {
+    background: var(--tdw-primary-strong);
+    color: #fff;
+    &:hover:not(:disabled) { filter: brightness(1.08); }
+  }
+  .tdw-btn-secondary {
+    background: var(--tdw-card);
+    color: var(--tdw-foreground);
+    box-shadow: inset 0 0 0 1px var(--tdw-border);
+    &:hover:not(:disabled) { background: var(--tdw-accent); }
+  }
+  .tdw-btn-ghost {
+    background: none;
+    color: var(--tdw-foreground);
+    &:hover:not(:disabled) { background: var(--tdw-accent); }
+    &.is-danger { color: var(--tdw-destructive); }
+    &.is-danger:hover:not(:disabled) { background: color-mix(in oklab, var(--tdw-destructive) 10%, transparent); }
+  }
+  .tdw-split {
+    position: relative;
+    display: inline-flex;
+  }
+  .tdw-split-main {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+  }
+  .tdw-split-more {
+    width: 40px;
+    padding: 0;
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+    border-inline-start: 1px solid rgba(255, 255, 255, 0.25);
+    svg { width: 8px; height: auto; }
+  }
+  .tdw-split-menu {
+    position: absolute;
+    z-index: 300;
+    bottom: calc(100% + 6px);
+    inset-inline-end: 0;
+    min-width: 200px;
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--tdw-popover);
+    box-shadow: var(--tdw-shadow-md);
+    animation: tdw-ed-pop 160ms ease both;
+  }
+  .tdw-split-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: 38px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tdw-foreground);
+    text-align: start;
+    cursor: pointer;
+    > svg { color: var(--tdw-muted-foreground); }
+    &:hover:not(:disabled) { background: var(--tdw-accent); }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+  .tdw-pem-foot .tdw-dp-trigger { margin-inline-start: 0; }
+
+  @media (max-width: 1025px) {
+    .tdw-split { width: 100%; }
+    .tdw-split-main { flex: 1; }
+    .tdw-split-menu { inset-inline: 0; }
+    // the chip can sit anywhere in the wrapped footer: pin its list to the screen
+    .tdw-checks-pop {
+      position: fixed;
+      inset-inline: 12px;
+      bottom: 140px;
+      width: auto;
+      max-width: none;
+    }
+  }
+}

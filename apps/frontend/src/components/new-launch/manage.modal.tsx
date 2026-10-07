@@ -44,6 +44,9 @@ import { useShortlinkPreference } from '@gitroom/frontend/components/settings/sh
 import dayjs from 'dayjs';
 import { Button } from '@gitroom/react/form/button';
 import { useClickOutside } from '@mantine/hooks';
+import { EditorChecks } from '@gitroom/frontend/components/tadween/editor/checks';
+import { TadweenChannelAvatar } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
+import { TadweenIcon } from '@gitroom/frontend/components/tadween/editor/icons';
 
 export const ManageModal: FC<AddEditModalProps> = (props) => {
   const t = useT();
@@ -106,11 +109,11 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   const currentIntegrationText = useMemo(() => {
     if (current === 'global') {
       return (
-        <div className="flex items-center gap-[10px]">
-          <div className="relative">
-            <SettingsIcon size={15} className="text-white" />
-          </div>
-          <div>Settings</div>
+        <div className="tdw-settings-label">
+          <span className="tdw-settings-ico">
+            <SettingsIcon size={15} />
+          </span>
+          <span>{t('tdw_channel_settings_all', 'Channel settings')}</span>
         </div>
       );
     }
@@ -118,21 +121,11 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
     const currentIntegration = integrations.find((p) => p.id === current)!;
 
     return (
-      <div className="flex items-center gap-[10px]">
-        <div className="relative">
-          <img
-            src={`/icons/platforms/${currentIntegration.identifier}.png`}
-            className="w-[20px] h-[20px] rounded-[4px]"
-            alt={currentIntegration.identifier}
-          />
-          <SettingsIcon
-            size={15}
-            className="text-white absolute -end-[5px] -bottom-[5px]"
-          />
-        </div>
-        <div>
+      <div className="tdw-settings-label">
+        <TadweenChannelAvatar integration={currentIntegration} size={24} />
+        <span>
           {currentIntegration.name} {t('channel_settings', 'Settings')}
-        </div>
+        </span>
       </div>
     );
   }, [current]);
@@ -494,7 +487,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
         <div className="flex-1 flex mobile:contents">
           <div className="flex flex-col flex-1 min-w-0 border-e border-newBorder mobile:border-e-0 mobile:flex-none">
             <div className="bg-newBgColor h-[65px] rounded-s-[20px] !rounded-b-[0] mobile:rounded-none flex items-center gap-[12px] px-[20px] mobile:px-[16px] text-[20px] font-[600]">
-              {t('create_post_title', 'Create Post')}
+              {existingData?.integration
+                ? t('tdw_edit_post_title', 'Edit Post')
+                : t('create_post_title', 'Create Post')}
               <CreationMethodBadge
                 creationMethod={existingData?.posts?.[0]?.creationMethod}
                 size="sm"
@@ -568,24 +563,21 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   current === 'global' && 'hidden'
                 )}
               >
-                <div className="flex-1 flex flex-col rounded-[12px] gap-[12px] overflow-hidden bg-newSettings">
-                  <div
+                <div className="tdw-settings flex-1 flex flex-col overflow-hidden">
+                  <button
+                    type="button"
+                    aria-expanded={showSettings}
                     onClick={() => setShowSettings(!showSettings)}
                     className={clsx(
-                      'bg-[#612BD3] rounded-[12px] flex items-center gap-[8px] cursor-pointer p-[12px]',
-                      showSettings ? '!rounded-b-none' : ''
+                      'tdw-settings-head',
+                      showSettings && 'is-open'
                     )}
                   >
-                    <div className="flex-1 text-[14px] font-[600] text-white">
+                    <div className="flex-1 min-w-0">
                       {currentIntegrationText}
                     </div>
-                    <div>
-                      <ChevronDownIcon
-                        rotated={showSettings}
-                        className="text-white"
-                      />
-                    </div>
-                  </div>
+                    <ChevronDownIcon rotated={showSettings} />
+                  </button>
                   <div
                     className={clsx(
                       !showSettings ? 'hidden' : 'flex-1',
@@ -628,7 +620,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             </div>
           </div>
         </div>
-        <div className="select-none h-[84px] py-[20px] border-t border-newBorder flex items-center mobile:contents">
+        <div className="tdw-pem-foot select-none h-[84px] py-[20px] border-t border-newBorder flex items-center mobile:contents">
           <div
             className={clsx(
               'flex-1 flex ps-[20px] gap-[8px] mobile:order-2 mobile:flex-wrap mobile:flex-none mobile:p-[12px]',
@@ -649,12 +641,15 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             {!dummy && (
               <RepeatComponent repeat={repeater} onChange={setRepeater} />
             )}
+
+            <EditorChecks />
           </div>
           <div className="pe-[20px] flex items-center justify-end gap-[8px] mobile:order-4 mobile:sticky mobile:bottom-0 mobile:z-[20] mobile:mt-auto mobile:flex-wrap mobile:p-[12px] mobile:bg-newBgColorInner mobile:border-t mobile:border-newBorder">
             {existingData?.integration && (
               <button
+                type="button"
                 onClick={deletePost}
-                className="cursor-pointer flex text-[#FF3F3F] gap-[8px] items-center text-[15px] font-[600]"
+                className="tdw-btn tdw-btn-ghost is-danger"
               >
                 <div>
                   <TrashIcon />
@@ -669,7 +664,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   selectedIntegrations.length === 0 || loading || locked
                 }
                 onClick={schedule('draft')}
-                className="relative cursor-pointer disabled:cursor-not-allowed px-[20px] h-[44px] bg-btnSimple justify-center items-center flex rounded-[8px] text-[15px] font-[600]"
+                className="tdw-btn tdw-btn-secondary relative"
               >
                 {loading && (
                   <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
@@ -683,7 +678,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             )}
             {addEditSets && (
               <button
-                className="text-white text-[15px] font-[600] min-w-[180px] mobile:basis-full btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[44px] rounded-[8px] bg-[#612BD3] ps-[20px] pe-[16px]"
+                className="tdw-btn tdw-btn-primary min-w-[180px] mobile:basis-full"
                 disabled={
                   selectedIntegrations.length === 0 || loading || locked
                 }
@@ -693,28 +688,20 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               </button>
             )}
             {!addEditSets && (
-              <div
-                ref={postNowRef}
-                className="group cursor-pointer relative mobile:basis-full"
-              >
+              <div ref={postNowRef} className="tdw-split mobile:basis-full">
                 <button
                   disabled={
                     selectedIntegrations.length === 0 || loading || locked
                   }
                   onClick={schedule('schedule')}
-                  className="text-white relative min-w-[180px] mobile:w-full btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[44px] rounded-[8px] bg-[#612BD3] ps-[20px] pe-[16px]"
+                  className="tdw-btn tdw-btn-primary tdw-split-main relative min-w-[180px] mobile:flex-1"
                 >
                   {loading && (
                     <div className="absolute left-[50%] top-[50%] -translate-y-[50%] -translate-x-[50%]">
                       <div className="animate-spin h-[20px] w-[20px] border-4 border-white border-t-transparent rounded-full" />
                     </div>
                   )}
-                  <div
-                    className={clsx(
-                      'text-[15px] font-[600] mobile:flex-1',
-                      loading && 'invisible'
-                    )}
-                  >
+                  <div className={clsx(loading && 'invisible')}>
                     {selectedIntegrations.length === 0
                       ? t('check_circles_above', 'Check the circles above')
                       : dummy
@@ -725,39 +712,42 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                       ? t('schedule', 'Schedule')
                       : t('update', 'Update')}
                   </div>
-                  {!dummy && (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowPostNow(!showPostNow);
-                      }}
-                      className="flex justify-center items-center h-[20px] w-[20px] pt-[4px] mobile:pt-0 mobile:h-[44px] mobile:w-[44px] mobile:-me-[16px] mobile:border-s mobile:border-white/20 arrow-change"
-                    >
-                      <DropdownArrowSmallIcon
-                        className={clsx(
-                          'group-hover:rotate-180 text-white',
-                          showPostNow && 'rotate-180'
-                        )}
-                      />
-                    </div>
-                  )}
                 </button>
-
                 {!dummy && (
                   <button
-                    onClick={schedule('now')}
+                    type="button"
+                    aria-label={t('tdw_more_publish_options', 'More publish options')}
+                    aria-haspopup="menu"
+                    aria-expanded={showPostNow}
                     disabled={
                       selectedIntegrations.length === 0 || loading || locked
                     }
-                    className={clsx(
-                      'rounded-[8px] z-[300] disabled:cursor-not-allowed disabled:opacity-80 absolute bottom-[100%] -left-[12px] mobile:left-0 p-[12px] mobile:px-0 w-[206px] mobile:w-full bg-newBgColorInner',
-                      showPostNow ? 'flex' : 'hidden group-hover:flex'
-                    )}
+                    onClick={() => setShowPostNow(!showPostNow)}
+                    className="tdw-btn tdw-btn-primary tdw-split-more"
                   >
-                    <div className="text-white rounded-[8px] bg-[#D82D7E] h-[44px] w-full flex justify-center items-center post-now">
-                      {t('post_now', 'Post Now')}
-                    </div>
+                    <DropdownArrowSmallIcon
+                      className={clsx(showPostNow && 'rotate-180')}
+                    />
                   </button>
+                )}
+                {!dummy && showPostNow && (
+                  <div className="tdw-split-menu" role="menu">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setShowPostNow(false);
+                        schedule('now')();
+                      }}
+                      disabled={
+                        selectedIntegrations.length === 0 || loading || locked
+                      }
+                      className="tdw-split-item post-now"
+                    >
+                      <TadweenIcon name="send" size={15} />
+                      {t('post_now', 'Post Now')}
+                    </button>
+                  </div>
                 )}
               </div>
             )}

@@ -59,7 +59,10 @@ const ChangePlanDialog: FC<{
   const options = ['FREE', 'STANDARD', 'TEAM', 'PRO', 'ULTIMATE'].map((t) => ({
     value: t,
     label: planName(t) ? `${planName(t)} · ${TIER_LABEL[t]}` : TIER_LABEL[t],
-    description: t === 'FREE' ? 'No subscription. Removes an admin-granted plan.' : undefined,
+    description:
+      t === 'FREE'
+        ? 'Removes an admin-granted plan. Channels above the free limit are disabled.'
+        : undefined,
   }));
   const submit = async () => {
     setSaving(true);

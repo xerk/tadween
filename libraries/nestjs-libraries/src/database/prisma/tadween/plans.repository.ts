@@ -2,6 +2,30 @@ import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/pris
 import { Injectable } from '@nestjs/common';
 import { PlanDto } from '@gitroom/nestjs-libraries/dtos/tadween/admin.console.dto';
 
+// Only the fields the DTO describes reach the database (ValidationPipe does
+// not strip unknown keys).
+const toData = (body: PlanDto) => ({
+  key: body.key,
+  name: body.name,
+  description: body.description ?? null,
+  tier: body.tier,
+  monthlyPriceUsd: body.monthlyPriceUsd,
+  yearlyPriceUsd: body.yearlyPriceUsd,
+  monthlyPriceEgp: body.monthlyPriceEgp,
+  yearlyPriceEgp: body.yearlyPriceEgp,
+  trialDays: body.trialDays,
+  mostPopular: body.mostPopular,
+  channels: body.channels,
+  teamMembers: body.teamMembers,
+  postsPerMonth: body.postsPerMonth,
+  aiCredits: body.aiCredits,
+  features: body.features,
+  providerPriceIdMonthly: body.providerPriceIdMonthly ?? null,
+  providerPriceIdYearly: body.providerPriceIdYearly ?? null,
+  active: body.active,
+  position: body.position,
+});
+
 @Injectable()
 export class PlansRepository {
   constructor(private _plans: PrismaRepository<'plan'>) {}
@@ -30,14 +54,14 @@ export class PlansRepository {
 
   create(body: PlanDto) {
     return this._plans.model.plan.create({
-      data: body,
+      data: toData(body),
     });
   }
 
   update(id: string, body: PlanDto) {
     return this._plans.model.plan.update({
       where: { id },
-      data: body,
+      data: toData(body),
     });
   }
 

@@ -708,6 +708,7 @@ export const AddProviderComponent: FC<{
             .map((item) => (
               <div
                 key={item.identifier}
+                data-identifier={item.identifier}
                 onClick={getSocialLink(
                   props.invite,
                   item.identifier,

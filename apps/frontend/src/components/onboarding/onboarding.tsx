@@ -4,7 +4,8 @@ import { FC, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { OnboardingModal } from '@gitroom/frontend/components/onboarding/onboarding.modal';
+// Tadween: the design-system onboarding frame around Postiz's steps
+import { TadweenOnboarding } from '@gitroom/frontend/components/tadween/onboarding/tadween.onboarding';
 
 export const Onboarding: FC = () => {
   const query = useSearchParams();
@@ -39,7 +40,7 @@ export const Onboarding: FC = () => {
       askClose: true,
       fullScreen: true,
       onClose: handleClose,
-      children: <OnboardingModal onClose={handleClose} />,
+      children: <TadweenOnboarding onClose={handleClose} />,
     });
   }, [query, handleClose, t]);
   

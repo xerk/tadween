@@ -3,11 +3,11 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
+import { useSWRConfig } from 'swr';
 import isoWeek from 'dayjs/plugin/isoWeek';
 import { useTranslation } from 'react-i18next';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
-import { getTimezone } from '@gitroom/frontend/components/layout/set.timezone';
 import { useAddProvider } from '@gitroom/frontend/components/launches/add.provider.component';
 import { isUSCitizen } from '@gitroom/frontend/components/launches/helpers/isuscitizen.utils';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
@@ -43,7 +43,7 @@ dayjs.extend(isoWeek);
 
 type T = ReturnType<typeof useT>;
 
-// Wall-clock "now" in the user's timezone (set.timezone.tsx patches .local())
+// Wall-clock "now", converted the same way the calendar converts post dates
 const localNow = () => dayjs.utc().local();
 const localDate = (iso: string) => dayjs.utc(iso).local();
 const timeOf = (d: dayjs.Dayjs) => d.format(isUSCitizen() ? 'hh:mm A' : 'HH:mm');
@@ -439,7 +439,7 @@ const Drafts: FC<{
           size="sm"
           icon="drafts"
           title={t('today_no_drafts', 'No drafts')}
-          body={t('today_no_drafts_body', 'Posts you save as drafts wait here.')}
+          body={t('today_no_drafts_body', 'Drafts planned for later wait here.')}
         />
       ) : (
         <ul className="tdw-list">
@@ -546,7 +546,9 @@ export const TodayComponent: FC = () => {
   const fmt = useDateFormat();
   const isOn = useFeatures();
   const now = useNow(30000);
-  const weekStart = useMemo(() => localNow().startOf('isoWeek'), []);
+  // follows `now`, so a tab left open moves on to the next week on Monday
+  const weekKey = now.startOf('isoWeek').format('YYYY-MM-DD');
+  const weekStart = useMemo(() => localNow().startOf('isoWeek'), [weekKey]);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => weekStart.add(i, 'day')), [weekStart]);
 
   const { integrations, isLoading: channelsLoading, mutate: reloadChannels } = useTodayIntegrations();
@@ -558,12 +560,15 @@ export const TodayComponent: FC = () => {
   const drafts = useTodayDrafts();
   const published = useTodayPublished();
 
+  const { mutate } = useSWRConfig();
   const reload = useCallback(() => {
     week.mutate();
     next.mutate();
     drafts.mutate();
     published.mutate();
-  }, [week.mutate, next.mutate, drafts.mutate, published.mutate]);
+    // the next post's media (useTodayPostGroup)
+    mutate((key) => typeof key === 'string' && key.startsWith('today-group-'));
+  }, [week.mutate, next.mutate, drafts.mutate, published.mutate, mutate]);
 
   const { create, edit, preview, reconnect } = useTodayActions(integrations, reload);
   const addChannel = useAddProvider(() => reloadChannels());
@@ -573,6 +578,14 @@ export const TodayComponent: FC = () => {
   const minutesToNext = nextPost
     ? Math.max(0, localDate(nextPost.publishDate).diff(now, 'minute'))
     : 0;
+  // Once the next post is due, fetch again so "Up next" moves on
+  const isDue = !!nextPost && minutesToNext === 0;
+  useEffect(() => {
+    if (!isDue) return;
+    const id = setTimeout(reload, 60000);
+    return () => clearTimeout(id);
+  }, [isDue, nextPost?.id]);
+
   const moreThisWeek = weekPosts.filter(
     (p) => p.state === 'QUEUE' && p.id !== nextPost?.id && localDate(p.publishDate).isAfter(now)
   ).length;

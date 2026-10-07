@@ -271,7 +271,7 @@ export const useTodayActions = (
         title: ``,
       });
     },
-    [integrations, reload, t]
+    [integrations, reload, t, fetch, modal, toaster]
   );
 
   // The calendar chip's preview: the public share page

@@ -21,7 +21,7 @@
   .pz-ob-bar span { display: block; height: 100%; width: 100%; background: var(--primary); border-radius: inherit; transform: scaleX(0); transform-origin: left; transition: transform var(--duration-spring) var(--ease-spring); }
   .pz-ob-progress li.is-done .pz-ob-bar span { transform: scaleX(1); }
   .pz-ob-progress li.is-current .pz-ob-bar span { transform: scaleX(0.5); }
-  .pz-ob-stage { flex: 1; display: grid; place-items: start center; padding: var(--space-12) var(--space-6) var(--space-6); overflow-x: hidden; overflow-y: auto; }
+  .pz-ob-stage { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); place-items: start center; padding: var(--space-12) var(--space-6) var(--space-6); overflow-x: hidden; overflow-y: auto; }
   .pz-ob-step { display: grid; gap: var(--space-4); width: 100%; max-width: 520px; animation: pz-step-in var(--duration-spring) var(--ease-spring) both; }
   .pz-ob-step.is-wide { max-width: 1040px; }
   .pz-ob-step .title-1 { margin: 0; }
@@ -67,7 +67,7 @@
   .pz-ob-panel-body { flex: 1; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) var(--space-5) var(--space-5); }
   .pz-ob-panel.is-row { flex-direction: row; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4) var(--space-5); }
   .pz-ob-panel.is-row .pz-ob-panel-head { padding: 0; border: 0; }
-  .pz-ob-code { margin: 0; flex: 1; padding: var(--space-3); border-radius: var(--radius-md); background: var(--muted); font-family: var(--font-mono); font-size: 12px; line-height: 18px; white-space: pre-wrap; word-break: break-all; overflow-x: auto; color: var(--foreground); }
+  .pz-ob-code { margin: 0; flex: 1; padding: var(--space-3); border-radius: var(--radius-md); background: var(--muted); font-family: var(--font-mono); font-size: 12px; line-height: 18px; white-space: pre-wrap; word-break: break-all; overflow-x: auto; color: var(--foreground); direction: ltr; text-align: left; }
   .pz-ob-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
   .pz-ob-hint { font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
   .pz-ob-video { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--radius-lg); overflow: hidden; background: var(--muted); box-shadow: var(--shadow-sm); }
@@ -151,6 +151,10 @@
     .pz-billing-grid { grid-template-columns: minmax(0, 1fr); }
     .pz-ob-panels { grid-template-columns: minmax(0, 1fr); }
     .pz-ob-head, .pz-ob-foot { padding-inline: var(--space-4); }
+    .pz-ob-stage { padding: var(--space-6) var(--space-4); }
+    .pz-ob-card { flex-wrap: wrap; }
+    .pz-ob-card-text { flex-basis: calc(100% - 72px); }
+    .pz-ob-foot { flex-wrap: wrap; }
     .pz-ob-progress .caption { display: none; }
     .tdw-paybar { padding: var(--space-3) var(--space-4); }
   }

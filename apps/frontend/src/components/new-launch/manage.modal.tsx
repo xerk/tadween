@@ -136,8 +136,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   const currentIntegrationText = useMemo(() => {
     if (current === 'global') {
       return (
-        <div className="tdw-settings-label">
-          <span className="tdw-settings-ico mobile:hidden">
+        <div className="tdw-pem-settings-label">
+          <span className="tdw-pem-settings-ico mobile:hidden">
             <SettingsIcon size={15} />
           </span>
           <span>{t('tdw_channel_settings_all', 'Channel settings')}</span>
@@ -148,7 +148,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
     const currentIntegration = integrations.find((p) => p.id === current)!;
 
     return (
-      <div className="tdw-settings-label">
+      <div className="tdw-pem-settings-label">
         <span className="mobile:hidden">
           <TadweenChannelAvatar integration={currentIntegration} size={24} />
         </span>
@@ -683,6 +683,12 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                         </>
                       )}
                     </div>
+                    {/* Tadween: the footer is hidden on phones, the checks chip gets its own row */}
+                    {!existingData.integration && (
+                      <div className="hidden mobile:flex mobile:empty:hidden">
+                        <EditorChecks />
+                      </div>
+                    )}
                     <div
                       className={clsx(
                         'flex-1 flex',
@@ -720,7 +726,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                     current === 'global' && 'hidden'
                   )}
                 >
-                  <div className="tdw-settings flex-1 flex flex-col overflow-hidden mobile:pt-[8px] mobile:pb-[24px] mobile:animate-fade">
+                  <div className="tdw-pem-settings flex-1 flex flex-col overflow-hidden mobile:pt-[8px] mobile:pb-[24px] mobile:animate-fade">
                     <div className="hidden mobile:contents">
                       <BottomSheetHeader
                         title={currentIntegrationText}
@@ -732,7 +738,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                       aria-expanded={showSettings}
                       onClick={() => setShowSettings(!showSettings)}
                       className={clsx(
-                        'tdw-settings-head mobile:hidden',
+                        'tdw-pem-settings-head mobile:hidden',
                         showSettings && 'is-open'
                       )}
                     >

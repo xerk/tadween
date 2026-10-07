@@ -307,12 +307,12 @@ export const withProvider = function <T extends object>(params: {
               ))}
             {(SettingsComponent || !!data?.internalPlugs?.length) &&
               createPortal(
-                <div data-id={props.id} className={isGlobal ? 'tdw-settings-card bg-newSettings pb-[12px] px-[12px] mobile:bg-transparent mobile:px-[16px]' : 'tdw-settings-card hidden bg-newSettings px-[12px] pb-[12px] mobile:bg-transparent mobile:px-[16px]'}>
+                <div data-id={props.id} className={isGlobal ? 'tdw-pem-settings-card bg-newSettings pb-[12px] px-[12px] mobile:bg-transparent mobile:px-[16px]' : 'tdw-pem-settings-card hidden bg-newSettings px-[12px] pb-[12px] mobile:bg-transparent mobile:px-[16px]'}>
                   {isGlobal && (
                     <style>{`#wrapper-settings {display: flex !important} #social-empty {display: block !important;}`}</style>
                   )}
                   {isGlobal && (
-                    <div className="tdw-settings-who">
+                    <div className="tdw-pem-settings-who">
                       <TadweenChannelAvatar
                         integration={selectedIntegration.integration}
                         size={28}

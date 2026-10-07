@@ -59,14 +59,16 @@ import { Placeholder } from '@tiptap/extensions';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { InformationComponent } from '@gitroom/frontend/components/launches/information.component';
 import {
-  LockIcon,
   ConnectionLineIcon,
-  ResetIcon,
   TrashIcon,
   EmojiIcon,
   DelayIcon,
 } from '@gitroom/frontend/components/ui/icons';
 import { DelayComponent } from '@gitroom/frontend/components/new-launch/delay.component';
+import {
+  EditorLockCard,
+  EditorScopeNote,
+} from '@gitroom/frontend/components/tadween/editor/scope';
 
 const MAX_UPLOAD_SIZE = 1024 * 1024 * 1024; // 1 GB
 
@@ -357,6 +359,9 @@ export const EditorWrapper: FC<{
     return null;
   }
 
+  // A channel tab still on the shared post (or any channel tab in sets mode)
+  const lockedTab = !canEdit || (isCreateSet && current !== 'global');
+
   return (
     <div
       className={clsx(
@@ -366,54 +371,16 @@ export const EditorWrapper: FC<{
           'bg-newSettings rounded-[12px]'
       )}
     >
-      {isCreateSet && current !== 'global' && (
-        <>
-          <div className="text-center absolute w-full h-full left-0 top-0 items-center justify-center flex z-[101] flex-col gap-[16px]">
-            <div>
-              <div className="w-[54px] h-[54px] rounded-full absolute z-[101] flex justify-center items-center">
-                <LockIcon />
-              </div>
-              <div className="w-[54px] h-[54px] rounded-full bg-newSettings opacity-80" />
-            </div>
-            <div className="text-[14px] font-[600] text-white">
-              {t(
-                'cant_edit_networks_when_creating_set',
-                "You can't edit networks when creating a set"
-              )}
-            </div>
-          </div>
-          <div className="absolute w-full h-full left-0 top-0 bg-newBackdrop opacity-60 z-[100] rounded-[12px]" />
-        </>
-      )}
-      {!canEdit && !isCreateSet && (
-        <>
-          <div
-            onClick={() => {
-              setLoaded(false);
-              addRemoveInternal(current);
-            }}
-            className="text-center absolute w-full h-full p-[20px] left-0 top-0 items-center justify-center flex z-[101] flex-col gap-[16px]"
-          >
-            <div>
-              <div className="w-[54px] h-[54px] rounded-full absolute z-[101] flex justify-center items-center">
-                <LockIcon />
-              </div>
-              <div className="w-[54px] h-[54px] rounded-full bg-newSettings opacity-80" />
-            </div>
-            <div className="text-[14px] font-[600] text-white">
-              {t(
-                'click_to_exit_global_editing',
-                'Click this button to exit global editing and customize the post for this channel'
-              )}
-            </div>
-            <div>
-              <div className="text-white rounded-[8px] h-[44px] px-[20px] bg-[#D82D7E] cursor-pointer flex justify-center items-center">
-                {t('edit_content', 'Edit content')}
-              </div>
-            </div>
-          </div>
-          <div className="absolute w-full h-full left-0 top-0 bg-newBackdrop opacity-60 z-[100] rounded-[12px]" />
-        </>
+      {!!internal && !existingData?.integration && (
+        <EditorScopeNote
+          action={t('tdw_use_the_shared_post', 'Use the shared post')}
+          onAction={goBackToGlobal}
+        >
+          {t('tdw_only_channel_gets_this_version', 'Only {{name}} gets this version.', {
+            name: internalFromAll?.name,
+            interpolation: { escapeValue: false },
+          })}
+        </EditorScopeNote>
       )}
       {items.map((g, index) => (
         <div
@@ -422,7 +389,7 @@ export const EditorWrapper: FC<{
             'relative flex flex-col gap-[20px] flex-1 bg-newSettings',
             index === 0 && 'rounded-t-[12px]',
             (index === items.length - 1 || !comments) && 'rounded-b-[12px]',
-            !canEdit && !isCreateSet && 'blur-s',
+            lockedTab && 'tdw-locked',
             ((!canEdit && index > 0) || (!comments && index > 0)) && 'hidden'
           )}
         >
@@ -465,30 +432,6 @@ export const EditorWrapper: FC<{
                             />
                           )}
                         </div>
-                        {!!internal && !existingData?.integration && (
-                          <div
-                            className="mt-[12px] flex gap-[20px] items-center cursor-pointer select-none"
-                            onClick={goBackToGlobal}
-                          >
-                            <div className="flex gap-[6px] items-center">
-                              <div className="w-[8px] h-[8px] rounded-full bg-[#FC69FF]" />
-                              <div className="text-[14px] font-[600]">
-                                {t(
-                                  'editing_a_specific_network',
-                                  'Editing a Specific Network'
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex gap-[6px] items-center">
-                              <div>
-                                <ResetIcon />
-                              </div>
-                              <div className="text-[13px] font-[600]">
-                                {t('back_to_global', 'Back to global')}
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     ) : null}
                   </>
@@ -521,6 +464,34 @@ export const EditorWrapper: FC<{
           </div>
         </div>
       ))}
+      {isCreateSet && current !== 'global' && (
+        <EditorLockCard
+          title={t(
+            'cant_edit_networks_when_creating_set',
+            "You can't edit networks when creating a set"
+          )}
+        />
+      )}
+      {!canEdit && !isCreateSet && (
+        <EditorLockCard
+          title={t('tdw_channel_uses_the_shared_post', '{{name}} uses the shared post', {
+            name: internalFromAll?.name,
+            interpolation: { escapeValue: false },
+          })}
+          body={t(
+            'tdw_channel_uses_the_shared_post_body',
+            'Edits to “All channels” show up here too. Customize it to give this channel its own text, media and comments.'
+          )}
+          action={t('tdw_customize_for_channel', 'Customize for {{name}}', {
+            name: internalFromAll?.name,
+            interpolation: { escapeValue: false },
+          })}
+          onAction={() => {
+            setLoaded(false);
+            addRemoveInternal(current);
+          }}
+        />
+      )}
     </div>
   );
 };

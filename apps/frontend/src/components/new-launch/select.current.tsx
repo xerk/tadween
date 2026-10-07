@@ -1,14 +1,16 @@
 'use client';
 
-import { FC, RefObject, useCallback, useEffect, useRef, useState } from 'react';
+import { FC, RefObject, useCallback, useEffect, useState } from 'react';
 import {
   SelectedIntegrations,
   useLaunchStore,
 } from '@gitroom/frontend/components/new-launch/store';
 import clsx from 'clsx';
-import SafeImage from '@gitroom/react/helpers/safe.image';
 import { useShallow } from 'zustand/react/shallow';
 import { GlobalIcon } from '@gitroom/frontend/components/ui/icons';
+import { TadweenChannelAvatar } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
+import { TadweenIcon } from '@gitroom/frontend/components/tadween/editor/icons';
+import { useEditorChecks } from '@gitroom/frontend/components/tadween/editor/checks';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Integrations } from '@gitroom/frontend/components/launches/calendar.context';
 import {
@@ -70,8 +72,8 @@ export const SelectCurrent: FC = () => {
     }))
   );
 
-  const contentRef = useRef<HTMLDivElement>(null);
-  const hasScroll = useHasScroll(contentRef);
+  const t = useT();
+  const checks = useEditorChecks();
 
   const removeSocial = useCallback(
     (sIntegration: Integrations) => async (e: any) => {
@@ -93,94 +95,83 @@ export const SelectCurrent: FC = () => {
   );
 
   return (
-    <>
-      <div className="select-none left-0 absolute w-full z-[100] px-[20px]">
-        <div
-          ref={contentRef}
-          className={clsx(
-            'flex gap-[6px] w-full overflow-x-auto scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary',
-            locked && 'opacity-50 pointer-events-none'
-          )}
-        >
-          <div
-            onClick={() => {
-              setHide(true);
-              setCurrent('global');
-            }}
-            className={clsx(
-              'cursor-pointer flex gap-[8px] rounded-[8px] w-[40px] h-[40px] justify-center items-center bg-newBgLineColor',
-              current !== 'global'
-                ? 'text-[#A3A3A3]'
-                : 'border border-[#FC69FF] text-[#FC69FF]'
-            )}
-          >
-            <div>
-              <GlobalIcon />
-            </div>
-          </div>
-          {selectedIntegrations.map(({ integration }) => (
-            <div
+    <div
+      role="tablist"
+      aria-label={t('tdw_editing', 'Editing')}
+      className={clsx(
+        'tdw-scope-strip select-none',
+        locked && 'opacity-50 pointer-events-none'
+      )}
+    >
+      <button
+        type="button"
+        role="tab"
+        aria-selected={current === 'global'}
+        onClick={() => {
+          setHide(true);
+          setCurrent('global');
+        }}
+        className={clsx('tdw-scope', current === 'global' && 'is-on')}
+      >
+        <GlobalIcon />
+        <span>{t('tdw_all_channels', 'All channels')}</span>
+      </button>
+      <span className="tdw-scope-sep" aria-hidden="true" />
+      {selectedIntegrations.map(({ integration }) => {
+        const hasIssue = checks.some(
+          (p) => p.integration.id === integration.id
+        );
+        return (
+          <div key={integration.id} className="tdw-scope-item">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={current === integration.id}
               onClick={() => {
                 setHide(true);
                 setCurrent(integration.id);
               }}
-              key={integration.id}
+              {...{
+                'data-tooltip-id': 'tooltip',
+                'data-tooltip-content': integration.name,
+              }}
               className={clsx(
-                'border cursor-pointer relative flex gap-[8px] w-[40px] h-[40px] rounded-[8px] items-center bg-newBgLineColor justify-center',
-                current === integration.id
-                  ? 'border-[#FC69FF] text-[#FC69FF]'
-                  : 'border-transparent'
+                'tdw-scope',
+                current === integration.id && 'is-on'
               )}
             >
-              <div
-                onClick={removeSocial(integration)}
-                className="absolute justify-center items-center flex w-[8px] h-[8px] -top-[1px] -start-[3px] bg-red-500 rounded-full text-white text-[8px]"
-              >
-                X
-              </div>
-              <IsGlobal id={integration.id} />
-              <div
-                {...{
-                  'data-tooltip-id': 'tooltip',
-                  'data-tooltip-content': integration.name,
-                }}
-                className={clsx(
-                  'relative w-full h-full rounded-full flex justify-center items-center filter transition-all duration-500'
-                )}
-              >
-                <SafeImage
-                  src={integration.picture || '/no-picture.jpg'}
-                  className="rounded-full min-w-[26px]"
-                  alt={integration.identifier}
-                  width={26}
-                  height={26}
-                  onError={(e) => {
-                    e.currentTarget.src = '/no-picture.jpg';
-                    e.currentTarget.srcset = '/no-picture.jpg';
-                  }}
+              <TadweenChannelAvatar
+                integration={integration}
+                size={22}
+                dot={
+                  hasIssue ? (
+                    <span className="tdw-ch-dot is-error" />
+                  ) : (
+                    <IsGlobal id={integration.id} />
+                  )
+                }
+              />
+              <span className="tdw-scope-name">{integration.name}</span>
+            </button>
+            <button
+              type="button"
+              onClick={removeSocial(integration)}
+              aria-label={t('tdw_remove_channel', 'Remove channel')}
+              className="tdw-scope-x"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                <path
+                  d="M2 2l6 6M8 2L2 8"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
                 />
-                {integration.identifier === 'youtube' ? (
-                  <img
-                    src="/icons/platforms/youtube.svg"
-                    className="absolute z-10 bottom-[2px] end-[2px] min-w-[12px]"
-                    width={12}
-                  />
-                ) : (
-                  <SafeImage
-                    src={`/icons/platforms/${integration.identifier}.png`}
-                    className="min-w-[12px] min-h-[12px] rounded-[3px] absolute z-10 bottom-[6px] end-[6px]"
-                    alt={integration.identifier}
-                    width={12}
-                    height={12}
-                  />
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className={clsx(hasScroll ? 'h-[55px]' : 'h-[40px]')} />
-    </>
+              </svg>
+            </button>
+          </div>
+        );
+      })}
+    </div>
   );
 };
 
@@ -197,13 +188,15 @@ export const IsGlobal: FC<{ id: string }> = ({ id }) => {
   }
 
   return (
-    <div
+    <span
       data-tooltip-id="tooltip"
       data-tooltip-content={t(
         'no_longer_global_mode',
         'No longer in global mode'
       )}
-      className="w-[8px] h-[8px] bg-[#FC69FF] -top-[1px] -end-[3px] absolute rounded-full"
-    />
+      className="tdw-ch-dot is-custom"
+    >
+      <TadweenIcon name="pencil" size={7} strokeWidth={3} />
+    </span>
   );
 };

@@ -19,6 +19,12 @@ import { TypedSearchAttributes } from '@temporalio/common';
 import {
   organizationId,
 } from '@gitroom/nestjs-libraries/temporal/temporal.search.attribute';
+import sharp from 'sharp';
+import { Readable } from 'stream';
+import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
+import { isSafePublicHttpsUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator';
+import { ssrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
+import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 const parser = new Parser();
 
 interface WorkflowChannelsState {
@@ -32,6 +38,9 @@ interface WorkflowChannelsState {
     date: string;
     url: string;
     description: string;
+    title?: string;
+    summary?: string;
+    imageUrl?: string | null;
   };
 }
 
@@ -64,8 +73,11 @@ export class AutopostService {
     private _autopostsRepository: AutopostRepository,
     private _temporalService: TemporalService,
     private _integrationService: IntegrationService,
-    private _postsService: PostsService
+    private _postsService: PostsService,
+    private _integrationManager: IntegrationManager
   ) {}
+
+  private storage = UploadFactory.createStorage();
 
   async stopAll(org: string) {
     const getAll = (await this.getAutoposts(org)).filter((f) => f.active);
@@ -150,24 +162,69 @@ export class AutopostService {
         { pubDate: dayjs().subtract(100, 'years') }
       );
 
-      return {
-        success: true,
-        date: findLast.pubDate,
-        url: findLast.link,
-        description: striptags(
-          findLast?.['content:encoded'] ||
-            findLast?.content ||
-            findLast?.description ||
-            ''
-        )
-          .replace(/\n/g, ' ')
-          .trim(),
-      };
+      return { success: true as const, ...this.feedItem(findLast) };
     } catch (err) {
       /** sent **/
     }
 
-    return { success: false };
+    return { success: false as const };
+  }
+
+  // What a post needs from one RSS item: the link, the full text for the AI,
+  // and the title, a short summary and an image candidate for plain posts
+  feedItem(item: any) {
+    const html =
+      item?.['content:encoded'] || item?.content || item?.description || '';
+
+    return {
+      date: item?.pubDate,
+      url: item?.link,
+      title: (item?.title || '').trim(),
+      summary: this.summarize(
+        item?.contentSnippet || item?.description || item?.content || ''
+      ),
+      imageUrl: this.feedImage(item, html),
+      description: striptags(html).replace(/\n/g, ' ').trim(),
+    };
+  }
+
+  // The enclosure when it is an image, otherwise the first <img> of the content
+  private feedImage(item: any, html: string): string | null {
+    const found =
+      item?.enclosure?.url && /^image\//.test(item.enclosure.type || 'image/')
+        ? item.enclosure.url
+        : html.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1];
+    if (!found) {
+      return null;
+    }
+
+    try {
+      return new URL(found.replace(/&amp;/g, '&'), item?.link).href;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  // Plain text without the WordPress "The post ... appeared first on ..."
+  // footer, cut at a sentence end (or else a word) to fit 280 characters
+  private summarize(text: string) {
+    const clean = striptags(text)
+      .replace(/\s+/g, ' ')
+      .replace(/\s*The post .{0,300}? appeared first on [^.]*\.?\s*$/, '')
+      .trim();
+    if (clean.length <= 280) {
+      return clean;
+    }
+
+    const cut = clean.slice(0, 280);
+    const end = Math.max(
+      cut.lastIndexOf('. '),
+      cut.lastIndexOf('! '),
+      cut.lastIndexOf('? ')
+    );
+    return end > 80
+      ? cut.slice(0, end + 1)
+      : cut.replace(/\s+\S*$/, '') + '…';
   }
 
   static state = () =>
@@ -205,9 +262,17 @@ export class AutopostService {
 
   async generateDescription(state: WorkflowChannelsState) {
     if (!state.body.generateContent) {
+      // The template, then the article title and a short summary
+      // (schedulePost appends the link)
       return {
         ...state,
-        description: state.body.content,
+        description: [
+          state.body.content,
+          state.load.title ? '📌 ' + state.load.title : '',
+          state.load.summary,
+        ]
+          .filter((p) => p && String(p).trim())
+          .join('\n'),
       };
     }
 
@@ -267,48 +332,192 @@ export class AutopostService {
     return { ...state, image };
   }
 
-  async schedulePost(state: WorkflowChannelsState) {
-    const nextTime = await this._postsService.findFreeDateTime(
-      state.integrations[0].organizationId
-    );
+  // A public https URL fetched through the SSRF-safe dispatcher, null otherwise
+  private async safeFetch(url?: string | null) {
+    if (!url || !(await isSafePublicHttpsUrl(url))) {
+      return null;
+    }
 
-    await this._postsService.createPost(state.integrations[0].organizationId, {
-      date: nextTime + 'Z',
-      order: makeId(10),
-      shortLink: false,
-      type: 'draft',
-      tags: [],
-      posts: state.integrations.map((i) => ({
-        settings: {
-          __type: i.providerIdentifier as any,
-          title: '',
-          tags: [],
-          subreddit: [],
+    const res = await fetch(url, {
+      // @ts-ignore — undici option, not in lib.dom fetch types
+      dispatcher: ssrfSafeDispatcher,
+      signal: AbortSignal.timeout(20000),
+    });
+    return res.ok ? res : null;
+  }
+
+  // og:image / twitter:image of the article, for feeds without images
+  private async findOgImage(articleUrl: string) {
+    try {
+      const res = await this.safeFetch(articleUrl);
+      if (!res) {
+        return null;
+      }
+
+      const html = (await res.text()).slice(0, 500000);
+      for (const key of ['og:image', 'twitter:image']) {
+        const found =
+          html.match(
+            new RegExp(
+              `<meta[^>]+(?:property|name)=["']${key}["'][^>]+content=["']([^"']+)["']`,
+              'i'
+            )
+          ) ||
+          html.match(
+            new RegExp(
+              `<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${key}["']`,
+              'i'
+            )
+          );
+        if (found) {
+          return new URL(found[1].replace(/&amp;/g, '&'), articleUrl).href;
+        }
+      }
+    } catch (err: any) {
+      console.error('autopost: og:image lookup failed', articleUrl, err?.message);
+    }
+
+    return null;
+  }
+
+  // The generated picture, else the feed image, else the article og:image.
+  // Downloaded, padded into the 4:5 to 1.91:1 range feed networks accept,
+  // re-encoded as JPEG and stored in our own storage
+  async prepareImage(state: WorkflowChannelsState) {
+    const candidates = [
+      async () => state.image,
+      async () => state.load.imageUrl,
+      () => this.findOgImage(state.load.url),
+    ];
+
+    for (const candidate of candidates) {
+      const url = await candidate();
+      try {
+        const res = await this.safeFetch(url);
+        if (!res) {
+          continue;
+        }
+
+        const input = Buffer.from(await res.arrayBuffer());
+        const { width, height } = await sharp(input).rotate().metadata();
+        if (!width || !height) {
+          continue;
+        }
+
+        const ratio = width / height;
+        let img = sharp(input).rotate().flatten({ background: '#ffffff' });
+        if (ratio > 1.91 || ratio < 0.8) {
+          img = sharp(
+            await img
+              .resize({
+                width: ratio > 1.91 ? width : Math.round(height * 0.8),
+                height: ratio > 1.91 ? Math.round(width / 1.91) : height,
+                fit: 'contain',
+                background: '#ffffff',
+              })
+              .toBuffer()
+          );
+        }
+
+        const buffer = await img
+          .resize({ width: 1440, withoutEnlargement: true })
+          .jpeg({ quality: 90 })
+          .toBuffer();
+
+        const { path } = await this.storage.uploadFile({
+          buffer,
+          mimetype: 'image/jpeg',
+          size: buffer.length,
+          path: '',
+          fieldname: '',
+          destination: '',
+          stream: new Readable(),
+          filename: '',
+          originalname: 'autopost.jpg',
+          encoding: '',
+        });
+        return path as string;
+      } catch (err: any) {
+        console.error('autopost: image prepare failed', url, err?.message);
+      }
+    }
+
+    return null;
+  }
+
+  async schedulePost(state: WorkflowChannelsState) {
+    const orgId = state.integrations[0].organizationId;
+    const imagePath = await this.prepareImage(state);
+    const nextTime = await this._postsService.findFreeDateTime(orgId);
+
+    const posts = state.integrations.map((i) => ({
+      settings: {
+        __type: i.providerIdentifier as any,
+        title: '',
+        tags: [] as any[],
+        subreddit: [] as any[],
+        ...(this._integrationManager
+          .getSocialIntegration(i.providerIdentifier)
+          ?.defaultSettings?.() || {}),
+      },
+      group: makeId(10),
+      integration: { id: i.id },
+      value: [
+        {
+          id: makeId(10),
+          delay: 0,
+          content:
+            state.description.replace(/\n/g, '\n\n') +
+            '\n\n' +
+            state.load.url,
+          image: !imagePath
+            ? []
+            : [
+                {
+                  id: makeId(10),
+                  name: makeId(10),
+                  path: imagePath,
+                  organizationId: orgId,
+                },
+              ],
         },
-        group: makeId(10),
-        integration: { id: i.id },
-        value: [
-          {
-            id: makeId(10),
-            delay: 0,
-            content:
-              state.description.replace(/\n/g, '\n\n') +
-              '\n\n' +
-              state.load.url,
-            image: !state.image
-              ? []
-              : [
-                  {
-                    id: makeId(10),
-                    name: makeId(10),
-                    path: state.image,
-                    organizationId: state.integrations[0].organizationId,
-                  },
-                ],
-          },
-        ],
-      })),
-    }, 'AUTOPOST');
+      ],
+    }));
+
+    // Channels that pass the editor's validation are scheduled on the next
+    // free slot; the rest (e.g. a network that needs media and the item has
+    // none) are kept as drafts to finish by hand
+    const validation = await this._postsService.validatePosts(orgId, posts);
+    const isReady = (post: (typeof posts)[number]) => {
+      const check = validation.find((v) => v.id === post.integration.id);
+      return (
+        !!check &&
+        check.valid &&
+        check.errors === true &&
+        !check.emptyContent &&
+        !check.tooLong
+      );
+    };
+
+    for (const type of ['schedule', 'draft'] as const) {
+      const list = posts.filter((p) => isReady(p) === (type === 'schedule'));
+      if (!list.length) {
+        continue;
+      }
+
+      await this._postsService.createPost(
+        orgId,
+        {
+          date: nextTime + 'Z',
+          order: makeId(10),
+          shortLink: false,
+          type,
+          tags: [],
+          posts: list,
+        },
+        'AUTOPOST'
+      );
+    }
   }
 
   async updateUrl(state: WorkflowChannelsState) {

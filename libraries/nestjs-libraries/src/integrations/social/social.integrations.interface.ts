@@ -173,6 +173,9 @@ export interface SocialProvider
   stripLinks?: () => boolean;
   refreshCron?: boolean;
   dto?: any;
+  // Settings a post starts with when it is created without the editor (RSS
+  // autopost), so the provider's required `dto` fields are filled
+  defaultSettings?: () => Record<string, any>;
   maxLength: (additionalSettings?: any, settings?: any) => number;
   checkValidity(
     posts: Array<{ path: string; thumbnail?: string }[]>,

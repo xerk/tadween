@@ -37,6 +37,9 @@ export class InstagramStandaloneProvider
   ];
     override maxConcurrentJob = 200; // Instagram standalone has stricter limits
   dto = InstagramDto;
+  defaultSettings() {
+    return { post_type: 'post', collaborators: [] as any[] };
+  }
 
   editor = 'normal' as const;
   maxLength() {

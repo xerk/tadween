@@ -72,7 +72,7 @@ export const en: Dict = {
       { icon: 'sparkles', title: 'A quiet smart layer', body: 'Best-time hints and stronger hooks, drawn from your own posts. Nothing changes until you apply it.', smart: true },
       { icon: 'languages', title: 'Arabic, done properly', body: 'Right-to-left editor and previews, Arabic digits, and rewrites written for Egyptian and Gulf readers.' },
       { icon: 'message-square', title: 'First comments, on time', body: 'Put links in the first comment and post it minutes later, so your reach stays high.' },
-      { icon: 'users', title: 'Approvals for teams', body: 'Drafts go to a reviewer, clients stay in their own groups, and everyone sees one calendar.' },
+      { icon: 'users', title: 'Built for teams', body: 'Invite teammates, keep each client in their own group, share preview links for feedback, and see everyone on one calendar.' },
     ],
   },
   steps: {
@@ -117,14 +117,14 @@ export const en: Dict = {
     plans: [
       { key: 'creator', name: 'Creator', for: 'For one voice on LinkedIn', features: ['Profile + 1 company page', 'Unlimited scheduled posts', 'First comments and repeats', 'Best-time hints', 'Analytics'] },
       { key: 'pro', name: 'Pro', for: 'For creators who post every week', features: ['5 LinkedIn channels', 'Everything in Creator', 'Hook rewrites in Arabic and English', 'PDF carousel builder', 'Sets and signatures'] },
-      { key: 'team', name: 'Team', for: 'For brands with a team', features: ['15 channels', 'Unlimited team members', 'Approval workflow', 'Shared calendar and tags', 'Agent and MCP access'] },
+      { key: 'team', name: 'Team', for: 'For brands with a team', features: ['15 channels', 'Unlimited team members', 'Preview links for clients', 'Shared calendar and tags', 'Agent and MCP access'] },
       { key: 'agency', name: 'Agency', for: 'For agencies and many clients', features: ['50 channels', 'Customer groups', 'Client-ready reports', 'Priority support in Arabic', 'Invoices in EGP or USD'] },
     ],
     compare: [
       { label: 'LinkedIn channels', help: 'Profiles and company pages you can connect.', values: { creator: '2', pro: '5', team: '15', agency: '50' } },
       { label: 'Scheduled posts', help: 'Posts you can schedule each month.', values: { creator: '∞', pro: '∞', team: '∞', agency: '∞' } },
-      { label: 'Team members', help: 'People who can draft, review and schedule.', values: { creator: false, pro: false, team: true, agency: true } },
-      { label: 'Approval workflow', help: 'Send posts for review before they go live.', values: { creator: false, pro: false, team: true, agency: true } },
+      { label: 'Team members', help: 'People who can write and schedule.', values: { creator: false, pro: false, team: true, agency: true } },
+      { label: 'Preview links', help: 'Send anyone a link to see a post and leave comments.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'First comments and delays', help: 'Post a comment minutes after the post.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'Repeated posts', help: 'Republish evergreen posts on a schedule.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'Best-time hints', help: 'When your audience opens LinkedIn.', values: { creator: true, pro: true, team: true, agency: true } },

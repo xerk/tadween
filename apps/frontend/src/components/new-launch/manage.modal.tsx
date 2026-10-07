@@ -41,26 +41,21 @@ import { DummyCodeComponent } from '@gitroom/frontend/components/new-launch/dumm
 import { CreationMethodBadge } from '@gitroom/frontend/components/launches/creation.method.badge';
 import {
   SettingsIcon,
-  SettingsOutlineIcon,
   ChevronDownIcon,
   CloseIcon,
   TrashIcon,
   DropdownArrowSmallIcon,
-  PlusIcon,
-  EyeIcon,
-  TagIcon,
-  RepeatIcon,
 } from '@gitroom/frontend/components/ui/icons';
+import { MobileTopBarAction } from '@gitroom/frontend/components/new-launch/mobile.top.bar';
 import {
-  MobileTopBar,
-  MobileTopBarAction,
-} from '@gitroom/frontend/components/new-launch/mobile.top.bar';
-import {
-  BottomSheet,
-  BottomSheetButton,
-  BottomSheetHeader,
-  BottomSheetRow,
-} from '@gitroom/frontend/components/ui/bottom.sheet.component';
+  TadweenSheet,
+  TadweenSheetButton,
+  TadweenSheetGroup,
+  TadweenSheetRow,
+} from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
+import { ComposerTopBar } from '@gitroom/frontend/components/tadween/composer-mobile/top.bar';
+import { ComposerMetaBar } from '@gitroom/frontend/components/tadween/composer-mobile/meta.bar';
+import { Icon } from '@gitroom/frontend/components/tadween/ui/primitives';
 import { useHasScroll } from '@gitroom/frontend/components/ui/is.scroll.hook';
 import { useShortlinkPreference } from '@gitroom/frontend/components/settings/shortlink-preference.component';
 import dayjs from 'dayjs';
@@ -518,6 +513,14 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
     ? t('schedule', 'Schedule')
     : t('update', 'Update');
 
+  // the phone top bar has room for one short word: Schedule, or Update
+  const phoneScheduleLabel = dummy
+    ? scheduleLabel
+    : !existingData?.integration ||
+      existingData?.posts?.[0]?.state === 'DRAFT'
+    ? t('schedule', 'Schedule')
+    : t('update', 'Update');
+
   const mobileActions: MobileTopBarAction[] = addEditSets
     ? [
         {
@@ -528,7 +531,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
       ]
     : [
         {
-          label: scheduleLabel,
+          label: phoneScheduleLabel,
           variant: 'primary',
           onClick: schedule('schedule'),
         },
@@ -563,47 +566,32 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
     );
   }, [current, selectedIntegrations, integrations]);
 
-  // on phones, the settings, tags, repeat and delete live in a settings sheet
-  const settingsButton = !dummy && (
-    <div
-      onClick={() => setMobileSheet('settings')}
-      className="hidden mobile:flex shrink-0 w-[32px] h-[44px] justify-end items-center cursor-pointer text-[#A3A3A3]"
-    >
-      <SettingsOutlineIcon />
-    </div>
-  );
-
-  // phones have no room for the preview column, it replaces the editor instead
-  const previewButton = (
-    <div
-      onClick={() => setMobileTab(mobileTab === 'preview' ? 'edit' : 'preview')}
-      className={clsx(
-        'hidden mobile:flex shrink-0 w-[32px] h-[44px] justify-end items-center cursor-pointer',
-        mobileTab === 'preview' ? 'text-[#FC69FF]' : 'text-[#A3A3A3]'
-      )}
-    >
-      <EyeIcon />
-    </div>
-  );
+  // phones: tags and repeat open from the schedule or the settings sheet, and
+  // Done goes back to the sheet they came from
+  const [subSheetFrom, setSubSheetFrom] = useState<typeof mobileSheet>(null);
+  const openSubSheet = (sheet: 'tags' | 'repeat') => {
+    setSubSheetFrom(mobileSheet);
+    setMobileSheet(sheet);
+  };
+  const closeSubSheet = () => {
+    setMobileSheet(subSheetFrom);
+    setSubSheetFrom(null);
+  };
 
   return (
-    <div className="w-full h-full flex-1 p-[40px] mobile:p-0 mobile:h-auto mobile:min-h-full flex relative">
+    <div className="tdw-cm w-full h-full flex-1 p-[40px] mobile:p-0 mobile:h-auto mobile:min-h-full flex relative">
       <div className="flex flex-1 min-w-0 bg-newBgColorInner rounded-[20px] mobile:rounded-none flex-col">
-        <MobileTopBar
-          onBack={askClose}
+        <ComposerTopBar
+          title={
+            existingData?.integration
+              ? t('tdw_cm_edit_post', 'Edit post')
+              : t('tdw_cm_new_post', 'New post')
+          }
+          onCancel={askClose}
           actions={mobileActions}
           disabled={selectedIntegrations.length === 0 || loading || locked}
           loading={loading}
-        >
-          <DatePicker
-            onChange={setDate}
-            date={date}
-            onOpen={() => {
-              setDateDraft(date);
-              setMobileSheet('date');
-            }}
-          />
-        </MobileTopBar>
+        />
         <div className="flex-1 flex mobile:contents">
           <div
             className={clsx(
@@ -632,13 +620,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   id="social-content"
                   className="gap-[32px] mobile:gap-[16px] flex flex-col pe-[8px] pt-[20px] ps-[20px] mobile:px-[16px] mobile:pt-[12px] mobile:static mobile:flex-1 absolute top-0 left-0 w-full h-full mobile:h-auto overflow-x-hidden overflow-y-scroll mobile:overflow-y-visible scrollbar scrollbar-thumb-newColColor scrollbar-track-newBgColorInner"
                 >
-                  <div
-                    className={clsx(
-                      'flex w-full',
-                      !existingData.integration && 'mobile:hidden'
-                    )}
-                  >
-                    <div className="flex flex-1">
+                  {/* Tadween phones: one scrolling row of channels, "+" opens the picker */}
+                  <div className="tdw-cm-channels flex w-full">
+                    <div className="flex flex-1 mobile:min-w-0">
                       <PicksSocialsComponent toolTip={true} />
                     </div>
                     <div className="mobile:hidden">
@@ -649,44 +633,53 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                         />
                       )}
                     </div>
-                    {!!existingData.integration && (
-                      <>
-                        <div className="hidden mobile:flex items-center">
-                          <CreationMethodBadge
-                            creationMethod={
-                              existingData?.posts?.[0]?.creationMethod
-                            }
-                            size="sm"
-                          />
-                        </div>
-                        {previewButton}
-                        {settingsButton}
-                      </>
+                    {!existingData.integration ? (
+                      <button
+                        type="button"
+                        onClick={() => setMobileSheet('channels')}
+                        aria-label={t('select_channels', 'Select Channels')}
+                        aria-haspopup="dialog"
+                        className="tdw-cm-add hidden mobile:flex"
+                      >
+                        <Icon name="plus" size={22} />
+                      </button>
+                    ) : (
+                      <div className="hidden mobile:flex items-center">
+                        <CreationMethodBadge
+                          creationMethod={
+                            existingData?.posts?.[0]?.creationMethod
+                          }
+                          size="sm"
+                        />
+                      </div>
                     )}
                   </div>
-                  <div className="flex flex-1 gap-[6px] mobile:gap-[16px] flex-col">
-                    <div className="flex mobile:items-center mobile:gap-[4px]">
-                      <div className="flex-1 mobile:flex-initial mobile:min-w-0">
+                  <div className="flex flex-1 gap-[6px] mobile:gap-[12px] flex-col">
+                    <div
+                      className={clsx(
+                        'flex mobile:items-center',
+                        !!existingData.integration && 'mobile:hidden'
+                      )}
+                    >
+                      <div className="flex-1 mobile:min-w-0">
                         {!existingData.integration && <SelectCurrent />}
                       </div>
-                      {!existingData.integration && (
-                        <>
-                          <div
-                            onClick={() => setMobileSheet('channels')}
-                            className="hidden mobile:flex shrink-0 w-[44px] h-[44px] rounded-[8px] bg-btnSimple justify-center items-center cursor-pointer"
-                          >
-                            <PlusIcon size={24} />
-                          </div>
-                          <div className="hidden mobile:block flex-1" />
-                          {previewButton}
-                          {settingsButton}
-                        </>
-                      )}
                     </div>
-                    {/* Tadween: the footer is hidden on phones, the checks chip gets its own row */}
-                    <div className="hidden mobile:flex mobile:empty:hidden">
-                      <EditorChecks />
-                    </div>
+                    <ComposerMetaBar
+                      date={date}
+                      repeats={!!repeater}
+                      onDate={() => {
+                        setDateDraft(date);
+                        setMobileSheet('date');
+                      }}
+                      preview={mobileTab === 'preview'}
+                      onPreview={(preview) =>
+                        setMobileTab(preview ? 'preview' : 'edit')
+                      }
+                      onSettings={
+                        !dummy ? () => setMobileSheet('settings') : undefined
+                      }
+                    />
                     <div
                       className={clsx(
                         'flex-1 flex',
@@ -705,32 +698,32 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   </div>
                 </div>
               </div>
-              {/* on phones the settings open as a bottom sheet */}
-              <div
-                className={clsx('contents', !showSettings && 'mobile:hidden')}
-              >
-                {showSettings && (
-                  <div
+              {/* Tadween: on phones the channel settings open as a sheet; on
+                  desktop the inline sheet is only this panel. It stays mounted:
+                  the providers render their settings into #social-settings. */}
+              <TadweenSheet
+                inline={true}
+                keepMounted={true}
+                open={showSettings}
+                onClose={() => setShowSettings(false)}
+                title={currentIntegrationText}
+                detent="large"
+                footer={
+                  <TadweenSheetButton
+                    label={t('done', 'Done')}
                     onClick={() => setShowSettings(false)}
-                    className="hidden mobile:block fixed inset-0 z-[599] bg-popup backdrop-blur-[8px] animate-fadeIn touch-none"
                   />
-                )}
+                }
+              >
                 <div
                   id="wrapper-settings"
                   className={clsx(
                     'pb-[20px] px-[20px] select-none',
-                    showSettings &&
-                      'flex-1 flex pt-[20px] mobile:fixed mobile:inset-x-0 mobile:bottom-0 mobile:z-[600] mobile:max-h-[90%] mobile:p-0',
+                    showSettings && 'flex-1 flex pt-[20px] mobile:p-0',
                     current === 'global' && 'hidden'
                   )}
                 >
-                  <div className="tdw-pem-settings flex-1 flex flex-col overflow-hidden mobile:pt-[8px] mobile:pb-[24px] mobile:animate-fade">
-                    <div className="hidden mobile:contents">
-                      <BottomSheetHeader
-                        title={currentIntegrationText}
-                        onClose={() => setShowSettings(false)}
-                      />
-                    </div>
+                  <div className="tdw-pem-settings flex-1 flex flex-col overflow-hidden">
                     <button
                       type="button"
                       aria-expanded={showSettings}
@@ -748,28 +741,22 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                     <div
                       className={clsx(
                         !showSettings ? 'hidden' : 'flex-1',
-                        'text-[14px] text-textColor font-[500] relative mobile:min-h-0 mobile:overflow-y-auto mobile:overscroll-contain'
+                        'text-[14px] text-textColor font-[500] relative'
                       )}
                     >
-                      <div className="absolute mobile:static left-0 top-0 w-full h-full mobile:h-auto flex flex-col overflow-x-hidden overflow-y-auto scrollbar scrollbar-thumb-newBgColorInner scrollbar-track-newColColor">
+                      <div className="absolute mobile:static left-0 top-0 w-full h-full mobile:h-auto flex flex-col overflow-x-hidden overflow-y-auto mobile:overflow-visible scrollbar scrollbar-thumb-newBgColorInner scrollbar-track-newColColor">
                         <div
                           id="social-settings"
                           className="flex flex-col gap-[20px] bg-newBgColor"
                         />
                       </div>
                     </div>
-                    <div className="hidden mobile:contents">
-                      <BottomSheetButton
-                        label={t('done', 'Done')}
-                        onClick={() => setShowSettings(false)}
-                      />
-                    </div>
                     <style>
                       {`#social-settings [data-id="${current}"] {display: block !important;}`}
                     </style>
                   </div>
                 </div>
-              </div>
+              </TadweenSheet>
             </div>
           </div>
           <div
@@ -918,129 +905,161 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           </div>
         </div>
       </div>
-      {mobileSheet === 'channels' && (
-        <BottomSheet
-          title={t('select_channels', 'Select Channels')}
-          onClose={() => setMobileSheet(null)}
-          button={{
-            label: t('done', 'Done'),
-            onClick: () => setMobileSheet(null),
-            disabled: selectedIntegrations.length === 0,
-          }}
-        >
-          {!dummy && (
-            <div className="flex pb-[8px] empty:hidden">
-              <SelectCustomer
-                onChange={changeCustomer}
-                integrations={integrations}
-              />
-            </div>
-          )}
-          <PicksSocialsComponent list={true} />
-        </BottomSheet>
-      )}
-      {mobileSheet === 'settings' && (
-        <BottomSheet
-          title={t('settings', 'Settings')}
-          onClose={() => setMobileSheet(null)}
-        >
-          <div className="flex flex-col gap-[12px] pb-[30px]">
-            {hasChannelSettings && (
-              <BottomSheetRow
-                icon={<SettingsOutlineIcon size={24} />}
-                label={
-                  current === 'global'
-                    ? t('channels_settings', 'Channel Settings')
-                    : `${integrations.find((p) => p.id === current)?.name} ${t(
-                        'channel_settings',
-                        'Settings'
-                      )}`
-                }
-                onClick={() => {
-                  setMobileSheet(null);
-                  setShowSettings(true);
-                }}
-              />
-            )}
-            <BottomSheetRow
-              icon={<TagIcon width={24} height={24} />}
-              label={t('add_tag', 'Add Tag')}
-              onClick={() => setMobileSheet('tags')}
+      {/* Tadween phones: every composer sheet is a TadweenSheet; what each one
+          does (and the state behind it) is upstream's */}
+      <TadweenSheet
+        open={mobileSheet === 'channels'}
+        onClose={() => setMobileSheet(null)}
+        title={t('select_channels', 'Select Channels')}
+        detent="medium"
+        done={{
+          label: t('done', 'Done'),
+          disabled: selectedIntegrations.length === 0,
+        }}
+      >
+        {!dummy && (
+          <div className="tdw-cm-customer flex pb-[8px] empty:hidden">
+            <SelectCustomer
+              onChange={changeCustomer}
+              integrations={integrations}
             />
-            <BottomSheetRow
-              icon={<RepeatIcon size={24} />}
-              label={t('repeat_post', 'Repeat Post')}
-              onClick={() => setMobileSheet('repeat')}
-            />
-            {existingData?.integration && (
-              <div
-                onClick={deletePost}
-                className="flex items-center gap-[12px] py-[8px] cursor-pointer text-[#FF3F3F]"
-              >
-                <TrashIcon size={24} />
-                <div className="text-[15px] font-[600]">
-                  {t('delete_post', 'Delete Post')}
-                </div>
-              </div>
-            )}
           </div>
-        </BottomSheet>
-      )}
-      {mobileSheet === 'tags' && (
-        <BottomSheet
-          title={t('add_tag', 'Add Tag')}
-          onClose={() => setMobileSheet(null)}
-          button={{
-            label: t('done', 'Done'),
-            onClick: () => setMobileSheet(null),
-          }}
-        >
-          <TagsComponent
-            name="tags"
+        )}
+        <div className="tdw-cm-picks">
+          <PicksSocialsComponent list={true} />
+        </div>
+      </TadweenSheet>
+      <TadweenSheet
+        open={mobileSheet === 'settings'}
+        onClose={() => setMobileSheet(null)}
+        title={t('settings', 'Settings')}
+      >
+        <TadweenSheetGroup>
+          {hasChannelSettings && (
+            <TadweenSheetRow
+              icon={<Icon name="settings" size={20} />}
+              label={
+                current === 'global'
+                  ? t('channels_settings', 'Channel Settings')
+                  : `${integrations.find((p) => p.id === current)?.name} ${t(
+                      'channel_settings',
+                      'Settings'
+                    )}`
+              }
+              onClick={() => {
+                setMobileSheet(null);
+                setShowSettings(true);
+              }}
+            />
+          )}
+          <TadweenSheetRow
+            icon={<Icon name="tag" size={20} />}
             label={t('tags', 'Tags')}
-            initial={tags}
-            onChange={(e) => {
-              setTags(e.target.value);
-            }}
-            list={true}
+            value={tags.length ? tags.length : t('tdw_cm_none', 'None')}
+            onClick={() => openSubSheet('tags')}
           />
-        </BottomSheet>
-      )}
-      {mobileSheet === 'date' && (
-        <BottomSheet
-          title={t('change_date_or_time', 'Change Date or Time')}
-          onClose={() => setMobileSheet(null)}
-          button={{
-            label: t('save', 'Save'),
-            onClick: () => {
+          <TadweenSheetRow
+            icon={<Icon name="repeat" size={20} />}
+            label={t('repeat_post', 'Repeat Post')}
+            value={
+              repeater
+                ? t('tdw_cm_repeat_on', 'On')
+                : t('tdw_cm_repeat_never', 'Never')
+            }
+            onClick={() => openSubSheet('repeat')}
+          />
+        </TadweenSheetGroup>
+        {existingData?.integration && (
+          <TadweenSheetGroup>
+            <TadweenSheetRow
+              icon={<Icon name="trash-2" size={20} />}
+              label={t('delete_post', 'Delete Post')}
+              destructive={true}
+              onClick={() => {
+                // the confirm dialog opens under the sheets, close it first
+                setMobileSheet(null);
+                deletePost();
+              }}
+            />
+          </TadweenSheetGroup>
+        )}
+      </TadweenSheet>
+      <TadweenSheet
+        open={mobileSheet === 'tags'}
+        onClose={closeSubSheet}
+        title={t('tags', 'Tags')}
+        detent="large"
+        footer={
+          <TadweenSheetButton label={t('done', 'Done')} onClick={closeSubSheet} />
+        }
+      >
+        <TagsComponent
+          name="tags"
+          label={t('tags', 'Tags')}
+          initial={tags}
+          onChange={(e) => {
+            setTags(e.target.value);
+          }}
+          list={true}
+        />
+      </TadweenSheet>
+      <TadweenSheet
+        open={mobileSheet === 'date'}
+        onClose={() => setMobileSheet(null)}
+        title={t('tdw_cm_when_to_post', 'When to post')}
+        detent="large"
+        footer={
+          <TadweenSheetButton
+            label={t('save', 'Save')}
+            onClick={() => {
               setDate(dateDraft);
               setMobileSheet(null);
-            },
-          }}
-        >
-          <DatePickerPanel
-            date={dateDraft}
-            onChange={setDateDraft}
-            sheet={true}
+            }}
           />
-        </BottomSheet>
-      )}
-      {mobileSheet === 'repeat' && (
-        <BottomSheet
-          title={t('repeat_post', 'Repeat Post')}
-          onClose={() => setMobileSheet(null)}
-          button={{
-            label: t('done', 'Done'),
-            onClick: () => setMobileSheet(null),
-          }}
-        >
+        }
+      >
+        <DatePickerPanel
+          date={dateDraft}
+          onChange={setDateDraft}
+          sheet={true}
+        />
+        {!dummy && (
+          <TadweenSheetGroup>
+            <TadweenSheetRow
+              icon={<Icon name="repeat" size={20} />}
+              label={t('repeat_post', 'Repeat Post')}
+              value={
+                repeater
+                  ? t('tdw_cm_repeat_on', 'On')
+                  : t('tdw_cm_repeat_never', 'Never')
+              }
+              onClick={() => openSubSheet('repeat')}
+            />
+            <TadweenSheetRow
+              icon={<Icon name="tag" size={20} />}
+              label={t('tags', 'Tags')}
+              value={tags.length ? tags.length : t('tdw_cm_none', 'None')}
+              onClick={() => openSubSheet('tags')}
+            />
+          </TadweenSheetGroup>
+        )}
+      </TadweenSheet>
+      <TadweenSheet
+        open={mobileSheet === 'repeat'}
+        onClose={closeSubSheet}
+        title={t('repeat_post', 'Repeat Post')}
+        footer={
+          <TadweenSheetButton label={t('done', 'Done')} onClick={closeSubSheet} />
+        }
+      >
+        <div className="tdw-cm-repeat">
           <RepeatComponent
             repeat={repeater}
             onChange={setRepeater}
             list={true}
           />
-        </BottomSheet>
-      )}
+        </div>
+      </TadweenSheet>
       <CopilotPopup
         className="mobile:!z-[460] mobile:!bottom-[112px]"
         hitEscapeToClose={false}

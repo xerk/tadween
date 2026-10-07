@@ -1,1 +1,713 @@
 // Tadween composer-mobile styles. Loaded from global.scss.
+//
+//   · TadweenSheet: bottom sheet with grabber, detents, drag to dismiss
+//     (components/tadween/sheet/tadween.sheet.tsx)
+//   · The phone composer (≤ 1025px, upstream's `mobile:` screen) on top of
+//     new-launch/manage.modal.tsx + editor.tsx: top bar, channel row, scope
+//     strip, schedule / preview / settings row, writing area, accessory bar
+//     (components/tadween/composer-mobile/*)
+// Desktop is untouched: every composer rule sits inside the phone media query,
+// and an inline sheet above it is only its content (display: contents).
+// Tokens come from ../tadween.scss; social previews keep their own colours.
+
+$phone: '(max-width: 1025px)';
+$desktop: '(min-width: 1026px)';
+
+@keyframes tdw-cm-spin {
+  to { transform: rotate(360deg); }
+}
+
+body {
+  // ── Sheet ────────────────────────────────────────────────────────────────
+  .tdw-sheet {
+    --tdw-sheet-drag: 0px;
+    --tdw-sheet-rest: 0px;
+    --tdw-sheet-progress: 1;
+    --tdw-sheet-max: calc(100dvh - env(safe-area-inset-top, 0px) - 12px);
+    --tdw-sheet-fill: color-mix(in srgb, var(--tdw-foreground) 5%, transparent);
+    position: fixed;
+    inset: 0;
+    z-index: 600;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    pointer-events: none;
+    color: var(--tdw-foreground);
+    -webkit-tap-highlight-color: transparent;
+  }
+  // closed, kept in the DOM (an inline sheet only hides on phones, below)
+  .tdw-sheet:not(.is-inline)[data-present='false'] { display: none; }
+  .tdw-sheet[data-detent='medium'] {
+    --tdw-sheet-rest: calc(var(--tdw-sheet-max) - 50dvh);
+  }
+
+  .tdw-sheet-scrim {
+    position: absolute;
+    inset: 0;
+    background: var(--tdw-scrim);
+    opacity: 0;
+    touch-action: none;
+    transition: opacity 240ms ease;
+  }
+  .tdw-sheet[data-state='open'] .tdw-sheet-scrim {
+    opacity: var(--tdw-sheet-progress);
+    pointer-events: auto;
+    transition-duration: 420ms;
+  }
+
+  .tdw-sheet-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    max-height: var(--tdw-sheet-max);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-radius: 16px 16px 0 0;
+    background: color-mix(in srgb, var(--tdw-popover) 88%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    backdrop-filter: saturate(180%) blur(24px);
+    box-shadow: 0 0 0 0.5px var(--tdw-border), 0 -10px 40px rgba(0, 0, 0, 0.14);
+    outline: none;
+    transform: translateY(calc(100% + 24px));
+    // leaving is quicker than arriving
+    transition: transform 240ms cubic-bezier(0.32, 0, 0.67, 0);
+    will-change: transform;
+  }
+  .tdw-sheet[data-detent='medium'] .tdw-sheet-panel,
+  .tdw-sheet[data-detent='large'] .tdw-sheet-panel { height: var(--tdw-sheet-max); }
+  .tdw-sheet[data-state='open'] .tdw-sheet-panel {
+    pointer-events: auto;
+    transform: translateY(calc(var(--tdw-sheet-rest) + var(--tdw-sheet-drag)));
+    transition: transform 460ms var(--tdw-ease-spring);
+  }
+  // the finger owns the sheet while dragging
+  .tdw-sheet.is-dragging .tdw-sheet-panel,
+  .tdw-sheet.is-dragging .tdw-sheet-scrim { transition: none; }
+
+  .tdw-sheet-head {
+    flex: none;
+    touch-action: none;
+    cursor: grab;
+    user-select: none;
+  }
+  .tdw-sheet.is-dragging .tdw-sheet-head { cursor: grabbing; }
+  .tdw-sheet-grabber {
+    display: block;
+    width: 36px;
+    height: 5px;
+    margin: 6px auto 0;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--tdw-foreground) 22%, transparent);
+  }
+  .tdw-sheet-bar {
+    display: grid;
+    grid-template-columns: minmax(44px, 1fr) auto minmax(44px, 1fr);
+    align-items: center;
+    min-height: 50px;
+    padding: 0 10px;
+    &::before { content: ''; }
+  }
+  .tdw-sheet-title {
+    margin: 0;
+    max-width: 62vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    font-size: 17px;
+    line-height: 22px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    // a title with an avatar (channel settings)
+    .tdw-pem-settings-label { justify-content: center; font-size: 17px; font-weight: 600; }
+  }
+  .tdw-sheet-close,
+  .tdw-sheet-done {
+    justify-self: end;
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    height: 44px;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    transition: opacity 100ms ease, transform 100ms ease;
+    &:active { opacity: 0.55; }
+  }
+  .tdw-sheet-close::after {
+    content: '';
+    grid-area: 1 / 1;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--tdw-sheet-fill);
+  }
+  .tdw-sheet-close svg {
+    grid-area: 1 / 1;
+    z-index: 1;
+    color: var(--tdw-muted-foreground);
+  }
+  .tdw-sheet-done {
+    padding: 0 6px;
+    font: inherit;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--tdw-primary);
+    &:disabled { color: var(--tdw-muted-foreground); opacity: 0.6; }
+  }
+
+  .tdw-sheet-body {
+    flex: 1;
+    min-height: 0;
+    padding: 4px 16px 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+  }
+  .tdw-sheet-foot {
+    flex: none;
+    padding: 8px 16px 12px;
+  }
+  .tdw-sheet-btn {
+    width: 100%;
+    height: 50px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--tdw-primary-strong);
+    color: #fff;
+    font: inherit;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 100ms ease, opacity 100ms ease;
+    &:active { transform: scale(0.98); opacity: 0.88; }
+    &:disabled { background: var(--tdw-sheet-fill); color: var(--tdw-muted-foreground); transform: none; opacity: 1; cursor: default; }
+  }
+
+  // inset grouped rows
+  .tdw-sheet-body > * + .tdw-sheet-group-wrap,
+  .tdw-sheet-group-wrap + .tdw-sheet-group-wrap { margin-top: 20px; }
+  .tdw-sheet-group-label {
+    padding: 0 16px 6px;
+    font-size: 13px;
+    color: var(--tdw-muted-foreground);
+  }
+  .tdw-sheet-group {
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--tdw-sheet-fill);
+  }
+  .tdw-sheet-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 52px;
+    padding: 0 16px;
+    border: 0;
+    background: none;
+    color: var(--tdw-foreground);
+    font: inherit;
+    font-size: 16px;
+    text-align: start;
+    cursor: pointer;
+    transition: background-color 100ms ease;
+    &:active { background: color-mix(in srgb, var(--tdw-foreground) 8%, transparent); }
+    & + &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      inset-inline: 50px 0;
+      height: 0.5px;
+      background: var(--tdw-border);
+    }
+    &:not(:has(.tdw-sheet-row-ico)) + &::before { inset-inline-start: 16px; }
+    &.is-destructive { color: var(--tdw-destructive); }
+    &:disabled { opacity: 0.5; }
+  }
+  .tdw-sheet-row-ico {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    flex: none;
+    color: var(--tdw-muted-foreground);
+  }
+  .tdw-sheet-row.is-destructive .tdw-sheet-row-ico { color: inherit; }
+  .tdw-sheet-row-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tdw-sheet-row-value { flex: none; color: var(--tdw-muted-foreground); font-size: 15px; }
+  .tdw-sheet-row-chev { flex: none; color: color-mix(in srgb, var(--tdw-foreground) 30%, transparent); }
+  html[dir='rtl'] & .tdw-sheet-row-chev { transform: scaleX(-1); }
+
+  @media (prefers-reduced-motion: reduce) {
+    // no slide, no spring: the sheet cross-fades in place
+    .tdw-sheet .tdw-sheet-panel,
+    .tdw-sheet[data-state='open'] .tdw-sheet-panel {
+      transform: translateY(calc(var(--tdw-sheet-rest) + var(--tdw-sheet-drag)));
+      opacity: 0;
+      transition: opacity 150ms ease;
+    }
+    .tdw-sheet[data-state='open'] .tdw-sheet-panel { opacity: 1; }
+    .tdw-sheet .tdw-sheet-scrim { transition-duration: 150ms; }
+    .tdw-sheet-btn:active { transform: none; }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .tdw-sheet-panel { background: var(--tdw-popover); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  }
+
+  // above the phone breakpoint an inline sheet is just its content
+  @media #{$desktop} {
+    .tdw-sheet.is-inline,
+    .tdw-sheet.is-inline .tdw-sheet-panel,
+    .tdw-sheet.is-inline .tdw-sheet-body {
+      display: contents;
+      // what a contents box would still pass down to the page
+      pointer-events: auto;
+      color: inherit;
+    }
+    .tdw-sheet.is-inline .tdw-sheet-scrim,
+    .tdw-sheet.is-inline .tdw-sheet-head,
+    .tdw-sheet.is-inline .tdw-sheet-foot { display: none; }
+  }
+
+  // ── Content inside the composer's sheets ────────────────────────────────
+  .tdw-cm-sheet-hint {
+    margin: 0 0 12px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--tdw-muted-foreground);
+  }
+  .tdw-cm-sheet-hint + .tdw-cm-limits,
+  .tdw-cm-limits + .tdw-cm-sheet-hint { margin-top: 12px; }
+
+  // per-channel lengths
+  .tdw-cm-limits {
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--tdw-sheet-fill);
+  }
+  .tdw-cm-limits-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 12px;
+    min-height: 60px;
+    padding: 10px 16px 14px;
+    & + &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      inset-inline: 60px 0;
+      height: 0.5px;
+      background: var(--tdw-border);
+    }
+  }
+  .tdw-cm-limits-name {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    b, span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    b { font-size: 15px; font-weight: 600; }
+    span { font-size: 13px; color: var(--tdw-muted-foreground); }
+  }
+  .tdw-cm-limits-num {
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    color: var(--tdw-muted-foreground);
+  }
+  .tdw-cm-limits-row.is-over .tdw-cm-limits-num { color: var(--tdw-destructive); font-weight: 600; }
+  .tdw-cm-limits-bar {
+    position: absolute;
+    inset-inline: 60px 16px;
+    bottom: 8px;
+    height: 3px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--tdw-foreground) 8%, transparent);
+    &::after {
+      content: '';
+      position: absolute;
+      inset-block: 0;
+      inset-inline-start: 0;
+      width: var(--fill);
+      border-radius: inherit;
+      background: var(--tdw-primary);
+    }
+  }
+  .tdw-cm-limits-row.is-over .tdw-cm-limits-bar::after { background: var(--tdw-destructive); }
+
+  // checks list
+  .tdw-cm-checks-list {
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--tdw-sheet-fill);
+    .tdw-checks-group { padding: 6px 0; }
+    .tdw-checks-who { padding: 8px 16px 4px; font-size: 14px; }
+    .tdw-checks-item { min-height: 48px; padding: 0 16px; font-size: 15px; border-radius: 0; }
+    .tdw-checks-item:active { background: color-mix(in srgb, var(--tdw-foreground) 8%, transparent); }
+    .tdw-checks-go { opacity: 0.5; }
+  }
+
+  // channel picker list
+  .tdw-cm-picks > div > div {
+    min-height: 56px;
+    padding: 6px 0;
+    gap: 14px;
+    img.rounded-\[8px\] { border-radius: 50%; }
+  }
+  .tdw-cm-picks > div > div + div { box-shadow: inset 0 0.5px 0 var(--tdw-border); }
+  .tdw-cm-picks .text-\[14px\] { font-size: 16px; font-weight: 500; }
+
+  // repeat options
+  .tdw-cm-repeat > div {
+    gap: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--tdw-sheet-fill);
+    > div { min-height: 50px; padding: 0 16px; }
+    > div + div { box-shadow: inset 0 0.5px 0 var(--tdw-border); }
+  }
+
+  // ── Phone composer ───────────────────────────────────────────────────────
+  @media #{$phone} {
+    .tdw-sheet.is-inline[data-present='false'] { display: none; }
+
+    // the channel settings inside their sheet
+    // hover tooltips stick after a tap on touch screens
+    &:has(.tdw-cm) #tooltip { display: none !important; }
+
+    .tdw-sheet .tdw-pem-settings {
+      min-width: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      overflow: visible;
+    }
+    .tdw-sheet #social-settings { background: transparent; gap: 12px; }
+    .tdw-sheet .tdw-pem-settings-card {
+      padding: 4px 16px 16px;
+      border-radius: 12px;
+      background: var(--tdw-sheet-fill);
+    }
+
+    .tdw-cm {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    // top bar: Cancel · title · Schedule ▾
+    .tdw-cm-top {
+      position: sticky;
+      top: 0;
+      z-index: 450;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      min-height: 52px;
+      padding: env(safe-area-inset-top, 0px) 8px 0;
+      background: color-mix(in srgb, var(--tdw-card) 82%, transparent);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      backdrop-filter: saturate(180%) blur(20px);
+      box-shadow: 0 0.5px 0 var(--tdw-border);
+      user-select: none;
+    }
+    .tdw-cm-cancel {
+      justify-self: start;
+      height: 44px;
+      padding: 0 8px;
+      border: 0;
+      background: none;
+      font: inherit;
+      font-size: 17px;
+      color: var(--tdw-primary);
+      cursor: pointer;
+      transition: opacity 100ms ease;
+      &:active { opacity: 0.45; }
+    }
+    .tdw-cm-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+    .tdw-cm-publish {
+      justify-self: end;
+      display: flex;
+      height: 34px;
+      border-radius: 17px;
+      background: var(--tdw-primary-strong);
+      color: #fff;
+      transition: transform 100ms ease;
+      &:has(button:active:not(:disabled)) { transform: scale(0.97); }
+      &:has(:disabled) { background: var(--tdw-muted); color: var(--tdw-muted-foreground); }
+      button {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+        // 44px to tap, 34px to see
+        &::after { content: ''; position: absolute; inset: -5px 0; }
+        &:active:not(:disabled) { opacity: 0.8; }
+        &:disabled { cursor: default; }
+      }
+    }
+    .tdw-cm-publish-main {
+      padding: 0 16px;
+      font-size: 15px !important;
+      font-weight: 600 !important;
+      white-space: nowrap;
+      -webkit-touch-callout: none;
+    }
+    .tdw-cm-publish.has-more .tdw-cm-publish-main { padding-inline-end: 12px; }
+    .tdw-cm-publish-more {
+      width: 34px;
+      padding-inline-end: 4px !important;
+      box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.28);
+    }
+    html[dir='rtl'] & .tdw-cm-publish-more { box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.28); }
+    .tdw-cm-publish:has(:disabled) .tdw-cm-publish-more { box-shadow: inset 1px 0 0 var(--tdw-border); }
+    .tdw-cm-spinner {
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: tdw-cm-spin 700ms linear infinite;
+    }
+
+    // channels: one scrolling row, "+" opens the picker
+    .tdw-cm-channels {
+      align-items: center;
+      gap: 6px;
+      margin: 0 -16px;
+      padding: 0 16px;
+      > div:first-child,
+      > div:first-child > div,
+      > div:first-child > div > div,
+      .innerComponent { min-width: 0; }
+      .innerComponent > div {
+        flex-wrap: nowrap;
+        gap: 10px;
+        padding: 3px 2px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        &::-webkit-scrollbar { display: none; }
+      }
+      .innerComponent .rounded-full.cursor-pointer {
+        flex: none;
+        transition: transform 100ms ease, filter 300ms ease;
+        &:active { transform: scale(0.94); }
+      }
+      .innerComponent .grayscale { opacity: 0.55; }
+    }
+    .tdw-cm-add {
+      flex: none;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border: 1.5px dashed color-mix(in srgb, var(--tdw-foreground) 25%, transparent);
+      border-radius: 50%;
+      background: none;
+      color: var(--tdw-muted-foreground);
+      cursor: pointer;
+      transition: transform 100ms ease, background-color 100ms ease;
+      &:active { transform: scale(0.94); background: var(--tdw-muted); }
+    }
+
+    // scope strip: segmented pills that scroll sideways
+    #social-content .tdw-scope-strip {
+      max-width: 100%;
+      overflow-x: auto;
+      scrollbar-width: none;
+      &::-webkit-scrollbar { display: none; }
+    }
+    #social-content .tdw-scope { min-height: 36px; }
+
+    // when · Write / Preview · settings
+    .tdw-cm-meta {
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .tdw-cm-when {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      flex: 0 1 auto;
+      min-width: 0;
+      height: 36px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 18px;
+      background: var(--tdw-muted);
+      color: var(--tdw-foreground);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 100ms ease;
+      &:active { transform: scale(0.97); }
+      svg { flex: none; color: var(--tdw-muted-foreground); }
+    }
+    .tdw-cm-when-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .tdw-cm-seg {
+      position: relative;
+      isolation: isolate;
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 1fr;
+      flex: none;
+      margin-inline-start: auto;
+      padding: 2px;
+      border-radius: 10px;
+      background: var(--tdw-muted);
+    }
+    .tdw-cm-seg-thumb {
+      position: absolute;
+      z-index: -1;
+      top: 2px;
+      bottom: 2px;
+      inset-inline-start: 2px;
+      width: calc((100% - 4px) / 2);
+      border-radius: 8px;
+      background: var(--tdw-card);
+      box-shadow: var(--tdw-shadow-sm);
+      transform: translateX(calc(100% * var(--i)));
+      transition: transform 420ms var(--tdw-ease-spring);
+    }
+    html[dir='rtl'] & .tdw-cm-seg-thumb { transform: translateX(calc(-100% * var(--i))); }
+    .tdw-cm-seg-item {
+      height: 32px;
+      padding: 0 12px;
+      border: 0;
+      background: none;
+      color: var(--tdw-muted-foreground);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      &[aria-selected='true'] { color: var(--tdw-foreground); font-weight: 600; }
+    }
+    .tdw-cm-icon-btn {
+      display: grid;
+      place-items: center;
+      flex: none;
+      width: 40px;
+      height: 44px;
+      margin-inline-end: -8px;
+      border: 0;
+      border-radius: 50%;
+      background: none;
+      color: var(--tdw-muted-foreground);
+      cursor: pointer;
+      transition: background-color 100ms ease;
+      &:active { background: var(--tdw-muted); }
+    }
+
+    // the writing area: big, comfortable text
+    #social-content .ProseMirror {
+      font-size: 17px;
+      line-height: 1.5;
+      min-height: 120px;
+    }
+    #social-content .ProseMirror p.is-editor-empty:first-child::before { color: var(--tdw-muted-foreground); }
+
+    // the accessory bar above the keyboard
+    .tdw-cm .post-toolbar {
+      gap: 4px;
+      min-height: 56px;
+      padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+      background: color-mix(in srgb, var(--tdw-card) 84%, transparent) !important;
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      backdrop-filter: saturate(180%) blur(20px);
+      box-shadow: 0 -0.5px 0 var(--tdw-border);
+      &.is-keyboard { padding-bottom: 6px !important; }
+      // tools: plain 44px icons, a tint only while pressed
+      .mobile\:bg-newSettings {
+        min-width: 44px;
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--tdw-foreground);
+        transition: background-color 100ms ease;
+        &:active { background: var(--tdw-muted); }
+      }
+      // the fade at the end of the scrolling tools
+      .from-newBgColorInner { --tw-gradient-from: color-mix(in srgb, var(--tdw-card) 84%, transparent) var(--tw-gradient-from-position); }
+    }
+    // the counter moved from above the bar into it
+    .tdw-cm .flat-editor .b1 > div:has(> .tdw-counter) { display: none; }
+    .tdw-cm-acc-end {
+      flex: none;
+      align-items: center;
+      gap: 2px;
+      padding-inline-start: 4px;
+      // Add comment
+      .mobile\:w-\[40px\] {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        box-shadow: none;
+        background: var(--tdw-muted);
+        svg path { stroke: var(--tdw-foreground); }
+        &:active { transform: scale(0.94); }
+      }
+    }
+    .tdw-cm-counter {
+      display: flex;
+      .tdw-counter-btn {
+        height: 44px;
+        min-width: 36px;
+        justify-content: center;
+        padding: 0 6px;
+        border-radius: 10px;
+        &:active { background: var(--tdw-muted); }
+      }
+      .tdw-counter:not(.is-over) .tdw-counter-num { display: none; }
+      .tdw-counter-num { font-size: 13px; }
+      // the list opens in a sheet instead
+      .tdw-limits { display: none !important; }
+    }
+    .tdw-cm-checks {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 32px;
+      min-width: 32px;
+      justify-content: center;
+      margin: 0 4px;
+      padding: 0 9px;
+      border: 0;
+      border-radius: 16px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+      &.is-ok { padding: 0; background: none; color: var(--tdw-success); }
+      &.is-issues { background: color-mix(in srgb, var(--tdw-destructive) 12%, transparent); color: var(--tdw-destructive); }
+      &:active { transform: scale(0.94); }
+    }
+
+    // a comment's delay and delete sit at its top corner
+    #social-content .flat-editor .mobile\:pt-\[24px\] { padding-top: 20px; }
+  }
+}

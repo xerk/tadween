@@ -941,5 +941,13 @@
   "time": "الوقت",
   "channels_settings": "إعدادات القناة",
   "delete_selected": "حذف المحدد",
-  "are_you_sure_you_want_to_delete_selected_media": "هل أنت متأكد أنك تريد حذف الوسائط المحددة؟"
+  "are_you_sure_you_want_to_delete_selected_media": "هل أنت متأكد أنك تريد حذف الوسائط المحددة؟",
+  "tdw_cm_new_post": "منشور جديد",
+  "tdw_cm_edit_post": "تعديل المنشور",
+  "tdw_cm_publish_options": "خيارات النشر",
+  "tdw_cm_write": "كتابة",
+  "tdw_cm_when_to_post": "موعد النشر",
+  "tdw_cm_none": "لا شيء",
+  "tdw_cm_repeat_on": "مفعّل",
+  "tdw_cm_repeat_never": "أبدًا"
 }

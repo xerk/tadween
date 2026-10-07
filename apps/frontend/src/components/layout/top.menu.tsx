@@ -39,6 +39,28 @@ export const useMenuItem = () => {
 
   const firstMenu = [
     {
+      // Tadween: the home page (components/tadween/today)
+      name: t('today', 'Today'),
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+        >
+          <path
+            d="M2.5 8.6 10 2.5l7.5 6.1V16a1.5 1.5 0 0 1-1.5 1.5h-3.25v-5h-5.5v5H4A1.5 1.5 0 0 1 2.5 16V8.6Z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+      path: '/today',
+    },
+    {
       name: isGeneral ? t('calendar', 'Calendar') : t('launches', 'Launches'),
       icon: (
         <svg

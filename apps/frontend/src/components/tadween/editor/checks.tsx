@@ -23,7 +23,10 @@ export interface EditorIssue {
 // "too long" rules `/posts/valid` applies on save (stripHtmlValidation +
 // countLength against the provider's maximum), run per block for every
 // selected channel. Settings and media rules stay server-side; saving still
-// goes through `/posts/valid` unchanged.
+// goes through `/posts/valid` unchanged. Limits are the ones the counter
+// uses (`chars`, from each provider's maximumCharacters).
+// `blank` is a post nobody has started yet: no text or media anywhere, so the
+// editor stays quiet instead of flagging every channel at once.
 export const useEditorChecks = () => {
   const { selectedIntegrations, global, internal, chars } = useLaunchStore(
     useShallow((state) => ({
@@ -35,7 +38,7 @@ export const useEditorChecks = () => {
   );
 
   return useMemo(() => {
-    return selectedIntegrations
+    const checks = selectedIntegrations
       .map(({ integration }) => {
         const values =
           internal.find((p) => p.integration.id === integration.id)
@@ -56,9 +59,18 @@ export const useEditorChecks = () => {
             issues.push({ kind: 'too_long', index, count, limit });
           }
         });
-        return { integration, issues };
+        return { integration, issues, values };
       })
       .filter((p) => p.issues.length);
+
+    const blank =
+      checks.length === selectedIntegrations.length &&
+      checks.every(
+        (p) =>
+          p.issues.filter((i) => i.kind === 'empty').length === p.values.length
+      );
+
+    return { checks: blank ? [] : checks, blank };
   }, [selectedIntegrations, global, internal, chars]);
 };
 
@@ -92,7 +104,7 @@ export const EditorChecks: FC = () => {
   const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useClickOutside<HTMLDivElement>(() => setOpen(false));
-  const checks = useEditorChecks();
+  const { checks, blank } = useEditorChecks();
   const { total, setCurrent, setHide } = useLaunchStore(
     useShallow((state) => ({
       total: state.selectedIntegrations.length,
@@ -103,7 +115,7 @@ export const EditorChecks: FC = () => {
 
   const issueCount = checks.reduce((acc, p) => acc + p.issues.length, 0);
 
-  if (!total) {
+  if (!total || blank) {
     return null;
   }
 

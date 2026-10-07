@@ -73,7 +73,7 @@ export const SelectCurrent: FC = () => {
   );
 
   const t = useT();
-  const checks = useEditorChecks();
+  const { checks } = useEditorChecks();
 
   const removeSocial = useCallback(
     (sIntegration: Integrations) => async (e: any) => {

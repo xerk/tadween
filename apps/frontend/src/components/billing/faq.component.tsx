@@ -6,69 +6,60 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import DeleteAccountComponent from '@gitroom/frontend/components/settings/delete-account.component';
+import { Accordion } from '@gitroom/frontend/components/tadween/billing/accordion';
 const useFaqList = () => {
   const { isGeneral } = useVariables();
   const user = useUser();
   const t = useT();
   return [
+    // Tadween: the questions from the design system's PricingTable, in place
+    // of Postiz's (which name Postiz and its open-source repository)
     ...(user?.allowTrial
       ? [
           {
-            title: t(
-              'faq_am_i_going_to_be_charged_by_postiz',
-              'Am I going to be charged by Postiz?'
-            ),
+            title: t('tdw_faq_trial', 'Is there a free trial?'),
             description: t(
-              'faq_to_confirm_credit_card_information_postiz_will_hold',
-              'To confirm credit card information Postiz will hold $2 and release it immediately, you can cancel your subscription anytime from settings without talking to a person'
+              'tdw_faq_trial_desc',
+              'Every plan starts with a 7-day free trial. To confirm your card we hold $2 and release it right away. Cancel any time from Billing without talking to anyone.'
             ),
           },
         ]
       : []),
     {
-      title: t(
-        'faq_can_i_trust_postiz_gitroom',
-        `Can I trust ${isGeneral ? 'Postiz' : 'Gitroom'}?`
-      ),
+      title: t('tdw_faq_pages', 'Does it work with LinkedIn company pages?'),
       description: t(
-        'faq_postiz_gitroom_is_proudly_open_source',
-        `${
-          isGeneral ? 'Postiz' : 'Gitroom'
-        } is proudly open-source! We believe in an ethical and transparent culture, meaning that ${
-          isGeneral ? 'Postiz' : 'Gitroom'
-        } will live forever. You can check out the entire code or use it for personal projects. To view the open-source repository, <a href="https://github.com/gitroomhq/postiz-app" target="_blank" style="text-decoration: underline;">click here</a>.`
+        'tdw_faq_pages_desc',
+        'Yes. Connect your profile and every page you admin, then schedule to one or many at once.'
       ),
     },
     {
-      title: t('faq_what_are_channels', 'What are channels?'),
+      title: t('tdw_faq_channels', 'What are channels?'),
       description: t(
-        'faq_postiz_gitroom_allows_you_to_schedule_posts',
-        `${
-          isGeneral ? 'Postiz' : 'Gitroom'
-        } allows you to schedule your posts between different channels.
-A channel is a publishing platform where you can schedule your posts.
-For example, you can schedule your posts on X, Facebook, Instagram, TikTok, YouTube, Reddit, Linkedin, Dribbble, Threads and Pinterest.`
+        'tdw_faq_channels_desc',
+        'A channel is an account you publish to, like your LinkedIn profile or a company page you admin. X, Facebook, Instagram and the other networks count as channels too.'
       ),
     },
     {
-      title: t('faq_what_are_team_members', 'What are team members?'),
+      title: t('tdw_faq_team', 'What are team members?'),
       description: t(
-        'faq_if_you_have_a_team_with_multiple_members',
-        'If you have a team with multiple members, you can invite them to your workspace to collaborate on your posts and add their personal channels'
+        'tdw_faq_team_desc',
+        'People you invite to your workspace to draft, review and schedule posts with you, and to add their own channels.'
+      ),
+    },
+    {
+      title: t('tdw_faq_change', 'Can I change or cancel my plan?'),
+      description: t(
+        'tdw_faq_change_desc',
+        'Any time from Billing. A new plan starts right away and you pay the prorated difference. If you cancel, your plan stays active until the end of the billing period.'
       ),
     },
     ...(user?.tier?.current === 'FREE'
       ? [
           {
-            title: t(
-              'faq_how_can_i_delete_my_account',
-              'How can I delete my account?'
-            ),
+            title: t('tdw_faq_delete', 'How can I delete my account?'),
             description: t(
-              'faq_delete_account_description',
-              `If you don't want to continue using ${
-                isGeneral ? 'Postiz' : 'Gitroom'
-              }, you can delete your account, including all your organizations, channels and posts. This action cannot be undone.`
+              'tdw_faq_delete_desc',
+              'You can delete your account with all its workspaces, channels and posts. This cannot be undone.'
             ),
             content: <DeleteAccountComponent isLink={true} />,
           },
@@ -157,18 +148,27 @@ export const FAQSection: FC<{
   );
 };
 export const FAQComponent: FC = () => {
-  const t = useT();
   const list = useFaqList();
+  // Tadween: the design system's Accordion
   return (
-    <div>
-      {/*<h3 className="text-[24px] mt-[48px] mb-[40px] tablet:mt-[80px]">*/}
-      {/*  {t('frequently_asked_questions', 'Frequently Asked Questions')}*/}
-      {/*</h3>*/}
-      <div className="gap-[24px] flex-col flex select-none  mt-[48px] mb-[40px] tablet:mt-[80px]">
-        {list.map((item, index) => (
-          <FAQSection key={index} {...item} />
-        ))}
-      </div>
-    </div>
+    <Accordion
+      defaultOpen={[0]}
+      items={list.map((item) => ({
+        title: item.title,
+        content: (
+          <>
+            <div
+              className="select-text"
+              dangerouslySetInnerHTML={{
+                __html: item.description,
+              }}
+            />
+            {item.content ? (
+              <div className="pz-faq-extra">{item.content}</div>
+            ) : null}
+          </>
+        ),
+      }))}
+    />
   );
 };

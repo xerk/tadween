@@ -2,6 +2,10 @@ import { FC, useCallback } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import useSWR from 'swr';
 import { GithubComponent } from '@gitroom/frontend/components/settings/github.component';
+import {
+  Skeleton,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
 export const GithubOnboarding: FC = () => {
   const fetch = useFetch();
   const load = useCallback(async (path: string) => {
@@ -25,7 +29,13 @@ export const GithubOnboarding: FC = () => {
     load
   );
   if (!loadAll) {
-    return null;
+    // Tadween: a skeleton instead of an empty gap while settings load
+    return isLoadingSettings ? (
+      <TadweenScope className="grid gap-[8px]">
+        <Skeleton height={44} radius={10} />
+        <Skeleton height={44} radius={10} />
+      </TadweenScope>
+    ) : null;
   }
   return (
     <GithubComponent

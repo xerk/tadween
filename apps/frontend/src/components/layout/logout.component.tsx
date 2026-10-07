@@ -8,7 +8,7 @@ import { setCookie } from '@gitroom/frontend/components/layout/layout.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 export const LogoutComponent: FC<{ isIcon?: boolean }> = ({ isIcon }) => {
   const fetch = useFetch();
-  const { isGeneral, isSecured } = useVariables();
+  const { isSecured } = useVariables();
   const t = useT();
 
   const logout = useCallback(async () => {
@@ -43,8 +43,7 @@ export const LogoutComponent: FC<{ isIcon?: boolean }> = ({ isIcon }) => {
             xmlns="http://www.w3.org/2000/svg"
             data-tooltip-id="tooltip"
             data-tooltip-content={`
-            ${t('logout_from', 'Logout from')}${' '}
-            ${isGeneral ? ' Postiz' : ' Gitroom'}
+            ${t('tdw_log_out', 'Log out')}
             `}
           >
             <path
@@ -54,8 +53,7 @@ export const LogoutComponent: FC<{ isIcon?: boolean }> = ({ isIcon }) => {
           </svg>
         ) : (
           <span className="text-red-400">
-            {t('logout_from', 'Logout from')}
-            {isGeneral ? ' Postiz' : ' Gitroom'}
+            {t('tdw_log_out', 'Log out')}
           </span>
         )}
       </div>

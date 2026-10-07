@@ -75,8 +75,20 @@ export const featureDefaultsFromEnv = (): Record<FeatureKey, boolean> => {
     .split(',')
     .map((p) => p.trim())
     .filter(Boolean);
+  // Partner shortcuts that point at Postiz's own deals (AgentMedia UGC videos, the
+  // Postiz affiliate programme) start off; a super admin can switch them on, or list
+  // them in TADWEEN_ENABLED_FEATURES.
+  const on = (process.env.TADWEEN_ENABLED_FEATURES || '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const offByDefault: FeatureKey[] = ['ugc', 'affiliate'];
   return FEATURE_KEYS.reduce(
-    (all, key) => ({ ...all, [key]: !off.includes(key) }),
+    (all, key) => ({
+      ...all,
+      [key]:
+        !off.includes(key) && (!offByDefault.includes(key) || on.includes(key)),
+    }),
     {} as Record<FeatureKey, boolean>
   );
 };

@@ -186,7 +186,24 @@ export function initLanding(root: HTMLElement, { rtl }: { rtl: boolean }): () =>
   }
 
   const refresh = () => ScrollTrigger.refresh();
-  document.fonts?.ready.then(() => !disposed && refresh());
+  // A link like /#features scrolled before the pin spacer existed, so the target has
+  // moved down by the pinned distance. Re-scroll to it, once the layout is final, unless
+  // the visitor has already scrolled somewhere else.
+  let hashY: number | null = null;
+  const toHash = () => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const el = id ? document.getElementById(id) : null;
+    if (!el || (hashY !== null && Math.abs(window.scrollY - hashY) > 2)) return;
+    el.scrollIntoView({ block: 'start' });
+    hashY = window.scrollY;
+  };
+  refresh();
+  toHash();
+  document.fonts?.ready.then(() => {
+    if (disposed) return;
+    refresh();
+    toHash();
+  });
   window.addEventListener('load', refresh);
 
   return () => {

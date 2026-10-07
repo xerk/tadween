@@ -1050,5 +1050,6 @@
   "already_activated": "Already activated?",
   "go_to_login": "Go to sign in",
   "failed_to_resend": "Failed to resend activation email",
-  "error_occurred": "An error occurred. Please try again."
+  "error_occurred": "An error occurred. Please try again.",
+  "tdw_auth_email_required": "Enter your email address."
 }

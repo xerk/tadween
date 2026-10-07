@@ -128,7 +128,7 @@ export function Activate() {
                 name="email"
                 type="email"
                 autoComplete="email"
-                required
+                required={t('tdw_auth_email_required', 'Enter your email address.')}
                 label={t('label_email', 'Email')}
                 placeholder={t('tdw_auth_email_placeholder', 'you@company.com')}
               />

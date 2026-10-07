@@ -1092,5 +1092,6 @@
   "already_activated": "فعّلت حسابك بالفعل؟",
   "go_to_login": "اذهب إلى تسجيل الدخول",
   "failed_to_resend": "تعذّر إعادة إرسال بريد التفعيل",
-  "error_occurred": "حدث خطأ. حاول مرة أخرى."
+  "error_occurred": "حدث خطأ. حاول مرة أخرى.",
+  "tdw_auth_email_required": "أدخل بريدك الإلكتروني."
 }

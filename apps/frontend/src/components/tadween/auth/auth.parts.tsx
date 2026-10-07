@@ -70,7 +70,8 @@ export const AuthField: FC<{
   placeholder?: string;
   autoComplete?: string;
   aside?: ReactNode;
-  required?: boolean;
+  /** message shown when the field is left empty */
+  required?: string;
 }> = ({ name, label, type = 'text', placeholder, autoComplete, aside, required }) => {
   const form = useFormContext();
   const id = useId();
@@ -91,7 +92,7 @@ export const AuthField: FC<{
         className="pz-input"
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? id + '-note' : undefined}
-        {...form.register(name, required ? { required: true } : undefined)}
+        {...form.register(name, required ? { required } : undefined)}
       />
     </Field>
   );
@@ -245,7 +246,7 @@ export const AuthControls: FC = () => {
         type="button"
         className="tdw-auth-control"
         onClick={() => changeLanguage(isArabic ? 'en' : 'ar')}
-        aria-label={t('change_language', 'Change Language')}
+        title={t('change_language', 'Change Language')}
       >
         <Icon name="languages" size={16} />
         <span lang={isArabic ? 'en' : 'ar'}>{isArabic ? 'English' : 'العربية'}</span>

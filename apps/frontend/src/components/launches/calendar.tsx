@@ -59,6 +59,7 @@ import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validatio
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
 import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
+import { ChipMoreMenu } from '@gitroom/frontend/components/tadween/workspace/chip.more.menu';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -95,7 +96,7 @@ export const hours = Array.from(
 );
 
 // Shared hook for post actions (edit, delete, statistics)
-const usePostActions = (onMutate?: () => void) => {
+export const usePostActions = (onMutate?: () => void) => {
   const t = useT();
   const fetch = useFetch();
   const modal = useModals();
@@ -330,12 +331,18 @@ export const DayView = () => {
     );
   }, [integrations, posts]);
 
+  // Tadween: the current-time marker sits before the first slot still ahead
+  const nowSlot = currentDay.format('YYYY-MM-DD') === newDayjs().format('YYYY-MM-DD')
+    ? options.find((option) => currentDay.startOf('day').add(option[0].time, 'minute').local().isAfter(newDayjs()))?.[0]?.time
+    : undefined;
+
   return (
-    <div className="flex flex-col gap-[10px] flex-1 relative">
-      <div className="absolute start-0 top-0 w-full h-full flex flex-col overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+    <div className="tdw-ws-day flex flex-col gap-[10px] flex-1 relative">
+      <div className="tdw-ws-day-list absolute start-0 top-0 w-full h-full flex flex-col overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
         {options.map((option) => (
           <Fragment key={option[0].time}>
-            <div className="text-center text-[14px] min-h-[21px] shrink-0">
+            {nowSlot === option[0].time && <div className="tdw-ws-now-row" aria-hidden="true" />}
+            <div className="tdw-ws-day-time text-center text-[14px] min-h-[21px] shrink-0">
               {newDayjs()
                 .utc()
                 .startOf('day')
@@ -345,7 +352,7 @@ export const DayView = () => {
             </div>
             <div
               key={option[0].time}
-              className="min-h-[60px] shrink-0 rounded-[10px] flex justify-center items-center gap-[10px] mb-[20px]"
+              className="tdw-ws-day-slot min-h-[60px] shrink-0 rounded-[10px] flex justify-center items-center gap-[10px] mb-[20px]"
             >
               <CalendarContext.Provider
                 value={{
@@ -401,15 +408,19 @@ export const WeekView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 relative">
-        <div ref={weekScrollRef} className="grid [grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] tablet:[grid-template-columns:72px_repeat(7,_minmax(100px,_1fr))] gap-[4px] rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
-          <div className="z-10 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"></div>
+        <div ref={weekScrollRef} className="tdw-ws-week grid [grid-template-columns:136px_repeat(7,_minmax(0,_1fr))] tablet:[grid-template-columns:72px_repeat(7,_minmax(100px,_1fr))] gap-[4px] rounded-[10px] absolute h-full start-0 top-0 w-full overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
+          <div className="tdw-ws-corner z-10 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"></div>
           {localizedDays.map((day, index) => (
             <div
               key={day.name}
-              className="p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 z-[20]"
+              className={clsx(
+                'tdw-ws-dh p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 z-[20]',
+                day.day === newDayjs().format('L') && 'is-today'
+              )}
             >
               <div className="text-[14px] font-[500] text-newTableText">
-                {day.name}
+                <span className="tdw-ws-dh-long">{day.name}</span>
+                <span className="tdw-ws-dh-short">{day.date.format('ddd')}</span>
               </div>
               <div
                 className={clsx(
@@ -421,7 +432,8 @@ export const WeekView = () => {
                 {day.day === newDayjs().format('L') && (
                   <div className="w-[6px] h-[6px] bg-newTableTextFocused rounded-full" />
                 )}
-                {day.day}
+                <span className="tdw-ws-dh-long">{day.day}</span>
+                <span className="tdw-ws-dh-short">{day.date.format('D')}</span>
               </div>
             </div>
           ))}
@@ -430,7 +442,7 @@ export const WeekView = () => {
               <div
                 data-tdw-hour={hour}
                 className={clsx(
-                  'p-2 pe-4 tablet:px-[4px] text-center items-center justify-center flex text-[14px] tablet:text-[12px] tablet:whitespace-nowrap text-newTableText',
+                  'tdw-ws-hour p-2 pe-4 tablet:px-[4px] text-center items-center justify-center flex text-[14px] tablet:text-[12px] tablet:whitespace-nowrap text-newTableText',
                   hour === newDayjs().hour() && 'tdw-now-hour'
                 )}
               >
@@ -440,7 +452,12 @@ export const WeekView = () => {
                 <Fragment
                   key={`${startDate}-${day.date.format('YYYY-MM-DD')}-${hour}`}
                 >
-                  <div className="relative">
+                  <div
+                    className={clsx(
+                      'tdw-ws-cell relative',
+                      day.day === newDayjs().format('L') && 'is-today'
+                    )}
+                  >
                     <CalendarColumn
                       getDate={day.date.hour(hour).startOf('hour')}
                     />
@@ -506,11 +523,11 @@ export const MonthView = () => {
   return (
     <div className="flex flex-col text-textColor flex-1">
       <div className="flex-1 flex relative">
-        <div className="grid grid-cols-7 tablet:[grid-template-columns:repeat(7,_minmax(100px,_1fr))] grid-rows-[62px_auto] gap-[4px] rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
+        <div className="tdw-ws-month grid grid-cols-7 tablet:[grid-template-columns:repeat(7,_minmax(100px,_1fr))] grid-rows-[62px_auto] gap-[4px] rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
           {localizedDays.map((day) => (
             <div
               key={day}
-              className="z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"
+              className="tdw-ws-dh z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"
             >
               <div>{day}</div>
             </div>
@@ -518,7 +535,11 @@ export const MonthView = () => {
           {calendarDays.map((date, index) => (
             <div
               key={index}
-              className="text-center items-center justify-center flex"
+              className={clsx(
+                'tdw-ws-mcell text-center items-center justify-center flex',
+                date.label !== 'current-month' && 'is-out',
+                date.day.format('YYYY-MM-DD') === newDayjs().format('YYYY-MM-DD') && 'is-today'
+              )}
             >
               <CalendarColumn
                 getDate={newDayjs(date.day).endOf('day')}
@@ -583,11 +604,11 @@ export const ListView = () => {
   }
 
   return (
-    <div className="flex flex-col gap-[10px] flex-1 relative">
+    <div className="tdw-ws-list flex flex-col gap-[10px] flex-1 relative">
       <div className="absolute start-0 top-0 w-full h-full flex flex-col overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
         {groupedPosts.map(([dateKey, datePosts]) => (
           <Fragment key={dateKey}>
-            <div className="text-center text-[14px] min-h-[21px] text-textColor font-[500] mt-[10px]">
+            <div className="tdw-ws-list-date text-center text-[14px] min-h-[21px] text-textColor font-[500] mt-[10px]">
               {newDayjs(dateKey).format(isUSCitizen() ? 'dddd, MMMM D, YYYY' : 'dddd, D MMMM YYYY')}
             </div>
             <div className="flex flex-col gap-[10px] mb-[20px] px-[10px]">
@@ -898,8 +919,16 @@ export const CalendarColumn: FC<{
       )}
       ref={drop as any}
     >
+      {display === 'week' &&
+        getDate.format('YYYY-MM-DD HH') === newDayjs().format('YYYY-MM-DD HH') && (
+          <span
+            className="tdw-ws-now"
+            aria-hidden="true"
+            style={{ top: `${(newDayjs().minute() / 60) * 100}%` }}
+          />
+        )}
       {display === 'month' && (
-        <div className={clsx('pt-[6px] text-[14px]')}>{getDate.date()}</div>
+        <div className={clsx('tdw-ws-mnum pt-[6px] text-[14px]')}>{getDate.date()}</div>
       )}
       <div
         className={clsx(
@@ -980,7 +1009,7 @@ export const CalendarColumn: FC<{
               {display !== 'day' && (
                 <div
                   className={clsx(
-                    'group hover:before:h-[30px] w-full h-full rounded-[10px] flex justify-center items-center text-white'
+                    'tdw-ws-add group hover:before:h-[30px] w-full h-full rounded-[10px] flex justify-center items-center text-white'
                   )}
                 >
                   <div
@@ -990,7 +1019,7 @@ export const CalendarColumn: FC<{
               )}
               {display === 'day' && (
                 <div
-                  className={`w-full h-full rounded-[10px] py-[10px] flex-wrap hover:border hover:border-seventh flex justify-center items-center gap-[20px] mobile:gap-[12px] opacity-30 grayscale hover:grayscale-0 hover:opacity-100`}
+                  className={`tdw-ws-day-add w-full h-full rounded-[10px] py-[10px] flex-wrap hover:border hover:border-seventh flex justify-center items-center gap-[20px] mobile:gap-[12px] opacity-30 grayscale hover:grayscale-0 hover:opacity-100`}
                 >
                   {integrations.map((selectedIntegrations) => (
                     <div
@@ -1104,6 +1133,55 @@ const CalendarItem: FC<{
   const tagColor = post?.tags?.[0]?.tag?.color;
   const canStats = !((post.integration.providerIdentifier === 'x' && disableXAnalytics) || !post.releaseId);
   const onStats = post.releaseId === 'missing' ? missingRelease : statistics;
+  // One list feeds the hover buttons and, on narrow chips, the ⋯ menu
+  const actions = [
+    copyDebugJson && {
+      key: 'debug',
+      icon: <CopyDebug />,
+      label: t('copy_debug_json', 'Copy Debug JSON'),
+      onClick: copyDebugJson,
+    },
+    {
+      key: 'duplicate',
+      icon: <Duplicate />,
+      label: t('duplicate_post', 'Duplicate Post'),
+      onClick: duplicatePost,
+    },
+    {
+      key: 'preview',
+      icon: <Preview />,
+      label: t('preview_post', 'Preview Post'),
+      onClick: preview,
+    },
+    (state === 'PUBLISHED' || state === 'ERROR') &&
+      !post.intervalInDays &&
+      post.releaseURL?.startsWith('http') && {
+        key: 'open',
+        icon: <OpenPost />,
+        label: t('open_post', 'Open Post'),
+        onClick: openPost,
+      },
+    canStats &&
+      (post.releaseId !== 'missing' || missingRelease) && {
+        key: 'statistics',
+        icon: <Statistics />,
+        label: t('post_statistics', 'Post Statistics'),
+        onClick: onStats!,
+      },
+    {
+      key: 'delete',
+      icon: <DeletePost />,
+      label: t('delete_post', 'Delete Post'),
+      onClick: deletePost,
+      danger: true,
+    },
+  ].filter(Boolean) as {
+    key: string;
+    icon: React.ReactNode;
+    label: string;
+    onClick: () => void;
+    danger?: boolean;
+  }[];
   return (
     <div
       // @ts-ignore
@@ -1164,32 +1242,17 @@ const CalendarItem: FC<{
         )}
       </div>
       <div className="tdw-chip-acts" onClick={(e) => e.stopPropagation()}>
-        {copyDebugJson && (
-          <button type="button" className="tdw-chip-act" onClick={copyDebugJson}>
-            <CopyDebug />
+        {actions.map((action) => (
+          <button
+            key={action.key}
+            type="button"
+            className={clsx('tdw-chip-act', action.danger && 'is-danger')}
+            onClick={action.onClick}
+          >
+            {action.icon}
           </button>
-        )}
-        <button type="button" className="tdw-chip-act" onClick={duplicatePost}>
-          <Duplicate />
-        </button>
-        <button type="button" className="tdw-chip-act" onClick={preview}>
-          <Preview />
-        </button>
-        {(state === 'PUBLISHED' || state === 'ERROR') &&
-          !post.intervalInDays &&
-          post.releaseURL?.startsWith('http') && (
-            <button type="button" className="tdw-chip-act" onClick={openPost}>
-              <OpenPost />
-            </button>
-          )}
-        {canStats && (post.releaseId !== 'missing' || missingRelease) && (
-          <button type="button" className="tdw-chip-act" onClick={onStats}>
-            <Statistics />
-          </button>
-        )}
-        <button type="button" className="tdw-chip-act is-danger" onClick={deletePost}>
-          <DeletePost />
-        </button>
+        ))}
+        <ChipMoreMenu actions={actions} />
       </div>
     </div>
   );

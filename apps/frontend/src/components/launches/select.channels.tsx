@@ -8,17 +8,11 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Checkbox } from '@gitroom/react/form/checkbox';
 import { FilterIcon } from '@gitroom/frontend/components/ui/icons';
 
-export const SelectChannels: FC = () => {
+// Which channels the calendar shows (null = all of the current customer's).
+// Shared by <SelectChannels /> and the Tadween workspace channel chips.
+export const useChannelSelection = () => {
   const { integrations, customer, selectedChannels, setSelectedChannels } =
     useCalendar();
-  const t = useT();
-  const [pos, setPos] = useState<any>({});
-  const [open, setOpen] = useState(false);
-  const ref = useClickOutside(() => {
-    if (open) {
-      setOpen(false);
-    }
-  });
 
   const channels = useMemo(
     () =>
@@ -28,17 +22,6 @@ export const SelectChannels: FC = () => {
 
   const selectedIds = selectedChannels ?? channels.map((c) => c.id);
   const allSelected = channels.every((c) => selectedIds.includes(c.id));
-
-  const openClose = useCallback(() => {
-    if (open) {
-      setOpen(false);
-      return;
-    }
-
-    const { x, y, height } = ref.current?.getBoundingClientRect();
-    setPos({ top: y + height, left: Math.min(x, window.innerWidth - 270) });
-    setOpen(true);
-  }, [open]);
 
   const toggleAll = useCallback(() => {
     setSelectedChannels(allSelected ? [] : null);
@@ -53,6 +36,40 @@ export const SelectChannels: FC = () => {
     },
     [selectedIds, channels]
   );
+
+  return {
+    channels,
+    selectedIds,
+    allSelected,
+    toggleAll,
+    toggle,
+    setSelectedChannels,
+  };
+};
+
+export const SelectChannels: FC = () => {
+  const t = useT();
+  const [pos, setPos] = useState<any>({});
+  const [open, setOpen] = useState(false);
+  const ref = useClickOutside(() => {
+    if (open) {
+      setOpen(false);
+    }
+  });
+
+  const { channels, selectedIds, allSelected, toggleAll, toggle } =
+    useChannelSelection();
+
+  const openClose = useCallback(() => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+
+    const { x, y, height } = ref.current?.getBoundingClientRect();
+    setPos({ top: y + height, left: Math.min(x, window.innerWidth - 270) });
+    setOpen(true);
+  }, [open]);
 
   if (channels.length <= 1) {
     return null;

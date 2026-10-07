@@ -1038,7 +1038,6 @@
   "tdw_auth_preview_slot_b": "Thu · 13:00",
   "tdw_auth_preview_scheduled": "Scheduled on LinkedIn",
   "tdw_auth_preview_draft": "Draft",
-  "tdw_auth_preview_hint": "Your audience reads most around 9:00",
   "account_not_activated": "Your account is not activated yet. Please check your email for the activation link.",
   "resend_activation_email": "Resend activation email",
   "registration_invite_only": "Invite only. Ask your workspace admin for an invite link.",
@@ -1051,5 +1050,12 @@
   "go_to_login": "Go to sign in",
   "failed_to_resend": "Failed to resend activation email",
   "error_occurred": "An error occurred. Please try again.",
-  "tdw_auth_email_required": "Enter your email address."
+  "tdw_auth_email_required": "Enter your email address.",
+  "tdw_auth_err_email": "Enter a valid email address.",
+  "tdw_auth_err_password": "Enter your password.",
+  "tdw_auth_err_workspace": "Enter a workspace name.",
+  "tdw_auth_err_match": "Passwords do not match.",
+  "tdw_auth_err_min": "Use at least {{count}} characters.",
+  "tdw_auth_err_max": "Use at most {{count}} characters.",
+  "tdw_auth_preview_languages": "Write in Arabic or English"
 }

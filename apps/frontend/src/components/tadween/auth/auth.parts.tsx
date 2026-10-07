@@ -62,6 +62,45 @@ export const AuthDivider: FC = () => {
   );
 };
 
+/* Validation copy. The DTO (client resolver) and the API stay the source of
+   truth: a known rule on a known field gets a friendly, translated sentence, the
+   limit is taken from the original message, and anything unmapped (server
+   messages like "Email already exists") is shown as sent. Keyed on field + rule,
+   with `*` as the any-field fallback. */
+const FIELD_MESSAGES: Record<string, [string, string]> = {
+  'email.isEmail': ['tdw_auth_err_email', 'Enter a valid email address.'],
+  'email.isDefined': ['tdw_auth_err_email', 'Enter a valid email address.'],
+  'email.isString': ['tdw_auth_err_email', 'Enter a valid email address.'],
+  'password.isDefined': ['tdw_auth_err_password', 'Enter your password.'],
+  'password.isString': ['tdw_auth_err_password', 'Enter your password.'],
+  'company.isDefined': ['tdw_auth_err_workspace', 'Enter a workspace name.'],
+  'company.isString': ['tdw_auth_err_workspace', 'Enter a workspace name.'],
+  'repeatPassword.isIn': ['tdw_auth_err_match', 'Passwords do not match.'],
+  '*.minLength': ['tdw_auth_err_min', 'Use at least {{count}} characters.'],
+  '*.maxLength': ['tdw_auth_err_max', 'Use at most {{count}} characters.'],
+};
+
+const useFieldError = (name: string) => {
+  const t = useT();
+  const form = useFormContext();
+  const error = form.formState.errors?.[name];
+  const raw = error?.message as string | undefined;
+  if (!raw) {
+    return undefined;
+  }
+  const rule = String(error?.type || '');
+  const entry =
+    FIELD_MESSAGES[`${name}.${rule}`] || FIELD_MESSAGES[`*.${rule}`];
+  if (!entry) {
+    return raw;
+  }
+  const count = raw.match(/\d+/)?.[0];
+  if (entry[1].includes('{{count}}') && !count) {
+    return raw;
+  }
+  return t(entry[0], entry[1], { count: Number(count) });
+};
+
 /* A react-hook-form field: top label, kit input, inline error from formState */
 export const AuthField: FC<{
   name: string;
@@ -75,7 +114,7 @@ export const AuthField: FC<{
 }> = ({ name, label, type = 'text', placeholder, autoComplete, aside, required }) => {
   const form = useFormContext();
   const id = useId();
-  const error = form.formState.errors?.[name]?.message as string | undefined;
+  const error = useFieldError(name);
   return (
     <Field
       id={id}

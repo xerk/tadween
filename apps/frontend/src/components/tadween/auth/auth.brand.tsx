@@ -74,8 +74,8 @@ export const AuthBrand: FC = () => {
           </span>
         </div>
         <div className="tdw-auth-float is-c">
-          <Icon name="sparkles" size={14} />
-          <span>{t('tdw_auth_preview_hint', 'Your audience reads most around 9:00')}</span>
+          <Icon name="languages" size={14} />
+          <span>{t('tdw_auth_preview_languages', 'Write in Arabic or English')}</span>
         </div>
       </div>
 

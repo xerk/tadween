@@ -442,6 +442,7 @@ body {
   .tdw-auth-float > span:last-child { display: flex; flex-direction: column; line-height: 18px; }
   .tdw-auth-float small { font-size: 12px; color: var(--tdw-muted-foreground); }
   .tdw-auth-float-time { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tdw-auth-float.is-c .pz-icon { color: var(--tdw-primary); }
   .tdw-auth-float-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--tdw-primary); box-shadow: 0 0 0 4px var(--tdw-primary-soft); }
   .tdw-auth-float-dot.is-draft { background: var(--tdw-muted-foreground); box-shadow: 0 0 0 4px var(--tdw-muted); }
   .tdw-auth-float.is-a {
@@ -465,9 +466,9 @@ body {
     border-radius: 999px;
     font-size: 13px;
     font-weight: 500;
-    background: var(--tdw-smart-soft);
-    color: var(--tdw-smart);
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--tdw-smart) 22%, transparent), var(--tdw-shadow-md);
+    background: var(--tdw-popover);
+    color: var(--tdw-foreground);
+    box-shadow: var(--tdw-shadow-md);
     animation: tdw-auth-in 700ms var(--tdw-ease-spring) 520ms both, tdw-auth-drift 10s ease-in-out 1.6s infinite;
   }
 

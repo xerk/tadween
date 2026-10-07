@@ -1,17 +1,14 @@
 'use client';
 
 import React, { ReactNode, useCallback, useEffect, useState } from 'react';
-import { Logo } from '@gitroom/frontend/components/new-layout/logo';
 import { tadweenFont as jakartaSans } from '@gitroom/frontend/app/fonts';
-const ModeComponent = dynamic(
-  () => import('@gitroom/frontend/components/layout/mode.component'),
-  {
-    ssr: false,
-  }
-);
+import {
+  SidebarHeader,
+  useSidebarCollapsed,
+} from '@gitroom/frontend/components/tadween/shell/sidebar';
+import { AccountMenu } from '@gitroom/frontend/components/tadween/shell/account.menu';
 
 import clsx from 'clsx';
-import dynamic from 'next/dynamic';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -33,7 +30,6 @@ import { Impersonate } from '@gitroom/frontend/components/layout/impersonate';
 import { AnnouncementBanner } from '@gitroom/frontend/components/layout/announcement.banner';
 import { Title } from '@gitroom/frontend/components/layout/title';
 import { TopMenu } from '@gitroom/frontend/components/layout/top.menu';
-import { LanguageComponent } from '@gitroom/frontend/components/layout/language.component';
 import { ChromeExtensionComponent } from '@gitroom/frontend/components/layout/chrome.extension.component';
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
 import { OrganizationSelector } from '@gitroom/frontend/components/layout/organization.selector';
@@ -54,6 +50,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const sidebar = useSidebarCollapsed();
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
@@ -118,21 +115,26 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                     )}
                     <div
                       className={clsx(
-                        'flex flex-col bg-newBgColorInner w-[80px] rounded-[12px] mobile:fixed mobile:top-0 mobile:bottom-0 mobile:start-0 mobile:z-[491] mobile:rounded-none mobile:overflow-y-auto mobile:overflow-x-hidden',
-                        !menuOpen && 'mobile:hidden'
+                        'tdw-side flex flex-col bg-newBgColorInner rounded-[12px] mobile:fixed mobile:top-0 mobile:bottom-0 mobile:start-0 mobile:z-[491] mobile:rounded-none mobile:overflow-y-auto mobile:overflow-x-hidden',
+                        !menuOpen && 'mobile:hidden',
+                        sidebar.collapsed && 'is-collapsed'
                       )}
                       onClick={() => setMenuOpen(false)}
                     >
                       <div
                         id="left-menu"
                         className={clsx(
-                          'fixed h-full w-[64px] start-[17px] flex flex-1 top-0 mobile:static mobile:h-auto mobile:min-h-full mobile:mx-auto',
+                          'tdw-side-inner fixed h-full flex flex-1 top-0 mobile:static mobile:h-auto mobile:min-h-full mobile:mx-auto',
                           user?.admin && 'pt-[60px] max-h-[1000px]:w-[500px]'
                         )}
                       >
-                        <div className="flex flex-col h-full gap-[32px] mobile:gap-[16px] flex-1 py-[12px]">
-                          <Logo />
+                        <div className="tdw-side-body flex flex-col h-full gap-[32px] mobile:gap-[16px] flex-1 py-[12px]">
+                          <SidebarHeader
+                            collapsed={sidebar.collapsed}
+                            onToggle={sidebar.toggle}
+                          />
                           <TopMenu />
+                          <AccountMenu />
                         </div>
                       </div>
                     </div>
@@ -165,11 +167,6 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                           <StreakComponent />
                           <div className="w-[1px] h-[20px] bg-blockSeparator mobile:hidden" />
                           <OrganizationSelector />
-                          <div className="hover:text-newTextColor">
-                            <ModeComponent />
-                          </div>
-                          <div className="w-[1px] h-[20px] bg-blockSeparator mobile:hidden" />
-                          <LanguageComponent />
                           <div className="contents mobile:hidden">
                             <ChromeExtensionComponent />
                           </div>

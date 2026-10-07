@@ -134,6 +134,18 @@
   --tdw-pop-from: 6px;
   @media (max-width: 640px) { flex-direction: column; }
 }
+.tdw-dp-panel {
+  display: flex;
+  @media (max-width: 640px) { flex-direction: column; }
+}
+// the same panel inside the mobile "Change Date or Time" sheet
+.tdw-dp--sheet {
+  flex-direction: column;
+  color: var(--tdw-foreground);
+  font-size: 14px;
+  .tdw-dp-cal { width: auto; padding: 0 0 14px; }
+  .tdw-dp-time { width: auto; height: 220px; border-inline-start: 0; border-top: 1px solid var(--tdw-border); }
+}
 .tdw-dp-cal { padding: 14px; width: 292px; box-sizing: border-box; }
 .tdw-dp-head {
   display: flex;

@@ -39,6 +39,16 @@ const copilotCors = () => ({
   credentials: !process.env.NOT_SECURED,
 });
 
+// Tadween: without an OpenAI key, answer instead of leaving the request open.
+// The assistant asks for runtime info on every page load; an empty agent list
+// lets it start disconnected quietly, and real calls get a clear 503.
+const aiNotConfigured = (req: Request, res: Response) => {
+  if ((req.body as { method?: string } | undefined)?.method === 'info') {
+    return res.json({ version: '0.0.0', agents: {}, audioFileTranscriptionEnabled: false });
+  }
+  return res.status(503).json({ error: 'AI is not configured on this server.' });
+};
+
 @Controller('/copilot')
 export class CopilotController {
   constructor(
@@ -52,7 +62,7 @@ export class CopilotController {
       process.env.OPENAI_API_KEY === ''
     ) {
       Logger.warn('OpenAI API key not set, chat functionality will not work');
-      return;
+      return aiNotConfigured(req, res);
     }
 
     const copilotRuntimeHandler = copilotRuntimeNodeHttpEndpoint({
@@ -79,7 +89,7 @@ export class CopilotController {
       process.env.OPENAI_API_KEY === ''
     ) {
       Logger.warn('OpenAI API key not set, chat functionality will not work');
-      return;
+      return aiNotConfigured(req, res);
     }
     const mastra = await this._mastraService.mastra();
     const requestContext = new RequestContext<ChannelsContext>();

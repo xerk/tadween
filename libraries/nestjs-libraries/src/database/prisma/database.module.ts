@@ -50,6 +50,7 @@ import { ErrorsRepository } from '@gitroom/nestjs-libraries/database/prisma/erro
 import { ErrorsService } from '@gitroom/nestjs-libraries/database/prisma/errors/errors.service';
 import { AdminStatsRepository } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.repository';
 import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.service';
+import { TADWEEN_DATABASE_PROVIDERS } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.providers';
 
 @Global()
 @Module({
@@ -109,6 +110,7 @@ import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/adm
     ErrorsService,
     AdminStatsRepository,
     AdminStatsService,
+    ...TADWEEN_DATABASE_PROVIDERS,
   ],
   get exports() {
     return this.providers;

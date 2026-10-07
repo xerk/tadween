@@ -1835,3 +1835,57 @@ model Announcement {
   color       AnnouncementColor @default(INFO)
   createdAt   DateTime          @default(now())
 }
+
+// ─── Tadween: super-admin console ────────────────────────────────────────────
+// Instance-wide configuration edited from /admin. Every model is optional: when
+// a row is missing the app falls back to env vars and Postiz's defaults, so an
+// empty table behaves exactly like upstream Postiz.
+
+// Key/value settings: registration mode, feature toggles, branding.
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+// "Add channel" enablement and order per provider identifier (linkedin, x…).
+// No OAuth secrets here: provider credentials stay in env vars.
+model ProviderSetting {
+  identifier String   @id
+  enabled    Boolean  @default(true)
+  position   Int      @default(0)
+  updatedAt  DateTime @updatedAt
+}
+
+// A sellable plan. `tier` maps it onto Postiz's SubscriptionTier so Stripe,
+// permissions and existing subscriptions keep working; the plan overlays the
+// static pricing map for that tier (prices, channels, team, posts, AI credits).
+model Plan {
+  id                     String           @id @default(cuid())
+  key                    String           @unique
+  name                   String
+  description            String?
+  tier                   SubscriptionTier
+  monthlyPriceUsd        Int              @default(0)
+  yearlyPriceUsd         Int              @default(0)
+  monthlyPriceEgp        Int              @default(0)
+  yearlyPriceEgp         Int              @default(0)
+  trialDays              Int              @default(7)
+  mostPopular            Boolean          @default(false)
+  channels               Int              @default(1)
+  teamMembers            Int              @default(0)
+  postsPerMonth          Int              @default(-1)
+  aiCredits              Int              @default(0)
+  features               Json             @default("[]")
+  providerPriceIdMonthly String?
+  providerPriceIdYearly  String?
+  active                 Boolean          @default(true)
+  position               Int              @default(0)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  deletedAt              DateTime?
+
+  @@index([deletedAt])
+}
+// ─── end Tadween ─────────────────────────────────────────────────────────────

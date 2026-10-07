@@ -684,11 +684,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                       )}
                     </div>
                     {/* Tadween: the footer is hidden on phones, the checks chip gets its own row */}
-                    {!existingData.integration && (
-                      <div className="hidden mobile:flex mobile:empty:hidden">
-                        <EditorChecks />
-                      </div>
-                    )}
+                    <div className="hidden mobile:flex mobile:empty:hidden">
+                      <EditorChecks />
+                    </div>
                     <div
                       className={clsx(
                         'flex-1 flex',

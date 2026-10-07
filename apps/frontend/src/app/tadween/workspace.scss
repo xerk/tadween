@@ -1,1 +1,1868 @@
-// Tadween workspace styles. Loaded from global.scss.
+// Tadween calendar workspace (/launches). Loaded from global.scss.
+//
+// Components: components/tadween/workspace/*. The calendar itself is still
+// Postiz's (launches/calendar.tsx); it only gained tdw-ws-* class hooks, and
+// everything below restyles it from here. Rules that override Tailwind
+// utilities on Postiz markup use `.tdw-ws` + one or two classes so they win
+// without !important; the few !important are against arbitrary utilities.
+//
+//   1. Layout          5. Day / list views     9. Channels sheet
+//   2. Toolbar         6. Post chips + ⋯ menu  10. Phones (≤ 768px)
+//   3. Channel chips   7. Side panel           11. Motion
+//   4. Week / month    8. Mini month
+
+$tdw-ws-phone: '(max-width: 768px)';
+$tdw-ws-side: '(max-width: 1099px)';
+
+// Hidden from sight, still read by screen readers (icon-only Create)
+@mixin tdw-ws-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+// ── 1. Layout ───────────────────────────────────────────────────────────────
+.tdw-ws {
+  --ws-line: color-mix(in srgb, var(--tdw-foreground) 8%, transparent);
+  --ws-edge: color-mix(in srgb, var(--tdw-foreground) 7%, transparent);
+  --ws-row: 70px;
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  background: var(--tdw-background);
+  color: var(--tdw-foreground);
+
+  &.has-side {
+    grid-template-columns: minmax(0, 1fr) 300px;
+
+    @media (max-width: 1360px) {
+      grid-template-columns: minmax(0, 1fr) 264px;
+    }
+  }
+
+  @media #{$tdw-ws-side} {
+    &.has-side {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+.tdw-ws-main {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tdw-ws-canvas {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  margin: 12px 16px 16px;
+}
+
+// The rounded card the calendar sits in
+.tdw-ws-cal {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 520px;
+  border-radius: var(--tdw-radius-xl);
+  background: var(--tdw-card);
+  box-shadow: 0 0 0 1px var(--ws-edge), 0 1px 2px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+// Day view on phones: horizontal drags belong to the swipe between days.
+// touch-action stops at scroll containers, so the inner scroller needs it too.
+.tdw-ws.is-day .tdw-ws-cal,
+.tdw-ws.is-day .tdw-ws-cal * {
+  touch-action: pan-y;
+}
+
+// ── 2. Toolbar: one floating bar of translucent material ───────────────────
+// The material lives on ::before: backdrop-filter on the bar itself would make
+// it the containing block of Postiz's position:fixed menus inside it.
+.tdw-ws-bar {
+  position: relative;
+  z-index: 30;
+  margin: 12px 16px 0;
+  padding: 10px 10px 10px 18px;
+  border-radius: 18px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--tdw-card) 78%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    box-shadow: 0 0 0 1px var(--ws-edge), 0 10px 30px -18px rgba(0, 0, 0, 0.28);
+  }
+}
+html[dir='rtl'] .tdw-ws-bar {
+  padding: 10px 18px 10px 10px;
+}
+
+.tdw-ws-bar-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 6px;
+  min-width: 0;
+}
+
+.tdw-ui.tdw-ws-bar .tdw-ws-views .pz-seg-item {
+  padding-inline: 8px;
+}
+
+.tdw-ws-title {
+  display: grid;
+  min-width: 0;
+  line-height: 1.1;
+
+  h1 {
+    margin: 0;
+    font-size: 22px;
+    line-height: 28px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+
+    span {
+      color: var(--tdw-muted-foreground);
+      font-weight: 500;
+    }
+  }
+}
+
+.tdw-ws-range {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--tdw-muted-foreground);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.tdw-ws-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-inline-start: 6px;
+}
+
+// Chevrons point the reading direction
+html[dir='rtl'] .tdw-ws-flip svg {
+  transform: scaleX(-1);
+}
+
+.tdw-ws-grow {
+  flex: 1;
+}
+
+// Channels: one mark per network in use + how many channels are shown.
+// Tinted while a filter hides some; a red dot when one needs reconnecting.
+.tdw-ws-channels {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding-inline: 10px 8px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--tdw-muted);
+  color: var(--tdw-foreground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--tdw-muted) 70%, var(--tdw-foreground) 6%);
+  }
+
+  > svg:last-of-type {
+    color: var(--tdw-muted-foreground);
+  }
+
+  &.is-filtered {
+    background: var(--tdw-primary-soft);
+    color: var(--tdw-primary);
+
+    > svg:last-of-type {
+      color: inherit;
+    }
+  }
+}
+
+.tdw-ws-marks {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  img {
+    display: block;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    object-fit: cover;
+  }
+}
+
+.tdw-ws-alert-dot {
+  position: absolute;
+  top: 4px;
+  inset-inline-end: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tdw-destructive);
+  box-shadow: 0 0 0 2px var(--tdw-card);
+}
+
+// A narrow bar keeps the first marks only (the count still says how many)
+.tdw-ws-bar {
+  container: tdw-ws-bar / inline-size;
+}
+
+@container tdw-ws-bar (max-width: 860px) {
+  .tdw-ws-marks img:nth-child(n + 4) {
+    display: none;
+  }
+}
+
+@container tdw-ws-bar (max-width: 760px) {
+  .tdw-ws-marks img:nth-child(n + 2) {
+    display: none;
+  }
+}
+
+// Create: Postiz's <NewPost /> and AI generator, as Tadween buttons
+.tdw-ws-create {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tdw-ws .tdw-ws-new > button {
+  flex: none;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  padding: 0 14px 0 10px;
+  gap: 4px;
+  border-radius: 10px;
+  background: var(--tdw-primary-strong);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: filter 150ms ease, transform 100ms ease-out;
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  > div {
+    flex: none;
+  }
+}
+html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
+  padding: 0 10px 0 14px;
+}
+
+.tdw-ws .tdw-ws-gen > div {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+@media #{$tdw-ws-side} {
+  .tdw-ws-sidebtn {
+    display: none !important;
+  }
+}
+
+// ── 3. Channel chips ────────────────────────────────────────────────────────
+.tdw-ws-strip {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 14px;
+  background: var(--tdw-muted);
+
+  &.is-wrap {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px;
+  }
+}
+
+.tdw-ws-av {
+  position: relative;
+  display: block;
+  flex: none;
+}
+
+.tdw-ws-av-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.tdw-ws-av-net {
+  position: absolute;
+  inset-inline-end: -2px;
+  bottom: -2px;
+  width: 44%;
+  height: 44%;
+  min-width: 11px;
+  min-height: 11px;
+  border-radius: 4px;
+  background: var(--tdw-card);
+  box-shadow: 0 0 0 1.5px var(--tdw-muted);
+  object-fit: cover;
+}
+
+.tdw-ws-chip {
+  position: relative;
+  display: flex;
+}
+
+.tdw-ws-chip-av {
+  display: block;
+  padding: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  transition: opacity 160ms ease, filter 160ms ease, transform 220ms var(--tdw-ease-spring);
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.92);
+    transition-duration: 80ms;
+  }
+}
+
+.tdw-ws-chip.is-off .tdw-ws-chip-av {
+  opacity: 0.32;
+  filter: grayscale(1);
+}
+
+.tdw-ws-chip.is-disabled .tdw-ws-av {
+  opacity: 0.5;
+  filter: grayscale(0.6);
+}
+
+.tdw-ws-chip.is-alert .tdw-ws-av-img {
+  box-shadow: 0 0 0 2px var(--tdw-destructive);
+}
+
+.tdw-ws-chip-alert {
+  position: absolute;
+  top: -2px;
+  inset-inline-start: -2px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tdw-destructive);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--tdw-muted);
+  cursor: pointer;
+}
+
+// Postiz's channel menu trigger, shrunk to a corner badge on hover/focus
+.tdw-ws-chip-menu {
+  position: absolute;
+  bottom: -3px;
+  inset-inline-end: -3px;
+  z-index: 3;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 140ms ease, transform 200ms var(--tdw-ease-spring);
+  pointer-events: none;
+
+  > div {
+    display: grid;
+    place-items: center;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: var(--tdw-popover);
+    color: var(--tdw-foreground);
+    box-shadow: var(--tdw-shadow-sm);
+  }
+
+  > div > svg {
+    width: 14px;
+    height: 14px;
+    transform: rotate(90deg);
+  }
+}
+
+.tdw-ws-chip:hover .tdw-ws-chip-menu,
+.tdw-ws-chip:focus-within .tdw-ws-chip-menu {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .tdw-ws-chip-menu {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+}
+
+.tdw-ws-chip-add,
+.tdw-ws-chip-count {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 4px;
+  border: 1px dashed color-mix(in srgb, var(--tdw-foreground) 22%, transparent);
+  border-radius: 16px;
+  background: none;
+  color: var(--tdw-muted-foreground);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+
+  &:hover {
+    color: var(--tdw-primary);
+    border-color: var(--tdw-primary);
+    background: var(--tdw-primary-soft);
+  }
+}
+
+.tdw-ws-chip-count {
+  border-style: solid;
+  border-color: transparent;
+  background: var(--tdw-card);
+  color: var(--tdw-foreground);
+}
+
+.tdw-ws-strip-reset {
+  height: 28px;
+  margin-inline: 4px 2px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--tdw-primary-soft);
+  color: var(--tdw-primary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+// ── 4. Week and month views ─────────────────────────────────────────────────
+// Postiz's week grid becomes soft day columns on one card: hour lines, a
+// tinted today column, quiet past hours and a red now line.
+.tdw-ws {
+  .tdw-ws-week,
+  .tdw-ws-month {
+    gap: 0;
+    border-radius: 0;
+  }
+
+  .tdw-ws-week {
+    grid-template-columns: 64px repeat(7, minmax(96px, 1fr));
+    padding-bottom: 12px;
+  }
+
+  .tdw-ws-month {
+    grid-template-columns: repeat(7, minmax(96px, 1fr));
+    grid-template-rows: 44px;
+    // A week grows with its busiest day (auto tracks would just stretch)
+    grid-auto-rows: max-content;
+  }
+
+  .tdw-ws-corner,
+  .tdw-ws-dh {
+    height: 52px;
+    padding: 0;
+    border-radius: 0;
+    background: color-mix(in srgb, var(--tdw-card) 88%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+    backdrop-filter: saturate(180%) blur(16px);
+    box-shadow: inset 0 -1px 0 var(--ws-line);
+  }
+
+  .tdw-ws-month .tdw-ws-dh {
+    height: 44px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--tdw-muted-foreground);
+  }
+
+  .tdw-ws-week .tdw-ws-dh {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+
+    > div {
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 500;
+      color: var(--tdw-muted-foreground);
+    }
+
+    > div:last-child {
+      gap: 0;
+      font-size: 17px;
+      line-height: 28px;
+      font-weight: 600;
+      color: var(--tdw-foreground);
+      font-variant-numeric: tabular-nums;
+
+      // Postiz's "today" dot: the filled date circle says it instead
+      > div {
+        display: none;
+      }
+    }
+
+    &.is-today > div:first-child {
+      color: var(--tdw-primary);
+    }
+
+    &.is-today > div:last-child span:last-child {
+      display: inline-grid;
+      place-items: center;
+      min-width: 28px;
+      height: 28px;
+      padding: 0 6px;
+      border-radius: 14px;
+      background: var(--tdw-primary-strong);
+      color: #fff;
+    }
+  }
+
+  .tdw-ws-dh-long {
+    display: none;
+  }
+
+  // Hour labels sit on the line that starts their hour
+  .tdw-ws-hour {
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 0 10px 0 0;
+    font-size: 11px;
+    line-height: 14px;
+    color: var(--tdw-muted-foreground);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    transform: translateY(-7px);
+  }
+
+  .tdw-ws-hour[data-tdw-hour='0'] {
+    transform: translateY(4px);
+  }
+
+  .tdw-ws-hour.tdw-now-hour {
+    color: var(--tdw-destructive) !important;
+
+    &::after {
+      display: none;
+    }
+  }
+
+  .tdw-ws-cell {
+    min-height: var(--ws-row);
+    border-inline-start: 1px solid var(--ws-line);
+    border-top: 1px solid var(--ws-line);
+
+    &.is-today {
+      background: color-mix(in srgb, var(--tdw-primary-soft) 55%, transparent);
+    }
+  }
+
+  .tdw-ws-mcell {
+    // …and the six weeks roughly fill the card when days are quiet
+    min-height: max(112px, calc((100dvh - 270px) / 6));
+    align-items: stretch;
+    border-inline-start: 1px solid var(--ws-line);
+    border-top: 1px solid var(--ws-line);
+
+    &:nth-child(7n + 1) {
+      border-inline-start: 0;
+    }
+
+    &.is-out .tdw-ws-mnum {
+      color: var(--tdw-muted-foreground);
+      opacity: 0.55;
+    }
+  }
+
+  .tdw-ws-mnum {
+    align-self: flex-start;
+    display: grid;
+    place-items: center;
+    min-width: 26px;
+    height: 26px;
+    margin: 6px 6px 2px;
+    padding: 0 5px;
+    border-radius: 13px;
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tdw-ws-mcell.is-today .tdw-ws-mnum {
+    background: var(--tdw-primary-strong);
+    color: #fff;
+  }
+
+  // Postiz's slot cell: no inner border, past hours quiet instead of striped.
+  // The cell stretches its column; min-h-full (a % of an auto-height grid
+  // item) would otherwise stop tall content from growing the row.
+  .tdw-ws-cell {
+    display: flex;
+  }
+
+  .tdw-ws-cell > div,
+  .tdw-ws-mcell > div,
+  .tdw-ws-day-slot > div {
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .repeated-strip {
+    background-image: none;
+    background-color: color-mix(in srgb, var(--tdw-muted) 38%, transparent);
+  }
+
+  .tdw-ws-cell.is-today .repeated-strip {
+    background-color: color-mix(in srgb, var(--tdw-muted) 30%, transparent);
+  }
+
+  .col-calendar {
+    background: none;
+  }
+
+  .tdw-ws-cell > div > div,
+  .tdw-ws-mcell > div > div:last-child {
+    min-height: auto;
+  }
+
+  // Hovering an empty hour offers "+" (Postiz's create-on-slot)
+  .tdw-ws-add {
+    color: var(--tdw-primary) !important;
+
+    > div {
+      max-width: none !important;
+      max-height: none !important;
+      min-height: 30px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 300;
+      transition: background-color 120ms ease, opacity 120ms ease;
+    }
+
+    &:hover > div {
+      background: var(--tdw-primary-soft) !important;
+    }
+  }
+}
+
+// The current time
+.tdw-ws-now {
+  position: absolute;
+  inset-inline: -1px 0;
+  z-index: 4;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--tdw-destructive);
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: -5px;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--tdw-destructive);
+    box-shadow: 0 0 0 2px var(--tdw-card);
+  }
+}
+
+// ── 5. Day and list views ───────────────────────────────────────────────────
+.tdw-ws {
+  .tdw-ws-day-list {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-content: start;
+    column-gap: 14px;
+    padding-block: 16px 24px;
+    padding-inline: 8px 20px;
+  }
+
+  .tdw-ws-day-time {
+    padding-top: 10px;
+    text-align: end;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    color: var(--tdw-muted-foreground);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tdw-ws-day-slot {
+    align-items: stretch;
+    justify-content: stretch;
+    min-height: 56px;
+    margin-bottom: 10px;
+    border-radius: 14px;
+
+    > div {
+      border: 0;
+      border-radius: 14px;
+    }
+
+    > div:not(.repeated-strip) {
+      box-shadow: inset 0 0 0 1px var(--ws-line);
+    }
+  }
+
+  // Empty slot: the channels that post at this time, quiet until hovered
+  .tdw-ws-day-add {
+    gap: 8px !important;
+    padding: 8px 12px;
+    justify-content: flex-start;
+    border: 0 !important;
+    border-radius: 12px;
+    opacity: 0.4;
+    transition: opacity 150ms ease, background-color 150ms ease;
+
+    &:hover {
+      opacity: 1;
+      background: var(--tdw-primary-soft);
+    }
+
+    &::after {
+      content: '+';
+      margin-inline-start: auto;
+      font-size: 20px;
+      line-height: 1;
+      color: var(--tdw-primary);
+    }
+
+    .relative > div {
+      width: 26px;
+      height: 26px;
+    }
+
+    img {
+      width: 26px;
+      height: 26px;
+      border-radius: 50% !important;
+    }
+
+    img + img {
+      width: 13px !important;
+      height: 13px !important;
+      border-radius: 3px !important;
+      border: 0;
+    }
+  }
+
+  .tdw-ws-list > div {
+    padding: 8px 20px 24px;
+  }
+
+  .tdw-ws-list-date,
+  .tdw-ws-list-date + div {
+    flex: none;
+  }
+
+  .tdw-ws-list-date {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: 0 -20px;
+    padding: 14px 20px 8px;
+    text-align: start;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--tdw-muted-foreground);
+    background: color-mix(in srgb, var(--tdw-card) 90%, transparent);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+
+  .tdw-ws-list-date + div {
+    gap: 8px;
+    margin-bottom: 8px;
+    padding: 0;
+  }
+
+  .tdw-list-skeleton {
+    padding: 16px 20px;
+  }
+}
+
+.tdw-ws-now-row {
+  position: relative;
+  grid-column: 1 / -1;
+  height: 2px;
+  margin: 0 0 10px 64px;
+  border-radius: 1px;
+  background: var(--tdw-destructive);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: -5px;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--tdw-destructive);
+  }
+}
+html[dir='rtl'] .tdw-ws-now-row {
+  margin: 0 64px 10px 0;
+}
+
+// ── 6. Post chips: soft cards with a status edge ────────────────────────────
+html body .tdw-ws .tdw-chip,
+html[dir] body .tdw-ws .tdw-chip {
+  container-type: inline-size;
+  border-radius: 10px;
+  background: var(--tdw-card);
+  box-shadow: 0 0 0 1px var(--ws-edge), 0 6px 16px -12px rgba(0, 0, 0, 0.35);
+  transition: transform 220ms var(--tdw-ease-spring), box-shadow 200ms ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset-block: 7px;
+    inset-inline-start: 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--chip-ink);
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--tdw-foreground) 11%, transparent), 0 12px 28px -14px rgba(0, 0, 0, 0.4);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &[data-state='published'] {
+    opacity: 0.8;
+  }
+
+  &[data-state='draft'] {
+    background: color-mix(in srgb, var(--tdw-muted) 55%, var(--tdw-card));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tdw-foreground) 14%, transparent);
+  }
+
+  &[data-state='failed'] {
+    background: color-mix(in oklab, var(--tdw-destructive) 7%, var(--tdw-card));
+  }
+
+  &.is-past {
+    filter: saturate(0.5);
+    opacity: 0.72;
+  }
+}
+html[dir='rtl'] body .tdw-ws .tdw-chip::before {
+  border-radius: 3px 0 0 3px;
+}
+
+.tdw-ws {
+  .tdw-chip-body {
+    padding-block: 7px;
+    padding-inline: 11px 9px;
+  }
+
+  .tdw-chip-meta {
+    overflow: hidden;
+  }
+
+  .tdw-chip-time {
+    white-space: nowrap;
+  }
+
+  .tdw-chip-title {
+    font-size: 12.5px;
+    line-height: 17px;
+  }
+
+  .tdw-chip--day .tdw-chip-title {
+    font-size: 14px;
+    line-height: 20px;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .tdw-chip--day .tdw-chip-body {
+    gap: 10px;
+    padding-block: 10px;
+    padding-inline: 14px 12px;
+  }
+
+  .tdw-chip-network {
+    box-shadow: 0 0 0 1.5px var(--tdw-card);
+  }
+
+  // Published / failed marks sit inside the card's corner (bottom, so the
+  // hover actions never cover the failure reason's tooltip)
+  .tdw-chip-error {
+    top: auto;
+    bottom: 6px;
+    inset-inline-start: auto;
+    inset-inline-end: 6px;
+    width: 15px;
+    height: 15px;
+    font-size: 9px;
+    box-shadow: none;
+  }
+
+  .tdw-chip-published {
+    background: color-mix(in srgb, var(--tdw-success) 16%, transparent);
+    color: var(--tdw-success);
+  }
+
+  .tdw-chip-error ~ .tdw-chip-body .tdw-chip-title {
+    padding-inline-end: 14px;
+  }
+
+  // Narrow week/month chips: avatar and time share the first line and the
+  // title gets the chip's full width below them (as in the concept)
+  .tdw-chip--week .tdw-chip-body,
+  .tdw-chip--month .tdw-chip-body {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 6px;
+    row-gap: 3px;
+  }
+
+  .tdw-chip--week .tdw-chip-main,
+  .tdw-chip--month .tdw-chip-main {
+    display: contents;
+  }
+
+  .tdw-chip--week .tdw-chip-body,
+  .tdw-chip--month .tdw-chip-body {
+    padding-block: 6px;
+    padding-inline: 9px 6px;
+  }
+
+  .tdw-chip--week .tdw-chip-title,
+  .tdw-chip--month .tdw-chip-title {
+    grid-column: 1 / -1;
+  }
+
+  .tdw-chip--week .tdw-chip-title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow-wrap: anywhere;
+  }
+
+  .tdw-chip--week .tdw-chip-time,
+  .tdw-chip--month .tdw-chip-time {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--tdw-muted-foreground);
+  }
+
+  .tdw-chip--week .tdw-chip-avatar,
+  .tdw-chip--month .tdw-chip-avatar {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+
+    > img:first-child {
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+// ⋯ replaces the hover buttons when the chip is narrow
+.tdw-chip-more {
+  display: none !important;
+}
+
+@container (max-width: 210px) {
+  .tdw-chip-acts > .tdw-chip-act:not(.tdw-chip-more) {
+    display: none;
+  }
+
+  // The tag's name doesn't fit; its colour dot alone would read as noise
+  .tdw-ws .tdw-chip--week .tdw-chip-tag,
+  .tdw-ws .tdw-chip--month .tdw-chip-tag {
+    display: none;
+  }
+
+  .tdw-chip-acts > .tdw-chip-more {
+    display: grid !important;
+  }
+}
+
+.tdw-ws-menu {
+  position: fixed;
+  z-index: 180;
+  width: 208px;
+  padding: 4px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--tdw-popover) 92%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: var(--tdw-shadow-lg);
+  color: var(--tdw-foreground);
+  transform-origin: top right;
+  animation: tdw-ws-pop 220ms var(--tdw-ease-spring) both;
+}
+
+.tdw-ws-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--tdw-accent);
+  }
+
+  &.is-danger {
+    color: var(--tdw-destructive);
+  }
+}
+
+.tdw-ws-menu-ico {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  color: var(--tdw-muted-foreground);
+
+  svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .is-danger & {
+    color: inherit;
+  }
+}
+
+@keyframes tdw-ws-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(-4px);
+  }
+}
+
+// ── 7. Side panel ───────────────────────────────────────────────────────────
+.tdw-ws-side {
+  display: none;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+  padding: 24px 20px 28px;
+  border-inline-start: 1px solid var(--ws-line);
+  background: var(--tdw-background);
+
+  .tdw-ws.has-side & {
+    display: flex;
+  }
+
+  @media #{$tdw-ws-side} {
+    .tdw-ws.has-side & {
+      display: none;
+    }
+  }
+
+  section {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    min-width: 0;
+  }
+}
+
+.tdw-ws-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tdw-muted-foreground);
+}
+
+html[lang='ar'] .tdw-ws-label {
+  letter-spacing: 0;
+}
+
+.tdw-ws-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--tdw-muted);
+  color: var(--tdw-foreground);
+  font-size: 11px;
+  line-height: 20px;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.tdw-ws-empty,
+.tdw-ws-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--tdw-muted-foreground);
+}
+
+.tdw-ws-hint {
+  font-size: 12px;
+}
+
+.tdw-ws-next,
+.tdw-ws-drafts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.tdw-ws-nextrow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--tdw-card);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  box-shadow: 0 0 0 1px var(--ws-edge);
+  cursor: pointer;
+  transition: transform 220ms var(--tdw-ease-spring), box-shadow 200ms ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--tdw-foreground) 12%, transparent), 0 10px 24px -14px rgba(0, 0, 0, 0.35);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &.is-first {
+    box-shadow: 0 0 0 1.5px var(--tdw-primary), 0 10px 24px -14px color-mix(in srgb, var(--tdw-primary) 60%, transparent);
+  }
+}
+
+.tdw-ws-when {
+  display: grid;
+  line-height: 1.2;
+
+  b {
+    font-size: 15px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  span {
+    font-size: 11px;
+    color: var(--tdw-muted-foreground);
+  }
+}
+
+.tdw-ws-what {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+
+  > span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+
+.tdw-ws-draft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 42px;
+  padding: 0 10px 0 6px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--tdw-card);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: start;
+  box-shadow: 0 0 0 1px var(--ws-edge);
+  cursor: grab;
+  transition: box-shadow 200ms ease, opacity 150ms ease;
+
+  &:hover {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--tdw-foreground) 14%, transparent), 0 8px 20px -14px rgba(0, 0, 0, 0.35);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &.is-dragging {
+    opacity: 0.4;
+  }
+
+  > span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+html[dir='rtl'] .tdw-ws-draft {
+  padding: 0 6px 0 10px;
+}
+
+.tdw-ws-grip {
+  flex: none;
+  color: var(--tdw-muted-foreground);
+}
+
+// ── 8. Mini month ───────────────────────────────────────────────────────────
+.tdw-ws-mini-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  > span {
+    display: flex;
+  }
+}
+
+.tdw-mini {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px 0;
+  text-align: center;
+
+  em {
+    padding-bottom: 4px;
+    font-style: normal;
+    font-size: 11px;
+    color: var(--tdw-muted-foreground);
+  }
+
+  button {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 9px;
+    background: none;
+    color: var(--tdw-foreground);
+    font: inherit;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background-color 120ms ease;
+
+    &:hover {
+      background: var(--tdw-muted);
+    }
+
+    &.is-out {
+      color: var(--tdw-muted-foreground);
+      opacity: 0.5;
+    }
+
+    &.is-range {
+      border-radius: 0;
+      background: var(--tdw-muted);
+    }
+
+    &.is-today {
+      border-radius: 9px;
+      background: var(--tdw-primary-strong);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    i {
+      position: absolute;
+      bottom: 3px;
+      left: 50%;
+      width: 4px;
+      height: 4px;
+      margin-left: -2px;
+      border-radius: 50%;
+      background: var(--tdw-primary);
+    }
+
+    &.is-today i {
+      background: currentColor;
+    }
+  }
+}
+
+// ── 9. Channels sheet ───────────────────────────────────────────────────────
+.tdw-ws-sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  pointer-events: none;
+}
+
+.tdw-ws-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.tdw-ws-sheet {
+  position: absolute;
+  top: var(--tdw-ws-sheet-top, 80px);
+  right: var(--tdw-ws-sheet-end, 16px);
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  max-height: calc(100vh - var(--tdw-ws-sheet-top, 80px) - 16px);
+  border-radius: 18px;
+  box-shadow: var(--tdw-shadow-lg);
+  color: var(--tdw-foreground);
+  pointer-events: auto;
+  isolation: isolate;
+
+  // Material on ::before, so Postiz's fixed channel menus inside still
+  // position against the viewport (backdrop-filter would capture them)
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--tdw-popover) 97%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    backdrop-filter: saturate(180%) blur(24px);
+  }
+  transform-origin: top right;
+  transition: opacity 160ms ease, transform 320ms var(--tdw-ease-spring);
+
+  .tdw-ws-sheet-root[data-state='open'] & {
+    transform: none;
+  }
+
+  .tdw-ws-sheet-root[data-state='closed'] & {
+    opacity: 0;
+    transform: scale(0.96) translateY(-6px);
+  }
+}
+html[dir='rtl'] .tdw-ws-sheet {
+  right: auto;
+  left: var(--tdw-ws-sheet-start, 16px);
+  transform-origin: top left;
+}
+
+.tdw-ws-grabber {
+  display: none;
+}
+
+.tdw-ws-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 12px 6px 18px;
+
+  h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+  }
+}
+html[dir='rtl'] .tdw-ws-sheet-head {
+  padding: 14px 18px 6px 12px;
+}
+
+.tdw-ws-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  padding: 8px 18px 18px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.tdw-ws-sheet-filter {
+  display: grid;
+  gap: 8px;
+
+  // Each channel's menu is in the list below; the chips here only filter
+  .tdw-ws-chip-menu {
+    display: none;
+  }
+}
+
+// Postiz's purple hover bar on channel rows
+.tdw-ws-sheet-list svg[viewBox='0 0 5 52'] {
+  display: none;
+}
+
+.tdw-ws-sheet-customer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  [data-tooltip-id] {
+    height: 36px;
+    padding-inline: 10px 8px;
+    gap: 4px;
+    border-radius: 12px;
+    border-color: transparent;
+    background: var(--tdw-muted);
+  }
+}
+
+.tdw-ws-sheet-customer:not(:has([data-tooltip-id])) {
+  display: none;
+}
+
+
+// Postiz's channel list inside the sheet
+.tdw-ws-sheet-list > div {
+  background: transparent;
+}
+
+.tdw-ws-sheet-list .group\/profile {
+  border-radius: 12px;
+  padding-inline-end: 4px;
+  background: transparent;
+
+  &:hover {
+    background: var(--tdw-accent);
+  }
+}
+
+// Tablets: Postiz's own `mobile` shell (the page scrolls), desktop workspace
+@media (min-width: 769px) and (max-width: 1025px) {
+  .tdw-ws-cal {
+    min-height: calc(100dvh - 190px);
+  }
+}
+
+// ── 10. Phones (≤ 768px) ────────────────────────────────────────────────────
+.tdw-ws-fab {
+  display: none;
+}
+
+.tdw-ws-daystrip {
+  display: flex;
+  margin: 10px 12px 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tdw-ws-daypage {
+  flex: 0 0 100%;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.tdw-ws-dayitem {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 0 5px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: var(--tdw-foreground);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 150ms ease, transform 100ms ease-out;
+
+  &:active {
+    transform: scale(0.94);
+  }
+
+  em {
+    font-style: normal;
+    font-size: 11px;
+    line-height: 14px;
+    color: var(--tdw-muted-foreground);
+  }
+
+  b {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  i {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+
+    &.has {
+      background: var(--tdw-muted-foreground);
+    }
+  }
+
+  &.is-today b {
+    color: var(--tdw-primary);
+  }
+
+  &.is-on b {
+    background: var(--tdw-foreground);
+    color: var(--tdw-background);
+  }
+
+  &.is-on.is-today b {
+    background: var(--tdw-primary-strong);
+    color: #fff;
+  }
+}
+
+@media #{$tdw-ws-phone} {
+  .tdw-ws-bar {
+    margin: 8px 8px 0;
+    padding: 10px 10px 10px 14px;
+    border-radius: 16px;
+  }
+  html[dir='rtl'] .tdw-ws-bar {
+    padding: 10px 14px 10px 10px;
+  }
+
+  .tdw-ws-title h1 {
+    font-size: 20px;
+    line-height: 24px;
+  }
+
+  .tdw-ws.is-day .tdw-ws-range,
+  .tdw-ws-arrow,
+  .tdw-ws-create,
+  .tdw-ws-liststate {
+    display: none !important;
+  }
+
+  .tdw-ws-nav {
+    margin-inline-start: auto;
+  }
+
+  .tdw-ws-grow {
+    display: none;
+  }
+
+
+  // The view switch gets its own full-width row
+  .tdw-ws-views {
+    order: 10;
+    flex-basis: 100%;
+
+    .pz-seg {
+      display: grid;
+      width: 100%;
+    }
+  }
+
+  .tdw-ws-canvas {
+    margin: 10px 8px 0;
+  }
+
+  .tdw-ws-cal {
+    min-height: calc(100dvh - 250px);
+    border-radius: 18px;
+  }
+
+  .tdw-ws.is-day .tdw-ws-cal {
+    min-height: calc(100dvh - 310px);
+  }
+
+  .tdw-ws .tdw-ws-day-list {
+    grid-template-columns: 62px minmax(0, 1fr);
+    column-gap: 8px;
+    padding-block: 12px 96px;
+    padding-inline: 4px 12px;
+  }
+
+  .tdw-ws .tdw-ws-list > div {
+    padding-bottom: 96px;
+  }
+
+  .tdw-ws-now-row {
+    margin-inline-start: 56px;
+  }
+
+  // Never wraps: "12:00 PM" / "12:00 ص" fit the fixed column
+  .tdw-ws .tdw-ws-day-time {
+    padding-top: 12px;
+    font-size: 11.5px;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+  }
+
+  // The per-slot channel avatars are a desktop affordance; on phones a slot
+  // is its posts, and an empty slot a single quiet "+" row
+  .tdw-ws .tdw-ws-day-add {
+    min-height: 40px;
+    padding-block: 0;
+    justify-content: center;
+    opacity: 1;
+
+    > .relative {
+      display: none;
+    }
+
+    &::after {
+      margin-inline-start: 0;
+      color: var(--tdw-muted-foreground);
+    }
+  }
+
+  .tdw-ws .tdw-ws-day-slot:has(.tdw-chip) div:has(> div > .tdw-ws-day-add) {
+    display: none;
+  }
+
+  .tdw-ws .tdw-ws-day-slot:has(.tdw-chip) > div:not(.repeated-strip) {
+    box-shadow: none;
+  }
+
+  .tdw-ws .tdw-ws-day-slot {
+    min-height: 44px;
+  }
+
+  // Floating Create button above the safe area (the AI generator above it)
+  .tdw-ws-fab {
+    position: fixed;
+    inset-inline-end: 18px;
+    bottom: calc(22px + env(safe-area-inset-bottom));
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+
+    .tdw-ws-fab-gen > div {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.35);
+    }
+
+    > button {
+      display: grid;
+      place-items: center;
+      width: 56px !important;
+      height: 56px;
+      min-height: 56px !important;
+      max-height: 56px !important;
+      padding: 0 !important;
+      border: 0;
+      border-radius: 50% !important;
+      background: var(--tdw-primary-strong);
+      color: #fff;
+      box-shadow: 0 10px 24px -8px color-mix(in srgb, var(--tdw-primary-strong) 70%, transparent), 0 2px 6px rgba(0, 0, 0, 0.18);
+      transition: transform 220ms var(--tdw-ease-spring);
+
+      &:active {
+        transform: scale(0.92);
+      }
+
+      > div {
+        @include tdw-ws-sr-only;
+      }
+
+      svg {
+        width: 24px;
+        height: 24px;
+      }
+    }
+  }
+
+  // The sheet rises from the bottom edge
+  .tdw-ws-scrim {
+    background: var(--tdw-scrim);
+    transition: opacity 260ms ease;
+
+    .tdw-ws-sheet-root[data-state='closed'] & {
+      opacity: 0;
+    }
+  }
+
+  .tdw-ws-sheet,
+  html[dir='rtl'] .tdw-ws-sheet {
+    top: auto;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 84dvh;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-radius: 22px 22px 0 0;
+    transform-origin: bottom center;
+
+    .tdw-ws-sheet-root[data-state='closed'] & {
+      opacity: 1;
+      transform: translateY(100%);
+    }
+  }
+
+  .tdw-ws-sheet::before {
+    background: var(--tdw-popover);
+  }
+
+  .tdw-ws-grabber {
+    display: grid;
+    place-items: center;
+    height: 22px;
+    touch-action: none;
+    cursor: grab;
+
+    i {
+      width: 38px;
+      height: 5px;
+      border-radius: 3px;
+      background: color-mix(in srgb, var(--tdw-foreground) 22%, transparent);
+    }
+  }
+
+  .tdw-ws-sheet-head {
+    padding-top: 0;
+  }
+}
+
+// Mixed-language text (an English post in the Arabic UI and the reverse)
+// takes its direction from its own first letters, so it truncates at its end
+.tdw-ws .tdw-chip-title,
+.tdw-ws-what > span:last-child,
+.tdw-ws-draft > span:last-child,
+.tdw-ws .tdw-ws-hour,
+.tdw-ws .tdw-ws-day-time {
+  unicode-bidi: plaintext;
+}
+
+.tdw-ws .tdw-chip-title,
+.tdw-ws-what > span:last-child,
+.tdw-ws-draft > span:last-child {
+  text-align: match-parent;
+}
+
+.tdw-ws-chip-count {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+// ── 11. Motion ──────────────────────────────────────────────────────────────
+@media (prefers-reduced-motion: reduce) {
+  .tdw-ws-chip-av,
+  .tdw-ws-chip-menu,
+  .tdw-ws-nextrow,
+  .tdw-ws-sheet,
+  .tdw-ws-scrim,
+  .tdw-ws-menu,
+  .tdw-ws-dayitem,
+  .tdw-ws-fab > button,
+  html body .tdw-ws .tdw-chip {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+
+  .tdw-ws-chip-av:hover,
+  .tdw-ws-nextrow:hover,
+  html body .tdw-ws .tdw-chip:hover {
+    transform: none;
+  }
+}

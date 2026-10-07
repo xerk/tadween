@@ -11,7 +11,7 @@ import i18next from 'i18next';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 
 // Helper function to get start and end dates based on display type
-function getDateRange(
+export function getDateRange(
   display: 'day' | 'week' | 'month' | 'list',
   referenceDate?: string
 ) {
@@ -41,7 +41,9 @@ function getDateRange(
   }
 }
 
-export const Filters = () => {
+// Calendar navigation (date range, view, customer, list paging), shared by
+// <Filters /> and the Tadween workspace toolbar.
+export const useCalendarNavigation = () => {
   const calendar = useCalendar();
   const t = useT();
 
@@ -286,6 +288,63 @@ export const Filters = () => {
       calendar.setListPage(calendar.listPage + 1);
     }
   }, [calendar]);
+
+  // Jump to the range that contains `date` in the given view
+  const goTo = useCallback(
+    (display: 'day' | 'week' | 'month', date: string) => {
+      const range = getDateRange(display, date);
+      calendar.setFilters({
+        startDate: range.startDate,
+        endDate: range.endDate,
+        display,
+        customer: calendar.customer,
+      });
+    },
+    [calendar]
+  );
+
+  return {
+    calendar,
+    getDisplayText,
+    setToday,
+    setDay,
+    setWeek,
+    setMonth,
+    setList,
+    setCalendarView,
+    setCustomer,
+    next,
+    previous,
+    setCurrent,
+    isListView,
+    setListStateFilter,
+    listStateOptions,
+    previousPage,
+    nextPage,
+    goTo,
+  };
+};
+
+export const Filters = () => {
+  const t = useT();
+  const {
+    calendar,
+    getDisplayText,
+    setToday,
+    setDay,
+    setWeek,
+    setMonth,
+    setList,
+    setCalendarView,
+    setCustomer,
+    next,
+    previous,
+    isListView,
+    setListStateFilter,
+    listStateOptions,
+    previousPage,
+    nextPage,
+  } = useCalendarNavigation();
 
   return (
     <div className="text-textColor flex flex-row flex-wrap gap-[8px] items-center select-none">

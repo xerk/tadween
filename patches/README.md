@@ -14,4 +14,5 @@ Once a build that includes all of the above is deployed, every hot patch here ca
 Differences from the hot patches, on purpose:
 
 - Invite links do not bypass `DISABLE_REGISTRATION=true` (mode `closed`). The hot patch let them through. Production runs in invite mode, so nothing changes there.
+- Draft vs schedule: `tadween` (and Postiz) created every RSS post as a draft; the hot patch scheduled them all on the next free slot. The source now schedules them too, which is a behaviour change for every org with an active autopost.
 - The hot patch dropped Instagram from an RSS post when no image was found and scheduled the rest. The source version runs the same validation as the editor for every channel: channels that pass are scheduled on the next free slot, and channels that fail (for example Instagram without an image) are saved as drafts to finish by hand instead of being dropped.

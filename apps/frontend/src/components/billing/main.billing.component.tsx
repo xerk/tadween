@@ -163,7 +163,7 @@ export const MainBillingComponent: FC<{
   const utm = useUtmUrl();
   const track = useTrack();
   const t = useT();
-  const { pricing, visible, nameFor } = useTadweenPricing();
+  const { pricing, visible } = useTadweenPricing();
   const queryParams = useSearchParams();
   const [finishTrial, setFinishTrial] = useState(
     !!queryParams.get('finishTrial')

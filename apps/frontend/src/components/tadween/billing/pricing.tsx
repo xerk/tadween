@@ -23,7 +23,11 @@ const FALLBACK_POPULAR = 'PRO';
 
 export const formatUsd = (n: number) => {
   const r = Math.round(n * 100) / 100;
-  return `$${Number.isInteger(r) ? r : r.toFixed(2)}`;
+  const digits = Number.isInteger(r) ? 0 : 2;
+  return `$${r.toLocaleString('en-US', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })}`;
 };
 
 // Yearly prices are stored as the yearly total
@@ -140,7 +144,7 @@ export const TierCard: FC<{
           : t('tdw_billed_monthly', 'Billed monthly')}
       </p>
       <div className="pz-tier-ctas">{cta}</div>
-      {note ? <div className="caption pz-tier-prorate">{note}</div> : null}
+      <div className="caption pz-tier-prorate">{note}</div>
       {features}
     </section>
   );

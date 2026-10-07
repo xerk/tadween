@@ -13,7 +13,6 @@ import dynamic from 'next/dynamic';
 import { LogoTextComponent } from '@gitroom/frontend/components/ui/logo-text.component';
 import { useTadweenPricing } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { capitalize } from 'lodash';
-import clsx from 'clsx';
 import {
   FAQComponent,
   FAQSection,

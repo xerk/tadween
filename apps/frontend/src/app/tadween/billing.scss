@@ -99,7 +99,8 @@
   .pz-bill-limits li span:last-child { color: var(--muted-foreground); }
   .pz-bill-center { display: grid; justify-items: center; gap: var(--space-3); padding: var(--space-6); text-align: center; }
   .pz-bill-center p { margin: 0; color: var(--muted-foreground); }
-  .pz-compare-wrap { overflow-x: auto; border-radius: var(--radius-lg); padding-top: 40px; margin-top: -40px; }
+  .pz-compare-wrap { border-radius: var(--radius-lg); }
+  .pz-compare-table { overflow: visible; }
   .pz-compare-table .pz-tip { white-space: normal; width: max-content; max-width: 240px; text-align: start; }
   .pz-compare-table thead th:first-child { text-align: start; }
   .pz-faq-extra { margin-top: var(--space-3); }
@@ -152,6 +153,7 @@
     .pz-ob-panels { grid-template-columns: minmax(0, 1fr); }
     .pz-ob-head, .pz-ob-foot { padding-inline: var(--space-4); }
     .pz-ob-stage { padding: var(--space-6) var(--space-4); }
+    .pz-compare-wrap { overflow-x: auto; }
     .pz-ob-card { flex-wrap: wrap; }
     .pz-ob-card-text { flex-basis: calc(100% - 72px); }
     .pz-ob-foot { flex-wrap: wrap; }

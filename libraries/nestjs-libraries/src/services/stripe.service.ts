@@ -7,6 +7,7 @@ import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { BillingSubscribeDto } from '@gitroom/nestjs-libraries/dtos/billing/billing.subscribe.dto';
 import { groupBy } from 'lodash';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { TrackService } from '@gitroom/nestjs-libraries/track/track.service';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
@@ -29,7 +30,8 @@ export class StripeService extends PaymentProviderAbstract {
     private _subscriptionService: SubscriptionService,
     private _organizationService: OrganizationService,
     private _userService: UsersService,
-    private _trackService: TrackService
+    private _trackService: TrackService,
+    private _plans: PlansService
   ) {
     super();
   }
@@ -164,7 +166,7 @@ export class StripeService extends PaymentProviderAbstract {
       event.data.object.status !== 'active',
       uniqueId,
       event.data.object.customer as string,
-      pricing[billing].channel!,
+      (await this._plans.getPricing())[billing].channel!,
       billing,
       period,
       event.data.object.cancel_at
@@ -187,7 +189,7 @@ export class StripeService extends PaymentProviderAbstract {
       event.data.object.status !== 'active',
       uniqueId,
       event.data.object.customer as string,
-      pricing[billing].channel!,
+      (await this._plans.getPricing())[billing].channel!,
       billing,
       period,
       event.data.object.cancel_at
@@ -284,7 +286,7 @@ export class StripeService extends PaymentProviderAbstract {
   async prorate(organizationId: string, body: BillingSubscribeDto) {
     const org = await this._organizationService.getOrgById(organizationId);
     const customer = await this.createOrGetCustomer(org!);
-    const priceData = pricing[body.billing];
+    const priceData = (await this._plans.getPricing())[body.billing];
     const allProducts = await stripe.products.list({
       active: true,
       expand: ['data.prices'],
@@ -774,7 +776,7 @@ export class StripeService extends PaymentProviderAbstract {
     allowTrial: boolean
   ) {
     const id = makeId(10);
-    const priceData = pricing[body.billing];
+    const priceData = (await this._plans.getPricing())[body.billing];
     const org = await this._organizationService.getOrgById(organizationId);
     const customer = await this.createOrGetCustomer(org!);
     const allProducts = await stripe.products.list({
@@ -840,7 +842,7 @@ export class StripeService extends PaymentProviderAbstract {
     allowTrial: boolean
   ) {
     const id = makeId(10);
-    const priceData = pricing[body.billing];
+    const priceData = (await this._plans.getPricing())[body.billing];
     const org = await this._organizationService.getOrgById(organizationId);
     const customer = await this.createOrGetCustomer(org!);
     const allProducts = await stripe.products.list({
@@ -1116,7 +1118,7 @@ export class StripeService extends PaymentProviderAbstract {
 
     const coupons = this.mapSubscriptionDiscounts(stripeSubscription);
     const priceData = subscription
-      ? pricing[subscription.subscriptionTier]
+      ? (await this._plans.getPricing())[subscription.subscriptionTier]
       : undefined;
     const monthlyPrice = priceData?.month_price || 0;
 

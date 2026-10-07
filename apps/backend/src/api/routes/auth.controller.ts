@@ -41,6 +41,7 @@ export class AuthController {
   async canRegister() {
     return {
       register: await this._authService.canRegister(Provider.LOCAL as string),
+      mode: await this._authService.getRegistrationMode(),
     };
   }
 

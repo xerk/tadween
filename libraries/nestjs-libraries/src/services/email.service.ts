@@ -5,11 +5,15 @@ import { EmptyProvider } from '@gitroom/nestjs-libraries/emails/empty.provider';
 import { NodeMailerProvider } from '@gitroom/nestjs-libraries/emails/node.mailer.provider';
 import { TemporalService } from 'nestjs-temporal-core';
 import { timer } from '@gitroom/helpers/utils/timer';
+import { PlatformSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/platform-settings.service';
 
 @Injectable()
 export class EmailService {
   emailService: EmailInterface;
-  constructor(private _temporalService: TemporalService) {
+  constructor(
+    private _temporalService: TemporalService,
+    private _platformSettings: PlatformSettingsService
+  ) {
     this.emailService = this.selectProvider(process.env.EMAIL_PROVIDER!);
     console.log('Email service provider:', this.emailService.name);
     for (const key of this.emailService.validateEnvKeys) {
@@ -70,6 +74,13 @@ export class EmailService {
       return;
     }
 
+    // Tadween: sender name and reply-to from /admin → Branding, once saved
+    const branding = await this._platformSettings
+      .getSavedBranding()
+      .catch(() => ({} as { instanceName?: string; supportEmail?: string }));
+    const fromName = branding.instanceName || process.env.EMAIL_FROM_NAME;
+    replyTo = replyTo || branding.supportEmail || undefined;
+
     const modifiedHtml = `
     <div style="
         background: linear-gradient(to bottom right, #e6f2ff, #f0e6ff);
@@ -114,7 +125,7 @@ export class EmailService {
                         font-weight: 600;
                         color: #1f2937;
                         margin: 0;
-                    ">${process.env.EMAIL_FROM_NAME}</h2>
+                    ">${fromName}</h2>
                     <div style="font-size: 12px">
                       You can change your notification preferences in your <a href="${process.env.FRONTEND_URL}/settings">account settings.</a>
                      </div>
@@ -131,7 +142,7 @@ export class EmailService {
           to,
           subject,
           modifiedHtml,
-          process.env.EMAIL_FROM_NAME,
+          fromName,
           process.env.EMAIL_FROM_ADDRESS,
           replyTo
         );

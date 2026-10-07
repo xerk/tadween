@@ -56,6 +56,8 @@ import { FarcasterProvider } from '@gitroom/backend/services/auth/providers/farc
 import { WalletProvider } from '@gitroom/backend/services/auth/providers/wallet.provider';
 import { OauthProvider } from '@gitroom/backend/services/auth/providers/oauth.provider';
 import { StripeController } from '@gitroom/backend/api/routes/stripe.controller';
+import { AdminConsoleController } from '@gitroom/backend/api/routes/tadween/admin.console.controller';
+import { InstanceController } from '@gitroom/backend/api/routes/tadween/instance.controller';
 
 const authenticatedController = [
   UsersController,
@@ -78,6 +80,7 @@ const authenticatedController = [
   OAuthAuthorizedController,
   AnnouncementsController,
   AdminController,
+  AdminConsoleController,
 ];
 @Module({
   imports: [UploadModule],
@@ -97,6 +100,7 @@ const authenticatedController = [
         MonitorController,
         EnterpriseController,
         NoAuthIntegrationsController,
+        InstanceController,
         OAuthController,
         MediaWidgetController,
         ClippingWidgetController,

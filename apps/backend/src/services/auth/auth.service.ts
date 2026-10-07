@@ -11,6 +11,7 @@ import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/n
 import { ForgotReturnPasswordDto } from '@gitroom/nestjs-libraries/dtos/auth/forgot-return.password.dto';
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { NewsletterService } from '@gitroom/nestjs-libraries/newsletter/newsletter.service';
+import { PlatformSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/platform-settings.service';
 
 @Injectable()
 export class AuthService {
@@ -19,13 +20,25 @@ export class AuthService {
     private _organizationService: OrganizationService,
     private _notificationService: NotificationService,
     private _emailService: EmailService,
-    private _providerManager: AuthProviderManager
+    private _providerManager: AuthProviderManager,
+    private _platformSettings: PlatformSettingsService
   ) {}
-  async canRegister(provider: string) {
-    if (
-      process.env.DISABLE_REGISTRATION !== 'true' ||
-      provider === Provider.GENERIC
-    ) {
+
+  // Tadween: the mode comes from the super-admin console, falling back to
+  // DISABLE_REGISTRATION (closed) and INVITE_ONLY_REGISTRATION (invite).
+  // Invite-only lets a valid signed invite through; closed still allows the
+  // very first account so a fresh instance can be bootstrapped.
+  getRegistrationMode() {
+    return this._platformSettings.getRegistrationMode();
+  }
+
+  async canRegister(provider: string, hasInvite = false) {
+    const mode = await this.getRegistrationMode();
+    if (mode === 'open' || provider === Provider.GENERIC) {
+      return true;
+    }
+
+    if (mode === 'invite' && hasInvite) {
       return true;
     }
 
@@ -52,7 +65,12 @@ export class AuthService {
           throw new Error('Email already exists');
         }
 
-        if (!(await this.canRegister(provider))) {
+        if (
+          !(await this.canRegister(
+            provider,
+            !!addToOrg && typeof addToOrg !== 'boolean'
+          ))
+        ) {
           throw new Error('Registration is disabled');
         }
 
@@ -97,7 +115,8 @@ export class AuthService {
       provider,
       body as CreateOrgUserDto,
       ip,
-      userAgent
+      userAgent,
+      !!addToOrg && typeof addToOrg !== 'boolean'
     );
 
     const addedOrg =
@@ -138,7 +157,8 @@ export class AuthService {
     provider: Provider,
     body: CreateOrgUserDto,
     ip: string,
-    userAgent: string
+    userAgent: string,
+    hasInvite = false
   ) {
     const providerInstance = this._providerManager.getProvider(provider);
     const providerUser = await providerInstance.getUser(body.providerToken);
@@ -155,7 +175,7 @@ export class AuthService {
       return user;
     }
 
-    if (!(await this.canRegister(provider))) {
+    if (!(await this.canRegister(provider, hasInvite))) {
       throw new Error('Registration is disabled');
     }
 

@@ -1,0 +1,505 @@
+// Tadween sign-in / sign-up. Loaded from global.scss.
+//
+//   · Shell: app/(app)/auth/layout.tsx — form pane (lockup, language/theme
+//     controls, card) beside the brand pane; one column on phones, where the
+//     brand pane collapses to a tagline band.
+//   · Parts: components/tadween/auth/auth.parts.tsx (heading, provider button,
+//     divider, field, submit, notice, legal line, controls).
+//   · Brand: components/tadween/auth/auth.brand.tsx (LinkedIn post preview,
+//     floating calendar chips, bilingual tagline).
+// Everything sits inside `.tdw-auth.tdw-ui`, so the kit's Field / pz-btn rules
+// apply underneath. Tokens come from ../tadween.scss. Motion uses the spring
+// tokens; tadween.scss already flattens it under prefers-reduced-motion.
+
+$wide: '(min-width: 1024px)';
+$narrow: '(max-width: 1023.98px)';
+
+@keyframes tdw-auth-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes tdw-auth-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes tdw-auth-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -8px, 0); }
+}
+@keyframes tdw-auth-drift-alt {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(var(--tdw-auth-depth, 1)); }
+  50% { transform: translate3d(0, 7px, 0) scale(var(--tdw-auth-depth, 1)); }
+}
+
+body {
+  .tdw-auth {
+    --tdw-auth-field-border: color-mix(in oklab, var(--tdw-foreground) 14%, transparent);
+    position: relative;
+    display: grid;
+    min-height: 100dvh;
+    width: 100%;
+    background: var(--tdw-background);
+    color: var(--tdw-foreground);
+    font-size: 15px;
+    line-height: 22px;
+  }
+
+  @media #{$wide} {
+    .tdw-auth {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+      grid-template-rows: auto 1fr;
+      grid-template-areas: 'top brand' 'main brand';
+      column-gap: 12px;
+      padding: 12px;
+    }
+  }
+  @media #{$narrow} {
+    .tdw-auth {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto 1fr;
+      grid-template-areas: 'top' 'brand' 'main';
+    }
+  }
+
+  // ── Top row: lockup + controls ──────────────────────────────────────────
+  .tdw-auth-top {
+    grid-area: top;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 28px 0;
+  }
+  .tdw-auth-lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 19px;
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: var(--tdw-foreground);
+  }
+  .tdw-auth-lockup > svg {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    margin: 0 !important;
+  }
+  .tdw-auth-controls { display: inline-flex; align-items: center; gap: 6px; }
+  .tdw-auth-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--tdw-border);
+    background: transparent;
+    color: var(--tdw-muted-foreground);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .tdw-auth-control:hover { color: var(--tdw-foreground); background: var(--tdw-accent); }
+  .tdw-auth-control.is-icon { width: 32px; padding: 0; justify-content: center; }
+  .tdw-auth-control span[lang='ar'], .tdw-auth-control:lang(ar) span { font-family: var(--font-plex-arabic), system-ui, sans-serif; }
+
+  // ── Form pane ───────────────────────────────────────────────────────────
+  .tdw-auth-main {
+    grid-area: main;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: 32px 28px 56px;
+  }
+  .tdw-auth-card {
+    width: 100%;
+    max-width: 424px;
+    display: flex;
+    flex-direction: column;
+    padding: 40px;
+    border-radius: 24px;
+    background: var(--tdw-card);
+    box-shadow: var(--tdw-shadow-md);
+    animation: tdw-auth-in 560ms var(--tdw-ease-spring) both;
+  }
+  @media #{$narrow} {
+    .tdw-auth-top { padding: 14px 16px 0; }
+    .tdw-auth-main { align-items: flex-start; padding: 8px 16px 40px; }
+    .tdw-auth-card {
+      max-width: 440px;
+      padding: 20px 0 0;
+      background: transparent;
+      box-shadow: none;
+      border-radius: 0;
+    }
+  }
+
+  // Card contents
+  .tdw-auth-heading { margin-bottom: 28px; }
+  .tdw-auth-heading h1 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 34px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: var(--tdw-foreground);
+  }
+  .tdw-auth-heading p {
+    margin: 8px 0 0;
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--tdw-muted-foreground);
+  }
+
+  .tdw-auth-providers { display: grid; gap: 10px; }
+  .tdw-auth-provider {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 46px;
+    padding: 0 44px;
+    border-radius: 12px;
+    border: 1px solid var(--tdw-auth-field-border);
+    background: var(--tdw-card);
+    color: var(--tdw-foreground);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transition: transform 100ms ease-out, background-color 180ms ease, border-color 180ms ease;
+  }
+  .tdw-auth-provider:hover { background: var(--tdw-accent); border-color: color-mix(in oklab, var(--tdw-foreground) 24%, transparent); }
+  .tdw-auth-provider:active { transform: scale(0.98); }
+  .tdw-auth-provider-mark {
+    position: absolute;
+    inset-inline-start: 15px;
+    top: 50%;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    margin-top: -10px;
+  }
+  .tdw-auth-provider-mark svg, .tdw-auth-provider-mark img { width: 20px; height: 20px; object-fit: contain; }
+  .tdw-auth-provider-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+  .tdw-auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 24px 0;
+    font-size: 13px;
+    line-height: 16px;
+    color: var(--tdw-muted-foreground);
+  }
+  .tdw-auth-divider::before, .tdw-auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--tdw-border);
+  }
+
+  .tdw-auth-form { display: grid; gap: 18px; }
+  .tdw-auth-field .pz-label { font-size: 14px; font-weight: 500; color: var(--tdw-foreground); }
+  .tdw-auth-field .pz-input {
+    height: 46px;
+    padding: 0 14px;
+    border-radius: 12px;
+    font-size: 15px;
+    border-color: var(--tdw-auth-field-border);
+    background: var(--tdw-card);
+    color: var(--tdw-foreground);
+    transition: border-color 180ms ease, box-shadow 220ms var(--tdw-ease-spring);
+  }
+  .tdw-auth-field .pz-input:hover { border-color: color-mix(in oklab, var(--tdw-foreground) 28%, transparent); }
+  .tdw-auth-field .pz-input:focus-visible { outline: none !important; border-color: var(--tdw-primary); box-shadow: 0 0 0 4px color-mix(in oklab, var(--tdw-primary) 18%, transparent); }
+  .tdw-auth-field.pz-field-error .pz-input { border-color: var(--tdw-destructive); }
+  .tdw-auth-field.pz-field-error .pz-input:focus-visible { box-shadow: 0 0 0 4px color-mix(in oklab, var(--tdw-destructive) 16%, transparent); }
+  .tdw-auth-field .pz-note { font-size: 13px; line-height: 18px; animation: tdw-auth-fade 200ms ease both; }
+  .tdw-auth-field.has-aside { grid-template-columns: minmax(0, 1fr) auto; }
+  .tdw-auth-field.has-aside > * { grid-column: 1 / -1; }
+  .tdw-auth-field.has-aside > .pz-label { grid-column: 1; grid-row: 1; }
+  .tdw-auth-field.has-aside > .tdw-auth-field-aside { grid-column: 2; grid-row: 1; align-self: center; font-size: 13px; }
+
+  .tdw-auth .tdw-auth-submit {
+    width: 100%;
+    height: 46px;
+    margin-top: 6px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    background: var(--tdw-primary-strong);
+    color: #fff;
+  }
+  .tdw-auth .tdw-auth-submit:hover:not(:disabled) { background: color-mix(in oklab, var(--tdw-primary-strong) 88%, #000); }
+  .tdw-auth .tdw-auth-submit:disabled:not(.is-loading) { opacity: 0.5; }
+
+  .tdw-auth-link, .tdw-auth-switch a, .tdw-auth-legal a {
+    color: var(--tdw-primary);
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: 4px;
+  }
+  .tdw-auth-link:hover, .tdw-auth-switch a:hover, .tdw-auth-legal a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  .tdw-auth-switch {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin: 24px 0 0;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--tdw-muted-foreground);
+  }
+  .tdw-auth-legal {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 18px;
+    color: var(--tdw-muted-foreground);
+  }
+  .tdw-auth-legal a { font-weight: 500; }
+  .tdw-auth-text { margin: 0; font-size: 15px; line-height: 22px; color: var(--tdw-muted-foreground); }
+  .tdw-auth-section { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--tdw-border); display: grid; gap: 16px; }
+  .tdw-auth-section h2 { margin: 0; font-size: 16px; line-height: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .tdw-auth-hint { margin: 0; font-size: 13px; line-height: 18px; color: var(--tdw-muted-foreground); text-align: center; font-variant-numeric: tabular-nums; }
+
+  .tdw-auth-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--tdw-foreground);
+    background: var(--tdw-primary-soft);
+    animation: tdw-auth-in 360ms var(--tdw-ease-spring) both;
+  }
+  .tdw-auth-notice > .pz-icon { flex: none; margin-top: 1px; color: var(--tdw-primary); }
+  .tdw-auth-notice strong { display: block; font-weight: 600; }
+  .tdw-auth-notice strong + div { margin-top: 2px; color: var(--tdw-muted-foreground); }
+  .tdw-auth-notice a { display: inline-block; margin-top: 4px; color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+  .tdw-auth-notice.is-warning { background: color-mix(in oklab, var(--tdw-warning) 12%, var(--tdw-card)); }
+  .tdw-auth-notice.is-warning > .pz-icon { color: var(--tdw-warning); }
+  .tdw-auth-notice.is-success { background: color-mix(in oklab, var(--tdw-success) 12%, var(--tdw-card)); }
+  .tdw-auth-notice.is-success > .pz-icon { color: var(--tdw-success); }
+
+  .tdw-auth-spinner { display: grid; place-items: center; min-height: 160px; color: var(--tdw-muted-foreground); }
+
+  // Postiz's Farcaster QR modal and the wallet modal keep their own look.
+
+  // ── Brand pane ──────────────────────────────────────────────────────────
+  .tdw-auth-brand {
+    grid-area: brand;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: 28px;
+    background:
+      radial-gradient(90% 70% at 85% 8%, color-mix(in oklab, var(--tdw-primary) 26%, transparent), transparent 62%),
+      radial-gradient(80% 60% at 0% 100%, color-mix(in oklab, var(--tdw-primary-strong) 18%, transparent), transparent 64%),
+      var(--tdw-primary-soft);
+  }
+  // A faint calendar grid behind the preview, fading out towards the edges
+  .tdw-auth-brand::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image:
+      linear-gradient(to right, color-mix(in oklab, var(--tdw-primary-strong) 10%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklab, var(--tdw-primary-strong) 10%, transparent) 1px, transparent 1px);
+    background-size: 64px 64px;
+    background-position: center;
+    mask-image: radial-gradient(60% 55% at 50% 42%, #000, transparent);
+    -webkit-mask-image: radial-gradient(60% 55% at 50% 42%, #000, transparent);
+  }
+  .tdw-auth.dark .tdw-auth-brand {
+    background:
+      radial-gradient(90% 70% at 85% 8%, color-mix(in oklab, var(--tdw-primary) 16%, transparent), transparent 62%),
+      radial-gradient(80% 60% at 0% 100%, color-mix(in oklab, var(--tdw-primary-strong) 30%, transparent), transparent 64%),
+      #0c1c19;
+  }
+  .tdw-auth.dark .tdw-auth-brand::before {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  }
+
+  @media #{$wide} {
+    .tdw-auth-brand {
+      position: sticky;
+      top: 12px;
+      height: calc(100dvh - 24px);
+      min-height: 620px;
+      padding: 48px 56px 52px;
+    }
+  }
+
+  .tdw-auth-stage {
+    position: relative;
+    flex: 1;
+    display: grid;
+    place-items: center;
+    min-height: 0;
+    padding: 24px 0 40px;
+  }
+
+  // LinkedIn post as the feed shows it (light / dark like LinkedIn itself)
+  .tdw-auth-li {
+    --li-bg: #ffffff;
+    --li-ink: rgba(0, 0, 0, 0.9);
+    --li-sub: rgba(0, 0, 0, 0.6);
+    --li-line: rgba(0, 0, 0, 0.08);
+    position: relative;
+    z-index: 1;
+    width: min(440px, 100%);
+    padding: 16px 16px 4px;
+    border-radius: 14px;
+    background: var(--li-bg);
+    color: var(--li-ink);
+    font-family: var(--font-geist), var(--font-plex-arabic), system-ui, sans-serif;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 30px 70px -20px rgba(6, 48, 41, 0.38), 0 10px 24px -12px rgba(6, 48, 41, 0.2);
+    animation: tdw-auth-in 700ms var(--tdw-ease-spring) 80ms both, tdw-auth-drift 9s ease-in-out 900ms infinite;
+  }
+  .tdw-auth.dark .tdw-auth-li {
+    --li-bg: #1b1f23;
+    --li-ink: rgba(255, 255, 255, 0.9);
+    --li-sub: rgba(255, 255, 255, 0.6);
+    --li-line: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 70px -20px rgba(0, 0, 0, 0.8);
+  }
+  .tdw-auth-li header { display: flex; align-items: center; gap: 10px; }
+  .tdw-auth-li-avatar {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: #0b7062;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .tdw-auth-li-who { display: flex; flex-direction: column; min-width: 0; line-height: 16px; }
+  .tdw-auth-li-who b { font-size: 14px; line-height: 18px; font-weight: 600; }
+  .tdw-auth-li-who small { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--li-sub); }
+  .tdw-auth-li-text { margin: 12px 0; font-size: 14px; line-height: 20px; }
+  .tdw-auth-li-media { margin: 0 -16px; aspect-ratio: 20 / 9; overflow: hidden; }
+  .tdw-auth-li-media svg { display: block; width: 100%; height: 100%; }
+  .tdw-auth-li-media .sky { fill: #dff1ec; }
+  .tdw-auth-li-media .sun { fill: #f2b54a; }
+  .tdw-auth-li-media .far { fill: #6cbfae; }
+  .tdw-auth-li-media .near { fill: #0b7062; }
+  .tdw-auth-li-media .reed { fill: none; stroke: #0b3f37; stroke-width: 3; stroke-linecap: round; }
+  .tdw-auth.dark .tdw-auth-li-media .sky { fill: #12322c; }
+  .tdw-auth-li footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    padding: 4px 0;
+    border-top: 1px solid var(--li-line);
+  }
+  .tdw-auth-li-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--li-sub);
+  }
+
+  // Calendar chips floating around the post, at different depths
+  .tdw-auth-float {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: var(--tdw-popover);
+    color: var(--tdw-foreground);
+    box-shadow: var(--tdw-shadow-lg);
+    white-space: nowrap;
+  }
+  .tdw-auth-float > span:last-child { display: flex; flex-direction: column; line-height: 18px; }
+  .tdw-auth-float small { font-size: 12px; color: var(--tdw-muted-foreground); }
+  .tdw-auth-float-time { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tdw-auth-float-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--tdw-primary); box-shadow: 0 0 0 4px var(--tdw-primary-soft); }
+  .tdw-auth-float-dot.is-draft { background: var(--tdw-muted-foreground); box-shadow: 0 0 0 4px var(--tdw-muted); }
+  .tdw-auth-float.is-a {
+    top: 9%;
+    inset-inline-end: 2%;
+    animation: tdw-auth-in 700ms var(--tdw-ease-spring) 260ms both, tdw-auth-drift 7s ease-in-out 1.2s infinite;
+  }
+  .tdw-auth-float.is-b {
+    --tdw-auth-depth: 0.94;
+    bottom: 12%;
+    inset-inline-start: 0;
+    z-index: 0;
+    opacity: 0.94;
+    animation: tdw-auth-in 700ms var(--tdw-ease-spring) 380ms both, tdw-auth-drift-alt 8s ease-in-out 1.4s infinite;
+  }
+  .tdw-auth-float.is-c {
+    bottom: 2%;
+    inset-inline-end: 6%;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--tdw-smart-soft);
+    color: var(--tdw-smart);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--tdw-smart) 22%, transparent), var(--tdw-shadow-md);
+    animation: tdw-auth-in 700ms var(--tdw-ease-spring) 520ms both, tdw-auth-drift 10s ease-in-out 1.6s infinite;
+  }
+
+  .tdw-auth-tagline { position: relative; display: grid; gap: 6px; }
+  .tdw-auth-tagline p { margin: 0; text-align: left; }
+  .tdw-auth[dir='rtl'] .tdw-auth-tagline p { text-align: right; }
+  .tdw-auth-tagline .is-en {
+    direction: ltr;
+    unicode-bidi: isolate;
+    font-family: var(--font-geist), system-ui, sans-serif;
+    font-size: 30px;
+    line-height: 36px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: var(--tdw-foreground);
+  }
+  .tdw-auth-tagline .is-ar {
+    direction: rtl;
+    unicode-bidi: isolate;
+    font-family: var(--font-plex-arabic), system-ui, sans-serif;
+    font-size: 20px;
+    line-height: 30px;
+    font-weight: 500;
+    color: var(--tdw-muted-foreground);
+  }
+
+  @media #{$narrow} {
+    .tdw-auth-brand { margin: 14px 16px 0; padding: 16px 18px; border-radius: 18px; }
+    .tdw-auth-brand::before { display: none; }
+    .tdw-auth-stage { display: none; }
+    .tdw-auth-tagline { gap: 2px; }
+    .tdw-auth-tagline .is-en { font-size: 16px; line-height: 22px; letter-spacing: -0.015em; }
+    .tdw-auth-tagline .is-ar { font-size: 14px; line-height: 22px; }
+  }
+}

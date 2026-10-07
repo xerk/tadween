@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { AuthProviderButton } from '@gitroom/frontend/components/tadween/auth/auth.parts';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 export const GoogleProvider = () => {
   const fetch = useFetch();
@@ -11,16 +12,17 @@ export const GoogleProvider = () => {
     window.location.href = link;
   }, []);
   return (
-    <div
+    <AuthProviderButton
       onClick={gotoLogin}
-      className={`cursor-pointer flex-1 bg-white h-[52px] rounded-[10px] flex justify-center items-center text-[#0E0E0E] gap-[5px]`}
-    >
-      <div>
+      label={t('tdw_auth_continue_with', 'Continue with {{provider}}', {
+        provider: t('google', 'Google'),
+      })}
+      mark={
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 48 48"
-          width="21px"
-          height="21px"
+          width="20"
+          height="20"
         >
           <path
             fill="#FFC107"
@@ -39,8 +41,7 @@ export const GoogleProvider = () => {
             d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"
           />
         </svg>
-      </div>
-      <div className="block xs:hidden">{t('google', 'Google')}</div>
-    </div>
+      }
+    />
   );
 };

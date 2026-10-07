@@ -1,0 +1,61 @@
+# Tadween marketing site
+
+The public site for Tadween: the landing page in English (`/`) and Arabic (`/ar`, right to left), and pricing (`/pricing`, `/ar/pricing`). It's a separate Next.js app (Next 16, App Router) so that syncing upstream Postiz into `apps/frontend` never touches it.
+
+The design is ported from the Tadween design system: tokens, the landing sections and copy, the LinkedIn preview and pricing table, and the motion engine (a three.js 3D hero, GSAP scroll effects and a pinned write → preview → schedule section).
+
+## Run it
+
+From the repository root:
+
+```bash
+pnpm install
+pnpm --filter tadween-landing dev     # http://localhost:4300
+pnpm --filter tadween-landing build
+pnpm --filter tadween-landing start   # serves the build on :4300
+```
+
+## Environment
+
+All three are read at build time (`NEXT_PUBLIC_*` values are inlined into the bundle), so set them before `build`.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `NEXT_PUBLIC_APP_URL` | `http://localhost:4200` | The Tadween app. Sign-up buttons go to `${APP_URL}/auth` and sign-in to `${APP_URL}/auth/login`. |
+| `NEXT_PUBLIC_SITE_URL` | `http://localhost:4300` | Where this site is served. Used for canonical URLs, hreflang, the sitemap and Open Graph. |
+| `NEXT_PUBLIC_API_URL` | unset | The Tadween API. When set, pricing reads plans from `GET ${API_URL}/instance/settings` (added in PR #4) at build time and refreshes them at most hourly. If it's unset, unreachable or has no plans saved, the site uses its built-in placeholder plans. |
+
+All prices are placeholders, and the page says so. The API returns USD prices only, so EGP amounts always come from the placeholders in `src/lib/plans.ts`.
+
+## Deploy
+
+**Vercel.** Create a project with the root directory set to `apps/landing`. Vercel detects Next.js and pnpm. Add the environment variables above and deploy. Every page is static (or ISR when `NEXT_PUBLIC_API_URL` is set), so it can be served from the CDN.
+
+**Docker.** Build from the repository root. Pass the variables as build args, because they are inlined at build time:
+
+```bash
+docker build -f apps/landing/Dockerfile -t tadween-landing \
+  --build-arg NEXT_PUBLIC_APP_URL=https://app.example.com \
+  --build-arg NEXT_PUBLIC_SITE_URL=https://example.com \
+  --build-arg NEXT_PUBLIC_API_URL=https://api.example.com .
+docker run -p 4300:4300 tadween-landing
+```
+
+The image installs only this app's dependencies (no Prisma, no other workspace apps), builds with `BUILD_STANDALONE=1` (Next's `output: 'standalone'`) and runs the standalone server on port 4300.
+
+## Where things are
+
+- `src/content/en.ts`, `src/content/ar.ts`: all copy. The Arabic is written for Egyptian and Gulf readers in Modern Standard Arabic, not translated word for word.
+- `src/components/sections.tsx`: hero, flow, features, steps, Arabic, CTA and footer. These are server components.
+- `src/components/PricingTable.tsx`: tiers, monthly or yearly, EGP or USD, the compare table and the FAQ.
+- `src/lib/motion/engine.ts`: GSAP word reveals, the pinned flow, reveals, tilt cards, the Arabic card flip and the CTA clip-path. It loads after hydration with a dynamic import.
+- `src/lib/motion/hero3d.ts`: the three.js week of tiles (one `InstancedMesh`). It's a separate chunk. A CSS poster of the same grid shows until the first frame is drawn, and stays if WebGL is unavailable. The scene renders only while it's on screen and the tab is visible, with the DPR capped at 1.75. Its colours come from the theme tokens.
+- `src/app/tokens.css`, `src/app/landing.css`: design tokens (light and dark) and the ported component styles.
+
+Light and dark follow `prefers-color-scheme` until the visitor uses the toggle, which is then remembered. `prefers-reduced-motion` gets the finished states with no scroll effects.
+
+`@opentelemetry/api` is a dev dependency only to pin Next's optional peer to the version the rest of the workspace resolves. Without it, adding this app would re-resolve that peer across the lockfile.
+
+## Licence
+
+Tadween is built on [Postiz](https://github.com/gitroomhq/postiz-app) and is open source under AGPL-3.0. Keep the credit in the footer.

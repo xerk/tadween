@@ -6,6 +6,7 @@ import {
   pricing,
   PricingInnerInterface,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import { useTadweenPricing } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 export const UserContext = createContext<
   | undefined
   | (User & {
@@ -31,10 +32,12 @@ export const ContextWrapper: FC<{
   };
   children: ReactNode;
 }> = ({ user, children }) => {
+  // Tadween: plan limits set in /admin overlay the static pricing map
+  const { pricing: plans } = useTadweenPricing();
   const values = user
     ? {
         ...user,
-        tier: pricing[user.tier],
+        tier: plans[user.tier] || pricing[user.tier],
       }
     : ({} as any);
   return <UserContext.Provider value={values}>{children}</UserContext.Provider>;

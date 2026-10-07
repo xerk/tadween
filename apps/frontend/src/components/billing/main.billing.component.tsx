@@ -11,7 +11,7 @@ import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import dayjs from 'dayjs';
 import clsx from 'clsx';
-import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import { useTadweenPricing } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { FAQComponent } from '@gitroom/frontend/components/billing/faq.component';
 import { useSWRConfig } from 'swr';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
@@ -83,7 +83,13 @@ export const Features: FC<{
   pack: 'FREE' | 'STANDARD' | 'PRO';
 }> = (props) => {
   const { pack } = props;
+  // Tadween: plans from /admin overlay the pricing map; their bullets win
+  const { pricing, planFor } = useTadweenPricing();
   const features = useMemo(() => {
+    const planFeatures = planFor(pack)?.features || [];
+    if (planFeatures.length) {
+      return planFeatures;
+    }
     const currentPricing = pricing[pack];
     const channelsOr = currentPricing.channel;
     const list = [];
@@ -118,7 +124,7 @@ export const Features: FC<{
       );
     }
     return list;
-  }, [pack]);
+  }, [pack, pricing, planFor]);
   return (
     <div className="flex flex-col gap-[10px] justify-center text-[16px] text-customColor18">
       {features.map((feature) => (
@@ -232,6 +238,7 @@ export const MainBillingComponent: FC<{
   const utm = useUtmUrl();
   const track = useTrack();
   const t = useT();
+  const { pricing, visible, nameFor } = useTadweenPricing();
   const queryParams = useSearchParams();
   const [finishTrial, setFinishTrial] = useState(
     !!queryParams.get('finishTrial')
@@ -452,7 +459,7 @@ export const MainBillingComponent: FC<{
         }
         setLoading(false);
       },
-    [monthlyOrYearly, subscription, user, utm]
+    [monthlyOrYearly, subscription, user, utm, pricing]
   );
   if (user?.isLifetime) {
     router.replace('/');
@@ -497,14 +504,14 @@ export const MainBillingComponent: FC<{
 
       {finishTrial && <FinishTrial close={() => setFinishTrial(false)} />}
       <div className="flex gap-[16px] [@media(max-width:1024px)]:flex-col [@media(max-width:1024px)]:text-center">
-        {Object.entries(pricing)
+        {visible(true)
           .filter((f) => !isGeneral || f[0] !== 'FREE')
           .map(([name, values]) => (
             <div
               key={name}
               className="flex-1 bg-sixth border border-customColor6 rounded-[4px] p-[24px] gap-[16px] flex flex-col [@media(max-width:1024px)]:items-center"
             >
-              <div className="text-[18px]">{name}</div>
+              <div className="text-[18px]">{nameFor(name, name)}</div>
               <div className="text-[38px] flex gap-[2px] items-center">
                 <div>
                   $

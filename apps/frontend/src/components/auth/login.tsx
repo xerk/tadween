@@ -16,6 +16,7 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { FarcasterProvider } from '@gitroom/frontend/components/auth/providers/farcaster.provider';
 import WalletProvider from '@gitroom/frontend/components/auth/providers/wallet.provider';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { useInstanceSettings } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 type Inputs = {
   email: string;
   password: string;
@@ -26,6 +27,8 @@ export function Login() {
   const t = useT();
   const [loading, setLoading] = useState(false);
   const [notActivated, setNotActivated] = useState(false);
+  // Tadween: registration mode set in /admin
+  const registrationMode = useInstanceSettings().data?.registration?.mode;
   const {
     isGeneral,
     neynarClientId,
@@ -143,12 +146,21 @@ export function Login() {
                     {t('sign_in_1', 'Sign in')}
                   </Button>
                 </div>
-                <p className="mt-4 text-sm">
-                  {t('don_t_have_an_account', "Don't Have An Account?")}&nbsp;
-                  <Link href="/auth" className="underline cursor-pointer">
-                    {t('sign_up', 'Sign Up')}
-                  </Link>
-                </p>
+                {registrationMode === 'invite' ? (
+                  <p className="mt-4 text-sm">
+                    {t(
+                      'registration_invite_only',
+                      'Invite only. Ask your workspace admin for an invite link.'
+                    )}
+                  </p>
+                ) : (
+                  <p className="mt-4 text-sm">
+                    {t('don_t_have_an_account', "Don't Have An Account?")}&nbsp;
+                    <Link href="/auth" className="underline cursor-pointer">
+                      {t('sign_up', 'Sign Up')}
+                    </Link>
+                  </p>
+                )}
                 <p className="mt-4 text-sm">
                   <Link
                     href="/auth/forgot"

@@ -17,6 +17,7 @@ import {
   PreviewComment,
   usePreviewComments,
 } from '@gitroom/frontend/components/preview/preview.comments.context';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 const REVIEWER_NAME_KEY = 'preview-reviewer-name';
 
@@ -503,12 +504,15 @@ export const CommentsComponents: FC<{ previewId: string }> = () => {
       <div className="text-[18px] font-[600]">{t('comments', 'Comments')}</div>
       <CommentComposer />
       {!isLoading && !threads.length && (
-        <div className="text-[13px] text-textItemBlur">
-          {t(
+        <TadweenEmptyState
+          size="sm"
+          icon="comment"
+          title={t('tdw_no_comments', 'No comments yet')}
+          body={t(
             'preview_no_comments_yet',
             'No comments yet. Select some text in the post to comment on it, or add a general comment.'
           )}
-        </div>
+        />
       )}
       <div className="flex flex-col gap-[10px]">
         {threads.map(({ comment, replies }) => (

@@ -25,6 +25,7 @@ import { ImportDebugPostModal } from '@gitroom/frontend/components/launches/impo
 import { useForm, FormProvider } from 'react-hook-form';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { AdminAddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/admin.add.team.member.dto';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 interface Charge {
   id: string;
@@ -420,9 +421,11 @@ const ChargesModal: FC<{ close: () => void }> = ({ close }) => {
     <div className="flex flex-col gap-[16px] min-w-[500px]">
       <div className="max-h-[400px] overflow-y-auto">
         {!charges?.length ? (
-          <div className="text-center py-[20px] text-newTextColor/60">
-            {t('no_charges', 'No charges found')}
-          </div>
+          <TadweenEmptyState
+            size="sm"
+            icon="drafts"
+            title={t('no_charges', 'No charges found')}
+          />
         ) : (
           <table className="w-full">
             <thead>

@@ -381,3 +381,11 @@ body {
     .tdw-adminbar-badge { margin-top: 4px; }
   }
 }
+
+// ── Empty states placed above a page's existing "Add …" button ──────────────
+body {
+  .tdw-empty-with-next { padding-bottom: 12px; }
+  .tdw-empty-with-next + div { display: flex; justify-content: center; padding-bottom: 20px; }
+  // a card surface for empty/info blocks that sit in a grid
+  .tdw-surface { border-radius: var(--tdw-radius-lg); background: var(--tdw-card); box-shadow: var(--tdw-shadow-sm); }
+}

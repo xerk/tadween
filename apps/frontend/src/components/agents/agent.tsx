@@ -22,6 +22,7 @@ import { Integration } from '@prisma/client';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 export const MediaPortal: FC<{
   media: { path: string; id: string }[];
@@ -261,6 +262,18 @@ const Threads: FC = () => {
             </div>
           </Link>
         </div>
+        {data?.threads && !data.threads.length ? (
+          <TadweenEmptyState
+            size="sm"
+            icon="comment"
+            className="mobile:hidden"
+            title={t('tdw_no_agent_chats', 'No chats yet')}
+            body={t(
+              'tdw_no_agent_chats_body',
+              'Start a new chat and it will be kept here.'
+            )}
+          />
+        ) : null}
         <div className="flex flex-col gap-[1px] mobile:flex-row mobile:gap-[4px]">
           {data?.threads?.map((p: any) => (
             <Link

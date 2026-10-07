@@ -14,14 +14,14 @@ export const MenuItem: FC<{ label: string; icon: ReactNode; path: string; onClic
   const isActive = currentPath.indexOf(path) === 0;
 
   const className = clsx(
-    'group w-full minCustom:h-[54px] custom:h-[44px] py-[8px] px-[6px] minCustom:gap-[4px] custom:gap-[2px] flex flex-col font-[600] items-center justify-center rounded-[12px] hover:text-textItemFocused hover:bg-boxFocused transition-colors',
+    'tdw-side-item group w-full minCustom:h-[54px] custom:h-[44px] py-[8px] px-[6px] minCustom:gap-[4px] custom:gap-[2px] flex flex-col font-[600] items-center justify-center rounded-[12px] hover:text-textItemFocused hover:bg-boxFocused transition-colors',
     isActive ? 'text-textItemFocused bg-boxFocused' : 'text-textItemBlur'
   );
 
   const inner = (
     <>
-      <div className="custom:scale-90 transition-transform">{icon}</div>
-      <div className="custom:text-[9px] minCustom:text-[10px] leading-[1.1] text-center">
+      <div className="tdw-side-icon custom:scale-90 transition-transform">{icon}</div>
+      <div className="tdw-side-label custom:text-[9px] minCustom:text-[10px] leading-[1.1] text-center">
         {label}
       </div>
     </>
@@ -29,7 +29,12 @@ export const MenuItem: FC<{ label: string; icon: ReactNode; path: string; onClic
 
   if (onClick) {
     return (
-      <button onClick={onClick} title={label} className={className}>
+      <button
+        onClick={onClick}
+        data-tooltip-id="tdw-rail"
+        data-tooltip-content={label}
+        className={className}
+      >
         {inner}
       </button>
     );
@@ -39,7 +44,8 @@ export const MenuItem: FC<{ label: string; icon: ReactNode; path: string; onClic
     <Link
       prefetch={true}
       href={path}
-      title={label}
+      data-tooltip-id="tdw-rail"
+      data-tooltip-content={label}
       {...path.indexOf('http') === 0 && { target: '_blank' }}
       className={className}
     >

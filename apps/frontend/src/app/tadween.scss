@@ -315,6 +315,7 @@ body {
   .tdw-chip-published { background: var(--tdw-success); cursor: default; }
   .tdw-chip-acts { position: absolute; top: 3px; inset-inline-end: 3px; z-index: 5; display: flex; gap: 2px; opacity: 0; transform: translateY(-2px); pointer-events: none; transition: opacity 160ms ease, transform 200ms var(--tdw-ease-spring); }
   .tdw-chip:hover .tdw-chip-acts, .tdw-chip:focus-within .tdw-chip-acts { opacity: 1; transform: none; pointer-events: auto; }
+  @media (hover: none) { .tdw-chip-acts { opacity: 1; transform: none; pointer-events: auto; } }
   .tdw-chip-act { display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: var(--tdw-popover); color: var(--tdw-foreground); box-shadow: var(--tdw-shadow-sm); cursor: pointer; }
   .tdw-chip-act:hover { color: var(--tdw-primary); }
   .tdw-chip-act.is-danger:hover { color: var(--tdw-destructive); }

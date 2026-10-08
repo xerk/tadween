@@ -1103,5 +1103,7 @@
   "tdw_auth_err_match": "كلمتا المرور غير متطابقتين.",
   "tdw_auth_err_min": "استخدم {{count}} أحرف على الأقل.",
   "tdw_auth_err_max": "استخدم {{count}} حرفًا على الأكثر.",
-  "tdw_auth_preview_languages": "اكتب بالعربية أو الإنجليزية"
+  "tdw_auth_preview_languages": "اكتب بالعربية أو الإنجليزية",
+  "tdw_dp_minute": "الدقيقة",
+  "tdw_dp_am_pm": "ص/م"
 }

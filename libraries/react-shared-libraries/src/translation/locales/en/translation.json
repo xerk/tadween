@@ -1060,5 +1060,7 @@
   "tdw_auth_err_match": "Passwords do not match.",
   "tdw_auth_err_min": "Use at least {{count}} characters.",
   "tdw_auth_err_max": "Use at most {{count}} characters.",
-  "tdw_auth_preview_languages": "Write in Arabic or English"
+  "tdw_auth_preview_languages": "Write in Arabic or English",
+  "tdw_dp_minute": "Minute",
+  "tdw_dp_am_pm": "AM/PM"
 }

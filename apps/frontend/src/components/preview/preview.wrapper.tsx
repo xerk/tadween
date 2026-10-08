@@ -33,6 +33,7 @@ export const PreviewWrapper = ({ children }: { children: ReactNode }) => {
         runtimeUrl={backendUrl + '/copilot/chat'}
         useSingleEndpoint={true}
         showDevConsole={false}
+        enableInspector={false}
       >
         <MantineWrapper>
           <Toaster />

@@ -4,7 +4,8 @@
 // floats around it:
 //   · WorkspaceToolbar — date, navigation, channel chips, view switch, Create
 //   · the canvas — Postiz's own <Calendar /> (drag & drop, slots, previews,
-//     statistics…), restyled in app/tadween/workspace.scss
+//     statistics…), restyled in app/tadween/workspace.scss; or, for
+//     display=list, the board (components/tadween/board)
 //   · WorkspaceSidePanel — Up next, mini month, Drafts (≥ 1100px)
 //   · ChannelsSheet — every channel feature from Postiz's old channel column
 //   · phones: a week-day strip, swipe between days, a floating Create button
@@ -14,6 +15,7 @@ import useCookie from 'react-use-cookie';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Calendar } from '@gitroom/frontend/components/launches/calendar';
+import { PostsBoard } from '@gitroom/frontend/components/tadween/board/posts.board';
 import { useCalendarNavigation } from '@gitroom/frontend/components/launches/filters';
 import { NewPost } from '@gitroom/frontend/components/launches/new.post';
 import { GeneratorComponent } from '@gitroom/frontend/components/launches/generator/generator';
@@ -226,7 +228,7 @@ export const CalendarWorkspace: FC<{
         {isPhone && calendar.display === 'day' && <DayStrip />}
         <div className="tdw-ws-canvas">
           <div ref={swipe.ref} className="tdw-ws-cal" {...swipe.handlers}>
-            <Calendar />
+            {calendar.display === 'list' ? <PostsBoard /> : <Calendar />}
           </div>
         </div>
         <div className="tdw-ws-fab">

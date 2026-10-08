@@ -488,14 +488,33 @@ export class MediaService {
     return groups;
   }
 
+  // Every path the organization's posts use. The "Used in posts / Not used
+  // yet" filter needs it for each page it loads, so it's kept for a minute
+  private async getUsedPaths(org: string): Promise<string[]> {
+    const key = `media-used-paths:${org}`;
+    try {
+      const cached = await ioRedis.get(key);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (err) {
+      // no cache, read it from the posts
+    }
+    const paths = [
+      ...this.groupsByPath(
+        await this._mediaRepository.getPostsWithMedia(org)
+      ).keys(),
+    ];
+    try {
+      await ioRedis.set(key, JSON.stringify(paths), 'EX', 60);
+    } catch (err) {
+      // the next page reads the posts again
+    }
+    return paths;
+  }
+
   async getMedia(org: string, query: GetMediaDto) {
-    const usedPaths = query.usage
-      ? [
-          ...this.groupsByPath(
-            await this._mediaRepository.getPostsWithMedia(org)
-          ).keys(),
-        ]
-      : undefined;
+    const usedPaths = query.usage ? await this.getUsedPaths(org) : undefined;
 
     const media = await this._mediaRepository.getMedia(
       org,
@@ -529,7 +548,15 @@ export class MediaService {
       throw new HttpException('Media not found', 404);
     }
 
-    const posts = await this._mediaRepository.getMediaUsage(org, media.path);
+    // `contains` also matches longer paths that start the same way
+    const posts = (
+      await this._mediaRepository.getMediaUsage(org, media.path)
+    ).filter((post) =>
+      this.groupsByPath(
+        [{ group: post.group, image: post.image }],
+        [media.path]
+      ).has(media.path)
+    );
     const byGroup = new Map<
       string,
       {
@@ -569,7 +596,10 @@ export class MediaService {
     return [...byGroup.values()];
   }
 
-  renameMedia(org: string, id: string, name: string) {
+  async renameMedia(org: string, id: string, name: string) {
+    if (!(await this._mediaRepository.getMediaDetails(org, id))) {
+      throw new HttpException('Media not found', 404);
+    }
     return this._mediaRepository.renameMedia(org, id, name);
   }
 

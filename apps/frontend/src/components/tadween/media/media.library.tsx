@@ -32,6 +32,7 @@ import {
 } from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
 import { ThirdPartyMediaLibrary } from '@gitroom/frontend/components/third-parties/third-party.media-library';
 import {
+  TodayPost,
   useTodayActions,
   useTodayIntegrations,
 } from '@gitroom/frontend/components/tadween/today/today.hooks';
@@ -167,7 +168,10 @@ const PageDetails: FC<
   const { integrations } = useTodayIntegrations();
   const { edit } = useTodayActions(integrations, reload);
   return (
-    <MediaDetails {...props} onOpenPost={(group) => edit({ group } as any)()} />
+    <MediaDetails
+      {...props}
+      onOpenPost={(group) => edit({ group } as TodayPost)()}
+    />
   );
 };
 
@@ -471,6 +475,7 @@ export const MediaLibrary: FC<{
       }
     },
     onFoldersCreated: () => folders.mutate(),
+    folders: folders.data,
   });
   const fileInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
@@ -493,8 +498,12 @@ export const MediaLibrary: FC<{
     const target: HTMLElement | Window = picker ? rootRef.current! : window;
     if (!target) return;
     let depth = 0;
+    // a drop zone of its own (the composer's editor, a picker opened on top)
+    // already took it
     const hasFiles = (e: DragEvent) =>
-      !!e.dataTransfer?.types?.includes('Files');
+      !!e.dataTransfer?.types?.includes('Files') &&
+      !e.defaultPrevented &&
+      (picker || !document.querySelector('.tdw-media.is-picker'));
     const enter = (e: Event) => {
       if (!hasFiles(e as DragEvent)) return;
       depth++;
@@ -532,7 +541,9 @@ export const MediaLibrary: FC<{
   // pasted images upload into the open folder
   useEffect(() => {
     const paste = (e: ClipboardEvent) => {
-      if (isTyping(e.target)) return;
+      if (isTyping(e.target) || e.defaultPrevented) return;
+      // with a picker open over the page, the picker takes the paste
+      if (!picker && document.querySelector('.tdw-media.is-picker')) return;
       const files = Array.from(e.clipboardData?.files || []);
       if (!files.length) return;
       e.preventDefault();
@@ -540,7 +551,7 @@ export const MediaLibrary: FC<{
     };
     document.addEventListener('paste', paste);
     return () => document.removeEventListener('paste', paste);
-  }, [enqueue]);
+  }, [enqueue, picker]);
 
   // ── Infinite scroll ───────────────────────────────────────────────────────
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1195,6 +1206,8 @@ export const MediaLibrary: FC<{
                   ? t('tdw_media_selected_count', '{{count}} selected', {
                       count: selected.length,
                     })
+                  : searching
+                  ? t('tdw_media_search_results', 'Search results')
                   : currentName
               }
               body={

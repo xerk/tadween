@@ -26,12 +26,9 @@ const typeFilter = (type?: MediaTypeFilter): Prisma.MediaWhereInput => {
       return { OR: pathEndsWith(VIDEO_EXTENSIONS) };
     case 'gif':
       return { OR: pathEndsWith(GIF_EXTENSIONS) };
+    // GIFs are images too (image-only pickers take them); 'gif' narrows
     case 'image':
-      return {
-        NOT: {
-          OR: pathEndsWith([...VIDEO_EXTENSIONS, ...GIF_EXTENSIONS]),
-        },
-      };
+      return { NOT: { OR: pathEndsWith(VIDEO_EXTENSIONS) } };
     default:
       return {};
   }
@@ -182,11 +179,23 @@ export class MediaRepository {
             },
           }
         : {}),
-      ...(query.folderId
-        ? { folderId: query.folderId === 'root' ? null : query.folderId }
+      ...(query.folderId && query.folderId !== 'root'
+        ? { folderId: query.folderId }
         : {}),
       ...(usedPaths ? { path: usedPaths } : {}),
-      AND: [typeFilter(query.type)],
+      AND: [
+        typeFilter(query.type),
+        // the top level also shows media whose folder was deleted while they
+        // were being moved into it, so nothing ends up out of sight
+        query.folderId === 'root'
+          ? {
+              OR: [
+                { folderId: null },
+                { folder: { is: { deletedAt: { not: null } } } },
+              ],
+            }
+          : {},
+      ],
     };
     const order = query.order === 'asc' ? 'asc' : 'desc';
     const pages = Math.ceil(
@@ -266,6 +275,7 @@ export class MediaRepository {
         state: true,
         publishDate: true,
         content: true,
+        image: true,
         integration: {
           select: {
             id: true,

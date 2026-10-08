@@ -78,18 +78,25 @@ const InlineName: FC<{
     setEditing(false);
   }, [value]);
 
+  // Enter submits and the blur that follows must not save a second time
+  const saving = useRef(false);
   const save = async () => {
+    if (saving.current) return;
     const next = name.trim();
     if (!next || next === value) {
       setEditing(false);
       setName(value);
       return;
     }
+    saving.current = true;
     setBusy(true);
     try {
       await onSave(next);
       setEditing(false);
+    } catch (err) {
+      // the library already showed the error; the field stays open to retry
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   };

@@ -76,6 +76,8 @@ export const useMediaUploads = (props: {
   type?: 'image' | 'video';
   onUploaded: (media: any[]) => void;
   onFoldersCreated?: () => void;
+  // the library's folders, so a folder upload reuses one with the same name
+  folders?: { id: string; name: string; parentId: string | null }[];
 }) => {
   const t = useT();
   const { mediaProcessing, transloadit } = useVariables();
@@ -87,6 +89,19 @@ export const useMediaUploads = (props: {
   const uppyIds = useRef(new Map<string, string>());
   // media already moved into their folder as each file finished
   const moves = useRef(new Map<string, Promise<unknown>>());
+  // a finished batch whose saved media the uploader hasn't handed over yet
+  // (Transloadit saves them after 'complete'): the next batch waits for it
+  const saving = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const finishRef = useRef<() => void>(() => {});
+  // folder uploads run one after another so their folders aren't made twice
+  const adding = useRef<Promise<unknown>>(Promise.resolve());
+  const addNowRef = useRef<
+    (entries: UploadEntry[], folderId: string | null) => Promise<void>
+  >(async () => {});
+  // folders made by earlier uploads, before the library's list reloads
+  const made = useRef<{ id: string; name: string; parentId: string | null }[]>(
+    []
+  );
   const propsRef = useRef(props);
   propsRef.current = props;
 
@@ -128,6 +143,11 @@ export const useMediaUploads = (props: {
       await Promise.allSettled(Array.from(moves.current.values()));
       moves.current.clear();
       propsRef.current.onUploaded(media);
+      if (saving.current) {
+        clearTimeout(saving.current);
+        saving.current = null;
+        finishRef.current();
+      }
     },
     onStart: () => {},
     onEnd: () => {},
@@ -169,6 +189,7 @@ export const useMediaUploads = (props: {
     batch.current = null;
     setTimeout(() => startNextRef.current(), 0);
   }, []);
+  finishRef.current = finishBatch;
 
   const startNext = useCallback(() => {
     if (batch.current) return;
@@ -251,7 +272,7 @@ export const useMediaUploads = (props: {
         });
     };
     // whatever the batch didn't finish failed with it
-    const endBatch = () => {
+    const endBatch = (result?: { successful?: unknown[] }) => {
       const ids = batch.current?.ids || [];
       update((list) =>
         list.map((p) =>
@@ -268,7 +289,16 @@ export const useMediaUploads = (props: {
             : p
         )
       );
-      finishBatch();
+      if (!result?.successful?.length) {
+        finishBatch();
+        return;
+      }
+      // the batch (and its folder) stays current until its media are saved
+      // and moved; if the uploader never hands them over, it ends anyway
+      saving.current = setTimeout(() => {
+        saving.current = null;
+        finishBatch();
+      }, 30000);
     };
     uppy.on('upload-progress', onProgress);
     uppy.on('upload-success', onSuccess);
@@ -306,6 +336,7 @@ export const useMediaUploads = (props: {
   const resolveFolders = useCallback(
     async (entries: UploadEntry[], folderId: string | null) => {
       const ids = new Map<string, string | null>([['', folderId]]);
+      const existing = [...(propsRef.current.folders || []), ...made.current];
       const dirs = Array.from(
         new Set(entries.map((p) => (p.dir || '').replace(/^\/+|\/+$/g, '')))
       ).sort();
@@ -316,7 +347,17 @@ export const useMediaUploads = (props: {
           const key = parts.slice(0, i).join('/');
           if (ids.has(key)) continue;
           const parent = ids.get(parts.slice(0, i - 1).join('/')) || null;
+          // uploading the same folder again fills the one already there
+          const same = existing.find(
+            (p) => p.parentId === parent && p.name === parts[i - 1]
+          );
+          if (same) {
+            ids.set(key, same.id);
+            continue;
+          }
           const folder = await actions.createFolder(parts[i - 1], parent);
+          existing.push(folder);
+          made.current.push(folder);
           ids.set(key, folder.id);
           created = true;
         }
@@ -327,37 +368,42 @@ export const useMediaUploads = (props: {
     [actions]
   );
 
-  const add = useCallback(
-    async (entries: UploadEntry[], folderId: string | null) => {
-      if (!entries.length) return;
-      let folders = new Map<string, string | null>([['', folderId]]);
-      try {
-        folders = await resolveFolders(entries, folderId);
-      } catch (err) {
-        // the files still upload, into the open folder
-      }
-      const added: UploadItem[] = entries.map(({ file, dir }) => {
-        const error = validate(file);
-        return {
-          id: nextId(),
-          name: file.name,
-          size: file.size,
-          status: error ? 'error' : 'queued',
-          progress: 0,
-          error: error || undefined,
-          file,
-          folderId:
-            folders.get((dir || '').replace(/^\/+|\/+$/g, '')) ?? folderId,
-          preview: file.type.startsWith('image/')
-            ? URL.createObjectURL(file)
-            : undefined,
-        };
-      });
-      update((list) => [...list, ...added]);
-      startNext();
-    },
-    [resolveFolders, validate, update, startNext]
-  );
+  const add = useCallback((entries: UploadEntry[], folderId: string | null) => {
+    if (!entries.length) return Promise.resolve();
+    adding.current = adding.current.then(() =>
+      addNowRef.current(entries, folderId)
+    );
+    return adding.current;
+  }, []);
+
+  const addNow = async (entries: UploadEntry[], folderId: string | null) => {
+    let folders = new Map<string, string | null>([['', folderId]]);
+    try {
+      folders = await resolveFolders(entries, folderId);
+    } catch (err) {
+      // the files still upload, into the open folder
+    }
+    const added: UploadItem[] = entries.map(({ file, dir }) => {
+      const error = validate(file);
+      return {
+        id: nextId(),
+        name: file.name,
+        size: file.size,
+        status: error ? 'error' : 'queued',
+        progress: 0,
+        error: error || undefined,
+        file,
+        folderId:
+          folders.get((dir || '').replace(/^\/+|\/+$/g, '')) ?? folderId,
+        preview: file.type.startsWith('image/')
+          ? URL.createObjectURL(file)
+          : undefined,
+      };
+    });
+    update((list) => [...list, ...added]);
+    startNext();
+  };
+  addNowRef.current = addNow;
 
   const cancel = useCallback(
     (id: string) => {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { TadweenNotifications } from '@gitroom/frontend/components/tadween/notifications/notifications.panel';
 import useSWR from 'swr';
 import { FC, useCallback, useState } from 'react';
 import clsx from 'clsx';
@@ -152,7 +153,7 @@ const NotificationComponent = () => {
           )}
         </svg>
       </div>
-      {show && <NotificationOpenComponent />}
+      <TadweenNotifications open={show} onClose={() => setShow(false)} />
     </div>
   );
 };

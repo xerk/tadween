@@ -16,6 +16,7 @@ import {
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { modeEmitter } from '@gitroom/frontend/components/layout/mode.component';
+import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import {
   cx,
   Field,
@@ -204,11 +205,15 @@ export const AuthLink: FC<{ href: string; children: ReactNode }> = ({
   </Link>
 );
 
-/* Terms / Privacy line. Links come from NEXT_PUBLIC_TERMS_URL / NEXT_PUBLIC_PRIVACY_URL;
+/* Terms / Privacy line. Links come from /admin → Branding (public instance
+   settings), with NEXT_PUBLIC_TERMS_URL / NEXT_PUBLIC_PRIVACY_URL as fallback;
    the sentence only renders when at least one is configured. */
 export const AuthLegal: FC = () => {
   const t = useT();
-  const { termsUrl, privacyUrl } = useVariables();
+  const brand = useBrandLinks();
+  const env = useVariables();
+  const termsUrl = brand.termsUrl || env.termsUrl;
+  const privacyUrl = brand.privacyUrl || env.privacyUrl;
   if (!termsUrl && !privacyUrl) {
     return null;
   }

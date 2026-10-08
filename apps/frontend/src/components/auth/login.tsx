@@ -35,7 +35,8 @@ export function Login() {
   const t = useT();
   const [loading, setLoading] = useState(false);
   const [notActivated, setNotActivated] = useState(false);
-  // Tadween: registration mode set in /admin
+  // Tadween: registration mode set in /admin (env DISABLE_REGISTRATION until
+  // saved). Closed hides the sign-up link; invite-only explains how to join.
   const registrationMode = useInstanceSettings().data?.registration?.mode;
   const {
     isGeneral,
@@ -142,7 +143,7 @@ export function Login() {
               'Invite only. Ask your workspace admin for an invite link.'
             )}
           </p>
-        ) : (
+        ) : registrationMode === 'closed' ? null : (
           <AuthSwitch
             prompt={t('tdw_auth_new_here', 'New to Tadween?')}
             href="/auth"

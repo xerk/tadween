@@ -344,22 +344,35 @@ body {
   }
   .tdw-adminbar-item:hover { background: var(--tdw-accent); box-shadow: inset 0 0 0 1px var(--tdw-border); }
   .tdw-adminbar-item.is-danger { color: var(--tdw-destructive); }
-  .tdw-adminbar-more {
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    color: var(--tdw-muted-foreground);
+  // the "Admin" pill (top bar) that holds every super-admin tool
+  .tdw-adminbar-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 9999px;
+    background: var(--tdw-smart-soft);
+    color: var(--tdw-smart);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: filter 180ms ease, transform 100ms ease-out;
   }
-  .tdw-adminbar-more:hover, .tdw-adminbar-more[aria-expanded='true'] { background: var(--tdw-accent); color: var(--tdw-foreground); }
+  .tdw-adminbar-pill:hover, .tdw-adminbar-pill[aria-expanded='true'] { filter: brightness(0.97); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tdw-smart) 30%, transparent); }
+  .tdw-adminbar-pill[aria-expanded='true'] svg { transform: rotate(180deg); }
   .tdw-adminbar-menu {
     position: absolute;
-    top: calc(100% + 6px);
+    top: calc(100% + 8px);
     inset-inline-start: 0;
     z-index: 999;
     display: grid;
-    min-width: 200px;
+    gap: 1px;
+    width: 340px;
+    max-width: calc(100vw - 24px);
+    color: var(--tdw-foreground);
     padding: 6px;
     border-radius: var(--tdw-radius-lg);
     background: var(--tdw-popover);
@@ -367,7 +380,17 @@ body {
     animation: tdw-fade-up 180ms ease both;
     .tdw-adminbar-item { justify-content: flex-start; background: transparent; width: 100%; }
     .tdw-adminbar-item:hover { background: var(--tdw-accent); box-shadow: none; }
+    // impersonation search sits at the top, its matches listed under it
+    .tdw-adminbar-menu-search { display: grid; gap: 4px; padding: 4px; }
+    .tdw-adminbar-results { margin: 0; padding: 0; max-height: 280px; background: transparent; box-shadow: none; border-radius: 0; }
+    .tdw-adminbar-result { white-space: normal; }
   }
+  // in the top bar the pill sits at the end, so the menu opens towards the start
+  .tdw-topbar-actions .tdw-adminbar-menu { inset-inline-start: auto; inset-inline-end: 0; }
+  @media (max-width: 640px) {
+    .tdw-topbar-actions .tdw-adminbar-menu { position: fixed; top: 64px; inset-inline: 12px; width: auto; }
+  }
+  .tdw-adminbar-menu-sep { height: 1px; margin: 4px 6px; background: var(--tdw-border); }
   .tdw-adminbar-scrim { background: transparent; }
   .tdw-adminbar-results {
     margin-top: 6px;

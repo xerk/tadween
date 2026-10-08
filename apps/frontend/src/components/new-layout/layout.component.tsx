@@ -102,7 +102,18 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                 jakartaSans.className
               )}
             >
-              <div>{user?.admin ? <Impersonate /> : <div />}</div>
+              {/* Tadween: the full admin bar while impersonating; otherwise the
+                  admin tools are one pill in the top bar (here only when the
+                  first-billing screen replaces the top bar) */}
+              <div>
+                {user?.admin &&
+                (user?.impersonate ||
+                  (user.tier === 'FREE' && isGeneral && billingEnabled)) ? (
+                  <Impersonate />
+                ) : (
+                  <div />
+                )}
+              </div>
               {user.tier === 'FREE' && isGeneral && billingEnabled ? (
                 <FirstBillingComponent />
               ) : (
@@ -128,7 +139,9 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                         id="left-menu"
                         className={clsx(
                           'tdw-side-inner fixed h-full flex flex-1 top-0 mobile:static mobile:h-auto mobile:min-h-full mobile:mx-auto',
-                          user?.admin && 'pt-[60px] max-h-[1000px]:w-[500px]'
+                          user?.admin &&
+                            user?.impersonate &&
+                            'pt-[60px] max-h-[1000px]:w-[500px]'
                         )}
                       >
                         <div className="tdw-side-body flex flex-col h-full gap-[32px] mobile:gap-[16px] flex-1 py-[12px]">
@@ -174,6 +187,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                           <Title />
                         </div>
                         <div className="tdw-topbar-actions flex items-center gap-[6px] text-textItemBlur">
+                          {user?.admin && !user?.impersonate ? <Impersonate /> : null}
                           <StreakComponent />
                           <div className="w-[1px] h-[20px] bg-blockSeparator mobile:hidden" />
                           <OrganizationSelector />

@@ -852,7 +852,7 @@ const ImportDebugPost = () => {
 
   const handleClick = useCallback(() => {
     openModal({
-      title: t('import_debug_post', 'Import Debug Post'),
+      title: t('tdw_import_post_debug', 'Import post (debug)'),
       maxSize: 800,
       children: (close) => <ImportDebugPostModal close={close} />,
     });
@@ -864,7 +864,7 @@ const ImportDebugPost = () => {
       className="tdw-adminbar-item"
       onClick={handleClick}
     >
-      {t('import_debug_post', 'Import Debug Post')}
+      {t('tdw_import_post_debug', 'Import post (debug)')}
     </button>
   );
 };
@@ -1030,7 +1030,9 @@ const SwitchUser = () => {
   );
 };
 
-// Tadween: the admin tools sit behind one quiet "more" button
+
+// Tadween: the super-admin tools sit behind one small "Admin" pill in the top
+// bar; picking a tool closes the menu, typing in the search keeps it open
 const AdminBarMenu: FC<{ children: ReactNode }> = ({ children }) => {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -1049,21 +1051,24 @@ const AdminBarMenu: FC<{ children: ReactNode }> = ({ children }) => {
     <div className="relative" ref={ref}>
       <button
         type="button"
-        className="tdw-adminbar-more"
+        className="tdw-adminbar-pill"
         aria-expanded={open}
         aria-label={t('tdw_admin_tools', 'Admin tools')}
         onClick={() => setOpen(!open)}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <circle cx="5" cy="12" r="1.8" />
-          <circle cx="12" cy="12" r="1.8" />
-          <circle cx="19" cy="12" r="1.8" />
+        {t('admin', 'Admin')}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
       {open && (
         <div
           className="tdw-adminbar-menu"
-          onClick={() => setOpen(false)}
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest('.tdw-adminbar-item')) {
+              setOpen(false);
+            }
+          }}
         >
           {children}
         </div>
@@ -1133,82 +1138,80 @@ export const Impersonate = () => {
       []
     );
   }, [data]);
+  const results = !!data?.length && (
+    <div className="tdw-adminbar-results">
+      {mapData?.map((user: any) => (
+        <div
+          onClick={setUser(user?.id)}
+          key={user?.id}
+          className="tdw-adminbar-result cursor-pointer whitespace-nowrap truncate"
+        >
+          {t('user_1', 'user:')}
+          {user?.id?.split('-')?.at(-1)} - {user?.name} - {user?.email}{' '}
+          - {user?.orgName} ({user?.role} / {user?.tier})
+        </div>
+      ))}
+    </div>
+  );
+
+  // not impersonating: one compact "Admin" pill (rendered in the top bar)
+  if (!user?.impersonate) {
+    return (
+      <AdminBarMenu>
+        <div className="tdw-adminbar-menu-search">
+          <Input
+            className="tdw-adminbar-search"
+            autoComplete="off"
+            placeholder={t(
+              'tdw_impersonate_placeholder',
+              'Impersonate a user (name, email or org)'
+            )}
+            name="impersonate"
+            disableForm={true}
+            label=""
+            removeError={true}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          {results}
+        </div>
+        <div className="tdw-adminbar-menu-sep" />
+        <ImportDebugPost />
+        <AddAnnouncement />
+        <ViewErrors />
+        <ViewStats />
+      </AdminBarMenu>
+    );
+  }
+
   return (
     <div className="tdw-adminbar">
       <span className="tdw-adminbar-badge">{t('admin', 'Admin')}</span>
       <div className="relative flex-1 min-w-0">
-        {user?.impersonate ? (
-          <div className="tdw-adminbar-row">
-            <span className="tdw-adminbar-note">
-              {t('currently_impersonating', 'Currently Impersonating')}
-            </span>
-            <button
-              type="button"
-              className="tdw-adminbar-item is-danger"
-              onClick={stopImpersonating}
-              aria-label={t('stop_impersonating', 'Stop impersonating')}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" />
-              </svg>
-              {t('stop', 'Stop')}
-            </button>
-            {user?.tier?.current === 'FREE' && (
-              <div className="tdw-adminbar-select">
-                <Subscription />
-              </div>
-            )}
-            {user?.tier?.team_members && <AddTeamMember />}
-            {billingEnabled && <ManageBilling />}
-            <SwitchUser />
-          </div>
-        ) : (
-          <div className="tdw-adminbar-row">
-            <div className="flex-1 min-w-0 max-w-[420px] mobile:max-w-none">
-              <Input
-                className="tdw-adminbar-search"
-                autoComplete="off"
-                placeholder={t(
-                  'tdw_impersonate_placeholder',
-                  'Find a user to impersonate (name, email or org)'
-                )}
-                name="impersonate"
-                disableForm={true}
-                label=""
-                removeError={true}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+        <div className="tdw-adminbar-row">
+          <span className="tdw-adminbar-note">
+            {t('currently_impersonating', 'Currently Impersonating')}
+          </span>
+          <button
+            type="button"
+            className="tdw-adminbar-item is-danger"
+            onClick={stopImpersonating}
+            aria-label={t('stop_impersonating', 'Stop impersonating')}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" />
+            </svg>
+            {t('stop', 'Stop')}
+          </button>
+          {user?.tier?.current === 'FREE' && (
+            <div className="tdw-adminbar-select">
+              <Subscription />
             </div>
-            <AdminBarMenu>
-              <ImportDebugPost />
-              <AddAnnouncement />
-              <ViewErrors />
-              <ViewStats />
-            </AdminBarMenu>
-          </div>
-        )}
-        {!!data?.length && (
-          <>
-            <div
-              className="tdw-adminbar-scrim fixed start-0 top-0 w-full h-full z-[998]"
-              onClick={() => setName('')}
-            />
-            <div className="tdw-adminbar-results absolute top-[100%] w-max min-w-full max-w-[90vw] start-0 text-textColor z-[999]">
-              {mapData?.map((user: any) => (
-                <div
-                  onClick={setUser(user?.id)}
-                  key={user?.id}
-                  className="tdw-adminbar-result cursor-pointer whitespace-nowrap truncate"
-                >
-                  {t('user_1', 'user:')}
-                  {user?.id?.split('-')?.at(-1)} - {user?.name} - {user?.email}{' '}
-                  - {user?.orgName} ({user?.role} / {user?.tier})
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+          )}
+          {user?.tier?.team_members && <AddTeamMember />}
+          {billingEnabled && <ManageBilling />}
+          <SwitchUser />
+        </div>
       </div>
     </div>
   );

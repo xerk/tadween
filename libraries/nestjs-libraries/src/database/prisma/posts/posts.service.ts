@@ -770,7 +770,14 @@ export class PostsService {
       });
   }
 
-  async deletePost(orgId: string, group: string) {
+  // `unpublish` is only set by the explicit "delete this post" endpoints:
+  // removing a whole channel also deletes its posts here, and that must not
+  // take the published content down from the platform.
+  async deletePost(orgId: string, group: string, unpublish = false) {
+    if (unpublish) {
+      await this.unpublishGroup(orgId, group);
+    }
+
     const post = await this._postRepository.deletePost(orgId, group);
 
     if (post?.id) {
@@ -799,6 +806,50 @@ export class PostsService {
     }
 
     return { error: true };
+  }
+
+  // Best effort: asks each provider that supports it to remove the published
+  // post. A failure never blocks deleting the post here; a rejected token
+  // flags the channel for reconnection like a failed publish does.
+  private async unpublishGroup(orgId: string, group: string) {
+    const posts = await this._postRepository.getPostsByGroup(orgId, group);
+
+    for (const post of posts) {
+      if (
+        post.state !== 'PUBLISHED' ||
+        !post.releaseId ||
+        !post.integration ||
+        post.integration.deletedAt
+      ) {
+        continue;
+      }
+
+      const provider = this._integrationManager.getSocialIntegration(
+        post.integration.providerIdentifier
+      );
+      if (!provider?.deletePost) {
+        continue;
+      }
+
+      try {
+        await provider.deletePost(
+          post.integration.token,
+          post.integration,
+          post.releaseId,
+          post.id
+        );
+      } catch (err) {
+        console.log(
+          `Could not unpublish post ${post.id} from ${post.integration.providerIdentifier}`,
+          err instanceof Error ? err.message : err
+        );
+        if (err instanceof RefreshToken) {
+          await this._integrationService
+            .refreshNeeded(orgId, post.integration.id)
+            .catch(() => {});
+        }
+      }
+    }
   }
 
   async countPostsFromDay(orgId: string, date: Date) {

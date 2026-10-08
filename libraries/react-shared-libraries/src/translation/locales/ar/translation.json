@@ -1038,5 +1038,7 @@
   "tdw_cm_when_to_post": "موعد النشر",
   "tdw_cm_none": "لا شيء",
   "tdw_cm_repeat_on": "مفعّل",
-  "tdw_cm_repeat_never": "أبدًا"
+  "tdw_cm_repeat_never": "أبدًا",
+  "tdw_dp_minute": "الدقيقة",
+  "tdw_dp_am_pm": "ص/م"
 }

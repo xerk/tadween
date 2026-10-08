@@ -1,4 +1,4 @@
-import { FC, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, FC, KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import clsx from 'clsx';
 import { useClickOutside } from '@mantine/hooks';
@@ -7,9 +7,174 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { CalendarIcon } from '@gitroom/frontend/components/ui/icons';
 
-// Tadween schedule picker: month grid + 15-minute time list, replacing
-// Mantine's Calendar / TimeInput. Same props and output as Postiz's picker.
+// Tadween schedule picker: month grid, a typed time field for any minute and a
+// 15-minute quick list, replacing Mantine's Calendar / TimeInput. Same props
+// and output as Postiz's picker.
 const STEP = 15;
+
+type Segment = 'hour' | 'minute';
+
+// hour : minute (: AM/PM in 12h) segments, like Mantine's TimeInput but without
+// the native control. `minutes` is minutes since midnight.
+const TimeField: FC<{
+  minutes: number;
+  us: boolean;
+  labelledBy: string;
+  onCommit: (minutes: number) => void;
+}> = (props) => {
+  const { minutes, us, labelledBy, onCommit } = props;
+  const t = useT();
+  const [draft, setDraft] = useState<{ segment: Segment; text: string } | null>(null);
+  const hourRef = useRef<HTMLInputElement>(null);
+  const minuteRef = useRef<HTMLInputElement>(null);
+  const periodRef = useRef<HTMLButtonElement>(null);
+
+  const hour24 = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  const pm = hour24 >= 12;
+  const range = { hour: us ? [1, 12] : [0, 23], minute: [0, 59] };
+  const shown = { hour: us ? hour24 % 12 || 12 : hour24, minute };
+  // same formatting as the quick list, so both always show the same AM / PM text
+  const period = dayjs().startOf('day').add(minutes, 'minute').format('A');
+
+  const save = (segment: Segment, value: number, isPm = pm) => {
+    const h = segment === 'hour' ? (us ? (value % 12) + (isPm ? 12 : 0) : value) : hour24;
+    const next = h * 60 + (segment === 'minute' ? value : minute);
+    if (next !== minutes) onCommit(next);
+  };
+  const valid = (segment: Segment, text: string) => {
+    const n = Number(text);
+    return text !== '' && n >= range[segment][0] && n <= range[segment][1];
+  };
+  // next frame: the blur this causes must see the draft already cleared
+  const focus = (el: HTMLInputElement | HTMLButtonElement | null) =>
+    requestAnimationFrame(() => {
+      el?.focus();
+      if (el instanceof HTMLInputElement) el.select();
+    });
+  // left / right by on-screen position: in RTL the AM/PM sits left of the time
+  const move = (from: HTMLElement, by: number) => {
+    const order = [hourRef.current, minuteRef.current, us ? periodRef.current : null]
+      .filter((el): el is HTMLInputElement | HTMLButtonElement => !!el)
+      .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+    focus(order[order.indexOf(from as HTMLInputElement) + by] || null);
+  };
+  const select = (el: HTMLInputElement) => requestAnimationFrame(() => el.select());
+
+  // A typed draft is kept until it is a whole value: two digits, or one digit
+  // that can't start a two-digit value (3-9 for 24h hours, 6-9 for minutes).
+  const type = (segment: Segment) => (e: ChangeEvent<HTMLInputElement>) => {
+    const input = e.nativeEvent as InputEvent;
+    if (input.inputType?.startsWith('delete')) return setDraft({ segment, text: '' });
+    const digit = (input.data ?? e.target.value).replace(/\D/g, '').slice(-1);
+    if (!digit) return;
+    let text = (draft?.segment === segment ? draft.text : '') + digit;
+    if (text.length === 2 && !valid(segment, text)) text = digit;
+    if ((text.length === 2 || Number(text) * 10 > range[segment][1]) && valid(segment, text)) {
+      setDraft(null);
+      save(segment, Number(text));
+      if (segment === 'hour') return focus(minuteRef.current);
+      if (us) return focus(periodRef.current);
+      return select(e.target);
+    }
+    setDraft({ segment, text });
+  };
+
+  const finish = (segment: Segment) => {
+    if (draft?.segment !== segment) return;
+    if (valid(segment, draft.text)) save(segment, Number(draft.text));
+    setDraft(null);
+  };
+
+  const keys = (segment: Segment) => (e: KeyboardEvent<HTMLInputElement>) => {
+    const [min, max] = range[segment];
+    const size = max - min + 1;
+    const step = { ArrowUp: 1, ArrowDown: -1, PageUp: 10, PageDown: -10 }[e.key];
+    if (step) {
+      e.preventDefault();
+      setDraft(null);
+      save(segment, ((shown[segment] - min + step) % size + size) % size + min);
+      select(e.currentTarget);
+    } else if (e.key === 'Home' || e.key === 'End') {
+      e.preventDefault();
+      setDraft(null);
+      save(segment, e.key === 'Home' ? min : max);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      finish(segment);
+      move(e.currentTarget, e.key === 'ArrowLeft' ? -1 : 1);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      finish(segment);
+    } else if (e.key === 'Escape' && draft) {
+      e.stopPropagation();
+      setDraft(null);
+    } else if (us && /^[ap]$/i.test(e.key) && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      save('hour', shown.hour, e.key.toLowerCase() === 'p');
+    }
+  };
+
+  const periodKeys = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      save('hour', shown.hour, !pm);
+    } else if (/^[ap]$/i.test(e.key) && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      save('hour', shown.hour, e.key.toLowerCase() === 'p');
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      move(e.currentTarget, e.key === 'ArrowLeft' ? -1 : 1);
+    }
+  };
+
+  const segment = (name: Segment, ref: typeof hourRef, label: string) => {
+    const editing = draft?.segment === name;
+    const text = editing ? draft.text : String(shown[name]).padStart(2, '0');
+    return (
+      <input
+        ref={ref}
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        maxLength={3}
+        role="spinbutton"
+        aria-label={label}
+        aria-valuemin={range[name][0]}
+        aria-valuemax={range[name][1]}
+        aria-valuenow={shown[name]}
+        aria-valuetext={String(shown[name]).padStart(2, '0')}
+        className="tdw-dp-seg"
+        value={text}
+        placeholder="--"
+        onFocus={(e) => e.currentTarget.select()}
+        onChange={type(name)}
+        onKeyDown={keys(name)}
+        onBlur={() => finish(name)}
+      />
+    );
+  };
+
+  return (
+    <div className="tdw-dp-field" role="group" aria-labelledby={labelledBy}>
+      {segment('hour', hourRef, t('hour', 'Hour'))}
+      <span className="tdw-dp-colon" aria-hidden="true">:</span>
+      {segment('minute', minuteRef, t('tdw_dp_minute', 'Minute'))}
+      {us && (
+        <button
+          ref={periodRef}
+          type="button"
+          className="tdw-dp-period"
+          aria-label={`${t('tdw_dp_am_pm', 'AM/PM')}, ${period}`}
+          onClick={() => save('hour', shown.hour, !pm)}
+          onKeyDown={periodKeys}
+        >
+          {period}
+        </button>
+      )}
+    </div>
+  );
+};
 
 // the calendar and the time, in the desktop popover or in the mobile sheet
 export const DatePickerPanel: FC<{
@@ -27,6 +192,8 @@ export const DatePickerPanel: FC<{
   useEffect(() => setUs(isUSCitizen()), []);
   const timeRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const timeLabel = useId();
+  const [announce, setAnnounce] = useState('');
 
   const set = useCallback(
     (day: string, time: string) => onChange(newDayjs(day + ' ' + time)),
@@ -61,11 +228,14 @@ export const DatePickerPanel: FC<{
     return list.sort((a, b) => a - b);
   }, [current]);
 
+  // centre the picked slot on open, and when a typed time moves it out of view
   useEffect(() => {
-    if (!open) return;
-    const el = timeRef.current?.querySelector('[aria-selected="true"]') as HTMLElement | null;
-    if (el && timeRef.current) timeRef.current.scrollTop = el.offsetTop - timeRef.current.clientHeight / 2 + el.clientHeight / 2;
-  }, [open]);
+    const list = timeRef.current;
+    const el = list?.querySelector('[aria-selected="true"]') as HTMLElement | null;
+    if (!open || !list || !el) return;
+    if (el.offsetTop >= list.scrollTop && el.offsetTop + el.clientHeight <= list.scrollTop + list.clientHeight) return;
+    list.scrollTop = el.offsetTop - list.clientHeight / 2 + el.clientHeight / 2;
+  }, [open, current]);
 
   const today = newDayjs();
   const label = (m: number) =>
@@ -133,7 +303,17 @@ export const DatePickerPanel: FC<{
         </div>
       </div>
       <div className="tdw-dp-time">
-        <div className="tdw-dp-time-head">{t('time', 'Time')}</div>
+        <div className="tdw-dp-time-head" id={timeLabel}>{t('time', 'Time')}</div>
+        <TimeField
+          minutes={current}
+          us={us}
+          labelledBy={timeLabel}
+          onCommit={(m) => {
+            pickTime(m);
+            setAnnounce(`${t('time', 'Time')}: ${label(m)}`);
+          }}
+        />
+        <span className="sr-only" aria-live="polite">{announce}</span>
         <div className="tdw-dp-slots" ref={timeRef} role="listbox" aria-label={t('time', 'Time')}>
           {slots.map((m) => (
             <button

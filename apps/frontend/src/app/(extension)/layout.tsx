@@ -7,6 +7,7 @@ import { ReactNode } from 'react';
 import { tadweenFont as jakartaSans } from '@gitroom/frontend/app/fonts';
 import clsx from 'clsx';
 import { VariableContextComponent } from '@gitroom/react/helpers/variable.context';
+import { isGenericOauth } from '@gitroom/helpers/utils/is.generic.oauth';
 import UtmSaver from '@gitroom/helpers/utils/utm.saver';
 
 
@@ -32,7 +33,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           discordUrl={process.env.NEXT_PUBLIC_DISCORD_SUPPORT!}
           frontEndUrl={process.env.FRONTEND_URL!}
           isGeneral={!!process.env.IS_GENERAL}
-          genericOauth={!!process.env.POSTIZ_GENERIC_OAUTH}
+          genericOauth={isGenericOauth()}
           oauthLogoUrl={process.env.NEXT_PUBLIC_POSTIZ_OAUTH_LOGO_URL!}
           oauthDisplayName={process.env.NEXT_PUBLIC_POSTIZ_OAUTH_DISPLAY_NAME!}
           uploadDirectory={process.env.NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY!}

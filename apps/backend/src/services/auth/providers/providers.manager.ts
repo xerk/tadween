@@ -20,4 +20,19 @@ export class AuthProviderManager {
 
     return this._moduleRef.get(found.target, { strict: false });
   }
+
+  // { google: true, github: false, ... } for every registered provider.
+  // Booleans only: client ids and secrets never leave the backend.
+  getConfigured(): Record<string, boolean> {
+    const metadata =
+      Reflect.getMetadata('auth-provider', AuthProviderAbstract) || [];
+
+    return metadata.reduce(
+      (all: Record<string, boolean>, m: any) => ({
+        ...all,
+        [m.provider.toLowerCase()]: this.getProvider(m.provider).isConfigured(),
+      }),
+      {} as Record<string, boolean>
+    );
+  }
 }

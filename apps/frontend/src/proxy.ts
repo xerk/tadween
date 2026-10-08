@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCookieUrlFromDomain } from '@gitroom/helpers/subdomain/subdomain.management';
 import { internalFetch } from '@gitroom/helpers/utils/internal.fetch';
+import { isGenericOauth } from '@gitroom/helpers/utils/is.generic.oauth';
 import acceptLanguage from 'accept-language';
 import {
   cookieName,
@@ -98,7 +99,7 @@ export async function proxy(request: NextRequest) {
       ? ''
       : (url.indexOf('?') > -1 ? '&' : '?') +
         `provider=${(findIndex === 'settings'
-          ? process.env.POSTIZ_GENERIC_OAUTH
+          ? isGenericOauth()
             ? 'generic'
             : 'github'
           : findIndex

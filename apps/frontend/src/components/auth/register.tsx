@@ -6,37 +6,21 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
-import { GithubProvider } from '@gitroom/frontend/components/auth/providers/github.provider';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
-import { GoogleProvider } from '@gitroom/frontend/components/auth/providers/google.provider';
-import { AppleProvider } from '@gitroom/frontend/components/auth/providers/apple.provider';
-import { OauthProvider } from '@gitroom/frontend/components/auth/providers/oauth.provider';
 import { useFireEvents } from '@gitroom/helpers/utils/use.fire.events';
-import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useTrack } from '@gitroom/react/helpers/use.track';
 import { TrackEnum } from '@gitroom/nestjs-libraries/user/track.enum';
-import { FarcasterProvider } from '@gitroom/frontend/components/auth/providers/farcaster.provider';
-import dynamic from 'next/dynamic';
-import { WalletUiProvider } from '@gitroom/frontend/components/auth/providers/placeholder/wallet.ui.provider';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import useCookie from 'react-use-cookie';
+import { SocialProviders } from '@gitroom/frontend/components/auth/providers/social.providers';
 import {
-  AuthDivider,
   AuthField,
   AuthHeading,
   AuthLegal,
-  AuthProviders,
   AuthSubmit,
   AuthSwitch,
 } from '@gitroom/frontend/components/tadween/auth/auth.parts';
-const WalletProvider = dynamic(
-  () => import('@gitroom/frontend/components/auth/providers/wallet.provider'),
-  {
-    ssr: false,
-    loading: () => <WalletUiProvider />,
-  }
-);
 type Inputs = {
   email: string;
   password: string;
@@ -102,13 +86,6 @@ export function RegisterAfter({
   provider: string;
 }) {
   const t = useT();
-  const {
-    isGeneral,
-    genericOauth,
-    neynarClientId,
-    appleClientId,
-    billingEnabled,
-  } = useVariables();
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const fireEvents = useFireEvents();
@@ -184,27 +161,7 @@ export function RegisterAfter({
                 )
           }
         />
-        {!isAfterProvider && (
-          <>
-            <AuthProviders>
-              {!isGeneral ? (
-                <GithubProvider />
-              ) : (
-                <>
-                  {genericOauth && isGeneral ? (
-                    <OauthProvider />
-                  ) : (
-                    <GoogleProvider />
-                  )}
-                  {!!appleClientId && <AppleProvider />}
-                  {!!neynarClientId && <FarcasterProvider />}
-                  {billingEnabled && <WalletProvider />}
-                </>
-              )}
-            </AuthProviders>
-            <AuthDivider />
-          </>
-        )}
+        {!isAfterProvider && <SocialProviders />}
         <div className="tdw-auth-form">
           {!isAfterProvider && (
             <>

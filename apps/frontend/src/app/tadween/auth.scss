@@ -105,7 +105,7 @@ body {
   }
   .tdw-auth-control:hover { color: var(--tdw-foreground); background: var(--tdw-accent); }
   .tdw-auth-control.is-icon { width: 32px; padding: 0; justify-content: center; }
-  .tdw-auth-control span[lang='ar'], .tdw-auth-control:lang(ar) span { font-family: var(--font-plex-arabic), system-ui, sans-serif; }
+  .tdw-auth-control span[lang='ar'], .tdw-auth-control:lang(ar) span { font-family: var(--font-arabic), system-ui, sans-serif; }
 
   // ── Form pane ───────────────────────────────────────────────────────────
   .tdw-auth-main {
@@ -371,7 +371,7 @@ body {
     border-radius: 14px;
     background: var(--li-bg);
     color: var(--li-ink);
-    font-family: var(--font-geist), var(--font-plex-arabic), system-ui, sans-serif;
+    font-family: var(--font-geist), var(--font-arabic), system-ui, sans-serif;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 30px 70px -20px rgba(6, 48, 41, 0.38), 0 10px 24px -12px rgba(6, 48, 41, 0.2);
     animation: tdw-auth-in 700ms var(--tdw-ease-spring) 80ms both, tdw-auth-drift 9s ease-in-out 900ms infinite;
   }
@@ -488,7 +488,7 @@ body {
   .tdw-auth-tagline .is-ar {
     direction: rtl;
     unicode-bidi: isolate;
-    font-family: var(--font-plex-arabic), system-ui, sans-serif;
+    font-family: var(--font-arabic), system-ui, sans-serif;
     font-size: 20px;
     line-height: 30px;
     font-weight: 500;

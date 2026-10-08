@@ -602,7 +602,7 @@ html[dir='rtl'] [dir='ltr'] {
 //
 
 .ProseMirror {
-  font-family: Arial;
+  font-family: Arial, var(--font-arabic), sans-serif;
 }
 
 .ProseMirror:focus {

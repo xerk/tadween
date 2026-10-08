@@ -110,6 +110,12 @@ export class AdminConsoleController {
         supportEmail: body.supportEmail || '',
         defaultLanguage: body.defaultLanguage,
         defaultTimezone: body.defaultTimezone,
+        websiteUrl: body.websiteUrl || '',
+        termsUrl: body.termsUrl || '',
+        privacyUrl: body.privacyUrl || '',
+        docsUrl: body.docsUrl || '',
+        supportUrl: body.supportUrl || '',
+        tutorialVideoUrl: body.tutorialVideoUrl || '',
       },
       this.adminId(req, user)
     );

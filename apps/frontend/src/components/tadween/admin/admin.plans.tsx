@@ -374,7 +374,7 @@ export const AdminPlansPage = () => {
           <EmptyState
             icon="credit-card"
             title="Billing uses Postiz’s built-in pricing"
-            body="Load the four Tadween plans with placeholder prices, then set your real EGP and USD prices before you sell."
+            body="Load the four Tadween plans with placeholder prices, then set your real EGP and USD prices before you sell. Their limits match today’s, so nobody already subscribed loses anything."
             action={
               <Button variant="primary" loading={seeding} loadingLabel="Adding…" onClick={seed}>
                 Add the Tadween plans
@@ -391,7 +391,8 @@ export const AdminPlansPage = () => {
         <>
           <Banner tone="warning" title="Check prices before you sell.">
             The Tadween defaults are placeholders. New Stripe checkouts charge the USD price of the plan for its tier;
-            people already subscribed keep what they pay.
+            people already subscribed keep what they pay. Limits apply to everyone on the tier, so they can’t go below
+            today’s while a workspace is subscribed to it.
           </Banner>
           <Table
             loading={isLoading}
@@ -493,7 +494,7 @@ export const AdminPlansPage = () => {
         open={!!removing}
         onClose={() => setRemoving(null)}
         title={`Delete ${removing?.name || 'plan'}?`}
-        description="It disappears from billing and the pricing page. Workspaces already on its tier keep their subscription and fall back to Postiz’s limits for that tier."
+        description="It disappears from billing and the pricing page. Workspaces already on its tier keep their subscription and fall back to Postiz’s limits for that tier. If those are lower than the plan’s, the plan can’t be deleted while anyone is subscribed."
         confirmLabel="Delete plan"
         onConfirm={async () => {
           try {

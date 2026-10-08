@@ -6,6 +6,7 @@ import {
   IsEmail,
   IsIn,
   IsInt,
+  IsUrl,
   IsObject,
   IsOptional,
   IsString,
@@ -52,6 +53,44 @@ export class BrandingSettingsDto {
   @MaxLength(64)
   @Matches(/^$|^[A-Za-z_]+(\/[A-Za-z0-9_+\-]+)*$/)
   defaultTimezone: string;
+
+  // Public links (terms, docs…); empty hides the link in the app
+
+  @IsOptional()
+  @ValidateIf((o) => !!o.websiteUrl)
+  @IsUrl({ require_protocol: true, require_tld: false, protocols: ['http', 'https'] })
+  @MaxLength(500)
+  websiteUrl?: string;
+
+  @IsOptional()
+  @ValidateIf((o) => !!o.termsUrl)
+  @IsUrl({ require_protocol: true, require_tld: false, protocols: ['http', 'https'] })
+  @MaxLength(500)
+  termsUrl?: string;
+
+  @IsOptional()
+  @ValidateIf((o) => !!o.privacyUrl)
+  @IsUrl({ require_protocol: true, require_tld: false, protocols: ['http', 'https'] })
+  @MaxLength(500)
+  privacyUrl?: string;
+
+  @IsOptional()
+  @ValidateIf((o) => !!o.docsUrl)
+  @IsUrl({ require_protocol: true, require_tld: false, protocols: ['http', 'https'] })
+  @MaxLength(500)
+  docsUrl?: string;
+
+  @IsOptional()
+  @ValidateIf((o) => !!o.supportUrl)
+  @IsUrl({ require_protocol: true, require_tld: false, protocols: ['http', 'https'] })
+  @MaxLength(500)
+  supportUrl?: string;
+
+  @IsOptional()
+  @ValidateIf((o) => !!o.tutorialVideoUrl)
+  @IsUrl({ require_protocol: true, require_tld: false, protocols: ['http', 'https'] })
+  @MaxLength(500)
+  tutorialVideoUrl?: string;
 }
 
 // ── Providers ────────────────────────────────────────────────────────────────

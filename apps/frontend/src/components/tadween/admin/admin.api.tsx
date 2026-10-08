@@ -37,6 +37,12 @@ export interface Branding {
   supportEmail: string;
   defaultLanguage: string;
   defaultTimezone: string;
+  websiteUrl: string;
+  termsUrl: string;
+  privacyUrl: string;
+  docsUrl: string;
+  supportUrl: string;
+  tutorialVideoUrl: string;
 }
 
 export interface AdminSettings {

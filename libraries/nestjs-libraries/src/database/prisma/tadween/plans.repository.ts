@@ -1,6 +1,7 @@
 import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { PlanDto } from '@gitroom/nestjs-libraries/dtos/tadween/admin.console.dto';
+import { SubscriptionTier } from '@prisma/client';
 
 // Only the fields the DTO describes reach the database (ValidationPipe does
 // not strip unknown keys).
@@ -28,7 +29,18 @@ const toData = (body: PlanDto) => ({
 
 @Injectable()
 export class PlansRepository {
-  constructor(private _plans: PrismaRepository<'plan'>) {}
+  constructor(
+    private _plans: PrismaRepository<'plan'>,
+    private _subscriptions: PrismaRepository<'subscription'>
+  ) {}
+
+  // Workspaces whose limits come from this tier (lifetime and cancelling ones
+  // included: they keep the tier until it ends).
+  countSubscriptions(tier: SubscriptionTier) {
+    return this._subscriptions.model.subscription.count({
+      where: { subscriptionTier: tier, deletedAt: null },
+    });
+  }
 
   list(onlyActive: boolean) {
     return this._plans.model.plan.findMany({

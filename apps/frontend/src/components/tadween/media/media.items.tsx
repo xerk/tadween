@@ -4,9 +4,11 @@ import React, {
   FC,
   MouseEvent,
   ReactNode,
+  useCallback,
   useRef,
   useState,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Icon, Popover } from '@gitroom/frontend/components/tadween/ui';
@@ -209,7 +211,7 @@ export const MediaTile: FC<
           </button>
         )}
       </div>
-      <div className="tdw-media-tile-name" title={name}>
+      <div className="tdw-media-tile-name" title={name} dir="auto">
         {name}
       </div>
       {!picker && !!media.usedIn && (
@@ -317,15 +319,31 @@ export const FolderTile: FC<{
       <span className="tdw-media-folder-icon" aria-hidden="true">
         <Icon name="folder" size={list ? 18 : 20} />
       </span>
-      <span className="tdw-media-folder-name" title={folder.name}>
-        {folder.name}
-      </span>
-      {list ? extra : null}
-      {!list && (
-        <span className="tdw-media-folder-count">
-          {t('tdw_media_items_count', '{{count}} items', {
-            count,
-          })}
+      {list ? (
+        <>
+          <span
+            className="tdw-media-folder-name"
+            title={folder.name}
+            dir="auto"
+          >
+            {folder.name}
+          </span>
+          {extra}
+        </>
+      ) : (
+        <span className="tdw-media-folder-text">
+          <span
+            className="tdw-media-folder-name"
+            title={folder.name}
+            dir="auto"
+          >
+            {folder.name}
+          </span>
+          <span className="tdw-media-folder-count">
+            {t('tdw_media_items_count', '{{count}} items', {
+              count,
+            })}
+          </span>
         </span>
       )}
       <ItemMenu
@@ -338,16 +356,26 @@ export const FolderTile: FC<{
   );
 };
 
-const formatDate = (date: string) => {
-  try {
-    return new Intl.DateTimeFormat(document.documentElement.lang || undefined, {
-      dateStyle: 'medium',
-    }).format(new Date(date));
-  } catch (err) {
-    return new Date(date).toLocaleDateString();
-  }
+// in the app's language, with Latin digits for Arabic like the Today page
+export const useFormatDate = () => {
+  const { i18n } = useTranslation();
+  return useCallback(
+    (date: string) => {
+      const lang = (i18n.resolvedLanguage || 'en').replace('_', '-');
+      try {
+        return new Intl.DateTimeFormat(
+          lang === 'ar' ? 'ar-EG-u-nu-latn' : lang,
+          { dateStyle: 'medium' }
+        ).format(new Date(date));
+      } catch (err) {
+        return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(
+          new Date(date)
+        );
+      }
+    },
+    [i18n.resolvedLanguage]
+  );
 };
-export { formatDate };
 
 export const kindLabel = (t: ReturnType<typeof useT>, path: string) => {
   switch (mediaKind(path)) {
@@ -387,6 +415,7 @@ export const MediaRow: FC<
     getMediaMeta(media.path)
   );
   const size = useMediaSize(media);
+  const formatDate = useFormatDate();
   const name = mediaName(media);
   return (
     <div
@@ -429,20 +458,26 @@ export const MediaRow: FC<
         <MediaThumb media={media} onMeta={setMeta} />
       </span>
       <span className="tdw-media-row-name">
-        <span className="tdw-media-row-title" title={name}>
+        <span className="tdw-media-row-title" title={name} dir="auto">
           {name}
         </span>
         <span className="tdw-media-row-sub">
-          {kindLabel(t, media.path)} · {formatDate(media.createdAt)}
+          {kindLabel(t, media.path)} · <bdi>{formatDate(media.createdAt)}</bdi>
         </span>
       </span>
       <span className="tdw-media-col is-type">{kindLabel(t, media.path)}</span>
-      <span className="tdw-media-col is-size">{formatBytes(size) || '—'}</span>
-      <span className="tdw-media-col is-dims">
-        {meta?.width ? `${meta.width} × ${meta.height}` : '—'}
-        {meta?.duration ? ` · ${formatDuration(meta.duration)}` : ''}
+      <span className="tdw-media-col is-size">
+        <bdi>{formatBytes(size) || '—'}</bdi>
       </span>
-      <span className="tdw-media-col is-date">{formatDate(media.createdAt)}</span>
+      <span className="tdw-media-col is-dims">
+        <bdi>
+          {meta?.width ? `${meta.width} × ${meta.height}` : '—'}
+          {meta?.duration ? ` · ${formatDuration(meta.duration)}` : ''}
+        </bdi>
+      </span>
+      <span className="tdw-media-col is-date">
+        {formatDate(media.createdAt)}
+      </span>
       {!picker && (
         <span className="tdw-media-col is-used">
           {media.usedIn

@@ -167,10 +167,7 @@ const PageDetails: FC<
   const { integrations } = useTodayIntegrations();
   const { edit } = useTodayActions(integrations, reload);
   return (
-    <MediaDetails
-      {...props}
-      onOpenPost={(group) => edit({ group } as any)()}
-    />
+    <MediaDetails {...props} onOpenPost={(group) => edit({ group } as any)()} />
   );
 };
 
@@ -328,7 +325,8 @@ export const MediaLibrary: FC<{
   const fail = useCallback(
     (err: any) =>
       toaster.show(
-        err?.message || t('tdw_media_something_wrong', 'Something went wrong, try again'),
+        err?.message ||
+          t('tdw_media_something_wrong', 'Something went wrong, try again'),
         'warning'
       ),
     [toaster, t]
@@ -338,7 +336,8 @@ export const MediaLibrary: FC<{
     folder.mediaCount + (index.children.get(folder.id)?.length || 0);
 
   const folderLabel = useCallback(
-    (id: DropTarget) => (id ? index.byId.get(id)?.name || rootLabel : rootLabel),
+    (id: DropTarget) =>
+      id ? index.byId.get(id)?.name || rootLabel : rootLabel,
     [index, rootLabel]
   );
 
@@ -366,7 +365,10 @@ export const MediaLibrary: FC<{
     async (id: string, target: DropTarget) => {
       if (id === target || (target && index.isInside(target, id))) {
         toaster.show(
-          t('tdw_media_cannot_move_into_itself', 'A folder can’t go inside itself'),
+          t(
+            'tdw_media_cannot_move_into_itself',
+            'A folder can’t go inside itself'
+          ),
           'warning'
         );
         return;
@@ -393,7 +395,9 @@ export const MediaLibrary: FC<{
         setSheetOpen(false);
         setLightbox(null);
         toaster.show(
-          t('tdw_media_deleted_count', 'Deleted {{count}} files', { count: ids.length }),
+          t('tdw_media_deleted_count', 'Deleted {{count}} files', {
+            count: ids.length,
+          }),
           'success'
         );
       } catch (err) {
@@ -644,9 +648,8 @@ export const MediaLibrary: FC<{
 
   const columns = () => {
     if (view === 'list') return 1;
-    const tiles = scrollRef.current?.querySelectorAll<HTMLElement>(
-      '.tdw-media-tile'
-    );
+    const tiles =
+      scrollRef.current?.querySelectorAll<HTMLElement>('.tdw-media-tile');
     if (!tiles?.length) return 1;
     const top = tiles[0].offsetTop;
     let n = 0;
@@ -684,7 +687,11 @@ export const MediaLibrary: FC<{
     } else if (e.key === 'Enter' && media[focus]) {
       e.preventDefault();
       setLightbox(focus);
-    } else if ((e.key === 'Delete' || e.key === 'Backspace') && !picker && selected.length) {
+    } else if (
+      (e.key === 'Delete' || e.key === 'Backspace') &&
+      !picker &&
+      selected.length
+    ) {
       e.preventDefault();
       setConfirm({ kind: 'media', ids: selectedIds });
     } else if (e.key === 'Escape' && selected.length && !picker) {
@@ -703,7 +710,9 @@ export const MediaLibrary: FC<{
   const filtered = kind !== 'all' || usage !== 'all';
   const empty = !loading && !media.length && !visibleFolders.length;
 
-  const detailsActions = (item: LibraryMedia): Omit<DetailsActions, 'onOpenPost'> => ({
+  const detailsActions = (
+    item: LibraryMedia
+  ): Omit<DetailsActions, 'onOpenPost'> => ({
     onRename: async (name) => {
       try {
         await actions.renameMedia(item.id, name);
@@ -729,10 +738,22 @@ export const MediaLibrary: FC<{
   });
 
   const sortOptions = [
-    { value: 'newest' as MediaSort, label: t('tdw_media_sort_newest', 'Newest first') },
-    { value: 'oldest' as MediaSort, label: t('tdw_media_sort_oldest', 'Oldest first') },
-    { value: 'name-asc' as MediaSort, label: t('tdw_media_sort_name_asc', 'Name A to Z') },
-    { value: 'name-desc' as MediaSort, label: t('tdw_media_sort_name_desc', 'Name Z to A') },
+    {
+      value: 'newest' as MediaSort,
+      label: t('tdw_media_sort_newest', 'Newest first'),
+    },
+    {
+      value: 'oldest' as MediaSort,
+      label: t('tdw_media_sort_oldest', 'Oldest first'),
+    },
+    {
+      value: 'name-asc' as MediaSort,
+      label: t('tdw_media_sort_name_asc', 'Name A to Z'),
+    },
+    {
+      value: 'name-desc' as MediaSort,
+      label: t('tdw_media_sort_name_desc', 'Name Z to A'),
+    },
   ];
   const kindOptions: { value: MediaTypeFilter; label: string }[] = [
     { value: 'all', label: t('tdw_media_filter_all', 'All') },
@@ -741,9 +762,18 @@ export const MediaLibrary: FC<{
     { value: 'gif', label: t('tdw_media_filter_gifs', 'GIFs') },
   ];
   const usageOptions = [
-    { value: 'all' as MediaUsageFilter, label: t('tdw_media_usage_all', 'Any use') },
-    { value: 'used' as MediaUsageFilter, label: t('tdw_media_usage_used', 'Used in posts') },
-    { value: 'unused' as MediaUsageFilter, label: t('tdw_media_usage_unused', 'Not used yet') },
+    {
+      value: 'all' as MediaUsageFilter,
+      label: t('tdw_media_usage_all', 'Any use'),
+    },
+    {
+      value: 'used' as MediaUsageFilter,
+      label: t('tdw_media_usage_used', 'Used in posts'),
+    },
+    {
+      value: 'unused' as MediaUsageFilter,
+      label: t('tdw_media_usage_unused', 'Not used yet'),
+    },
   ];
 
   const uploadControls = (
@@ -753,7 +783,13 @@ export const MediaLibrary: FC<{
         type="file"
         multiple
         hidden
-        accept={type === 'image' ? 'image/*' : type === 'video' ? 'video/mp4,video/quicktime' : 'image/*,video/mp4,video/quicktime'}
+        accept={
+          type === 'image'
+            ? 'image/*'
+            : type === 'video'
+            ? 'video/mp4,video/quicktime'
+            : 'image/*,video/mp4,video/quicktime'
+        }
         onChange={(e) => {
           enqueue(Array.from(e.target.files || []).map((file) => ({ file })));
           e.target.value = '';
@@ -769,7 +805,10 @@ export const MediaLibrary: FC<{
           enqueue(
             Array.from(e.target.files || []).map((file) => ({
               file,
-              dir: (file.webkitRelativePath || '').split('/').slice(0, -1).join('/'),
+              dir: (file.webkitRelativePath || '')
+                .split('/')
+                .slice(0, -1)
+                .join('/'),
             }))
           );
           e.target.value = '';
@@ -833,7 +872,10 @@ export const MediaLibrary: FC<{
           title={t('tdw_media_no_results', 'No results for “{{query}}”', {
             query: debouncedSearch.trim(),
           })}
-          body={t('tdw_media_no_results_body', 'Try another name, or clear the search.')}
+          body={t(
+            'tdw_media_no_results_body',
+            'Try another name, or clear the search.'
+          )}
           action={
             <Button size="sm" onClick={() => setSearch('')}>
               {t('tdw_media_clear_search', 'Clear search')}
@@ -881,7 +923,12 @@ export const MediaLibrary: FC<{
               )
         }
         action={
-          <Button variant="primary" size="sm" icon="upload" onClick={() => fileInput.current?.click()}>
+          <Button
+            variant="primary"
+            size="sm"
+            icon="upload"
+            onClick={() => fileInput.current?.click()}
+          >
             {t('upload', 'Upload')}
           </Button>
         }
@@ -909,11 +956,18 @@ export const MediaLibrary: FC<{
       onPointerCancel={onPointerUp}
     >
       {loading ? (
-        <div className={view === 'grid' ? 'tdw-media-grid' : 'tdw-media-list'} aria-busy="true">
+        <div
+          className={view === 'grid' ? 'tdw-media-grid' : 'tdw-media-list'}
+          aria-busy="true"
+        >
           {[...Array(view === 'grid' ? 12 : 8)].map((_, i) =>
             view === 'grid' ? (
               <div key={i} className="tdw-media-tile is-skeleton">
-                <Skeleton height="100%" radius={12} className="tdw-media-skeleton" />
+                <Skeleton
+                  height="100%"
+                  radius={12}
+                  className="tdw-media-skeleton"
+                />
                 <Skeleton width="70%" height={12} />
               </div>
             ) : (
@@ -930,7 +984,9 @@ export const MediaLibrary: FC<{
         <>
           {!!visibleFolders.length && (
             <>
-              <h3 className="tdw-media-section">{t('tdw_media_folders', 'Folders')}</h3>
+              <h3 className="tdw-media-section">
+                {t('tdw_media_folders', 'Folders')}
+              </h3>
               <div className="tdw-media-folders">
                 {visibleFolders.map((folder) => (
                   <FolderTile
@@ -951,7 +1007,9 @@ export const MediaLibrary: FC<{
           {!!media.length && (
             <>
               {!!visibleFolders.length && (
-                <h3 className="tdw-media-section">{t('tdw_media_files', 'Files')}</h3>
+                <h3 className="tdw-media-section">
+                  {t('tdw_media_files', 'Files')}
+                </h3>
               )}
               <div className="tdw-media-grid">
                 {media.map((item, i) => (
@@ -981,12 +1039,26 @@ export const MediaLibrary: FC<{
           <div className="tdw-media-row is-head" aria-hidden="true">
             <span />
             <span />
-            <span className="tdw-media-row-name">{t('tdw_media_name', 'Name')}</span>
-            <span className="tdw-media-col is-type">{t('tdw_media_type', 'Type')}</span>
-            <span className="tdw-media-col is-size">{t('tdw_media_size', 'Size')}</span>
-            <span className="tdw-media-col is-dims">{t('tdw_media_dimensions', 'Dimensions')}</span>
-            <span className="tdw-media-col is-date">{t('tdw_media_uploaded', 'Uploaded')}</span>
-            {!picker && <span className="tdw-media-col is-used">{t('tdw_media_used_in', 'Used in posts')}</span>}
+            <span className="tdw-media-row-name">
+              {t('tdw_media_name', 'Name')}
+            </span>
+            <span className="tdw-media-col is-type">
+              {t('tdw_media_type', 'Type')}
+            </span>
+            <span className="tdw-media-col is-size">
+              {t('tdw_media_size', 'Size')}
+            </span>
+            <span className="tdw-media-col is-dims">
+              {t('tdw_media_dimensions', 'Dimensions')}
+            </span>
+            <span className="tdw-media-col is-date">
+              {t('tdw_media_uploaded', 'Uploaded')}
+            </span>
+            {!picker && (
+              <span className="tdw-media-col is-used">
+                {t('tdw_media_used_in', 'Used in posts')}
+              </span>
+            )}
           </div>
           {visibleFolders.map((folder) => (
             <FolderTile
@@ -1002,7 +1074,9 @@ export const MediaLibrary: FC<{
               drop={drop}
               extra={
                 <span className="tdw-media-col is-type">
-                  {t('tdw_media_items_count', '{{count}} items', { count: folderCount(folder) })}
+                  {t('tdw_media_items_count', '{{count}} items', {
+                    count: folderCount(folder),
+                  })}
                 </span>
               }
             />
@@ -1041,29 +1115,69 @@ export const MediaLibrary: FC<{
     </div>
   );
 
-  const bulkBar = !picker && (selected.length > 1 || (selected.length && (phone || selecting))) ? (
-    <div className="tdw-media-bulk" role="toolbar" aria-label={t('tdw_media_selection', 'Selection')}>
-      <IconButton icon="x" label={t('tdw_media_clear_selection', 'Clear selection')} onClick={clearSelection} />
-      <span className="tdw-media-bulk-count">
-        {t('tdw_media_selected_count', '{{count}} selected', { count: selected.length })}
-      </span>
-      <span className="tdw-media-bulk-actions">
-        <Button size="sm" variant="ghost" icon="folder-input" onClick={() => setMoving({ kind: 'media', ids: selectedIds })}>
-          <span className="tdw-media-bulk-label">{t('tdw_media_move', 'Move')}</span>
-        </Button>
-        <Button size="sm" variant="ghost" icon="download" onClick={() => downloadAll(selected)}>
-          <span className="tdw-media-bulk-label">{t('tdw_media_download', 'Download')}</span>
-        </Button>
-        <Button size="sm" variant="ghost" icon="trash-2" className="is-danger" onClick={() => setConfirm({ kind: 'media', ids: selectedIds })}>
-          <span className="tdw-media-bulk-label">{t('delete', 'Delete')}</span>
-        </Button>
-      </span>
-    </div>
-  ) : null;
+  // phones get the bar in select mode, desktops once more than one is selected
+  const bulkBar =
+    !picker && (phone ? selecting : selected.length > 1) ? (
+      <div
+        className="tdw-media-bulk"
+        role="toolbar"
+        aria-label={t('tdw_media_selection', 'Selection')}
+      >
+        <IconButton
+          icon="x"
+          label={t('tdw_media_clear_selection', 'Clear selection')}
+          onClick={clearSelection}
+        />
+        <span className="tdw-media-bulk-count">
+          {t('tdw_media_selected_count', '{{count}} selected', {
+            count: selected.length,
+          })}
+        </span>
+        <span className="tdw-media-bulk-actions">
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={!selected.length}
+            icon="folder-input"
+            onClick={() => setMoving({ kind: 'media', ids: selectedIds })}
+          >
+            <span className="tdw-media-bulk-label">
+              {t('tdw_media_move', 'Move')}
+            </span>
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={!selected.length}
+            icon="download"
+            onClick={() => downloadAll(selected)}
+          >
+            <span className="tdw-media-bulk-label">
+              {t('tdw_media_download', 'Download')}
+            </span>
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={!selected.length}
+            icon="trash-2"
+            className="is-danger"
+            onClick={() => setConfirm({ kind: 'media', ids: selectedIds })}
+          >
+            <span className="tdw-media-bulk-label">
+              {t('delete', 'Delete')}
+            </span>
+          </Button>
+        </span>
+      </div>
+    ) : null;
 
   const detailsPane =
     !picker && !phone && showDetails ? (
-      <aside className="tdw-media-side" aria-label={t('tdw_media_details', 'Details')}>
+      <aside
+        className="tdw-media-side"
+        aria-label={t('tdw_media_details', 'Details')}
+      >
         {single ? (
           <PageDetails
             media={single}
@@ -1078,13 +1192,21 @@ export const MediaLibrary: FC<{
               icon={selected.length ? 'layers' : 'info'}
               title={
                 selected.length
-                  ? t('tdw_media_selected_count', '{{count}} selected', { count: selected.length })
+                  ? t('tdw_media_selected_count', '{{count}} selected', {
+                      count: selected.length,
+                    })
                   : currentName
               }
               body={
                 selected.length
-                  ? t('tdw_media_bulk_hint', 'Move, download or delete them together from the bar above.')
-                  : t('tdw_media_details_hint', 'Select a file to see its details, where it’s used and its alt text.')
+                  ? t(
+                      'tdw_media_bulk_hint',
+                      'Move, download or delete them together from the bar above.'
+                    )
+                  : t(
+                      'tdw_media_details_hint',
+                      'Select a file to see its details, where it’s used and its alt text.'
+                    )
               }
             />
           </div>
@@ -1110,7 +1232,11 @@ export const MediaLibrary: FC<{
             setFolderId(id);
           }}
           drop={drop}
-          rootLabel={searching ? t('tdw_media_search_results', 'Search results') : rootLabel}
+          rootLabel={
+            searching
+              ? t('tdw_media_search_results', 'Search results')
+              : rootLabel
+          }
         />
         <div className="tdw-media-bar-end">
           <label className="tdw-media-search">
@@ -1141,12 +1267,19 @@ export const MediaLibrary: FC<{
       {bulkBar || (
         <div className="tdw-media-filters">
           {!type && (
-            <div className="tdw-media-chips" role="group" aria-label={t('tdw_media_type', 'Type')}>
+            <div
+              className="tdw-media-chips"
+              role="group"
+              aria-label={t('tdw_media_type', 'Type')}
+            >
               {kindOptions.map((option) => (
                 <button
                   key={option.value}
                   type="button"
-                  className={clsx('tdw-media-chip', kind === option.value && 'is-on')}
+                  className={clsx(
+                    'tdw-media-chip',
+                    kind === option.value && 'is-on'
+                  )}
                   aria-pressed={kind === option.value}
                   onClick={() => setKind(option.value)}
                 >
@@ -1164,6 +1297,7 @@ export const MediaLibrary: FC<{
                 value={usage}
                 onChange={setUsage}
                 width={160}
+                className="tdw-media-select"
               />
             )}
             <Select
@@ -1174,6 +1308,7 @@ export const MediaLibrary: FC<{
               value={sort}
               onChange={setSort}
               width={160}
+              className="tdw-media-select"
             />
             <SegmentedControl
               size="sm"
@@ -1184,8 +1319,20 @@ export const MediaLibrary: FC<{
                 store(VIEW_KEY, v);
               }}
               options={[
-                { value: 'grid', label: <span className="pz-sr">{t('tdw_media_grid', 'Grid')}</span>, icon: 'layout-grid' },
-                { value: 'list', label: <span className="pz-sr">{t('tdw_media_list', 'List')}</span>, icon: 'list' },
+                {
+                  value: 'grid',
+                  label: (
+                    <span className="pz-sr">{t('tdw_media_grid', 'Grid')}</span>
+                  ),
+                  icon: 'layout-grid',
+                },
+                {
+                  value: 'list',
+                  label: (
+                    <span className="pz-sr">{t('tdw_media_list', 'List')}</span>
+                  ),
+                  icon: 'list',
+                },
               ]}
             />
             {!picker && phone && (
@@ -1194,7 +1341,9 @@ export const MediaLibrary: FC<{
                 variant={selecting ? 'primary' : 'ghost'}
                 label={t('tdw_media_select_mode', 'Select')}
                 aria-pressed={selecting}
-                onClick={() => (selecting ? clearSelection() : setSelecting(true))}
+                onClick={() =>
+                  selecting ? clearSelection() : setSelecting(true)
+                }
               />
             )}
             {!picker && !phone && (
@@ -1232,9 +1381,13 @@ export const MediaLibrary: FC<{
             <div className="tdw-media-dropzone" aria-hidden="true">
               <div className="tdw-media-dropzone-card">
                 <Icon name="upload" size={28} />
-                <strong>{t('tdw_media_drop_to_upload', 'Drop to upload')}</strong>
+                <strong>
+                  {t('tdw_media_drop_to_upload', 'Drop to upload')}
+                </strong>
                 <span>
-                  {t('tdw_media_drop_into', 'Into {{folder}}', { folder: currentName })}
+                  {t('tdw_media_drop_into', 'Into {{folder}}', {
+                    folder: currentName,
+                  })}
                 </span>
               </div>
             </div>
@@ -1257,7 +1410,9 @@ export const MediaLibrary: FC<{
         <div className="tdw-media-picker-foot">
           <span className="tdw-media-picker-count">
             {selected.length
-              ? t('tdw_media_selected_count', '{{count}} selected', { count: selected.length })
+              ? t('tdw_media_selected_count', '{{count}} selected', {
+                  count: selected.length,
+                })
               : t('tdw_media_pick_hint', 'Pick one or more files')}
           </span>
           {!!selected.length && (
@@ -1303,7 +1458,10 @@ export const MediaLibrary: FC<{
       {!picker && phone && single && (
         <TadweenSheet
           open={sheetOpen && !selecting}
-          onClose={() => setSheetOpen(false)}
+          onClose={() => {
+            setSheetOpen(false);
+            setSelected([]);
+          }}
           title={mediaName(single)}
           detent="large"
           className="tdw-media-sheet"
@@ -1363,7 +1521,9 @@ export const MediaLibrary: FC<{
         rootLabel={rootLabel}
         title={
           moving?.kind === 'folder'
-            ? t('tdw_media_move_folder_title', 'Move “{{name}}”', { name: moving.folder.name })
+            ? t('tdw_media_move_folder_title', 'Move “{{name}}”', {
+                name: moving.folder.name,
+              })
             : t('tdw_media_move_count_title', 'Move {{count}} files', {
                 count: moving?.kind === 'media' ? moving.ids.length : 0,
               })
@@ -1377,11 +1537,13 @@ export const MediaLibrary: FC<{
         }
         disabled={
           moving?.kind === 'folder'
-            ? (id) => id === moving.folder.id || index.isInside(id, moving.folder.id)
+            ? (id) =>
+                id === moving.folder.id || index.isInside(id, moving.folder.id)
             : undefined
         }
         onMove={async (target) => {
-          if (moving?.kind === 'folder') await moveFolder(moving.folder.id, target);
+          if (moving?.kind === 'folder')
+            await moveFolder(moving.folder.id, target);
           if (moving?.kind === 'media') await moveMedia(moving.ids, target);
         }}
       />
@@ -1390,7 +1552,9 @@ export const MediaLibrary: FC<{
         onClose={() => setConfirm(null)}
         title={
           confirm?.kind === 'folder'
-            ? t('tdw_media_delete_folder_title', 'Delete “{{name}}”?', { name: confirm.folder.name })
+            ? t('tdw_media_delete_folder_title', 'Delete “{{name}}”?', {
+                name: confirm.folder.name,
+              })
             : t('tdw_media_delete_title', 'Delete {{count}} files?', {
                 count: confirm?.kind === 'media' ? confirm.ids.length : 0,
               })
@@ -1413,7 +1577,8 @@ export const MediaLibrary: FC<{
           if (confirm?.kind === 'folder') {
             try {
               await actions.deleteFolder(confirm.folder.id);
-              if (folderId === confirm.folder.id) setFolderId(confirm.folder.parentId);
+              if (folderId === confirm.folder.id)
+                setFolderId(confirm.folder.parentId);
               reload();
             } catch (err) {
               fail(err);

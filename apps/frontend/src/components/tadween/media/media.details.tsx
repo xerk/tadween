@@ -24,7 +24,7 @@ import {
   useMediaUsage,
 } from '@gitroom/frontend/components/tadween/media/media.hooks';
 import {
-  formatDate,
+  useFormatDate,
   getMediaMeta,
   kindLabel,
   MediaMeta,
@@ -97,7 +97,9 @@ const InlineName: FC<{
   if (!editing) {
     return (
       <div className="tdw-media-details-name">
-        <h2 title={value}>{value}</h2>
+        <h2 title={value} dir="auto">
+          {value}
+        </h2>
         <IconButton
           icon="pencil"
           size="sm"
@@ -141,10 +143,10 @@ const InlineName: FC<{
   );
 };
 
-const AltText: FC<{ media: LibraryMedia; onSave: (alt: string) => Promise<void> }> = ({
-  media,
-  onSave,
-}) => {
+const AltText: FC<{
+  media: LibraryMedia;
+  onSave: (alt: string) => Promise<void>;
+}> = ({ media, onSave }) => {
   const t = useT();
   const [alt, setAlt] = useState(media.alt || '');
   const [busy, setBusy] = useState(false);
@@ -168,7 +170,11 @@ const AltText: FC<{ media: LibraryMedia; onSave: (alt: string) => Promise<void> 
       />
       {dirty && (
         <div className="tdw-media-details-alt-actions">
-          <Button size="sm" variant="ghost" onClick={() => setAlt(media.alt || '')}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setAlt(media.alt || '')}
+          >
             {t('cancel', 'Cancel')}
           </Button>
           <Button
@@ -192,16 +198,17 @@ const AltText: FC<{ media: LibraryMedia; onSave: (alt: string) => Promise<void> 
   );
 };
 
-const UsedIn: FC<{ media: LibraryMedia; onOpenPost?: (group: string) => void }> = ({
-  media,
-  onOpenPost,
-}) => {
+const UsedIn: FC<{
+  media: LibraryMedia;
+  onOpenPost?: (group: string) => void;
+}> = ({ media, onOpenPost }) => {
   const t = useT();
   const { data, isLoading } = useMediaUsage(media.id);
+  const formatDate = useFormatDate();
   return (
     <section className="tdw-media-details-used">
       <h3>
-        {isLoading
+        {isLoading || !data?.length
           ? t('tdw_media_used_in', 'Used in posts')
           : t('tdw_media_used_in_n', 'Used in {{count}} posts', {
               count: data?.length || 0,
@@ -234,7 +241,8 @@ const UsedIn: FC<{ media: LibraryMedia; onOpenPost?: (group: string) => void }> 
               </span>
               <span className="tdw-media-usage-text">
                 <span className="tdw-media-usage-content">
-                  {usage.content.trim() || t('tdw_media_post_no_text', 'Post without text')}
+                  {usage.content.trim() ||
+                    t('tdw_media_post_no_text', 'Post without text')}
                 </span>
                 <span className="tdw-media-usage-meta">
                   <span className={clsx('pz-status', stateClass[usage.state])}>
@@ -269,9 +277,12 @@ export const MediaDetails: FC<
 }) => {
   const t = useT();
   const toaster = useToaster();
-  const [meta, setMeta] = useState<MediaMeta | undefined>(getMediaMeta(media.path));
+  const [meta, setMeta] = useState<MediaMeta | undefined>(
+    getMediaMeta(media.path)
+  );
   useEffect(() => setMeta(getMediaMeta(media.path)), [media.path]);
   const size = useMediaSize(media);
+  const formatDate = useFormatDate();
   const kind = mediaKind(media.path);
 
   const facts: [string, string][] = [
@@ -282,10 +293,12 @@ export const MediaDetails: FC<
       meta?.width ? `${meta.width} × ${meta.height}` : '—',
     ],
     ...(kind === 'video'
-      ? ([[t('tdw_media_duration', 'Duration'), formatDuration(meta?.duration) || '—']] as [
-          string,
-          string
-        ][])
+      ? ([
+          [
+            t('tdw_media_duration', 'Duration'),
+            formatDuration(meta?.duration) || '—',
+          ],
+        ] as [string, string][])
       : []),
     [t('tdw_media_uploaded', 'Uploaded'), formatDate(media.createdAt)],
     [t('tdw_media_location', 'Location'), folderName],
@@ -336,9 +349,15 @@ export const MediaDetails: FC<
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(media.path);
-              toaster.show(t('tdw_media_link_copied', 'Link copied'), 'success');
+              toaster.show(
+                t('tdw_media_link_copied', 'Link copied'),
+                'success'
+              );
             } catch (err) {
-              toaster.show(t('tdw_media_link_not_copied', 'Could not copy the link'), 'warning');
+              toaster.show(
+                t('tdw_media_link_not_copied', 'Could not copy the link'),
+                'warning'
+              );
             }
           }}
         />
@@ -360,7 +379,9 @@ export const MediaDetails: FC<
         {facts.map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>
-            <dd>{value}</dd>
+            <dd>
+              <bdi>{value}</bdi>
+            </dd>
           </div>
         ))}
       </dl>
@@ -427,7 +448,11 @@ export const MediaLightbox: FC<{
           {kind !== 'video' && (
             <IconButton
               icon={zoom ? 'zoom-out' : 'zoom-in'}
-              label={zoom ? t('tdw_media_zoom_out', 'Zoom out') : t('tdw_media_zoom_in', 'Zoom in')}
+              label={
+                zoom
+                  ? t('tdw_media_zoom_out', 'Zoom out')
+                  : t('tdw_media_zoom_in', 'Zoom in')
+              }
               onClick={() => setZoom(!zoom)}
             />
           )}
@@ -436,7 +461,11 @@ export const MediaLightbox: FC<{
             label={t('tdw_media_download', 'Download')}
             onClick={() => onDownload(media)}
           />
-          <IconButton icon="x" label={t('tdw_media_close', 'Close')} onClick={onClose} />
+          <IconButton
+            icon="x"
+            label={t('tdw_media_close', 'Close')}
+            onClick={onClose}
+          />
         </header>
         <div
           className={clsx('tdw-media-lightbox-stage', zoom && 'is-zoomed')}
@@ -445,7 +474,13 @@ export const MediaLightbox: FC<{
           }}
         >
           {kind === 'video' ? (
-            <video key={media.id} src={media.path} controls autoPlay playsInline />
+            <video
+              key={media.id}
+              src={media.path}
+              controls
+              autoPlay
+              playsInline
+            />
           ) : (
             <img
               key={media.id}

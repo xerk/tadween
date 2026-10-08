@@ -267,7 +267,10 @@ export const FolderTree: FC<{
     });
 
   return (
-    <nav className="tdw-media-tree" aria-label={t('tdw_media_folders', 'Folders')}>
+    <nav
+      className="tdw-media-tree"
+      aria-label={t('tdw_media_folders', 'Folders')}
+    >
       <div
         className={clsx(
           'tdw-media-tree-row is-root',
@@ -335,7 +338,10 @@ export const FolderNameDialog: FC<{
       await onSubmit(name.trim());
       onClose();
     } catch (err: any) {
-      setError(err?.message || t('tdw_media_something_wrong', 'Something went wrong, try again'));
+      setError(
+        err?.message ||
+          t('tdw_media_something_wrong', 'Something went wrong, try again')
+      );
     } finally {
       setBusy(false);
     }
@@ -387,7 +393,16 @@ export const MoveToDialog: FC<{
   disabled?: (id: string) => boolean;
   onMove: (folderId: DropTarget) => Promise<void>;
   rootLabel: string;
-}> = ({ open, onClose, folders, title, current, disabled, onMove, rootLabel }) => {
+}> = ({
+  open,
+  onClose,
+  folders,
+  title,
+  current,
+  disabled,
+  onMove,
+  rootLabel,
+}) => {
   const t = useT();
   const index = useFolderIndex(folders);
   const [at, setAt] = useState<string | null>(null);

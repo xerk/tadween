@@ -58,7 +58,13 @@ const MAX_BATCH_SIZE = 1024 * 1024 * 1024;
 const MAX_BATCH_FILES = 5;
 const MAX_IMAGE_SIZE = 30 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 1000 * 1024 * 1024;
-const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+const IMAGE_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/gif',
+  'image/webp',
+];
 
 let counter = 0;
 const nextId = () => `upload-${Date.now()}-${counter++}`;
@@ -77,22 +83,17 @@ export const useMediaUploads = (props: {
   const setLocked = useLaunchStore((state) => state.setLocked);
   const [items, setItems] = useState<UploadItem[]>([]);
   const itemsRef = useRef<UploadItem[]>([]);
-  const batch = useRef<{ ids: string[]; folderId: string | null } | null>(
-    null
-  );
+  const batch = useRef<{ ids: string[]; folderId: string | null } | null>(null);
   const uppyIds = useRef(new Map<string, string>());
   // media already moved into their folder as each file finished
   const moves = useRef(new Map<string, Promise<unknown>>());
   const propsRef = useRef(props);
   propsRef.current = props;
 
-  const update = useCallback(
-    (fn: (list: UploadItem[]) => UploadItem[]) => {
-      itemsRef.current = fn(itemsRef.current);
-      setItems(itemsRef.current);
-    },
-    []
-  );
+  const update = useCallback((fn: (list: UploadItem[]) => UploadItem[]) => {
+    itemsRef.current = fn(itemsRef.current);
+    setItems(itemsRef.current);
+  }, []);
   const patch = useCallback(
     (id: string, values: Partial<UploadItem>) =>
       update((list) =>
@@ -115,7 +116,13 @@ export const useMediaUploads = (props: {
       // Transloadit only hands the saved media over here, at the end
       const rest = media.filter((p) => !moves.current.has(p.id));
       if (folderId && rest.length) {
-        moves.current.set(rest[0].id, actions.moveMedia(rest.map((p) => p.id), folderId));
+        moves.current.set(
+          rest[0].id,
+          actions.moveMedia(
+            rest.map((p) => p.id),
+            folderId
+          )
+        );
       }
       // the files are uploaded either way; a failed move leaves them at the top
       await Promise.allSettled(Array.from(moves.current.values()));
@@ -141,7 +148,10 @@ export const useMediaUploads = (props: {
         (props.type === 'image' && !isImage) ||
         (props.type === 'video' && !isVideo)
       ) {
-        return t('tdw_media_type_not_allowed', 'This file type is not supported');
+        return t(
+          'tdw_media_type_not_allowed',
+          'This file type is not supported'
+        );
       }
       if (isImage && file.size > MAX_IMAGE_SIZE) {
         return t('tdw_media_image_too_large', 'Images can be up to 30 MB');
@@ -245,7 +255,8 @@ export const useMediaUploads = (props: {
       const ids = batch.current?.ids || [];
       update((list) =>
         list.map((p) =>
-          ids.includes(p.id) && (p.status === 'uploading' || p.status === 'processing')
+          ids.includes(p.id) &&
+          (p.status === 'uploading' || p.status === 'processing')
             ? {
                 ...p,
                 status: p.progress >= 1 ? 'done' : 'error',
@@ -284,7 +295,9 @@ export const useMediaUploads = (props: {
   // previews are object URLs, released with their rows
   useEffect(
     () => () => {
-      itemsRef.current.forEach((p) => p.preview && URL.revokeObjectURL(p.preview));
+      itemsRef.current.forEach(
+        (p) => p.preview && URL.revokeObjectURL(p.preview)
+      );
     },
     []
   );
@@ -358,7 +371,9 @@ export const useMediaUploads = (props: {
       // the last running file of a batch: nothing will report its end
       const left = (batch.current?.ids || []).filter((x) =>
         itemsRef.current.some(
-          (p) => p.id === x && (p.status === 'uploading' || p.status === 'processing')
+          (p) =>
+            p.id === x &&
+            (p.status === 'uploading' || p.status === 'processing')
         )
       );
       if (batch.current?.ids.includes(id) && !left.length) {
@@ -389,7 +404,9 @@ export const useMediaUploads = (props: {
   );
 
   const cancelAll = useCallback(() => {
-    itemsRef.current.filter((p) => isActive(p.status)).forEach((p) => cancel(p.id));
+    itemsRef.current
+      .filter((p) => isActive(p.status))
+      .forEach((p) => cancel(p.id));
   }, [cancel]);
 
   const clear = useCallback(() => {
@@ -458,10 +475,14 @@ export const UploadDock: FC<{
         count: counts.active,
       })
     : counts.failed
-    ? t('tdw_media_upload_failed_count', '{{failed}} failed, {{done}} uploaded', {
-        failed: counts.failed,
-        done: counts.done,
-      })
+    ? t(
+        'tdw_media_upload_failed_count',
+        '{{failed}} failed, {{done}} uploaded',
+        {
+          failed: counts.failed,
+          done: counts.done,
+        }
+      )
     : t('tdw_media_upload_all_done', 'All done, {{count}} uploaded', {
         count: counts.done,
       });
@@ -550,31 +571,43 @@ export const UploadDock: FC<{
                 <img src={item.preview} alt="" />
               ) : (
                 <Icon
-                  name={item.file.type.startsWith('video/') ? 'play' : 'file-text'}
+                  name={
+                    item.file.type.startsWith('video/') ? 'play' : 'file-text'
+                  }
                   size={14}
                 />
               )}
             </span>
             <span className="tdw-media-dock-info">
-              <span className="tdw-media-dock-name" title={item.name}>
+              <span
+                className="tdw-media-dock-name"
+                title={item.name}
+                dir="auto"
+              >
                 {item.name}
               </span>
               <span className="tdw-media-dock-meta">
-                {item.status === 'error'
-                  ? item.error
-                  : item.status === 'canceled'
-                  ? t('tdw_media_upload_canceled', 'Canceled')
-                  : item.status === 'queued'
-                  ? t('tdw_media_upload_waiting', 'Waiting')
-                  : item.status === 'processing'
-                  ? t('tdw_media_upload_processing', 'Processing')
-                  : item.status === 'done'
-                  ? formatBytes(item.size)
-                  : `${formatBytes(item.size * item.progress) || '0 B'} / ${formatBytes(item.size)}`}
+                {item.status === 'error' ? (
+                  item.error
+                ) : item.status === 'canceled' ? (
+                  t('tdw_media_upload_canceled', 'Canceled')
+                ) : item.status === 'queued' ? (
+                  t('tdw_media_upload_waiting', 'Waiting')
+                ) : item.status === 'processing' ? (
+                  t('tdw_media_upload_processing', 'Processing')
+                ) : item.status === 'done' ? (
+                  <bdi>{formatBytes(item.size)}</bdi>
+                ) : (
+                  <bdi>{`${
+                    formatBytes(item.size * item.progress) || '0 B'
+                  } / ${formatBytes(item.size)}`}</bdi>
+                )}
               </span>
               {item.status === 'uploading' && (
                 <span className="pz-progress" aria-hidden="true">
-                  <span style={{ width: `${Math.round(item.progress * 100)}%` }} />
+                  <span
+                    style={{ width: `${Math.round(item.progress * 100)}%` }}
+                  />
                 </span>
               )}
             </span>

@@ -82,7 +82,9 @@ export const formatBytes = (bytes?: number | null) => {
     value /= 1024;
     unit++;
   }
-  return `${value >= 10 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
+  return `${value >= 10 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${
+    units[unit]
+  }`;
 };
 
 export const formatDuration = (seconds?: number) => {
@@ -100,7 +102,11 @@ const swrOptions = {
   refreshWhenOffline: false,
 };
 
-const toParams = (query: MediaQuery, page: number, type?: 'image' | 'video') => {
+const toParams = (
+  query: MediaQuery,
+  page: number,
+  type?: 'image' | 'video'
+) => {
   const params = new URLSearchParams({
     page: String(page),
     limit: String(MEDIA_PAGE_SIZE),
@@ -148,15 +154,15 @@ export const useMediaPages = (query: MediaQuery, type?: 'image' | 'video') => {
     ...swr,
     media,
     hasMore: swr.size < pages,
-    loadingMore:
-      swr.isValidating && !!swr.data && swr.data.length < swr.size,
+    loadingMore: swr.isValidating && !!swr.data && swr.data.length < swr.size,
   };
 };
 
 export const useMediaFolders = () => {
   const fetch = useFetch();
   const load = useCallback(
-    async () => (await fetch('/media/folders')).json() as Promise<LibraryFolder[]>,
+    async () =>
+      (await fetch('/media/folders')).json() as Promise<LibraryFolder[]>,
     []
   );
   return useSWR('media-library-folders', load, swrOptions);
@@ -165,14 +171,17 @@ export const useMediaFolders = () => {
 export const useMediaUsage = (id?: string) => {
   const fetch = useFetch();
   const load = useCallback(
-    async () => (await fetch(`/media/${id}/usage`)).json() as Promise<MediaUsage[]>,
+    async () =>
+      (await fetch(`/media/${id}/usage`)).json() as Promise<MediaUsage[]>,
     [id]
   );
   return useSWR(id ? `media-library-usage-${id}` : null, load, swrOptions);
 };
 
 // Older media have no stored size: the file's own Content-Length stands in
-export const useMediaSize = (media?: Pick<LibraryMedia, 'path' | 'fileSize'>) => {
+export const useMediaSize = (
+  media?: Pick<LibraryMedia, 'path' | 'fileSize'>
+) => {
   const load = useCallback(async () => {
     const res = await window.fetch(media!.path, { method: 'HEAD' });
     return Number(res.headers.get('content-length')) || 0;
@@ -207,7 +216,10 @@ export const useMediaActions = () => {
     () => ({
       createFolder: async (name: string, parentId?: string | null) =>
         ok(
-          await fetch('/media/folders', json({ name, parentId: parentId || undefined }))
+          await fetch(
+            '/media/folders',
+            json({ name, parentId: parentId || undefined })
+          )
         ) as Promise<{ id: string; name: string; parentId: string | null }>,
       renameFolder: async (id: string, name: string) =>
         ok(

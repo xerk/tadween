@@ -20,14 +20,12 @@ type View = 'day' | 'week' | 'month' | 'list';
 
 const useTitle = () => {
   const t = useT();
-  const { calendar } = useCalendarNavigation();
-  const { startDate, endDate, display } = calendar;
+  // The board (display=list) is titled like the week or month it spans
+  const { calendar, rangeUnit: display } = useCalendarNavigation();
+  const { startDate, endDate } = calendar;
   return useMemo(() => {
     const start = newDayjs(startDate);
     const end = newDayjs(endDate);
-    if (display === 'list') {
-      return { title: t('tdw_ws_all_posts', 'All posts'), year: '', range: '' };
-    }
     const sameMonth = start.month() === end.month();
     const title = sameMonth ? start.format('MMMM') : `${start.format('MMM')} – ${end.format('MMM')}`;
     const range =
@@ -66,7 +64,7 @@ export const WorkspaceToolbar: FC<{
   const t = useT();
   const bar = useRef<HTMLElement>(null);
   const nav = useCalendarNavigation();
-  const { calendar, isListView } = nav;
+  const { calendar } = nav;
   const { title, year, range } = useTitle();
   const { channels, selectedIds, allSelected } = useChannelSelection();
   const marks = useNetworkMarks(channels);
@@ -77,7 +75,7 @@ export const WorkspaceToolbar: FC<{
     { value: 'day', label: t('day', 'Day') },
     { value: 'week', label: t('week', 'Week') },
     { value: 'month', label: t('month', 'Month') },
-    { value: 'list', label: t('tdw_ws_list', 'List') },
+    { value: 'list', label: t('tdw_ws_board', 'Board') },
   ];
   const changeView = (view: View) =>
     view === 'day'
@@ -103,70 +101,30 @@ export const WorkspaceToolbar: FC<{
           <h1>
             {title} {!!year && <span>{year}</span>}
           </h1>
-          {isListView ? (
-            <span className="tdw-ws-range">
-              {t('page', 'Page')} {calendar.listPage + 1} {t('of', 'of')}{' '}
-              {Math.max(1, calendar.listTotalPages)}
-            </span>
-          ) : (
-            <span className="tdw-ws-range">{range}</span>
-          )}
+          <span className="tdw-ws-range">{range}</span>
         </div>
 
         <div className="tdw-ws-nav">
-          {isListView ? (
-            <>
-              <IconButton
-                icon="chevron-left"
-                className="tdw-ws-flip"
-                label={t('previous', 'Previous')}
-                disabled={calendar.listPage <= 0}
-                onClick={nav.previousPage}
-              />
-              <IconButton
-                icon="chevron-right"
-                className="tdw-ws-flip"
-                label={t('next', 'Next')}
-                disabled={calendar.listPage >= calendar.listTotalPages - 1}
-                onClick={nav.nextPage}
-              />
-            </>
-          ) : (
-            <>
-              <IconButton
-                icon="chevron-left"
-                size="sm"
-                className="tdw-ws-flip tdw-ws-arrow"
-                label={t('previous', 'Previous')}
-                onClick={nav.previous}
-              />
-              <Button size="sm" onClick={nav.setToday}>
-                {t('today', 'Today')}
-              </Button>
-              <IconButton
-                icon="chevron-right"
-                size="sm"
-                className="tdw-ws-flip tdw-ws-arrow"
-                label={t('next', 'Next')}
-                onClick={nav.next}
-              />
-            </>
-          )}
+          <IconButton
+            icon="chevron-left"
+            size="sm"
+            className="tdw-ws-flip tdw-ws-arrow"
+            label={t('previous', 'Previous')}
+            onClick={nav.previous}
+          />
+          <Button size="sm" onClick={nav.setToday}>
+            {t('today', 'Today')}
+          </Button>
+          <IconButton
+            icon="chevron-right"
+            size="sm"
+            className="tdw-ws-flip tdw-ws-arrow"
+            label={t('next', 'Next')}
+            onClick={nav.next}
+          />
         </div>
 
         <span className="tdw-ws-grow" />
-
-        {isListView && (
-          <div className="tdw-ws-liststate">
-            <SegmentedControl
-              size="sm"
-              label={t('tdw_ws_post_state', 'Post state')}
-              value={calendar.listState}
-              onChange={(v) => nav.setListStateFilter(v)()}
-              options={nav.listStateOptions}
-            />
-          </div>
-        )}
 
         {/* Channels: the networks in use and how many channels are shown */}
         <button

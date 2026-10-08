@@ -58,7 +58,6 @@ import copy from 'copy-to-clipboard';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
-import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 import { ChipMoreMenu } from '@gitroom/frontend/components/tadween/workspace/chip.more.menu';
 
 // Extend dayjs with necessary plugins
@@ -94,6 +93,21 @@ export const hours = Array.from(
   },
   (_, i) => i
 );
+
+// Which per-post actions apply; shared by the calendar chip and the Tadween board card
+export const canOpenPost = (post: Post) =>
+  (post.state === 'PUBLISHED' || post.state === 'ERROR') &&
+  !post.intervalInDays &&
+  !!post.releaseURL?.startsWith('http');
+
+export const canShowStatistics = (
+  post: Post & { integration: Integration },
+  disableXAnalytics?: boolean
+) =>
+  !(
+    (post.integration.providerIdentifier === 'x' && disableXAnalytics) ||
+    !post.releaseId
+  );
 
 // Shared hook for post actions (edit, delete, statistics)
 export const usePostActions = (onMutate?: () => void) => {
@@ -552,100 +566,12 @@ export const MonthView = () => {
     </div>
   );
 };
-export const ListView = () => {
-  const t = useT();
-  const user = useUser();
-  const { integrations, loading, listPosts, listState } = useCalendar();
-  const emptyMessage =
-    listState === 'scheduled'
-      ? t('no_upcoming_posts', 'No upcoming posts scheduled')
-      : listState === 'draft'
-      ? t('no_draft_posts', 'No draft posts')
-      : listState === 'published'
-      ? t('no_published_posts', 'No published posts')
-      : t('no_posts', 'No posts');
-
-  // Use shared post actions hook
-  const { editPost, deletePost, copyDebugJson, openStatistics, openMissingRelease, openPost } = usePostActions();
-
-  // Group posts by date
-  const groupedPosts = useMemo(() => {
-    const groups: { [key: string]: any[] } = {};
-    listPosts.forEach((post) => {
-      const dateKey = newDayjs(post.publishDate).local().format('YYYY-MM-DD');
-      if (!groups[dateKey]) {
-        groups[dateKey] = [];
-      }
-      groups[dateKey].push(post);
-    });
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [listPosts]);
-
-  if (loading) {
-    return (
-      <div className="tdw-list-skeleton flex flex-col flex-1 gap-[10px] pt-[10px]" aria-busy="true" aria-label={t('loading', 'Loading...')}>
-        {[0, 1, 2, 3].map((i) => (
-          <span key={i} className="tdw-skeleton" style={{ height: 72, animationDelay: `${i * 80}ms` }} />
-        ))}
-      </div>
-    );
-  }
-
-  if (listPosts.length === 0) {
-    return (
-      <div className="flex flex-col flex-1 items-center justify-center">
-        <TadweenEmptyState
-          icon={listState === 'draft' ? 'drafts' : 'calendar'}
-          title={emptyMessage}
-          body={t('empty_list_hint', 'Posts you create will show up here, grouped by day.')}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="tdw-ws-list flex flex-col gap-[10px] flex-1 relative">
-      <div className="absolute start-0 top-0 w-full h-full flex flex-col overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
-        {groupedPosts.map(([dateKey, datePosts]) => (
-          <Fragment key={dateKey}>
-            <div className="tdw-ws-list-date text-center text-[14px] min-h-[21px] text-textColor font-[500] mt-[10px]">
-              {newDayjs(dateKey).format(isUSCitizen() ? 'dddd, MMMM D, YYYY' : 'dddd, D MMMM YYYY')}
-            </div>
-            <div className="flex flex-col gap-[10px] mb-[20px] px-[10px]">
-              {datePosts.map((post) => (
-                <CalendarItem
-                  key={post.id}
-                  display="day"
-                  isBeforeNow={false}
-                  date={newDayjs(post.publishDate)}
-                  state={post.state}
-                  statistics={openStatistics(post.id)}
-                  missingRelease={openMissingRelease(post.id)}
-                  openPost={openPost(post)}
-                  editPost={editPost(post, false)}
-                  duplicatePost={editPost(post, true)}
-                  copyDebugJson={user?.isSuperAdmin ? copyDebugJson(post) : undefined}
-                  post={post}
-                  integrations={integrations}
-                  deletePost={deletePost(post)}
-                  showTime={true}
-                />
-              ))}
-            </div>
-          </Fragment>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 export const Calendar = () => {
   const { display } = useCalendar();
   return (
     <>
-      {display === 'list' ? (
-        <ListView />
-      ) : display === 'day' ? (
+      {/* display=list is the Tadween board, rendered by the workspace */}
+      {display === 'list' ? null : display === 'day' ? (
         <DayView />
       ) : display === 'week' ? (
         <WeekView />
@@ -1131,7 +1057,7 @@ const CalendarItem: FC<{
   const stateKey =
     state === 'ERROR' ? 'failed' : state === 'DRAFT' ? 'draft' : state === 'PUBLISHED' ? 'published' : 'scheduled';
   const tagColor = post?.tags?.[0]?.tag?.color;
-  const canStats = !((post.integration.providerIdentifier === 'x' && disableXAnalytics) || !post.releaseId);
+  const canStats = canShowStatistics(post, disableXAnalytics);
   const onStats = post.releaseId === 'missing' ? missingRelease : statistics;
   // One list feeds the hover buttons and, on narrow chips, the ⋯ menu
   const actions = [
@@ -1153,9 +1079,7 @@ const CalendarItem: FC<{
       label: t('preview_post', 'Preview Post'),
       onClick: preview,
     },
-    (state === 'PUBLISHED' || state === 'ERROR') &&
-      !post.intervalInDays &&
-      post.releaseURL?.startsWith('http') && {
+    canOpenPost(post) && {
         key: 'open',
         icon: <OpenPost />,
         label: t('open_post', 'Open Post'),

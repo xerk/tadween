@@ -22,11 +22,9 @@ import { extend } from 'dayjs';
 import useCookie from 'react-use-cookie';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { timer } from '@gitroom/helpers/utils/timer';
-import { expandPostsList, expandPosts } from '@gitroom/helpers/utils/posts.list.minify';
+import { expandPosts } from '@gitroom/helpers/utils/posts.list.minify';
 extend(isoWeek);
 extend(weekOfYear);
-
-export type ListStateFilter = 'all' | 'scheduled' | 'draft' | 'published';
 
 export const CalendarContext = createContext({
   startDate: newDayjs().startOf('isoWeek').format('YYYY-MM-DD'),
@@ -64,24 +62,6 @@ export const CalendarContext = createContext({
     /** empty **/
   },
   changeDate: (id: string, date: dayjs.Dayjs) => {
-    /** empty **/
-  },
-  // List view specific
-  listPosts: [] as Array<
-    Post & {
-      integration: Integration;
-      tags: {
-        tag: Tags;
-      }[];
-    }
-  >,
-  listPage: 0,
-  listTotalPages: 0,
-  setListPage: (page: number) => {
-    /** empty **/
-  },
-  listState: 'all' as ListStateFilter,
-  setListState: (state: ListStateFilter) => {
     /** empty **/
   },
   selectedChannels: null as string[] | null,
@@ -160,30 +140,27 @@ export const CalendarWeekProvider: FC<{
   );
   const display = searchParams.get('display') || displaySaved;
 
-  // List view state
-  const [listPage, setListPage] = useState(0);
-  const [listState, setListStateRaw] = useState<ListStateFilter>('all');
-  const setListState = useCallback((next: ListStateFilter) => {
-    setListStateRaw(next);
-    setListPage(0);
-  }, []);
-
   // Initialize with current date range based on URL params or defaults
   const initStartDate = searchParams.get('startDate');
   const initEndDate = searchParams.get('endDate');
   const initCustomer = searchParams.get('customer');
 
+  // Links from the old list view carry a one-day range; the board spans a week
+  const staleListRange =
+    display === 'list' &&
+    !!initStartDate &&
+    !!initEndDate &&
+    newDayjs(initEndDate).diff(newDayjs(initStartDate), 'day') < 6;
   const initialRange =
-    initStartDate && initEndDate
+    initStartDate && initEndDate && !staleListRange
       ? { startDate: initStartDate, endDate: initEndDate }
-      : getDateRange(display);
+      : getDateRange(display, staleListRange ? initStartDate! : undefined);
 
   const [selectedChannels, setSelectedChannelsRaw] = useState<
     string[] | null
   >(null);
   const setSelectedChannels = useCallback((next: string[] | null) => {
     setSelectedChannelsRaw(next);
-    setListPage(0);
   }, []);
 
   const [filters, setFilters] = useState({
@@ -219,46 +196,14 @@ export const CalendarWeekProvider: FC<{
     return expandPosts(data);
   }, [filters, params]);
 
-  // List view data fetcher
-  const listParams = useMemo(() => {
-    return new URLSearchParams({
-      page: listPage.toString(),
-      limit: '100',
-      customer: filters?.customer?.toString() || '',
-      state: listState,
-      ...(selectedChannels ? { integrations: selectedChannels.join(',') } : {}),
-    }).toString();
-  }, [listPage, filters.customer, listState, selectedChannels]);
-
-  const loadListData = useCallback(async () => {
-    const response = await fetch(`/posts/list?${listParams}`);
-    return expandPostsList(await response.json());
-  }, [listParams]);
-
-  // SWR for calendar view
+  // One range request feeds every view: day, week, month and the board (display=list)
   const {
     data: calendarData,
     isLoading: calendarIsLoading,
     mutate: mutateCalendar,
   } = useSWR(
-    filters.display !== 'list' ? `/posts-${params}` : null,
+    `/posts-${params}`,
     loadData,
-    {
-      refreshInterval: 3600000,
-      refreshWhenOffline: false,
-      refreshWhenHidden: false,
-      revalidateOnFocus: false,
-    }
-  );
-
-  // SWR for list view
-  const {
-    data: listData,
-    isLoading: listIsLoading,
-    mutate: mutateList,
-  } = useSWR(
-    filters.display === 'list' ? `/posts-list-${listParams}` : null,
-    loadListData,
     {
       refreshInterval: 3600000,
       refreshWhenOffline: false,
@@ -303,11 +248,6 @@ export const CalendarWeekProvider: FC<{
       setFilters(newFilters);
       setInternalData([]);
 
-      // Reset page when switching to list view
-      if (newFilters.display === 'list') {
-        setListPage(0);
-      }
-
       const path = [
         `startDate=${newFilters.startDate}`,
         `endDate=${newFilters.endDate}`,
@@ -329,11 +269,6 @@ export const CalendarWeekProvider: FC<{
 
   const posts = useMemo(() => calendarData?.posts || [], [calendarData?.posts]);
   const comments = useMemo(() => calendarData?.comments || [], [calendarData?.comments]);
-
-  // List view data
-  const listPosts = useMemo(() => listData?.posts || [], [listData?.posts]);
-  const listTotal = listData?.total || 0;
-  const listTotalPages = Math.ceil(listTotal / 100);
 
   const changeDate = useCallback(
     (id: string, date: dayjs.Dayjs) => {
@@ -358,14 +293,11 @@ export const CalendarWeekProvider: FC<{
     }
   }, [posts]);
 
-  // Combined reload function that handles both calendar and list views
   const reloadCalendarView = useCallback(() => {
     mutateCalendar();
-    mutateList();
-  }, [mutateCalendar, mutateList]);
+  }, [mutateCalendar]);
 
-  // Determine loading state based on current view
-  const loading = filters.display === 'list' ? listIsLoading : calendarIsLoading;
+  const loading = calendarIsLoading;
 
   return (
     <CalendarContext.Provider
@@ -381,13 +313,6 @@ export const CalendarWeekProvider: FC<{
         comments,
         sets: sets || [],
         signature: sign,
-        // List view specific
-        listPosts,
-        listPage,
-        listTotalPages,
-        setListPage,
-        listState,
-        setListState,
         selectedChannels,
         setSelectedChannels,
       }}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCalendar, ListStateFilter } from '@gitroom/frontend/components/launches/calendar.context';
+import { useCalendar } from '@gitroom/frontend/components/launches/calendar.context';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
 import { useCallback } from 'react';
@@ -34,14 +34,22 @@ export function getDateRange(
         endDate: date.endOf('month').format('YYYY-MM-DD'),
       };
     case 'list':
+      // The board opens on the current week, like the context's default
       return {
-        startDate: date.format('YYYY-MM-DD'),
-        endDate: date.format('YYYY-MM-DD'),
+        startDate: date.startOf('isoWeek').format('YYYY-MM-DD'),
+        endDate: date.endOf('isoWeek').format('YYYY-MM-DD'),
       };
   }
 }
 
-// Calendar navigation (date range, view, customer, list paging), shared by
+// The board (display=list) spans a week or a month; the range says which
+export const getListPeriod = (
+  startDate: string,
+  endDate: string
+): 'week' | 'month' =>
+  newDayjs(endDate).diff(newDayjs(startDate), 'day') > 7 ? 'month' : 'week';
+
+// Calendar navigation (date range, view, customer, board period), shared by
 // <Filters /> and the Tadween workspace toolbar.
 export const useCalendarNavigation = () => {
   const calendar = useCalendar();
@@ -51,12 +59,18 @@ export const useCalendarNavigation = () => {
   const currentLanguage = i18next.resolvedLanguage || 'en';
   dayjs.locale();
 
+  const listPeriod = getListPeriod(calendar.startDate, calendar.endDate);
+  // The unit the range steps by: the view itself, or the board's period
+  const rangeUnit = (
+    calendar.display === 'list' ? listPeriod : calendar.display
+  ) as 'day' | 'week' | 'month';
+
   // Calculate display date range text
   const getDisplayText = () => {
     const startDate = newDayjs(calendar.startDate);
     const endDate = newDayjs(calendar.endDate);
 
-    switch (calendar.display) {
+    switch (rangeUnit) {
       case 'day':
         return startDate.format('dddd (L)');
       case 'week':
@@ -69,10 +83,7 @@ export const useCalendarNavigation = () => {
   };
 
   const setToday = useCallback(() => {
-    const today = newDayjs();
-    const currentRange = getDateRange(
-      calendar.display as 'day' | 'week' | 'month'
-    );
+    const currentRange = getDateRange(rangeUnit);
 
     // Check if we're already showing today's range
     if (
@@ -85,10 +96,10 @@ export const useCalendarNavigation = () => {
     calendar.setFilters({
       startDate: currentRange.startDate,
       endDate: currentRange.endDate,
-      display: calendar.display as 'day' | 'week' | 'month',
+      display: calendar.display as 'day' | 'week' | 'month' | 'list',
       customer: calendar.customer,
     });
-  }, [calendar]);
+  }, [calendar, rangeUnit]);
 
   const setDay = useCallback(() => {
     // If already in day view and showing today, don't change
@@ -158,6 +169,23 @@ export const useCalendarNavigation = () => {
     });
   }, [calendar]);
 
+  // Board only: show a week or a month around the current start date
+  const setListPeriod = useCallback(
+    (period: 'week' | 'month') => {
+      if (period === listPeriod) {
+        return;
+      }
+      const range = getDateRange(period, calendar.startDate);
+      calendar.setFilters({
+        startDate: range.startDate,
+        endDate: range.endDate,
+        display: 'list',
+        customer: calendar.customer,
+      });
+    },
+    [calendar, listPeriod]
+  );
+
   const setCalendarView = useCallback(() => {
     if (calendar.display !== 'list') {
       return;
@@ -180,7 +208,7 @@ export const useCalendarNavigation = () => {
       calendar.setFilters({
         startDate: calendar.startDate,
         endDate: calendar.endDate,
-        display: calendar.display as 'day' | 'week' | 'month',
+        display: calendar.display as 'day' | 'week' | 'month' | 'list',
         customer: customer,
       });
     },
@@ -191,7 +219,7 @@ export const useCalendarNavigation = () => {
     const currentStart = newDayjs(calendar.startDate);
     let nextStart: dayjs.Dayjs;
 
-    switch (calendar.display) {
+    switch (rangeUnit) {
       case 'day':
         nextStart = currentStart.add(1, 'day');
         break;
@@ -205,23 +233,20 @@ export const useCalendarNavigation = () => {
         nextStart = currentStart.add(1, 'week');
     }
 
-    const range = getDateRange(
-      calendar.display as 'day' | 'week' | 'month',
-      nextStart.format('YYYY-MM-DD')
-    );
+    const range = getDateRange(rangeUnit, nextStart.format('YYYY-MM-DD'));
     calendar.setFilters({
       startDate: range.startDate,
       endDate: range.endDate,
-      display: calendar.display as 'day' | 'week' | 'month',
+      display: calendar.display as 'day' | 'week' | 'month' | 'list',
       customer: calendar.customer,
     });
-  }, [calendar]);
+  }, [calendar, rangeUnit]);
 
   const previous = useCallback(() => {
     const currentStart = newDayjs(calendar.startDate);
     let prevStart: dayjs.Dayjs;
 
-    switch (calendar.display) {
+    switch (rangeUnit) {
       case 'day':
         prevStart = currentStart.subtract(1, 'day');
         break;
@@ -235,17 +260,14 @@ export const useCalendarNavigation = () => {
         prevStart = currentStart.subtract(1, 'week');
     }
 
-    const range = getDateRange(
-      calendar.display as 'day' | 'week' | 'month',
-      prevStart.format('YYYY-MM-DD')
-    );
+    const range = getDateRange(rangeUnit, prevStart.format('YYYY-MM-DD'));
     calendar.setFilters({
       startDate: range.startDate,
       endDate: range.endDate,
-      display: calendar.display as 'day' | 'week' | 'month',
+      display: calendar.display as 'day' | 'week' | 'month' | 'list',
       customer: calendar.customer,
     });
-  }, [calendar]);
+  }, [calendar, rangeUnit]);
 
   const setCurrent = useCallback(
     (type: 'day' | 'week' | 'month') => () => {
@@ -262,37 +284,14 @@ export const useCalendarNavigation = () => {
 
   const isListView = calendar.display === 'list';
 
-  const setListStateFilter = useCallback(
-    (next: ListStateFilter) => () => {
-      if (calendar.listState === next) return;
-      calendar.setListState(next);
-    },
-    [calendar]
-  );
-
-  const listStateOptions: { value: ListStateFilter; label: string }[] = [
-    { value: 'all', label: t('all', 'All') },
-    { value: 'scheduled', label: t('scheduled', 'Scheduled') },
-    { value: 'draft', label: t('draft', 'Draft') },
-    { value: 'published', label: t('published', 'Published') },
-  ];
-
-  const previousPage = useCallback(() => {
-    if (calendar.listPage > 0) {
-      calendar.setListPage(calendar.listPage - 1);
-    }
-  }, [calendar]);
-
-  const nextPage = useCallback(() => {
-    if (calendar.listPage < calendar.listTotalPages - 1) {
-      calendar.setListPage(calendar.listPage + 1);
-    }
-  }, [calendar]);
-
-  // Jump to the range that contains `date` in the given view
+  // Jump to the range that contains `date` in the given view (the board
+  // keeps its week or month period)
   const goTo = useCallback(
-    (display: 'day' | 'week' | 'month', date: string) => {
-      const range = getDateRange(display, date);
+    (display: 'day' | 'week' | 'month' | 'list', date: string) => {
+      const range = getDateRange(
+        display === 'list' ? listPeriod : display,
+        date
+      );
       calendar.setFilters({
         startDate: range.startDate,
         endDate: range.endDate,
@@ -300,7 +299,7 @@ export const useCalendarNavigation = () => {
         customer: calendar.customer,
       });
     },
-    [calendar]
+    [calendar, listPeriod]
   );
 
   return {
@@ -317,10 +316,9 @@ export const useCalendarNavigation = () => {
     previous,
     setCurrent,
     isListView,
-    setListStateFilter,
-    listStateOptions,
-    previousPage,
-    nextPage,
+    listPeriod,
+    rangeUnit,
+    setListPeriod,
     goTo,
   };
 };
@@ -340,152 +338,69 @@ export const Filters = () => {
     next,
     previous,
     isListView,
-    setListStateFilter,
-    listStateOptions,
-    previousPage,
-    nextPage,
   } = useCalendarNavigation();
 
   return (
     <div className="text-textColor flex flex-row flex-wrap gap-[8px] items-center select-none">
-      {!isListView && (
-        <div className="flex flex-grow flex-row items-center gap-[10px]">
-          <div className="border h-[42px] border-newTableBorder bg-newTableBorder gap-[1px] flex items-center rounded-[8px] overflow-hidden">
-            <div
-              onClick={previous}
-              className="cursor-pointer text-textColor rtl:rotate-180 px-[9px] bg-newBgColorInner h-full flex items-center justify-center hover:text-textItemFocused hover:bg-boxFocused"
+      <div className="flex flex-grow flex-row items-center gap-[10px]">
+        <div className="border h-[42px] border-newTableBorder bg-newTableBorder gap-[1px] flex items-center rounded-[8px] overflow-hidden">
+          <div
+            onClick={previous}
+            className="cursor-pointer text-textColor rtl:rotate-180 px-[9px] bg-newBgColorInner h-full flex items-center justify-center hover:text-textItemFocused hover:bg-boxFocused"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="8"
+              height="12"
+              viewBox="0 0 8 12"
+              fill="none"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="8"
-                height="12"
-                viewBox="0 0 8 12"
-                fill="none"
-              >
-                <path
-                  d="M6.5 11L1.5 6L6.5 1"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <div className="min-w-[200px] mobile:min-w-[160px] text-center bg-newBgColorInner h-full flex items-center justify-center">
-              <div className="py-[3px] px-[9px] rounded-[5px] transition-all text-[14px]">
-                {getDisplayText()}
-              </div>
-            </div>
-            <div
-              onClick={next}
-              className="cursor-pointer text-textColor rtl:rotate-180 px-[9px] bg-newBgColorInner h-full flex items-center justify-center hover:text-textItemFocused hover:bg-boxFocused"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="8"
-                height="12"
-                viewBox="0 0 8 12"
-                fill="none"
-              >
-                <path
-                  d="M1.5 11L6.5 6L1.5 1"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <path
+                d="M6.5 11L1.5 6L6.5 1"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <div className="min-w-[200px] mobile:min-w-[160px] text-center bg-newBgColorInner h-full flex items-center justify-center">
+            <div className="py-[3px] px-[9px] rounded-[5px] transition-all text-[14px]">
+              {getDisplayText()}
             </div>
           </div>
-          <div className="flex-1 text-[14px] font-[500]">
-            <div className="text-center flex h-[42px]">
-              <div
-                onClick={setToday}
-                className="hover:text-textItemFocused hover:bg-boxFocused py-[3px] px-[9px] flex justify-center items-center rounded-[8px] transition-all cursor-pointer text-[14px] bg-newBgColorInner border border-newTableBorder"
-              >
-                {t('today', 'Today')}
-              </div>
+          <div
+            onClick={next}
+            className="cursor-pointer text-textColor rtl:rotate-180 px-[9px] bg-newBgColorInner h-full flex items-center justify-center hover:text-textItemFocused hover:bg-boxFocused"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="8"
+              height="12"
+              viewBox="0 0 8 12"
+              fill="none"
+            >
+              <path
+                d="M1.5 11L6.5 6L1.5 1"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
+        <div className="flex-1 text-[14px] font-[500]">
+          <div className="text-center flex h-[42px]">
+            <div
+              onClick={setToday}
+              className="hover:text-textItemFocused hover:bg-boxFocused py-[3px] px-[9px] flex justify-center items-center rounded-[8px] transition-all cursor-pointer text-[14px] bg-newBgColorInner border border-newTableBorder"
+            >
+              {t('today', 'Today')}
             </div>
           </div>
         </div>
-      )}
-      {isListView && (
-        <div className="flex flex-grow flex-row items-center gap-[10px] mobile:flex-wrap">
-          <div className="border h-[42px] border-newTableBorder bg-newTableBorder gap-[1px] flex items-center rounded-[8px] overflow-hidden">
-            <div
-              onClick={previousPage}
-              className={clsx(
-                'text-textColor rtl:rotate-180 px-[9px] bg-newBgColorInner h-full flex items-center justify-center',
-                calendar.listPage > 0
-                  ? 'cursor-pointer hover:text-textItemFocused hover:bg-boxFocused'
-                  : 'opacity-50 cursor-not-allowed'
-              )}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="8"
-                height="12"
-                viewBox="0 0 8 12"
-                fill="none"
-              >
-                <path
-                  d="M6.5 11L1.5 6L6.5 1"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <div className="min-w-[200px] mobile:min-w-[160px] text-center bg-newBgColorInner h-full flex items-center justify-center">
-              <div className="py-[3px] px-[9px] rounded-[5px] transition-all text-[14px]">
-                {t('page', 'Page')} {calendar.listPage + 1} {t('of', 'of')} {Math.max(1, calendar.listTotalPages)}
-              </div>
-            </div>
-            <div
-              onClick={nextPage}
-              className={clsx(
-                'text-textColor rtl:rotate-180 px-[9px] bg-newBgColorInner h-full flex items-center justify-center',
-                calendar.listPage < calendar.listTotalPages - 1
-                  ? 'cursor-pointer hover:text-textItemFocused hover:bg-boxFocused'
-                  : 'opacity-50 cursor-not-allowed'
-              )}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="8"
-                height="12"
-                viewBox="0 0 8 12"
-                fill="none"
-              >
-                <path
-                  d="M1.5 11L6.5 6L1.5 1"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-          </div>
-          <div className="flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500] mobile:max-w-full mobile:overflow-x-auto">
-            {listStateOptions.map((option) => (
-              <div
-                key={option.value}
-                onClick={setListStateFilter(option.value)}
-                className={clsx(
-                  'pt-[6px] pb-[5px] cursor-pointer min-w-[80px] px-[12px] text-center rounded-[6px]',
-                  calendar.listState === option.value &&
-                    'text-textItemFocused bg-boxFocused'
-                )}
-              >
-                {option.label}
-              </div>
-            ))}
-          </div>
-          <div className="flex-1" />
-        </div>
-      )}
+      </div>
       <SelectCustomer
         customer={calendar.customer as string}
         onChange={(customer: string) => setCustomer(customer)}
@@ -506,7 +421,8 @@ export const Filters = () => {
           <div
             className={clsx(
               'pt-[6px] pb-[5px] cursor-pointer w-[74px] mobile:w-[62px] text-center rounded-[6px]',
-              calendar.display === 'week' && 'text-textItemFocused bg-boxFocused'
+              calendar.display === 'week' &&
+                'text-textItemFocused bg-boxFocused'
             )}
             onClick={setWeek}
           >
@@ -515,7 +431,8 @@ export const Filters = () => {
           <div
             className={clsx(
               'pt-[6px] pb-[5px] cursor-pointer w-[74px] mobile:w-[62px] text-center rounded-[6px]',
-              calendar.display === 'month' && 'text-textItemFocused bg-boxFocused'
+              calendar.display === 'month' &&
+                'text-textItemFocused bg-boxFocused'
             )}
             onClick={setMonth}
           >

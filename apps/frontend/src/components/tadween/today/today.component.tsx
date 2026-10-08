@@ -2,6 +2,7 @@
 
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import { useSWRConfig } from 'swr';
 import isoWeek from 'dayjs/plugin/isoWeek';
@@ -10,6 +11,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useAddProvider } from '@gitroom/frontend/components/launches/add.provider.component';
 import { isUSCitizen } from '@gitroom/frontend/components/launches/helpers/isuscitizen.utils';
+import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { useFeatures } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
@@ -26,6 +28,7 @@ import {
   TodayIntegration,
   TodayPost,
   useTodayActions,
+  useTodayCustomer,
   useTodayDrafts,
   useTodayIntegrations,
   useTodayNextPost,
@@ -118,10 +121,13 @@ const asAvatar = (post: TodayPost) => ({
   identifier: post.integration?.providerIdentifier,
 });
 
-const calendarHref = (d: dayjs.Dayjs, display: 'day' | 'week') => {
+// Keeps the selected customer, so the calendar opens filtered the same way
+const calendarHref = (d: dayjs.Dayjs, display: 'day' | 'week', customer: string) => {
   const start = display === 'week' ? d.startOf('isoWeek') : d;
   const end = display === 'week' ? d.endOf('isoWeek') : d;
-  return `/launches?startDate=${start.format('YYYY-MM-DD')}&endDate=${end.format('YYYY-MM-DD')}&display=${display}`;
+  return `/launches?startDate=${start.format('YYYY-MM-DD')}&endDate=${end.format('YYYY-MM-DD')}&display=${display}${
+    customer ? `&customer=${customer}` : ''
+  }`;
 };
 
 /* ── Up next ─────────────────────────────────────────────────────────────── */
@@ -134,6 +140,7 @@ const UpNext: FC<{
 }> = ({ post, loading, onEdit, onPreview, onCreate }) => {
   const t = useT();
   const fmt = useDateFormat();
+  const customer = useTodayCustomer();
   const { data: group } = useTodayPostGroup(post?.group);
   const media = (group?.posts?.[0]?.image || [])[0] as
     | { path?: string; thumbnail?: string }
@@ -206,7 +213,7 @@ const UpNext: FC<{
               <Button size="sm" variant="ghost" icon="eye" onClick={onPreview(post)}>
                 {t('today_preview', 'Preview')}
               </Button>
-              <LinkButton size="sm" variant="ghost" icon="calendar" href={calendarHref(when!, 'week')}>
+              <LinkButton size="sm" variant="ghost" icon="calendar" href={calendarHref(when!, 'week', customer)}>
                 {t('today_open_in_calendar', 'Open in calendar')}
               </LinkButton>
             </div>
@@ -282,6 +289,7 @@ const WeekStrip: FC<{
 }> = ({ days, posts, loading, onEdit, onCreate }) => {
   const t = useT();
   const fmt = useDateFormat();
+  const customer = useTodayCustomer();
   const today = localNow();
   const strip = useRef<HTMLDivElement>(null);
   // On phones the week scrolls sideways: start it at today
@@ -300,7 +308,7 @@ const WeekStrip: FC<{
         <h2 className="tdw-label">
           {t('today_week_of', 'Week of {{date}}', { date: fmt(days[0], { day: 'numeric', month: 'long' }) })}
         </h2>
-        <Link className="tdw-link" href={calendarHref(days[0], 'week')}>
+        <Link className="tdw-link" href={calendarHref(days[0], 'week', customer)}>
           {t('today_open_calendar', 'Open calendar')}
           <Icon name="arrow-right" size={13} className="tdw-flip" />
         </Link>
@@ -314,7 +322,7 @@ const WeekStrip: FC<{
             .sort((a, b) => dayjs(a.publishDate).valueOf() - dayjs(b.publishDate).valueOf());
           return (
             <div key={d.format('YYYY-MM-DD')} className={cx('tdw-day', isToday && 'is-today', isPast && 'is-past')}>
-              <Link className="tdw-day-h" href={calendarHref(d, 'day')} aria-label={fmt(d, { weekday: 'long', day: 'numeric', month: 'long' })}>
+              <Link className="tdw-day-h" href={calendarHref(d, 'day', customer)} aria-label={fmt(d, { weekday: 'long', day: 'numeric', month: 'long' })}>
                 <span>{fmt(d, { weekday: 'short' })}</span>
                 <b>{d.date()}</b>
               </Link>
@@ -552,6 +560,18 @@ export const TodayComponent: FC = () => {
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => weekStart.add(i, 'day')), [weekStart]);
 
   const { integrations, isLoading: channelsLoading, mutate: reloadChannels } = useTodayIntegrations();
+  const router = useRouter();
+  const customer = useTodayCustomer();
+  // Same picker as the calendar toolbar (hidden unless there are customers);
+  // the choice lives in `?customer=`, as on /launches
+  const setCustomer = useCallback(
+    (next: string) => {
+      if (next !== customer) {
+        router.replace(next ? `/today?customer=${next}` : '/today');
+      }
+    },
+    [customer]
+  );
   const week = useTodayWeekPosts(
     weekStart.startOf('day').utc().format(),
     weekStart.add(6, 'day').endOf('day').utc().format()
@@ -626,6 +646,11 @@ export const TodayComponent: FC = () => {
             </p>
           </div>
           <div className="tdw-hero-actions">
+            <SelectCustomer
+              customer={customer}
+              onChange={setCustomer}
+              integrations={integrations}
+            />
             {isOn('agent') ? (
               <LinkButton href="/agents" icon="bot">
                 {t('today_ask_agent', 'Ask the agent')}

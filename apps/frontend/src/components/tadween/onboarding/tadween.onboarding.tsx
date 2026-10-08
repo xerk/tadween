@@ -38,7 +38,10 @@ import {
   Skeleton,
   TadweenScope,
 } from '@gitroom/frontend/components/tadween/ui';
-import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import {
+  useBrandLinks,
+  useFeatures,
+} from '@gitroom/frontend/components/tadween/instance/instance.settings';
 
 const LINKEDIN = ['linkedin', 'linkedin-page'];
 
@@ -88,6 +91,7 @@ const useConnected = () => {
 export const TadweenOnboarding: FC<{ onClose: () => void }> = ({ onClose }) => {
   const t = useT();
   const rtl = useDir();
+  const isOn = useFeatures();
   const [step, setStep] = useState(0);
   const [travel, setTravel] = useState(1);
   const connected = useConnected();
@@ -160,10 +164,10 @@ export const TadweenOnboarding: FC<{ onClose: () => void }> = ({ onClose }) => {
             </Button>
           ) : null}
           <span className="pz-ob-foot-note caption">
-            {step === 1
+            {step === 1 && isOn('publicApi')
               ? t(
                   'tdw_ob_agents_later',
-                  'More agents and full instructions are in Settings, Developers.'
+                  'More agents and full instructions are in Settings → API & MCP.'
                 )
               : null}
           </span>
@@ -203,6 +207,7 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
     Boolean
   ) as typeof social;
   const rest = social.filter((s) => !LINKEDIN.includes(s.identifier));
+  const article = data?.article || [];
 
   // The LinkedIn cards press Postiz's own provider tile, so the connect flow
   // (and whatever upstream changes in it) stays Postiz's
@@ -316,7 +321,7 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
         </div>
       )}
 
-      {rest.length > 0 && (
+      {(rest.length > 0 || article.length > 0) && (
         <div className="pz-ob-section">
           <h3 className="caption pz-ob-section-title">
             {t('tdw_ob_other_networks', 'Other networks')}
@@ -325,7 +330,7 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
             <AddProviderComponent
               invite={false}
               social={rest as any}
-              article={data?.article || []}
+              article={article}
               onboarding={true}
             />
           </div>
@@ -379,6 +384,7 @@ const Panel: FC<{ title: ReactNode; desc?: ReactNode; children?: ReactNode; asid
 const AgentsStep: FC = () => {
   const t = useT();
   const user = useUser();
+  const isOn = useFeatures();
   const { backendUrl, mcpUrl, mcpOfficialConnectors } = useVariables();
   const brand = useBrandLinks();
   const [tab, setTab] = useState<OnboardingTab>('Claude');
@@ -388,7 +394,9 @@ const AgentsStep: FC = () => {
   const [revealed, setRevealed] = useState(false);
   const mcpBase = mcpUrl || backendUrl;
   const apiKey = user?.publicApi || '';
-  const available = !!apiKey && !!user?.tier?.public_api;
+  // Same conditions as Settings → API & MCP, including the admin's switch
+  const apiOn = isOn('publicApi');
+  const available = apiOn && !!apiKey && !!user?.tier?.public_api;
   // Directory connectors sign in through Postiz's cloud: opt-in only
   const officialConnectors = !!mcpOfficialConnectors;
   const cliCommands = fillCliSteps(backendUrl, revealed ? apiKey : '*'.repeat(apiKey.length)).map((s) => s.code);
@@ -559,13 +567,7 @@ const AgentsStep: FC = () => {
       {available ? (
         <div className="pz-ob-agents">
           <div className="pz-ob-chips" role="group" aria-label={t('tdw_ob_agents_pick', 'Agent')}>
-            {[
-              ...onboardingAgents.filter(
-                (a) => officialConnectors || !isChatOnlyMcpClient(a)
-              ),
-              otherTab,
-              apiTab,
-            ].map((item) => (
+            {[...onboardingAgents, otherTab, apiTab].map((item) => (
               <button
                 key={item}
                 type="button"
@@ -602,10 +604,15 @@ const AgentsStep: FC = () => {
         <div className="pz-ob-panel">
           <div className="pz-ob-panel-body text-center">
             <p className="pz-muted m-0">
-              {t(
-                'tdw_agent_unavailable',
-                'Agent access is not on your current plan or role. You can set it up later in Settings, Developers.'
-              )}
+              {apiOn
+                ? t(
+                    'tdw_agent_unavailable',
+                    'Agent access is not on your current plan or role. You can set it up later in Settings → API & MCP.'
+                  )
+                : t(
+                    'tdw_agent_disabled',
+                    'Agent access through the API and MCP is turned off.'
+                  )}
             </p>
           </div>
         </div>

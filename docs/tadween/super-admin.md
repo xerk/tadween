@@ -26,10 +26,11 @@ Apply the schema with `pnpm run prisma-db-push`. Every reader catches a missing 
 
 ### Defaults and seeding
 
-- Features default to on, except the Postiz partner shortcuts `ugc` (AgentMedia UGC videos) and `affiliate`, which start off. `TADWEEN_DISABLED_FEATURES="plugs,agent"` turns features off and `TADWEEN_ENABLED_FEATURES="ugc"` turns the partner shortcuts on, until the admin saves a value.
+- Features default to on, except the Postiz partner shortcut `ugc` (AgentMedia UGC videos), which starts off (and stays hidden while the settings load). `TADWEEN_DISABLED_FEATURES="plugs,agent"` turns features off and `TADWEEN_ENABLED_FEATURES="ugc"` turns the partner shortcut on, until the admin saves a value. Postiz's affiliate link was removed from the menu, so there is no `affiliate` switch; an old saved `affiliate` value is ignored.
 - Registration falls back to `DISABLE_REGISTRATION` (closed), then `INVITE_ONLY_REGISTRATION` (invite), then open.
 - Providers default to LinkedIn and LinkedIn Page first, followed by Postiz's own order, all enabled. `HIDDEN_PROVIDERS` still hides a provider whatever the setting says.
 - Plans are seeded **on request**: Admin → Plans → "Add the Tadween plans" creates Creator, Pro, Team and Agency from the design system. Their prices are **placeholders**. Seeding is not automatic because it would change what an existing instance charges.
+- The default plans' **limits are taken from Postiz's `pricing` map** for their tier (channels 5 / 10 / 30 / 100, team members on from TEAM up, AI credits 20 / 100 / 300 / 500), so loading them never lowers what a paying workspace has. See "Existing subscribers" below.
 
 ## Pricing: how plans reach billing
 
@@ -40,7 +41,30 @@ These places read the overlay: Stripe checkout, prorate and embedded checkout (p
 - Stripe keeps working because it finds or creates a price by `unit_amount`, so a new USD price makes a new Stripe price. Existing subscribers keep what they pay.
 - One active plan per tier, because checkout is keyed by tier. The default mapping is Creator→STANDARD, Pro→TEAM, Team→PRO and Agency→ULTIMATE, so inherited Postiz capabilities grow with the plan.
 - Provider price ids are stored but **not read** yet.
+
+### Existing subscribers
+
+A plan's limits replace its tier's limits for **every workspace on that tier**: team members and AI at once (`PermissionsService`, `OrganizationService`), channels at the next Stripe subscription event (`Subscription.totalChannels`). So `PlansService` refuses (HTTP 400) any change that would make a tier's effective channels, team members, posts per month, AI or AI credits lower than today while a `Subscription` (not deleted, lifetime included) exists on that tier. That covers creating, editing, hiding, moving a plan to another tier, deleting it (the tier falls back to the static map) and loading the defaults. Raising limits is always allowed, and a tier nobody is subscribed to can be set to anything. To sell a smaller plan, put it on an empty tier.
 - EGP is stored and shown in the admin preview. Checkout still charges USD.
+
+## Environment variables
+
+Each one is a fallback or an opt-in; what the admin saves in `/admin` wins. All are listed in `.env.example`.
+
+| Variable | Effect |
+| --- | --- |
+| `DISABLE_REGISTRATION=true` | Registration mode falls back to **closed** (invites refused too; the first account on a fresh instance is still allowed) |
+| `INVITE_ONLY_REGISTRATION=true` | Registration mode falls back to **invite only** |
+| `TADWEEN_DISABLED_FEATURES` | Comma-separated feature keys that start off |
+| `TADWEEN_ENABLED_FEATURES` | Comma-separated keys that start on although they default off (today only `ugc`) |
+| `TADWEEN_INSTANCE_NAME` | Brand name in emails, MCP metadata and provider user agents (default `Tadween`) |
+| `TADWEEN_WEBSITE_URL`, `TADWEEN_TERMS_URL`, `TADWEEN_PRIVACY_URL`, `TADWEEN_DOCS_URL`, `TADWEEN_SUPPORT_URL`, `TADWEEN_TUTORIAL_VIDEO_URL` | Branding links until saved in Admin → Branding. Empty hides the link (the tutorial video hides the onboarding video and the paywall's "See how it works") |
+| `TADWEEN_PLACEHOLDER_EMAIL_DOMAIN` | Domain for generated addresses; defaults to the `FRONTEND_URL` host |
+| `CHROME_EXTENSION_URL` | Store listing of your own browser extension; empty hides the extension button |
+| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | Plausible analytics; off when empty |
+| `DATAFAST_WEBSITE_ID`, `DATAFAST_DOMAIN` | DataFast analytics; off without the id; domain defaults to the `FRONTEND_URL` host |
+| `NEXT_PUBLIC_DUB_REFER_DOMAIN` | Dub partner referrals (only with Stripe). `DUB_TOKEN`, `DUB_API_ENDPOINT`, `DUB_SHORT_LINK_DOMAIN` configure Dub short links |
+| `MCP_OFFICIAL_CONNECTORS=true` | Shows Postiz's one-click Claude / ChatGPT / Cursor / Grok directory connectors. They sign in through Postiz's cloud, so keep it off. Off still shows the MCP config, the CLI (`POSTIZ_API_URL` + API key) and the Grok Bot chat instructions for this instance. The CLI's `postiz auth:login` is not offered: it signs in at `cli-auth.postiz.com` |
 
 ## Endpoints
 
@@ -83,8 +107,9 @@ The UI comes from the Tadween design system, ported to `components/tadween/ui` w
 | --- | --- |
 | registration | **Enforced on the backend** (`AuthService.canRegister`). Invite-only lets a signed invite through. The register and login pages show the mode. |
 | providers | **Enforced on the backend**: hidden from Add channel, and new connects refused |
-| agent, analytics, media, plugs, thirdParty, ugc, affiliate | Hidden from the sidebar |
-| autopost, sets, signatures, publicApi, webhooks | Settings tabs hidden |
+| agent, analytics, media, plugs, thirdParty, ugc | Hidden from the sidebar |
+| autopost, sets, signatures, webhooks | Settings tabs hidden |
+| publicApi | Settings → API & MCP hidden, and onboarding's agent step shows a notice instead of keys |
 | shortLinks | Settings → short-link preference hidden |
 | ai | Saved only, not applied yet (marked in the UI) |
 

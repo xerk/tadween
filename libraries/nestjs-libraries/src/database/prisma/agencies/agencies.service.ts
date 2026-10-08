@@ -84,7 +84,10 @@ export class AgenciesService {
 
   async createAgency(user: User, body: CreateAgencyDto) {
     const agency = await this._agenciesRepository.createAgency(user, body);
-    // Tadween: reviewed by this instance's operator, never mailed to Postiz
+    // Tadween: reviewed by this instance's operator, never mailed to Postiz.
+    // Postiz approved from links to postiz.com/agencies/action/*; this app has
+    // no such route (and no controller reaches this service), so the email has
+    // no approve/decline links.
     if (!process.env.EMAIL_FROM_ADDRESS) {
       return agency;
     }
@@ -193,16 +196,6 @@ export class AgenciesService {
                 <p style="text-align: center; color: #555; font-size: 16px;">${body.niches.join(
                   ','
                 )}</p>
-            </td>
-        </tr>
-        <tr>
-            <td style="padding: 20px; text-align: center; background-color: #000;">
-                <a href="${process.env.FRONTEND_URL}/agencies/action/approve/${
-                  agency.id
-                }" style="margin: 0 10px; text-decoration: none; color: #007bff;">To approve click here</a><br /><br /><br />
-                <a href="${process.env.FRONTEND_URL}/agencies/action/decline/${
-                  agency.id
-                }" style="margin: 0 10px; text-decoration: none; color: #007bff;">To decline click here</a><br /><br /><br />
             </td>
         </tr>
         <tr>

@@ -22,12 +22,13 @@ export interface PlansResult {
 }
 
 /* Placeholder prices, the same as the seeded Tadween plans in the app
-   (tadween.defaults.ts): yearly is 20% off twelve months. Not final. */
+   (tadween.defaults.ts): yearly is 20% off twelve months. Not final.
+   Channels equal Postiz's limits per tier, like the seeded plans. */
 export const DEFAULT_PLANS: PlanView[] = [
-  { key: 'creator', popular: false, trialDays: 7, channels: 2, usd: { monthly: 9, yearly: 86 }, egp: { monthly: 299, yearly: 2868 } },
-  { key: 'pro', popular: false, trialDays: 7, channels: 5, usd: { monthly: 19, yearly: 182 }, egp: { monthly: 599, yearly: 5748 } },
-  { key: 'team', popular: true, trialDays: 7, channels: 15, usd: { monthly: 39, yearly: 374 }, egp: { monthly: 1199, yearly: 11508 } },
-  { key: 'agency', popular: false, trialDays: 7, channels: 50, usd: { monthly: 79, yearly: 758 }, egp: { monthly: 2499, yearly: 23988 } },
+  { key: 'creator', popular: false, trialDays: 7, channels: 5, usd: { monthly: 9, yearly: 86 }, egp: { monthly: 299, yearly: 2868 } },
+  { key: 'pro', popular: false, trialDays: 7, channels: 10, usd: { monthly: 19, yearly: 182 }, egp: { monthly: 599, yearly: 5748 } },
+  { key: 'team', popular: true, trialDays: 7, channels: 30, usd: { monthly: 39, yearly: 374 }, egp: { monthly: 1199, yearly: 11508 } },
+  { key: 'agency', popular: false, trialDays: 7, channels: 100, usd: { monthly: 79, yearly: 758 }, egp: { monthly: 2499, yearly: 23988 } },
 ];
 
 /** The public plan shape of GET /instance/settings (PlansService.getPublicPlans). */

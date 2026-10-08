@@ -474,7 +474,9 @@ const McpSection = ({
             {[
               ...Object.keys(remoteMcpClients),
               ...mcpClients,
-              ...(officialConnectors ? Object.keys(chatOnlyMcpClients) : []),
+              // chat-only clients get instructions for this instance
+              // (POSTIZ_API_URL + API key), so they show without connectors
+              ...Object.keys(chatOnlyMcpClients),
             ].map((client) => (
               <button
                 key={client}
@@ -585,7 +587,8 @@ const McpSection = ({
 };
 
 // Tadween: the CLI talks to this instance (POSTIZ_API_URL) with the API key.
-// `postiz auth:login` is left out: it signs in through Postiz's own auth server.
+// `postiz auth:login` is left out: it runs a device flow against
+// cli-auth.postiz.com (POSTIZ_AUTH_SERVER), which this instance doesn't host.
 export const cliSteps = [
   {
     label: 'Install the CLI',

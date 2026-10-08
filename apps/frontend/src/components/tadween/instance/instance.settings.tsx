@@ -25,8 +25,11 @@ export type FeatureKey =
   | 'sets'
   | 'thirdParty'
   | 'media'
-  | 'ugc'
-  | 'affiliate';
+  | 'ugc';
+
+// Features that start off (tadween.defaults.ts → featureDefaultsFromEnv). They
+// stay hidden until the settings load, so they never flash on.
+const FEATURES_OFF_BY_DEFAULT: FeatureKey[] = ['ugc'];
 
 export interface PublicPlan {
   key: string;
@@ -87,11 +90,13 @@ export const useInstanceSettings = () => {
   });
 };
 
-// `isOn('plugs')` — true unless the admin switched the feature off.
+// `isOn('plugs')` — true unless the admin switched the feature off. Before the
+// settings load, features that start off read as off.
 export const useFeatures = () => {
   const { data } = useInstanceSettings();
   return useCallback(
-    (key: FeatureKey) => data?.features?.[key] !== false,
+    (key: FeatureKey) =>
+      data?.features?.[key] ?? !FEATURES_OFF_BY_DEFAULT.includes(key),
     [data]
   );
 };

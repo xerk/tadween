@@ -115,10 +115,10 @@ export const en: Dict = {
     notListed: 'Not listed',
     faqTitle: 'Questions',
     plans: [
-      { key: 'creator', name: 'Creator', for: 'For one voice on LinkedIn', features: ['Profile + 1 company page', 'Unlimited scheduled posts', 'First comments and repeats', 'Best-time hints', 'Analytics'] },
-      { key: 'pro', name: 'Pro', for: 'For creators who post every week', features: ['5 LinkedIn channels', 'Everything in Creator', 'Hook rewrites in Arabic and English', 'PDF carousel builder', 'Sets and signatures'] },
-      { key: 'team', name: 'Team', for: 'For brands with a team', features: ['15 channels', 'Unlimited team members', 'Preview links for clients', 'Shared calendar and tags', 'Agent and MCP access'] },
-      { key: 'agency', name: 'Agency', for: 'For agencies and many clients', features: ['50 channels', 'Customer groups', 'Client-ready reports', 'Priority support in Arabic', 'Invoices in EGP or USD'] },
+      { key: 'creator', name: 'Creator', for: 'For one voice on LinkedIn', features: ['5 channels', 'Unlimited scheduled posts', 'First comments and repeats', 'Best-time hints', 'Analytics'] },
+      { key: 'pro', name: 'Pro', for: 'For creators who post every week', features: ['10 channels', 'Unlimited team members', 'Everything in Creator', 'Hook rewrites in Arabic and English', 'PDF carousel builder', 'Sets and signatures'] },
+      { key: 'team', name: 'Team', for: 'For brands with a team', features: ['30 channels', 'Unlimited team members', 'Preview links for clients', 'Shared calendar and tags', 'Agent and MCP access'] },
+      { key: 'agency', name: 'Agency', for: 'For agencies and many clients', features: ['100 channels', 'Customer groups', 'Client-ready reports', 'Priority support in Arabic', 'Invoices in EGP or USD'] },
     ],
     compare: [
       { label: 'LinkedIn channels', help: 'Profiles and company pages you can connect.', values: { creator: '2', pro: '5', team: '15', agency: '50' } },

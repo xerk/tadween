@@ -5,6 +5,7 @@
 // registration driven by env vars, every provider listed in Postiz's order with
 // LinkedIn first), so an empty database changes nothing for existing users.
 import { SubscriptionTier } from '@prisma/client';
+import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 
 // ── Registration ──────────────────────────────────────────────────────────────
 export type RegistrationMode = 'open' | 'invite' | 'closed';
@@ -36,7 +37,6 @@ export const FEATURE_KEYS = [
   'thirdParty',
   'media',
   'ugc',
-  'affiliate',
 ] as const;
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
 
@@ -62,10 +62,9 @@ export const FEATURES: FeatureDefinition[] = [
   { key: 'signatures', group: 'Workspace', label: 'Signatures', description: 'Saved sign-offs added to posts.', hides: 'Settings → Signatures', applied: true },
   { key: 'sets', group: 'Workspace', label: 'Sets', description: 'Saved channel groups with a message template.', hides: 'Settings → Sets', applied: true },
   { key: 'shortLinks', group: 'Workspace', label: 'Short links', description: 'Shorten and track links in posts.', hides: 'Settings → Short links preference', applied: true },
-  { key: 'publicApi', group: 'Developers', label: 'Public API, MCP and CLI', description: 'API key, OAuth apps and the MCP server for each workspace.', hides: 'Settings → Developers', applied: true },
+  { key: 'publicApi', group: 'Developers', label: 'Public API, MCP and CLI', description: 'API key, OAuth apps and the MCP server for each workspace.', hides: 'Settings → API & MCP, and the agent step of onboarding', applied: true },
   { key: 'webhooks', group: 'Developers', label: 'Webhooks', description: 'HTTP callbacks when posts publish or fail.', hides: 'Settings → Webhooks', applied: true },
-  { key: 'ugc', group: 'Growth', label: 'UGC videos', description: 'The AgentMedia UGC video shortcut.', hides: 'UGC in the sidebar', applied: true },
-  { key: 'affiliate', group: 'Growth', label: 'Affiliate link', description: 'Postiz affiliate programme link.', hides: 'Affiliate in the sidebar', applied: true },
+  { key: 'ugc', group: 'Growth', label: 'UGC videos', description: 'The AgentMedia UGC video shortcut (a Postiz partner deal). Off unless you switch it on.', hides: 'Make UGC in the sidebar', applied: true },
 ];
 
 // Env fallback: TADWEEN_DISABLED_FEATURES="plugs,ugc" turns features off until
@@ -75,14 +74,15 @@ export const featureDefaultsFromEnv = (): Record<FeatureKey, boolean> => {
     .split(',')
     .map((p) => p.trim())
     .filter(Boolean);
-  // Partner shortcuts that point at Postiz's own deals (AgentMedia UGC videos, the
-  // Postiz affiliate programme) start off; a super admin can switch them on, or list
-  // them in TADWEEN_ENABLED_FEATURES.
+  // Partner shortcuts that point at Postiz's own deals (AgentMedia UGC videos)
+  // start off; a super admin can switch them on, or list them in
+  // TADWEEN_ENABLED_FEATURES. Keep in sync with FEATURES_OFF_BY_DEFAULT in
+  // the frontend's instance.settings.tsx.
   const on = (process.env.TADWEEN_ENABLED_FEATURES || '')
     .split(',')
     .map((p) => p.trim())
     .filter(Boolean);
-  const offByDefault: FeatureKey[] = ['ugc', 'affiliate'];
+  const offByDefault: FeatureKey[] = ['ugc'];
   return FEATURE_KEYS.reduce(
     (all, key) => ({
       ...all,
@@ -232,6 +232,21 @@ export const credentialStatus = (identifier: string) => {
 // Tier mapping (Plan.tier → Postiz SubscriptionTier) is chosen so inherited
 // capabilities grow with the plan: Creator→STANDARD, Pro→TEAM, Team→PRO,
 // Agency→ULTIMATE. Stripe products stay keyed by the Postiz tier name.
+//
+// LIMITS COME FROM POSTIZ'S PRICING MAP. A plan's limits replace the tier's for
+// every workspace on it (team members and AI at once, channels at the next
+// Stripe renewal), and this instance already has paying subscribers. Loading the
+// defaults must therefore never lower anything: channels, team members and AI
+// credits equal the static `pricing` entry of the tier. Lowering them is a
+// deliberate edit in /admin/plans, which PlansService refuses while paying
+// workspaces are on that tier.
+const limitsOf = (tier: Exclude<SubscriptionTier, 'FREE'>) => ({
+  channels: pricing[tier].channel!,
+  teamMembers: pricing[tier].team_members ? -1 : 0,
+  postsPerMonth: -1,
+  aiCredits: pricing[tier].image_generation_count,
+});
+
 export interface DefaultPlan {
   key: string;
   name: string;
@@ -263,11 +278,8 @@ export const DEFAULT_PLANS: DefaultPlan[] = [
     yearlyPriceEgp: 2868,
     trialDays: 7,
     mostPopular: false,
-    channels: 2,
-    teamMembers: 0,
-    postsPerMonth: -1,
-    aiCredits: 20,
-    features: ['Profile + 1 company page', 'Unlimited scheduled posts', 'First comments and repeats', 'Best-time hints', 'Analytics'],
+    ...limitsOf('STANDARD'),
+    features: ['5 channels', 'Unlimited scheduled posts', 'First comments and repeats', 'Best-time hints', 'Analytics'],
     position: 0,
   },
   {
@@ -281,11 +293,8 @@ export const DEFAULT_PLANS: DefaultPlan[] = [
     yearlyPriceEgp: 5748,
     trialDays: 7,
     mostPopular: false,
-    channels: 5,
-    teamMembers: 0,
-    postsPerMonth: -1,
-    aiCredits: 100,
-    features: ['5 LinkedIn channels', 'Everything in Creator', 'Hook rewrites in Arabic and English', 'PDF carousel builder', 'Sets and signatures'],
+    ...limitsOf('TEAM'),
+    features: ['10 channels', 'Unlimited team members', 'Everything in Creator', 'Hook rewrites in Arabic and English', 'PDF carousel builder', 'Sets and signatures'],
     position: 1,
   },
   {
@@ -299,11 +308,8 @@ export const DEFAULT_PLANS: DefaultPlan[] = [
     yearlyPriceEgp: 11508,
     trialDays: 7,
     mostPopular: true,
-    channels: 15,
-    teamMembers: -1,
-    postsPerMonth: -1,
-    aiCredits: 300,
-    features: ['15 channels', 'Unlimited team members', 'Preview links for clients', 'Shared calendar and tags', 'Agent and MCP access'],
+    ...limitsOf('PRO'),
+    features: ['30 channels', 'Unlimited team members', 'Preview links for clients', 'Shared calendar and tags', 'Agent and MCP access'],
     position: 2,
   },
   {
@@ -317,11 +323,8 @@ export const DEFAULT_PLANS: DefaultPlan[] = [
     yearlyPriceEgp: 23988,
     trialDays: 7,
     mostPopular: false,
-    channels: 50,
-    teamMembers: -1,
-    postsPerMonth: -1,
-    aiCredits: 500,
-    features: ['50 channels', 'Customer groups', 'Client-ready reports', 'Priority support in Arabic', 'Invoices in EGP or USD'],
+    ...limitsOf('ULTIMATE'),
+    features: ['100 channels', 'Customer groups', 'Client-ready reports', 'Priority support in Arabic', 'Invoices in EGP or USD'],
     position: 3,
   },
 ];

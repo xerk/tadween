@@ -11,7 +11,10 @@ import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/se
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
 import dynamic from 'next/dynamic';
 import { LogoTextComponent } from '@gitroom/frontend/components/ui/logo-text.component';
-import { useTadweenPricing } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import {
+  useBrandLinks,
+  useTadweenPricing,
+} from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { capitalize } from 'lodash';
 import {
   FAQComponent,
@@ -72,6 +75,8 @@ export const FirstBillingComponent = () => {
   // Tadween: plans from /admin (falls back to Postiz's pricing map)
   const { visible, nameFor, hasPlans, plans, planFor } = useTadweenPricing();
   const tierMeta = useTierMeta();
+  // Tadween: the tutorial from /admin → Branding; without one, no video button
+  const { tutorialVideoUrl } = useBrandLinks();
   useEffect(() => {
     if (hasPlans && !planFor(tier)) {
       setTier(plans[0].tier);
@@ -106,7 +111,7 @@ export const FirstBillingComponent = () => {
       children: (
         <iframe
           className="h-full aspect-video min-w-[800px] mobile:min-w-0 mobile:w-full"
-          src="https://www.youtube.com/embed/BdsCVvEYgHU?si=vvhaZJ8I5oXXvVJS?autoplay=1"
+          src={tutorialVideoUrl}
           title={t('tdw_tutorial', 'Tutorial')}
           allow="autoplay"
           allowFullScreen
@@ -193,9 +198,11 @@ export const FirstBillingComponent = () => {
                 </li>
               </ul>
             )}
-            <Button variant="ghost" size="sm" icon="play" onClick={showYouTube}>
-              {t('tdw_see_how_it_works', 'See how it works')}
-            </Button>
+            {!!tutorialVideoUrl && (
+              <Button variant="ghost" size="sm" icon="play" onClick={showYouTube}>
+                {t('tdw_see_how_it_works', 'See how it works')}
+              </Button>
+            )}
           </div>
         </div>
         <section className="tdw-paywall-pane">

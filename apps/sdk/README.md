@@ -14,6 +14,8 @@ import Postiz from '@postiz/node';
 const postiz = new Postiz('your api key', 'https://your-instance/api'); // or set POSTIZ_API_URL
 ```
 
+The API URL is your instance's backend URL (the `NEXT_PUBLIC_BACKEND_URL` of the deployment, shown in Settings → API & MCP). There is no hosted default: without a URL argument or `POSTIZ_API_URL`, `new Postiz(key)` still constructs, and the first request throws an error that says what to set. Nothing is ever sent to api.postiz.com.
+
 The available methods are:
 - `post(posts: CreatePostDto)` - Schedule a post
 - `postList(filters: GetPostsDto)` - Get a list of posts

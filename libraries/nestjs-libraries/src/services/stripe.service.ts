@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { placeholderEmailDomain } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { BadRequestException } from '@nestjs/common';
 import { Organization, User } from '@prisma/client';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
@@ -286,7 +287,7 @@ export class StripeService extends PaymentProviderAbstract {
       [...emailByCustomer].map(([customerId, email]) =>
         stripe.customers
           .update(customerId, {
-            email: email.indexOf('@') > -1 ? email : `${email}@postiz.com`,
+            email: email.indexOf('@') > -1 ? email : `${email}@${placeholderEmailDomain()}`,
           })
           .catch(() => {})
       )
@@ -303,7 +304,7 @@ export class StripeService extends PaymentProviderAbstract {
       email:
         users.users[0].user.email.indexOf('@') > -1
           ? users.users[0].user.email
-          : `${users.users[0].user.email}@postiz.com`,
+          : `${users.users[0].user.email}@${placeholderEmailDomain()}`,
       name: organization.name,
     });
     await this._subscriptionService.updateCustomerId(
@@ -629,7 +630,7 @@ export class StripeService extends PaymentProviderAbstract {
         email:
           user.email.indexOf('@') > -1
             ? user.email
-            : `${user.email}@postiz.com`,
+            : `${user.email}@${placeholderEmailDomain()}`,
         ...(body.dub
           ? {
               metadata: {

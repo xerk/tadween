@@ -26,12 +26,23 @@ import Script from 'next/script';
 import { ChangeDirClient } from '@gitroom/frontend/components/new-layout/change.dir.client';
 
 
+// DataFast site: DATAFAST_DOMAIN, else this instance's host (was postiz.com)
+const datafastDomain = () => {
+  try {
+    return new URL(process.env.FRONTEND_URL || '').hostname;
+  } catch (e) {
+    return '';
+  }
+};
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const language = cookieStore.get(cookieName)?.value || fallbackLng;
-  const Plausible = !!process.env.STRIPE_PUBLISHABLE_KEY
-    ? PlausibleProvider
-    : Fragment;
+  // Tadween: analytics only report to accounts configured here, never to
+  // Postiz's (it used to send to the postiz.com Plausible site whenever Stripe
+  // was on).
+  const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || '';
+  const Plausible = plausibleDomain ? PlausibleProvider : Fragment;
   return (
     <html>
       <head>
@@ -39,7 +50,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         {!!process.env.DATAFAST_WEBSITE_ID && (
           <Script
             data-website-id={process.env.DATAFAST_WEBSITE_ID}
-            data-domain="postiz.com"
+            data-domain={process.env.DATAFAST_DOMAIN || datafastDomain()}
             src="https://datafa.st/js/script.js"
             strategy="afterInteractive"
           />
@@ -69,7 +80,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           cloudflareUrl={process.env.CLOUDFLARE_BUCKET_URL || ''}
           mainUrl={process.env.MAIN_URL || ''}
           mcpUrl={process.env.MCP_URL}
-          dub={!!process.env.STRIPE_PUBLISHABLE_KEY}
+          dub={
+            !!process.env.STRIPE_PUBLISHABLE_KEY &&
+            !!process.env.NEXT_PUBLIC_DUB_REFER_DOMAIN
+          }
+          dubReferDomain={process.env.NEXT_PUBLIC_DUB_REFER_DOMAIN || ''}
+          mcpOfficialConnectors={process.env.MCP_OFFICIAL_CONNECTORS === 'true'}
+          chromeExtensionUrl={process.env.CHROME_EXTENSION_URL || ''}
           facebookPixel={process.env.NEXT_PUBLIC_FACEBOOK_PIXEL!}
           telegramBotName={process.env.TELEGRAM_BOT_NAME!}
           neynarClientId={process.env.NEYNAR_CLIENT_ID!}
@@ -83,6 +100,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           googleAdsTrialTracking={process.env.NEXT_PUBLIC_TRACKING_TRIAL}
           language={language}
           recaptchaSiteKey={process.env.RECAPTCHA_SITE_KEY || ''}
+          termsUrl={process.env.NEXT_PUBLIC_TERMS_URL || ''}
+          privacyUrl={process.env.NEXT_PUBLIC_PRIVACY_URL || ''}
           mediaProcessing={
             process.env.STORAGE_PROVIDER === 'cloudflare' &&
             !!process.env.RUNPOD_API_KEY &&
@@ -103,9 +122,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <DubAnalytics />
             <FacebookComponent />
             <GoogleTagManagerComponent gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
-            <Plausible
-              domain={!!process.env.IS_GENERAL ? 'postiz.com' : 'gitroom.com'}
-            >
+            <Plausible domain={plausibleDomain}>
               <PHProvider
                 phkey={process.env.NEXT_PUBLIC_POSTHOG_KEY}
                 host={process.env.NEXT_PUBLIC_POSTHOG_HOST}

@@ -3,8 +3,6 @@
 import { useForm, SubmitHandler, FormProvider } from 'react-hook-form';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import Link from 'next/link';
-import { Button } from '@gitroom/react/form/button';
-import { Input } from '@gitroom/react/form/input';
 import { useMemo, useState } from 'react';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { LoginUserDto } from '@gitroom/nestjs-libraries/dtos/auth/login.user.dto';
@@ -16,6 +14,16 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { FarcasterProvider } from '@gitroom/frontend/components/auth/providers/farcaster.provider';
 import WalletProvider from '@gitroom/frontend/components/auth/providers/wallet.provider';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import {
+  AuthDivider,
+  AuthField,
+  AuthHeading,
+  AuthLink,
+  AuthNotice,
+  AuthProviders,
+  AuthSubmit,
+  AuthSwitch,
+} from '@gitroom/frontend/components/tadween/auth/auth.parts';
 import { useInstanceSettings } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 type Inputs = {
   email: string;
@@ -27,7 +35,8 @@ export function Login() {
   const t = useT();
   const [loading, setLoading] = useState(false);
   const [notActivated, setNotActivated] = useState(false);
-  // Tadween: registration mode set in /admin
+  // Tadween: registration mode set in /admin (env DISABLE_REGISTRATION until
+  // saved). Closed hides the sign-up link; invite-only explains how to join.
   const registrationMode = useInstanceSettings().data?.registration?.mode;
   const {
     isGeneral,
@@ -71,108 +80,76 @@ export function Login() {
   };
   return (
     <FormProvider {...form}>
-      <form className="flex-1 flex" onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="flex flex-col flex-1">
-          <div>
-            <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start cursor-pointer">
-              {t('sign_in', 'Sign In')}
-            </h1>
-          </div>
-          <div className="text-[14px] mt-[32px] mb-[12px]">
-            {t('continue_with', 'Continue With')}
-          </div>
-          <div className="flex flex-col">
-            {isGeneral && genericOauth ? (
-              <OauthProvider />
-            ) : !isGeneral ? (
-              <GithubProvider />
-            ) : (
-              <div className="gap-[8px] flex">
-                <GoogleProvider />
-                {!!appleClientId && <AppleProvider />}
-                {!!neynarClientId && <FarcasterProvider />}
-                {billingEnabled && <WalletProvider />}
-              </div>
-            )}
-            <div className="h-[20px] mb-[24px] mt-[24px] relative">
-              <div className="absolute w-full h-[1px] bg-fifth top-[50%] -translate-y-[50%]" />
-              <div
-                className={`absolute z-[1] justify-center items-center w-full start-0 -top-[4px] flex`}
-              >
-                <div className="px-[16px]">{t('or', 'or')}</div>
-              </div>
-            </div>
-            <div className="flex flex-col gap-[12px]">
-              <div className="text-textColor">
-                <Input
-                  label="Email"
-                  translationKey="label_email"
-                  {...form.register('email')}
-                  type="email"
-                  placeholder={t('email_address', 'Email Address')}
-                />
-                <Input
-                  label="Password"
-                  translationKey="label_password"
-                  {...form.register('password')}
-                  autoComplete="off"
-                  type="password"
-                  placeholder={t('label_password', 'Password')}
-                />
-              </div>
-              {notActivated && (
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-[10px] p-4 mb-4">
-                  <p className="text-amber-400 text-sm mb-2">
-                    {t(
-                      'account_not_activated',
-                      'Your account is not activated yet. Please check your email for the activation link.'
-                    )}
-                  </p>
-                  <Link
-                    href="/auth/activate"
-                    className="text-amber-400 underline hover:font-bold text-sm"
-                  >
-                    {t('resend_activation_email', 'Resend Activation Email')}
-                  </Link>
-                </div>
+      <form noValidate onSubmit={form.handleSubmit(onSubmit)}>
+        <AuthHeading
+          title={t('tdw_auth_login_title', 'Welcome back')}
+          subtitle={t(
+            'tdw_auth_login_subtitle',
+            'Sign in to plan, write and schedule your posts.'
+          )}
+        />
+        <AuthProviders>
+          {isGeneral && genericOauth ? (
+            <OauthProvider />
+          ) : !isGeneral ? (
+            <GithubProvider />
+          ) : (
+            <>
+              <GoogleProvider />
+              {!!appleClientId && <AppleProvider />}
+              {!!neynarClientId && <FarcasterProvider />}
+              {billingEnabled && <WalletProvider />}
+            </>
+          )}
+        </AuthProviders>
+        <AuthDivider />
+        <div className="tdw-auth-form">
+          <AuthField
+            name="email"
+            type="email"
+            autoComplete="email"
+            label={t('label_email', 'Email')}
+            placeholder={t('tdw_auth_email_placeholder', 'you@company.com')}
+          />
+          <AuthField
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            label={t('label_password', 'Password')}
+            aside={
+              <AuthLink href="/auth/forgot">
+                {t('tdw_auth_forgot', 'Forgot password?')}
+              </AuthLink>
+            }
+          />
+          {notActivated && (
+            <AuthNotice tone="warning">
+              {t(
+                'account_not_activated',
+                'Your account is not activated yet. Please check your email for the activation link.'
               )}
-              <div className="text-center mt-6">
-                <div className="w-full flex">
-                  <Button
-                    type="submit"
-                    className="flex-1 rounded-[10px] !h-[52px]"
-                    loading={loading}
-                  >
-                    {t('sign_in_1', 'Sign in')}
-                  </Button>
-                </div>
-                {registrationMode === 'invite' ? (
-                  <p className="mt-4 text-sm">
-                    {t(
-                      'registration_invite_only',
-                      'Invite only. Ask your workspace admin for an invite link.'
-                    )}
-                  </p>
-                ) : (
-                  <p className="mt-4 text-sm">
-                    {t('don_t_have_an_account', "Don't Have An Account?")}&nbsp;
-                    <Link href="/auth" className="underline cursor-pointer">
-                      {t('sign_up', 'Sign Up')}
-                    </Link>
-                  </p>
-                )}
-                <p className="mt-4 text-sm">
-                  <Link
-                    href="/auth/forgot"
-                    className="underline hover:font-bold cursor-pointer"
-                  >
-                    {t('forgot_password', 'Forgot password')}
-                  </Link>
-                </p>
-              </div>
-            </div>
-          </div>
+              <br />
+              <Link href="/auth/activate">
+                {t('resend_activation_email', 'Resend Activation Email')}
+              </Link>
+            </AuthNotice>
+          )}
+          <AuthSubmit loading={loading}>{t('sign_in_1', 'Sign in')}</AuthSubmit>
         </div>
+        {registrationMode === 'invite' ? (
+          <p className="tdw-auth-switch">
+            {t(
+              'registration_invite_only',
+              'Invite only. Ask your workspace admin for an invite link.'
+            )}
+          </p>
+        ) : registrationMode === 'closed' ? null : (
+          <AuthSwitch
+            prompt={t('tdw_auth_new_here', 'New to Tadween?')}
+            href="/auth"
+            action={t('tdw_auth_create_account', 'Create an account')}
+          />
+        )}
       </form>
     </FormProvider>
   );

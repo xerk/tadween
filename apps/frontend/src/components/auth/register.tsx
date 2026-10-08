@@ -3,15 +3,12 @@
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import Link from 'next/link';
-import { Button } from '@gitroom/react/form/button';
-import { Input } from '@gitroom/react/form/input';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
 import { GithubProvider } from '@gitroom/frontend/components/auth/providers/github.provider';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
-import clsx from 'clsx';
 import { GoogleProvider } from '@gitroom/frontend/components/auth/providers/google.provider';
 import { AppleProvider } from '@gitroom/frontend/components/auth/providers/apple.provider';
 import { OauthProvider } from '@gitroom/frontend/components/auth/providers/oauth.provider';
@@ -24,6 +21,15 @@ import dynamic from 'next/dynamic';
 import { WalletUiProvider } from '@gitroom/frontend/components/auth/providers/placeholder/wallet.ui.provider';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import useCookie from 'react-use-cookie';
+import {
+  AuthDivider,
+  AuthField,
+  AuthHeading,
+  AuthLegal,
+  AuthProviders,
+  AuthSubmit,
+  AuthSwitch,
+} from '@gitroom/frontend/components/tadween/auth/auth.parts';
 const WalletProvider = dynamic(
   () => import('@gitroom/frontend/components/auth/providers/wallet.provider'),
   {
@@ -69,7 +75,11 @@ export function Register() {
     return <RegisterAfter token="" provider="LOCAL" />;
   }
   if (!show) {
-    return <LoadingComponent />;
+    return (
+      <div className="tdw-auth-spinner">
+        <LoadingComponent />
+      </div>
+    );
   }
   return (
     <RegisterAfter token={code} provider={provider?.toUpperCase() || 'LOCAL'} />
@@ -155,22 +165,32 @@ export function RegisterAfter({
   };
   return (
     <FormProvider {...form}>
-      <form className="flex-1 flex" onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="flex flex-col flex-1">
-          <div>
-            <h1 className="text-[40px] font-[500] -tracking-[0.8px] text-start cursor-pointer">
-              {t('sign_up', 'Sign Up')}
-            </h1>
-          </div>
-          <div className="text-[14px] mt-[32px] mb-[12px]">
-            {t('continue_with', 'Continue With')}
-          </div>
-          <div className="flex flex-col text-[14px]">
-            {!isAfterProvider &&
-              (!isGeneral ? (
+      <form noValidate onSubmit={form.handleSubmit(onSubmit)}>
+        <AuthHeading
+          title={
+            isAfterProvider
+              ? t('tdw_auth_register_finish_title', 'One last step')
+              : t('tdw_auth_register_title', 'Create your account')
+          }
+          subtitle={
+            isAfterProvider
+              ? t(
+                  'tdw_auth_register_finish_subtitle',
+                  'Name your workspace and you are in.'
+                )
+              : t(
+                  'tdw_auth_register_subtitle',
+                  'Plan, preview and schedule your LinkedIn posts in one place.'
+                )
+          }
+        />
+        {!isAfterProvider && (
+          <>
+            <AuthProviders>
+              {!isGeneral ? (
                 <GithubProvider />
               ) : (
-                <div className="gap-[8px] flex">
+                <>
                   {genericOauth && isGeneral ? (
                     <OauthProvider />
                   ) : (
@@ -179,96 +199,47 @@ export function RegisterAfter({
                   {!!appleClientId && <AppleProvider />}
                   {!!neynarClientId && <FarcasterProvider />}
                   {billingEnabled && <WalletProvider />}
-                </div>
-              ))}
-            {!isAfterProvider && (
-              <div className="h-[20px] mb-[24px] mt-[24px] relative">
-                <div className="absolute w-full h-[1px] bg-fifth top-[50%] -translate-y-[50%]" />
-                <div
-                  className={`absolute z-[1] justify-center items-center w-full start-0 -top-[4px] flex`}
-                >
-                  <div className="px-[16px]">{t('or', 'or')}</div>
-                </div>
-              </div>
-            )}
-            <div className="flex flex-col gap-[12px]">
-              <div className="text-textColor">
-                {!isAfterProvider && (
-                  <>
-                    <Input
-                      label="Email"
-                      translationKey="label_email"
-                      {...form.register('email')}
-                      type="email"
-                      placeholder={t('email_address', 'Email Address')}
-                    />
-                    <Input
-                      label="Password"
-                      translationKey="label_password"
-                      {...form.register('password')}
-                      autoComplete="off"
-                      type="password"
-                      placeholder={t('label_password', 'Password')}
-                    />
-                  </>
-                )}
-                <Input
-                  label="Company"
-                  translationKey="label_company"
-                  {...form.register('company')}
-                  autoComplete="off"
-                  type="text"
-                  placeholder={t('label_company', 'Company')}
-                />
-              </div>
-              <div className={clsx('text-[12px]')}>
-                {t(
-                  'by_registering_you_agree_to_our',
-                  'By registering you agree to our'
-                )}
-                &nbsp;
-                <a
-                  href={`https://postiz.com/terms`}
-                  className="underline hover:font-bold"
-                  rel="nofollow"
-                >
-                  {t('terms_of_service', 'Terms of Service')}
-                </a>
-                &nbsp;
-                {t('and', 'and')}&nbsp;
-                <a
-                  href={`https://postiz.com/privacy`}
-                  rel="nofollow"
-                  className="underline hover:font-bold"
-                >
-                  {t('privacy_policy', 'Privacy Policy')}
-                </a>
-                &nbsp;
-              </div>
-              <div className="text-center mt-6">
-                <div className="w-full flex">
-                  <Button
-                    type="submit"
-                    className="flex-1 rounded-[10px] !h-[52px]"
-                    loading={loading}
-                  >
-                    {t('create_account', 'Create Account')}
-                  </Button>
-                </div>
-                <p className="mt-4 text-sm">
-                  {t('already_have_an_account', 'Already Have An Account?')}
-                  &nbsp;
-                  <Link
-                    href="/auth/login"
-                    className="underline  cursor-pointer"
-                  >
-                    {t('sign_in', 'Sign In')}
-                  </Link>
-                </p>
-              </div>
-            </div>
-          </div>
+                </>
+              )}
+            </AuthProviders>
+            <AuthDivider />
+          </>
+        )}
+        <div className="tdw-auth-form">
+          {!isAfterProvider && (
+            <>
+              <AuthField
+                name="email"
+                type="email"
+                autoComplete="email"
+                label={t('label_email', 'Email')}
+                placeholder={t('tdw_auth_email_placeholder', 'you@company.com')}
+              />
+              <AuthField
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                label={t('label_password', 'Password')}
+              />
+            </>
+          )}
+          <AuthField
+            name="company"
+            type="text"
+            autoComplete="organization"
+            label={t('tdw_auth_workspace', 'Workspace name')}
+            placeholder={t('tdw_auth_workspace_placeholder', 'Your company or your name')}
+          />
+          <AuthLegal />
+          <AuthSubmit loading={loading}>
+            {t('create_account', 'Create Account')}
+          </AuthSubmit>
         </div>
+        <AuthSwitch
+          prompt={t('tdw_auth_have_account', 'Already have an account?')}
+          href="/auth/login"
+          action={t('sign_in_1', 'Sign in')}
+        />
       </form>
     </FormProvider>
   );

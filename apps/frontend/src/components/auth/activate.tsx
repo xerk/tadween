@@ -3,8 +3,13 @@
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
-import { Button } from '@gitroom/react/form/button';
-import { Input } from '@gitroom/react/form/input';
+import {
+  AuthField,
+  AuthHeading,
+  AuthNotice,
+  AuthSubmit,
+  AuthSwitch,
+} from '@gitroom/frontend/components/tadween/auth/auth.parts';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
@@ -67,92 +72,82 @@ export function Activate() {
   };
 
   return (
-    <div className="flex flex-col flex-1">
-      <div>
-        <h1 className="text-3xl font-bold text-start mb-4 cursor-pointer">
-          {t('activate_your_account', 'Activate your account')}
-        </h1>
-      </div>
-      <div className="text-textColor">
-        {t('thank_you_for_registering', 'Thank you for registering!')}
-        <br />
-        {t(
-          'please_check_your_email_to_activate_your_account',
-          'Please check your email to activate your account.'
-        )}
-      </div>
-
-      <div className="mt-8 border-t border-fifth pt-6">
-        <h2 className="text-lg font-semibold mb-4">
-          {t('didnt_receive_email', "Didn't receive the email?")}
-        </h2>
+    <div>
+      <AuthHeading
+        title={t('tdw_auth_activate_title', 'Check your email')}
+        subtitle={
+          <>
+            {t('thank_you_for_registering', 'Thank you for registering!')}{' '}
+            {t(
+              'please_check_your_email_to_activate_your_account',
+              'Please check your email to activate your account.'
+            )}
+          </>
+        }
+      />
+      <div className="tdw-auth-section">
+        <h2>{t('didnt_receive_email', "Didn't receive the email?")}</h2>
         {status === 'sent' ? (
-          <div className="flex flex-col gap-4">
-            <div className="text-green-400">
+          <>
+            <AuthNotice tone="success" icon="mail">
               {t(
                 'activation_email_sent',
                 'Activation email has been sent! Please check your inbox.'
               )}
-            </div>
+            </AuthNotice>
             {cooldown > 0 ? (
-              <p className="text-sm text-textColor">
+              <p className="tdw-auth-hint">
                 {t('resend_available_in', 'You can resend in')} {cooldown}s
               </p>
             ) : (
-              <Button
-                onClick={resetToForm}
-                className="rounded-[10px] !h-[52px]"
-              >
+              <AuthSubmit type="button" onClick={resetToForm}>
                 {t('send_again', 'Send Again')}
-              </Button>
+              </AuthSubmit>
             )}
-          </div>
+          </>
         ) : status === 'already_activated' ? (
-          <div className="flex flex-col gap-4">
-            <div className="text-green-400">
+          <>
+            <AuthNotice tone="success">
               {t(
                 'account_already_activated',
                 'Great news! Your account is already activated.'
               )}
-            </div>
-            <Link href="/auth/login">
-              <Button className="rounded-[10px] !h-[52px] w-full">
-                {t('go_to_login', 'Go to Login')}
-              </Button>
+            </AuthNotice>
+            <Link href="/auth/login" className="pz-btn pz-btn-primary tdw-auth-submit">
+              {t('go_to_login', 'Go to Login')}
             </Link>
-          </div>
+          </>
         ) : (
           <FormProvider {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-              <Input
-                label={t('label_email', 'Email')}
-                translationKey="label_email"
-                {...form.register('email', { required: true })}
+            <form
+              noValidate
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="tdw-auth-form"
+            >
+              <AuthField
+                name="email"
                 type="email"
-                placeholder={t('email_address', 'Email Address')}
+                autoComplete="email"
+                required={t('tdw_auth_email_required', 'Enter your email address.')}
+                label={t('label_email', 'Email')}
+                placeholder={t('tdw_auth_email_placeholder', 'you@company.com')}
               />
-              <Button
-                type="submit"
-                className="rounded-[10px] !h-[52px]"
-                loading={loading}
-                disabled={cooldown > 0}
-              >
+              <AuthSubmit loading={loading} disabled={cooldown > 0}>
                 {cooldown > 0
                   ? `${t('resend_available_in', 'You can resend in')} ${cooldown}s`
                   : t('resend_activation_email', 'Resend Activation Email')}
-              </Button>
+              </AuthSubmit>
             </form>
           </FormProvider>
         )}
-        {status !== 'already_activated' && (
-          <p className="mt-4 text-sm text-textColor">
-            {t('already_activated', 'Already activated?')}&nbsp;
-            <Link href="/auth/login" className="underline cursor-pointer">
-              {t('sign_in', 'Sign In')}
-            </Link>
-          </p>
-        )}
       </div>
+      {status !== 'already_activated' && (
+        <AuthSwitch
+          prompt={t('already_activated', 'Already activated?')}
+          href="/auth/login"
+          action={t('sign_in_1', 'Sign in')}
+        />
+      )}
     </div>
   );
 }

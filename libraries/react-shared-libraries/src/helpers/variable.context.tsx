@@ -28,6 +28,10 @@ interface VariableContextInterface {
   disableXAnalytics: boolean;
   language: string;
   dub: boolean;
+  // Tadween: off unless configured, so nothing points at Postiz's accounts
+  dubReferDomain?: string;
+  mcpOfficialConnectors?: boolean;
+  chromeExtensionUrl?: string;
   transloadit: string[];
   mediaProcessing: boolean;
   sentryDsn: string;
@@ -35,6 +39,8 @@ interface VariableContextInterface {
   googleAdsId?: string;
   googleAdsTrialTracking?: string;
   recaptchaSiteKey?: string;
+  termsUrl?: string;
+  privacyUrl?: string;
 }
 const VariableContext = createContext({
   stripeClient: '',
@@ -64,11 +70,16 @@ const VariableContext = createContext({
   disableXAnalytics: false,
   language: '',
   dub: false,
+  dubReferDomain: '',
+  mcpOfficialConnectors: false,
+  chromeExtensionUrl: '',
   transloadit: [],
   mediaProcessing: false,
   sentryDsn: '',
   extensionId: '',
   recaptchaSiteKey: '',
+  termsUrl: '',
+  privacyUrl: '',
 } as VariableContextInterface);
 export const VariableContextComponent: FC<
   VariableContextInterface & {

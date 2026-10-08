@@ -30,6 +30,7 @@ import { UpDownArrow } from '@gitroom/frontend/components/launches/up.down.arrow
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useExistingData } from '@gitroom/frontend/components/launches/helpers/use.existing.data';
 import { useCopilotAction, useCopilotReadable } from '@copilotkit/react-core';
+import { AiOnly } from '@gitroom/frontend/components/tadween/instance/ai.guard';
 import { useDropzone } from 'react-dropzone';
 import { useUppyUploader } from '@gitroom/frontend/components/media/new.uploader';
 import { Dashboard } from '@uppy/react';
@@ -144,6 +145,35 @@ const insertImages = (
       }))
     )
     ?.run();
+};
+
+// What the assistant can read and change in the editor; only mounted when AI
+// is available (AiOnly).
+const EditorCopilot: FC<{
+  items: { content: string }[];
+  setValue: (value: string[]) => void;
+}> = ({ items, setValue }) => {
+  useCopilotReadable({
+    description: 'Current content of posts',
+    value: items.map((p) => p.content),
+  });
+
+  useCopilotAction({
+    name: 'setPosts',
+    description: 'a thread of posts',
+    parameters: [
+      {
+        name: 'content',
+        type: 'string[]',
+        description: 'a thread of posts',
+      },
+    ],
+    handler: async ({ content }) => {
+      setValue(content);
+    },
+  });
+
+  return null;
 };
 
 export const EditorWrapper: FC<{
@@ -272,26 +302,6 @@ export const EditorWrapper: FC<{
     },
     [internal, items]
   );
-
-  useCopilotReadable({
-    description: 'Current content of posts',
-    value: items.map((p) => p.content),
-  });
-
-  useCopilotAction({
-    name: 'setPosts',
-    description: 'a thread of posts',
-    parameters: [
-      {
-        name: 'content',
-        type: 'string[]',
-        description: 'a thread of posts',
-      },
-    ],
-    handler: async ({ content }) => {
-      setValue(content);
-    },
-  });
 
   const changeValue = useCallback(
     (index: number) => (value: string) => {
@@ -449,6 +459,9 @@ export const EditorWrapper: FC<{
           'bg-newSettings mobile:bg-transparent rounded-[12px]'
       )}
     >
+      <AiOnly>
+        <EditorCopilot items={items} setValue={setValue} />
+      </AiOnly>
       {!!internal && !existingData?.integration && (
         <EditorScopeNote
           action={t('tdw_use_the_shared_post', 'Use the shared post')}

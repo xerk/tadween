@@ -4,7 +4,7 @@
 // the public GET /instance/settings. While loading, or if the request fails,
 // everything behaves like stock Postiz: every feature on and the static
 // pricing map.
-import { useCallback, useMemo } from 'react';
+import { createContext, useCallback, useContext, useMemo } from 'react';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import {
@@ -55,6 +55,8 @@ export interface InstanceSettings {
   };
   plans: PublicPlan[];
   pricing: PricingInterface;
+  // whether the server has an OpenAI key (absent on older backends)
+  ai?: { available: boolean };
 }
 
 export const INSTANCE_SETTINGS_KEY = '/instance/settings';
@@ -83,6 +85,25 @@ export const useFeatures = () => {
     (key: FeatureKey) => data?.features?.[key] !== false,
     [data]
   );
+};
+
+// true once the app's <CopilotKit> crashed and the app rendered without it
+// (AiProvider in ai.guard.tsx)
+export const AiRuntimeFailedContext = createContext(false);
+
+// Whether the AI assistant can run on this server. Unlike feature switches this
+// is false until the settings load (and when they fail): the assistant only
+// mounts once the server said it can answer. `undefined` while loading.
+export const useAiAvailable = (): boolean | undefined => {
+  const { data, error } = useInstanceSettings();
+  const runtimeFailed = useContext(AiRuntimeFailedContext);
+  if (error || runtimeFailed) {
+    return false;
+  }
+  if (!data) {
+    return undefined;
+  }
+  return data.ai?.available === true;
 };
 
 // Billing data: the static Postiz pricing map with the admin's plans overlaid

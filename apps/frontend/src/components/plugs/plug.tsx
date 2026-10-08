@@ -18,7 +18,7 @@ import {
   useFormContext,
 } from 'react-hook-form';
 import { Input } from '@gitroom/react/form/input';
-import { CopilotTextarea } from '@copilotkit/react-textarea';
+import { AiTextarea } from '@gitroom/frontend/components/tadween/instance/ai.guard';
 import clsx from 'clsx';
 import { string, object } from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -42,7 +42,7 @@ export const TextArea: FC<{
   return (
     <>
       <textarea className="hidden" {...all}></textarea>
-      <CopilotTextarea
+      <AiTextarea
         disableBranding={true}
         placeholder={props.placeHolder}
         value={value}

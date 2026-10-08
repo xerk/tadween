@@ -45,6 +45,8 @@ These places read the overlay: Stripe checkout, prorate and embedded checkout (p
 ### Existing subscribers
 
 A plan's limits replace its tier's limits for **every workspace on that tier**: team members and AI at once (`PermissionsService`, `OrganizationService`), channels at the next Stripe subscription event (`Subscription.totalChannels`). So `PlansService` refuses (HTTP 400) any change that would make a tier's effective channels, team members, posts per month, AI or AI credits lower than today while a `Subscription` (not deleted, lifetime included) exists on that tier. That covers creating, editing, hiding, moving a plan to another tier, deleting it (the tier falls back to the static map) and loading the defaults. Raising limits is always allowed, and a tier nobody is subscribed to can be set to anything. To sell a smaller plan, put it on an empty tier.
+
+**Instances that already loaded the earlier defaults** (Creator 2, Pro 5, Team 15, Agency 50 channels; no team members on Pro) keep those rows: nothing rewrites saved plans, and the guard treats the saved values as today's. Before anyone subscribes on such an instance (or at once, if they already did), edit each plan in Admin → Plans up to at least Postiz's limits for its tier: STANDARD 5, TEAM 10 with team members -1, PRO 30, ULTIMATE 100 channels. Raising is always allowed.
 - EGP is stored and shown in the admin preview. Checkout still charges USD.
 
 ## Environment variables

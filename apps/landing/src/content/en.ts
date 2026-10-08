@@ -121,9 +121,9 @@ export const en: Dict = {
       { key: 'agency', name: 'Agency', for: 'For agencies and many clients', features: ['100 channels', 'Customer groups', 'Client-ready reports', 'Priority support in Arabic', 'Invoices in EGP or USD'] },
     ],
     compare: [
-      { label: 'LinkedIn channels', help: 'Profiles and company pages you can connect.', values: { creator: '2', pro: '5', team: '15', agency: '50' } },
+      { label: 'LinkedIn channels', help: 'Profiles and company pages you can connect.', values: { creator: '5', pro: '10', team: '30', agency: '100' } },
       { label: 'Scheduled posts', help: 'Posts you can schedule each month.', values: { creator: '∞', pro: '∞', team: '∞', agency: '∞' } },
-      { label: 'Team members', help: 'People who can write and schedule.', values: { creator: false, pro: false, team: true, agency: true } },
+      { label: 'Team members', help: 'People who can write and schedule.', values: { creator: false, pro: true, team: true, agency: true } },
       { label: 'Preview links', help: 'Send anyone a link to see a post and leave comments.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'First comments and delays', help: 'Post a comment minutes after the post.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'Repeated posts', help: 'Republish evergreen posts on a schedule.', values: { creator: true, pro: true, team: true, agency: true } },

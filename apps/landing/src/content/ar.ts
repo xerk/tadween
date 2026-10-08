@@ -121,9 +121,9 @@ export const ar: Dict = {
       { key: 'agency', name: 'الوكالة', for: 'للوكالات وعملائها الكثيرين', features: ['١٠٠ قناة', 'مجموعات للعملاء', 'تقارير جاهزة للعملاء', 'دعم ذو أولوية بالعربية', 'فواتير بالجنيه أو بالدولار'] },
     ],
     compare: [
-      { label: 'قنوات لينكدإن', help: 'الحسابات الشخصية وصفحات الشركات التي يمكنك ربطها.', values: { creator: '٢', pro: '٥', team: '١٥', agency: '٥٠' } },
+      { label: 'قنوات لينكدإن', help: 'الحسابات الشخصية وصفحات الشركات التي يمكنك ربطها.', values: { creator: '٥', pro: '١٠', team: '٣٠', agency: '١٠٠' } },
       { label: 'المنشورات المجدولة', help: 'عدد المنشورات التي يمكنك جدولتها كل شهر.', values: { creator: '∞', pro: '∞', team: '∞', agency: '∞' } },
-      { label: 'أعضاء الفريق', help: 'من يمكنهم الكتابة والجدولة.', values: { creator: false, pro: false, team: true, agency: true } },
+      { label: 'أعضاء الفريق', help: 'من يمكنهم الكتابة والجدولة.', values: { creator: false, pro: true, team: true, agency: true } },
       { label: 'روابط المعاينة', help: 'أرسل رابطًا لأي شخص ليرى المنشور ويترك تعليقاته.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'التعليق الأول والتأخير', help: 'انشر تعليقًا بعد المنشور بدقائق.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'تكرار المنشورات', help: 'أعد نشر المحتوى الدائم وفق جدول.', values: { creator: true, pro: true, team: true, agency: true } },

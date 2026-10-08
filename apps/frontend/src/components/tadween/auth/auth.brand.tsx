@@ -242,8 +242,8 @@ const Card: FC<{ post: ShowcasePost }> = ({ post }) => {
             <div className="tdw-sc-who is-stacked">
               <b>{post.brand}</b>
               <small>
-                {t('tdw_auth_preview_followers', '{{count}} followers', {
-                  count: '12,480',
+                {t('tdw_auth_preview_followers', '{{value}} followers', {
+                  value: '12,480',
                 })}
               </small>
               <small>
@@ -316,12 +316,12 @@ const Card: FC<{ post: ShowcasePost }> = ({ post }) => {
               {s?.a}
             </span>
             <span>
-              {t('tdw_auth_preview_comments_count', '{{count}} comments', {
-                count: s?.b,
+              {t('tdw_auth_preview_comments_count', '{{value}} comments', {
+                value: s?.b,
               })}{' '}
               ·{' '}
-              {t('tdw_auth_preview_shares_count', '{{count}} shares', {
-                count: s?.c,
+              {t('tdw_auth_preview_shares_count', '{{value}} shares', {
+                value: s?.c,
               })}
             </span>
           </div>

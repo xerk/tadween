@@ -1,12 +1,12 @@
 // Tadween sign-in / sign-up. Loaded from global.scss.
 //
 //   · Shell: app/(app)/auth/layout.tsx — form pane (lockup, language/theme
-//     controls, card) beside the brand pane; one column on phones, where the
-//     brand pane collapses to a tagline band.
+//     controls, card) beside the brand pane; one column on phones, where the form
+//     comes first and the brand pane is a tagline band below it.
 //   · Parts: components/tadween/auth/auth.parts.tsx (heading, provider button,
 //     divider, field, submit, notice, legal line, controls).
-//   · Brand: components/tadween/auth/auth.brand.tsx (LinkedIn post preview,
-//     floating calendar chips, bilingual tagline).
+//   · Brand: components/tadween/auth/auth.brand.tsx (example posts per network,
+//     drifting in two columns, bilingual tagline).
 // Everything sits inside `.tdw-auth.tdw-ui`, so the kit's Field / pz-btn rules
 // apply underneath. Tokens come from ../tadween.scss. Motion uses the spring
 // tokens; tadween.scss already flattens it under prefers-reduced-motion.
@@ -21,14 +21,6 @@ $narrow: '(max-width: 1023.98px)';
 @keyframes tdw-auth-fade {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-@keyframes tdw-auth-drift {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(0, -8px, 0); }
-}
-@keyframes tdw-auth-drift-alt {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(var(--tdw-auth-depth, 1)); }
-  50% { transform: translate3d(0, 7px, 0) scale(var(--tdw-auth-depth, 1)); }
 }
 
 body {
@@ -56,8 +48,8 @@ body {
   @media #{$narrow} {
     .tdw-auth {
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: auto auto 1fr;
-      grid-template-areas: 'top' 'brand' 'main';
+      grid-template-rows: auto 1fr auto;
+      grid-template-areas: 'top' 'main' 'brand';
     }
   }
 
@@ -298,8 +290,18 @@ body {
 
   // Postiz's Farcaster QR modal and the wallet modal keep their own look.
 
+  // Google button, per Google's sign-in branding guidelines (light / dark theme)
+  .tdw-auth-provider.is-google { background: #ffffff; border-color: #747775; color: #1f1f1f; }
+  .tdw-auth-provider.is-google:hover { background: #f2f2f2; border-color: #747775; }
+  .tdw-auth.dark .tdw-auth-provider.is-google { background: #131314; border-color: #8e918f; color: #e3e3e3; }
+  .tdw-auth.dark .tdw-auth-provider.is-google:hover { background: #1f1f20; }
+
   // ── Brand pane ──────────────────────────────────────────────────────────
+  // components/tadween/auth/auth.brand.tsx: two columns of example posts (each
+  // network's own feed look, with the Tadween status above) drifting slowly,
+  // then the channel row and the bilingual tagline.
   .tdw-auth-brand {
+    --tdw-auth-brand-bg: var(--tdw-primary-soft);
     grid-area: brand;
     position: relative;
     display: flex;
@@ -309,34 +311,12 @@ body {
     isolation: isolate;
     border-radius: 28px;
     background:
-      radial-gradient(90% 70% at 85% 8%, color-mix(in oklab, var(--tdw-primary) 26%, transparent), transparent 62%),
-      radial-gradient(80% 60% at 0% 100%, color-mix(in oklab, var(--tdw-primary-strong) 18%, transparent), transparent 64%),
-      var(--tdw-primary-soft);
-  }
-  // A faint calendar grid behind the preview, fading out towards the edges
-  .tdw-auth-brand::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background-image:
-      linear-gradient(to right, color-mix(in oklab, var(--tdw-primary-strong) 10%, transparent) 1px, transparent 1px),
-      linear-gradient(to bottom, color-mix(in oklab, var(--tdw-primary-strong) 10%, transparent) 1px, transparent 1px);
-    background-size: 64px 64px;
-    background-position: center;
-    mask-image: radial-gradient(60% 55% at 50% 42%, #000, transparent);
-    -webkit-mask-image: radial-gradient(60% 55% at 50% 42%, #000, transparent);
+      radial-gradient(90% 70% at 85% 8%, color-mix(in oklab, var(--tdw-primary) 22%, transparent), transparent 62%),
+      radial-gradient(80% 60% at 0% 100%, color-mix(in oklab, var(--tdw-primary-strong) 16%, transparent), transparent 64%),
+      var(--tdw-auth-brand-bg);
   }
   .tdw-auth.dark .tdw-auth-brand {
-    background:
-      radial-gradient(90% 70% at 85% 8%, color-mix(in oklab, var(--tdw-primary) 16%, transparent), transparent 62%),
-      radial-gradient(80% 60% at 0% 100%, color-mix(in oklab, var(--tdw-primary-strong) 30%, transparent), transparent 64%),
-      #0c1c19;
-  }
-  .tdw-auth.dark .tdw-auth-brand::before {
-    background-image:
-      linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    --tdw-auth-brand-bg: #0c1c19;
   }
 
   @media #{$wide} {
@@ -345,136 +325,146 @@ body {
       top: 12px;
       height: calc(100dvh - 24px);
       min-height: 620px;
-      padding: 48px 56px 52px;
     }
   }
 
   .tdw-auth-stage {
     position: relative;
     flex: 1;
-    display: grid;
-    place-items: center;
     min-height: 0;
-    padding: 24px 0 40px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    padding: 0 40px;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, transparent, #000 10%, #000 78%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 10%, #000 78%, transparent);
+  }
+  .tdw-sc-column { min-width: 0; }
+  .tdw-sc-column.is-down { margin-top: -180px; }
+  // Each item carries its own bottom spacing (no gap), so -50% is exactly one copy
+  .tdw-sc-track {
+    display: flex;
+    flex-direction: column;
+    animation: tdw-auth-fade 900ms ease both, tdw-sc-up 90s linear infinite;
+  }
+  .tdw-sc-column.is-down .tdw-sc-track { animation-direction: normal, reverse; }
+  .tdw-auth-stage:hover .tdw-sc-track { animation-play-state: running, paused; }
+  @media (prefers-reduced-motion: reduce) {
+    .tdw-sc-track { animation: none; }
   }
 
-  // LinkedIn post as the feed shows it (light / dark like LinkedIn itself)
-  .tdw-auth-li {
-    --li-bg: #ffffff;
-    --li-ink: rgba(0, 0, 0, 0.9);
-    --li-sub: rgba(0, 0, 0, 0.6);
-    --li-line: rgba(0, 0, 0, 0.08);
-    position: relative;
-    z-index: 1;
-    width: min(440px, 100%);
-    padding: 16px 16px 4px;
-    border-radius: 14px;
-    background: var(--li-bg);
-    color: var(--li-ink);
-    font-family: var(--font-geist), var(--font-arabic), system-ui, sans-serif;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 30px 70px -20px rgba(6, 48, 41, 0.38), 0 10px 24px -12px rgba(6, 48, 41, 0.2);
-    animation: tdw-auth-in 700ms var(--tdw-ease-spring) 80ms both, tdw-auth-drift 9s ease-in-out 900ms infinite;
-  }
-  .tdw-auth.dark .tdw-auth-li {
-    --li-bg: #1b1f23;
-    --li-ink: rgba(255, 255, 255, 0.9);
-    --li-sub: rgba(255, 255, 255, 0.6);
-    --li-line: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 70px -20px rgba(0, 0, 0, 0.8);
-  }
-  .tdw-auth-li header { display: flex; align-items: center; gap: 10px; }
-  .tdw-auth-li-avatar {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 44px;
-    height: 44px;
-    border-radius: 8px;
-    background: #0b7062;
-    color: #fff;
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-  }
-  .tdw-auth-li-who { display: flex; flex-direction: column; min-width: 0; line-height: 16px; }
-  .tdw-auth-li-who b { font-size: 14px; line-height: 18px; font-weight: 600; }
-  .tdw-auth-li-who small { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--li-sub); }
-  .tdw-auth-li-text { margin: 12px 0; font-size: 14px; line-height: 20px; }
-  .tdw-auth-li-media { margin: 0 -16px; aspect-ratio: 20 / 9; overflow: hidden; }
-  .tdw-auth-li-media svg { display: block; width: 100%; height: 100%; }
-  .tdw-auth-li-media .sky { fill: #dff1ec; }
-  .tdw-auth-li-media .sun { fill: #f2b54a; }
-  .tdw-auth-li-media .far { fill: #6cbfae; }
-  .tdw-auth-li-media .near { fill: #0b7062; }
-  .tdw-auth-li-media .reed { fill: none; stroke: #0b3f37; stroke-width: 3; stroke-linecap: round; }
-  .tdw-auth.dark .tdw-auth-li-media .sky { fill: #12322c; }
-  .tdw-auth-li footer {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 4px;
-    padding: 4px 0;
-    border-top: 1px solid var(--li-line);
-  }
-  .tdw-auth-li-action {
+  .tdw-sc-item { width: 100%; max-width: 330px; margin: 0 auto; padding-bottom: 28px; }
+  .tdw-sc-status {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 6px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--li-sub);
-  }
-
-  // Calendar chips floating around the post, at different depths
-  .tdw-auth-float {
-    position: absolute;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    border-radius: 14px;
+    margin-bottom: 8px;
+    padding: 4px 10px 4px 8px;
+    border-radius: 999px;
     background: var(--tdw-popover);
+    box-shadow: var(--tdw-shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.08));
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
     color: var(--tdw-foreground);
-    box-shadow: var(--tdw-shadow-lg);
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
-  .tdw-auth-float > span:last-child { display: flex; flex-direction: column; line-height: 18px; }
-  .tdw-auth-float small { font-size: 12px; color: var(--tdw-muted-foreground); }
-  .tdw-auth-float-time { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .tdw-auth-float.is-c .pz-icon { color: var(--tdw-primary); }
-  .tdw-auth-float-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--tdw-primary); box-shadow: 0 0 0 4px var(--tdw-primary-soft); }
-  .tdw-auth-float-dot.is-draft { background: var(--tdw-muted-foreground); box-shadow: 0 0 0 4px var(--tdw-muted); }
-  .tdw-auth-float.is-a {
-    top: 9%;
-    inset-inline-end: 2%;
-    animation: tdw-auth-in 700ms var(--tdw-ease-spring) 260ms both, tdw-auth-drift 7s ease-in-out 1.2s infinite;
-  }
-  .tdw-auth-float.is-b {
-    --tdw-auth-depth: 0.94;
-    bottom: 12%;
-    inset-inline-start: 0;
-    z-index: 0;
-    opacity: 0.94;
-    animation: tdw-auth-in 700ms var(--tdw-ease-spring) 380ms both, tdw-auth-drift-alt 8s ease-in-out 1.4s infinite;
-  }
-  .tdw-auth-float.is-c {
-    bottom: 2%;
-    inset-inline-end: 6%;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 500;
-    background: var(--tdw-popover);
-    color: var(--tdw-foreground);
-    box-shadow: var(--tdw-shadow-md);
-    animation: tdw-auth-in 700ms var(--tdw-ease-spring) 520ms both, tdw-auth-drift 10s ease-in-out 1.6s infinite;
-  }
+  .tdw-sc-status.is-scheduled .pz-icon { color: var(--tdw-primary); }
+  .tdw-sc-status.is-published .pz-icon { color: var(--tdw-success); }
 
-  .tdw-auth-tagline { position: relative; display: grid; gap: 6px; }
+  // A post as its network's feed renders it, light or dark like the network
+  .tdw-sc-card {
+    --sc-bg: #ffffff;
+    --sc-ink: #0f1419;
+    --sc-sub: #536471;
+    --sc-line: rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    border-radius: 16px;
+    background: var(--sc-bg);
+    color: var(--sc-ink);
+    font-family: var(--font-geist), var(--font-arabic), system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 18px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 24px 50px -24px rgba(6, 48, 41, 0.4), 0 8px 18px -10px rgba(6, 48, 41, 0.18);
+  }
+  .tdw-sc-card.is-facebook { --sc-sub: #65676b; }
+  .tdw-sc-card.is-linkedin { --sc-ink: rgba(0, 0, 0, 0.9); --sc-sub: rgba(0, 0, 0, 0.6); }
+  .tdw-auth.dark {
+    .tdw-sc-card { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 24px 50px -20px rgba(0, 0, 0, 0.8); }
+    .tdw-sc-card.is-x { --sc-bg: #000; --sc-ink: #e7e9ea; --sc-sub: #71767b; --sc-line: #2f3336; }
+    .tdw-sc-card.is-linkedin { --sc-bg: #1b1f23; --sc-ink: rgba(255, 255, 255, 0.9); --sc-sub: rgba(255, 255, 255, 0.6); --sc-line: rgba(255, 255, 255, 0.1); }
+    .tdw-sc-card.is-facebook { --sc-bg: #242526; --sc-ink: #e4e6eb; --sc-sub: #b0b3b8; --sc-line: #3e4042; }
+    .tdw-sc-card.is-instagram { --sc-bg: #000; --sc-ink: #f5f5f5; --sc-sub: #a8a8a8; --sc-line: #262626; }
+    .tdw-sc-card.is-threads { --sc-bg: #101010; --sc-ink: #f3f5f7; --sc-sub: #777; --sc-line: #2a2a2a; }
+  }
+  .tdw-sc-card.is-tiktok { --sc-bg: #000; color: #fff; }
+
+  .tdw-sc-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px 0; }
+  .tdw-sc-head.is-compact { padding: 10px 12px; }
+  .tdw-sc-head > .pz-icon { margin-inline-start: auto; color: var(--sc-ink); }
+  .tdw-sc-who { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; line-height: 18px; }
+  .tdw-sc-who b { font-size: 14px; font-weight: 700; color: var(--sc-ink); }
+  .tdw-sc-who small { font-size: 13px; color: var(--sc-sub); display: inline-flex; align-items: center; gap: 4px; }
+  .tdw-sc-who.is-stacked { flex-direction: column; align-items: flex-start; gap: 0; line-height: 16px; }
+  .tdw-sc-who.is-stacked b { font-size: 13.5px; font-weight: 600; }
+  .tdw-sc-who.is-stacked small { font-size: 12px; }
+  .tdw-sc-verified { display: inline-flex; color: #1d9bf0; }
+  .tdw-sc-verified .pz-icon { fill: currentColor; stroke: var(--sc-bg); }
+
+  .tdw-sc-text { margin: 4px 0 10px; font-size: 14px; line-height: 20px; color: var(--sc-ink); }
+  .tdw-sc-text:lang(ar) { line-height: 22px; }
+  .tdw-sc-text.is-padded { padding: 0 14px; margin: 10px 0; }
+  .tdw-sc-text.is-caption { margin: 6px 0 12px; font-size: 13px; line-height: 18px; }
+  .tdw-sc-text b { font-weight: 600; }
+
+  .tdw-sc-photo { display: block; width: 100%; height: auto; background: var(--sc-line); }
+  .tdw-sc-photo.is-rounded { border-radius: 14px; border: 1px solid var(--sc-line); }
+
+  .tdw-sc-x { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px 10px; }
+  .tdw-sc-main { flex: 1; min-width: 0; }
+
+  .tdw-sc-stat { display: inline-flex; align-items: center; gap: 5px; }
+  .tdw-sc-stats { display: flex; align-items: center; gap: 16px; margin-top: 10px; color: var(--sc-sub); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .tdw-sc-stats.is-spread { justify-content: space-between; gap: 6px; }
+  .tdw-sc-stats.is-ig { margin: 0; padding: 10px 12px 0; gap: 14px; color: var(--sc-ink); }
+  .tdw-sc-push { flex: 1; }
+
+  .tdw-sc-counts { display: flex; justify-content: space-between; gap: 8px; padding: 8px 14px; font-size: 12px; color: var(--sc-sub); }
+  .tdw-sc-reactions { display: inline-flex; align-items: center; gap: 4px; }
+  .tdw-sc-reactions > span { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; color: #fff; }
+  .tdw-sc-reactions > span + span { margin-inline-start: -6px; box-shadow: 0 0 0 2px var(--sc-bg); }
+  .tdw-sc-reactions .is-like { background: #1877f2; }
+  .tdw-sc-reactions .is-love { background: #f33e58; }
+  .tdw-sc-reactions .pz-icon { fill: currentColor; }
+
+  .tdw-sc-bar { display: flex; justify-content: space-around; margin: 0 10px; padding: 2px 0; border-top: 1px solid var(--sc-line); }
+  .tdw-sc-bar .tdw-sc-stat { padding: 8px 4px; font-size: 12.5px; font-weight: 600; color: var(--sc-sub); }
+
+  // Monogram avatar with the network mark on its corner (like a channel avatar)
+  .tdw-sc-avatar { position: relative; display: grid; place-items: center; flex: none; border-radius: 50%; color: #fff; font-weight: 600; line-height: 1; }
+  .tdw-sc-avatar.is-square { border-radius: 8px; }
+  .tdw-sc-network { position: absolute; inset-inline-end: -4px; bottom: -4px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px var(--sc-bg); }
+  .tdw-sc-ring { display: grid; padding: 2px; border-radius: 50%; background: linear-gradient(45deg, #f9ce34, #ee2a7b, #6228d7); }
+  .tdw-sc-ring .tdw-sc-avatar { box-shadow: 0 0 0 2px var(--sc-bg); }
+  .tdw-sc-ring .tdw-sc-network { display: none; }
+
+  .tdw-sc-tt { position: relative; }
+  .tdw-sc-tt .tdw-sc-photo { aspect-ratio: 4 / 5.4; object-fit: cover; }
+  .tdw-sc-tt-rail { position: absolute; inset-inline-end: 10px; bottom: 76px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .tdw-sc-tt-rail .tdw-sc-stat { flex-direction: column; gap: 2px; font-size: 11px; font-weight: 600; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
+  .tdw-sc-tt-rail .pz-icon { width: 24px; height: 24px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)); }
+  .tdw-sc-tt-rail .tdw-sc-network { box-shadow: 0 0 0 2px #000; }
+  .tdw-sc-tt-caption { position: absolute; inset: auto 0 0 0; display: grid; gap: 3px; padding: 48px 64px 12px 12px; background: linear-gradient(transparent, rgba(0, 0, 0, 0.65)); font-size: 12.5px; line-height: 17px; }
+  .tdw-sc-tt-caption small { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; opacity: 0.9; }
+
+  .tdw-auth-tagline { position: relative; display: grid; gap: 6px; padding: 8px 56px 44px; }
   .tdw-auth-tagline p { margin: 0; text-align: left; }
   .tdw-auth[dir='rtl'] .tdw-auth-tagline p { text-align: right; }
+  .tdw-auth-networks { display: flex; align-items: center; gap: 6px; margin-bottom: 8px !important; font-size: 13px; color: var(--tdw-muted-foreground); }
+  .tdw-auth-networks img { width: 20px; height: 20px; border-radius: 6px; }
+  .tdw-auth-networks span { margin-inline-start: 6px; }
   .tdw-auth-tagline .is-en {
     direction: ltr;
     unicode-bidi: isolate;
@@ -490,17 +480,30 @@ body {
     unicode-bidi: isolate;
     font-family: var(--font-arabic), system-ui, sans-serif;
     font-size: 20px;
-    line-height: 30px;
+    line-height: 32px;
     font-weight: 500;
     color: var(--tdw-muted-foreground);
   }
 
+  // Narrow desktop: one column of posts
+  @media (min-width: 1024px) and (max-width: 1279.98px) {
+    .tdw-auth-stage { grid-template-columns: minmax(0, 1fr); padding: 0 32px; }
+    .tdw-sc-column.is-down { display: none; }
+    .tdw-auth-tagline { padding: 8px 32px 36px; }
+    .tdw-auth-tagline .is-en { font-size: 24px; line-height: 30px; }
+  }
+
+  // Phones and tablets: the form comes first, the brand pane is a short band below it
   @media #{$narrow} {
-    .tdw-auth-brand { margin: 14px 16px 0; padding: 16px 18px; border-radius: 18px; }
-    .tdw-auth-brand::before { display: none; }
+    .tdw-auth-brand { margin: 0 16px 24px; border-radius: 18px; }
     .tdw-auth-stage { display: none; }
-    .tdw-auth-tagline { gap: 2px; }
+    .tdw-auth-tagline { gap: 2px; padding: 16px 18px; }
     .tdw-auth-tagline .is-en { font-size: 16px; line-height: 22px; letter-spacing: -0.015em; }
     .tdw-auth-tagline .is-ar { font-size: 14px; line-height: 22px; }
   }
+}
+
+@keyframes tdw-sc-up {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, -50%, 0); }
 }

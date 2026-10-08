@@ -22,9 +22,11 @@ const WalletProvider = dynamic(
 );
 
 // The social sign-in buttons above the email form, shared by sign-in and
-// sign-up. Google shows when the backend has its credentials (public
-// /instance/settings), the generic OIDC button when POSTIZ_GENERIC_OAUTH is on,
-// the rest keep their own env switches. Without any button, no divider either.
+// sign-up. The generic OIDC button shows when POSTIZ_GENERIC_OAUTH is on and,
+// as in Postiz, replaces Google (an SSO-only instance stays SSO-only);
+// otherwise Google shows when the backend has its credentials (public
+// /instance/settings). The rest keep their own env switches. Without any
+// button, no divider either.
 export const SocialProviders = () => {
   const {
     isGeneral,
@@ -34,8 +36,8 @@ export const SocialProviders = () => {
     billingEnabled,
   } = useVariables();
   const isConfigured = useLoginProviders();
-  const google = isGeneral && isConfigured('google');
   const generic = isGeneral && genericOauth;
+  const google = isGeneral && !generic && isConfigured('google');
 
   if (
     isGeneral &&

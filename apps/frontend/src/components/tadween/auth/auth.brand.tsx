@@ -369,7 +369,8 @@ const Card: FC<{ post: ShowcasePost }> = ({ post }) => {
             <b>{post.handle}</b>
             <span>{post.text}</span>
             <small>
-              <Glyph name="music" size={12} /> {post.brand} · original sound
+              <Glyph name="music" size={12} /> {post.brand} ·{' '}
+              {t('tdw_auth_preview_original_sound', 'original sound')}
             </small>
           </div>
         </div>

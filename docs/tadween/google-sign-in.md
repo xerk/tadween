@@ -38,6 +38,7 @@ which sign-in providers are configured as booleans in the public `GET /instance/
 - **Same email as an existing email/password account:** users are unique on
   `(email, providerName)`, so Google creates a **second, separate user and workspace** with that
   email. Nothing is linked or merged. This is Postiz behaviour and is unchanged.
-- `POSTIZ_GENERIC_OAUTH` (generic OIDC button) is independent. `"false"`, `"0"`, `"no"`, `"off"`
-  and an empty value now all mean off; before, any non-empty value, including `"false"`, turned it
-  on and hid Google.
+- `POSTIZ_GENERIC_OAUTH` (generic OIDC button) still replaces Google when it is on, as in Postiz,
+  so an SSO-only instance stays SSO-only. `"false"`, `"0"`, `"no"`, `"off"` and an empty value now
+  all mean off; before, any non-empty value, including the `"false"` that `.env.example` ships,
+  turned it on and hid Google.

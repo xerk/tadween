@@ -242,24 +242,6 @@ model Media {
   @@index([folderId])
 }
 
-model MediaFolder {
-  id             String        @id @default(uuid())
-  name           String
-  organizationId String
-  parentId       String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  deletedAt      DateTime?
-  organization   Organization  @relation(fields: [organizationId], references: [id])
-  parent         MediaFolder?  @relation("mediaFolderParent", fields: [parentId], references: [id])
-  children       MediaFolder[] @relation("mediaFolderParent")
-  media          Media[]
-
-  @@index([organizationId])
-  @@index([parentId])
-  @@index([deletedAt])
-}
-
 model SocialMediaAgency {
   id               String                   @id @default(uuid())
   userId           String                   @unique
@@ -1911,4 +1893,25 @@ model Plan {
 
   @@index([deletedAt])
 }
+
+// Tadween: media library folders. Media.folderId (nullable) points here; media
+// without a folder sit at the top level, which is where all existing rows stay.
+model MediaFolder {
+  id             String        @id @default(uuid())
+  name           String
+  organizationId String
+  parentId       String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  parent         MediaFolder?  @relation("mediaFolderParent", fields: [parentId], references: [id])
+  children       MediaFolder[] @relation("mediaFolderParent")
+  media          Media[]
+
+  @@index([organizationId])
+  @@index([parentId])
+  @@index([deletedAt])
+}
+
 // ─── end Tadween ─────────────────────────────────────────────────────────────

@@ -34,6 +34,7 @@ import {
   TextMessage,
 } from '@copilotkit/runtime-client-gql';
 import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.modal';
+import { hasUnsavedPostChanges } from '@gitroom/frontend/components/new-launch/store';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { ExistingDataContextProvider } from '@gitroom/frontend/components/launches/helpers/use.existing.data';
@@ -334,7 +335,7 @@ const OpenModal: FC<{
           removeLayout: true,
           closeOnEscape: false,
           withCloseButton: false,
-          askClose: true,
+          askClose: hasUnsavedPostChanges,
           size: '80%',
           title: ``,
           classNames: {

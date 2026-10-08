@@ -21,7 +21,10 @@ import {
 } from '@gitroom/frontend/components/new-launch/providers/show.all.providers';
 import { getProviderSettingsMeta } from '@gitroom/frontend/components/new-launch/providers/high.order.provider';
 import { useExistingData } from '@gitroom/frontend/components/launches/helpers/use.existing.data';
-import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
+import {
+  hasUnsavedPostChanges,
+  useLaunchStore,
+} from '@gitroom/frontend/components/new-launch/store';
 import {
   DatePicker,
   DatePickerPanel,
@@ -101,6 +104,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
     current,
     activateExitButton,
     setHide,
+    setBaseline,
   } = useLaunchStore(
     useShallow((state) => ({
       hide: state.hide,
@@ -117,10 +121,21 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
       setSelectedIntegrations: state.setSelectedIntegrations,
       locked: state.locked,
       activateExitButton: state.activateExitButton,
+      setBaseline: state.setBaseline,
     }))
   );
   // the date sheet applies its changes only on save
   const [dateDraft, setDateDraft] = useState(date);
+
+  // closing asks only when something changed since the user first touched the
+  // composer, so the defaults that load after it opens are not counted as changes
+  const touched = useRef(false);
+  const touch = useCallback(() => {
+    if (!touched.current) {
+      touched.current = true;
+      setBaseline();
+    }
+  }, []);
 
   useEffect(() => {
     if (hide) {
@@ -175,13 +190,14 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
     }
 
     if (
-      await deleteDialog(
+      !hasUnsavedPostChanges() ||
+      (await deleteDialog(
         t(
           'are_you_sure_you_want_to_close_this_modal_all_data_will_be_lost',
           'Are you sure you want to close this modal? (all data will be lost)'
         ),
         t('yes_close_it', 'Yes, close it!')
-      )
+      ))
     ) {
       if (customClose) {
         customClose();
@@ -579,7 +595,12 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   };
 
   return (
-    <div className="tdw-cm w-full h-full flex-1 p-[40px] mobile:p-0 mobile:h-auto mobile:min-h-full flex relative">
+    <div
+      className="tdw-cm w-full h-full flex-1 p-[40px] mobile:p-0 mobile:h-auto mobile:min-h-full flex relative"
+      onPointerDownCapture={touch}
+      onKeyDownCapture={touch}
+      onDragEnterCapture={touch}
+    >
       <div className="flex flex-1 min-w-0 bg-newBgColorInner rounded-[20px] mobile:rounded-none flex-col">
         <ComposerTopBar
           title={

@@ -12,6 +12,7 @@ import clsx from 'clsx';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.modal';
+import { hasUnsavedPostChanges } from '@gitroom/frontend/components/new-launch/store';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 
@@ -98,7 +99,7 @@ export const Sets: FC = () => {
         removeLayout: true,
         closeOnEscape: false,
         withCloseButton: false,
-        askClose: true,
+        askClose: hasUnsavedPostChanges,
         fullScreen: true,
         classNames: {
           modal: 'w-[100%] max-w-[1400px] text-textColor',

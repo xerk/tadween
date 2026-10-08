@@ -144,7 +144,9 @@
   color: var(--tdw-foreground);
   font-size: 14px;
   .tdw-dp-cal { width: auto; padding: 0 0 14px; }
-  .tdw-dp-time { width: auto; height: 220px; border-inline-start: 0; border-top: 1px solid var(--tdw-border); }
+  .tdw-dp-time { width: auto; height: 272px; border-inline-start: 0; border-top: 1px solid var(--tdw-border); }
+  .tdw-dp-field { height: 44px; font-size: 16px; }
+  .tdw-dp-seg, .tdw-dp-period { height: 34px; }
 }
 .tdw-dp-cal { padding: 14px; width: 292px; box-sizing: border-box; }
 .tdw-dp-head {
@@ -214,14 +216,67 @@
 .tdw-dp-time {
   display: flex;
   flex-direction: column;
-  width: 128px;
+  width: 140px;
   // Size containment: the column takes the calendar's height instead of the
   // full 96-slot list, and the list scrolls inside it.
   contain: size;
   border-inline-start: 1px solid var(--tdw-border);
-  @media (max-width: 640px) { width: auto; height: 220px; border-inline-start: 0; border-top: 1px solid var(--tdw-border); }
+  @media (max-width: 640px) { width: auto; height: 272px; border-inline-start: 0; border-top: 1px solid var(--tdw-border); }
 }
 .tdw-dp-time-head { padding: 18px 14px 8px; font-weight: 600; font-size: 13px; color: var(--tdw-muted-foreground); }
+// typed time: hour : minute (: AM/PM), any minute
+.tdw-dp-field {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  height: 38px;
+  margin: 0 8px 8px;
+  padding: 0 4px;
+  border: 1px solid var(--tdw-border);
+  border-radius: 10px;
+  background: transparent;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  // hh:mm always reads left to right (a dir="ltr" attribute is flipped back by global.scss)
+  direction: ltr;
+  unicode-bidi: isolate;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  &:hover { border-color: color-mix(in srgb, var(--tdw-foreground) 22%, transparent); }
+  &:focus-within { border-color: var(--tdw-primary); }
+}
+.tdw-dp-seg,
+.tdw-dp-period {
+  height: 28px;
+  border-radius: 6px;
+  color: var(--tdw-foreground);
+  font-weight: 600;
+  text-align: center;
+  &:focus { background: var(--tdw-primary-soft); color: var(--tdw-primary); }
+  &:focus-visible { outline-offset: 0 !important; }
+}
+.tdw-dp-seg {
+  width: 2.8ch;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  caret-color: transparent;
+  font: inherit;
+  font-weight: 600;
+  &::placeholder { color: var(--tdw-muted-foreground); }
+  &::selection { background: transparent; }
+}
+.tdw-dp-colon { padding: 0 2px; color: var(--tdw-muted-foreground); font-weight: 600; }
+.tdw-dp-period {
+  margin-left: 4px;
+  padding: 0 5px;
+  font-size: 13px;
+  &:hover { background: var(--tdw-accent); }
+  // Arabic writes the period before the time (ص 9:07), like the quick list
+  [dir='rtl'] & { order: -1; margin-left: 0; margin-right: 4px; }
+}
 .tdw-dp-slots {
   position: relative;
   flex: 1 1 0;

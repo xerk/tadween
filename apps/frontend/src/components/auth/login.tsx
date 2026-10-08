@@ -6,21 +6,13 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { LoginUserDto } from '@gitroom/nestjs-libraries/dtos/auth/login.user.dto';
-import { GithubProvider } from '@gitroom/frontend/components/auth/providers/github.provider';
-import { OauthProvider } from '@gitroom/frontend/components/auth/providers/oauth.provider';
-import { GoogleProvider } from '@gitroom/frontend/components/auth/providers/google.provider';
-import { AppleProvider } from '@gitroom/frontend/components/auth/providers/apple.provider';
-import { useVariables } from '@gitroom/react/helpers/variable.context';
-import { FarcasterProvider } from '@gitroom/frontend/components/auth/providers/farcaster.provider';
-import WalletProvider from '@gitroom/frontend/components/auth/providers/wallet.provider';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { SocialProviders } from '@gitroom/frontend/components/auth/providers/social.providers';
 import {
-  AuthDivider,
   AuthField,
   AuthHeading,
   AuthLink,
   AuthNotice,
-  AuthProviders,
   AuthSubmit,
   AuthSwitch,
 } from '@gitroom/frontend/components/tadween/auth/auth.parts';
@@ -38,13 +30,6 @@ export function Login() {
   // Tadween: registration mode set in /admin (env DISABLE_REGISTRATION until
   // saved). Closed hides the sign-up link; invite-only explains how to join.
   const registrationMode = useInstanceSettings().data?.registration?.mode;
-  const {
-    isGeneral,
-    neynarClientId,
-    appleClientId,
-    billingEnabled,
-    genericOauth,
-  } = useVariables();
   const resolver = useMemo(() => {
     return classValidatorResolver(LoginUserDto);
   }, []);
@@ -88,21 +73,7 @@ export function Login() {
             'Sign in to plan, write and schedule your posts.'
           )}
         />
-        <AuthProviders>
-          {isGeneral && genericOauth ? (
-            <OauthProvider />
-          ) : !isGeneral ? (
-            <GithubProvider />
-          ) : (
-            <>
-              <GoogleProvider />
-              {!!appleClientId && <AppleProvider />}
-              {!!neynarClientId && <FarcasterProvider />}
-              {billingEnabled && <WalletProvider />}
-            </>
-          )}
-        </AuthProviders>
-        <AuthDivider />
+        <SocialProviders />
         <div className="tdw-auth-form">
           <AuthField
             name="email"

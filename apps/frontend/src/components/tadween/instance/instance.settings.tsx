@@ -71,6 +71,8 @@ export interface InstanceSettings {
   pricing: PricingInterface;
   // whether the server has an OpenAI key (absent on older backends)
   ai?: { available: boolean };
+  // social sign-in providers the backend has credentials for, { google: true }
+  login?: Record<string, boolean>;
 }
 
 export const INSTANCE_SETTINGS_KEY = '/instance/settings';
@@ -120,6 +122,17 @@ export const useAiAvailable = (): boolean | undefined => {
     return undefined;
   }
   return data.ai?.available === true;
+};
+
+// `isConfigured('google')` — true once the backend reports credentials for
+// that sign-in provider. False while loading, so a button that cannot work
+// never shows.
+export const useLoginProviders = () => {
+  const { data } = useInstanceSettings();
+  return useCallback(
+    (provider: string) => data?.login?.[provider] === true,
+    [data]
+  );
 };
 
 // Brand name and public links for UI text and hrefs. `docs('/mcp')` joins a

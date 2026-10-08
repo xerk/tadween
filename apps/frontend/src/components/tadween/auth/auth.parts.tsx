@@ -40,8 +40,13 @@ export const AuthProviderButton: FC<{
   mark: ReactNode;
   label: ReactNode;
   onClick?: () => void;
-}> = ({ mark, label, onClick }) => (
-  <button type="button" className="tdw-auth-provider" onClick={onClick}>
+  className?: string;
+}> = ({ mark, label, onClick, className }) => (
+  <button
+    type="button"
+    className={cx('tdw-auth-provider', className)}
+    onClick={onClick}
+  >
     <span className="tdw-auth-provider-mark" aria-hidden="true">
       {mark}
     </span>

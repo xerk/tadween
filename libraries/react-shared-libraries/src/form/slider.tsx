@@ -1,7 +1,6 @@
 'use client';
 
 import { FC, useCallback } from 'react';
-import clsx from 'clsx';
 export const Slider: FC<{
   value: 'on' | 'off';
   fill?: boolean;
@@ -13,20 +12,20 @@ export const Slider: FC<{
   }, [value]);
   return (
     <div
-      className={clsx(
-        'w-[57px] h-[34px] p-[4px] border-fifth border rounded-[100px]',
-        value === 'on' && fill && 'bg-customColor4'
-      )}
+      role="switch"
+      aria-checked={value === 'on'}
+      data-fill={fill ? 'true' : undefined}
+      className="tdw-switch cursor-pointer"
+      tabIndex={0}
       onClick={change}
+      onKeyDown={(e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          change();
+        }
+      }}
     >
-      <div className="w-full h-full relative rounded-[100px]">
-        <div
-          className={clsx(
-            'absolute left-0 top-0 w-[24px] h-[24px] bg-customColor5 rounded-full transition-all cursor-pointer',
-            value === 'on' ? 'left-[100%] -translate-x-[100%]' : 'left-0'
-          )}
-        />
-      </div>
+      <div className="tdw-switch-thumb" />
     </div>
   );
 };

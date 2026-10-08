@@ -44,16 +44,23 @@ export const Checkbox = forwardRef<
     }
   }, [val]);
   return (
-    <div className="flex gap-[10px]">
+    <div className="tdw-check-row flex gap-[10px]">
       <div
         ref={ref}
         {...disableForm ? {} : form.register(props.name!)}
         onClick={changeStatus}
+        role="checkbox"
+        aria-checked={!!val}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            changeStatus();
+          }
+        }}
+        data-variant={variant || 'default'}
         className={clsx(
-          'cursor-pointer rounded-[4px] select-none w-[24px] h-[24px] justify-center items-center flex text-white',
-          variant === 'default' || !variant
-            ? 'bg-forth'
-            : 'border-customColor1 border-2 bg-customColor2',
+          'tdw-checkbox cursor-pointer select-none w-[20px] h-[20px] justify-center items-center flex',
           className
         )}
       >
@@ -62,11 +69,11 @@ export const Checkbox = forwardRef<
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
-              width="20"
-              height="20"
+              width="16"
+              height="16"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
             >

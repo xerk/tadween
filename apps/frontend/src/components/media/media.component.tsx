@@ -47,9 +47,9 @@ import {
   InsertMediaIcon,
   DesignMediaIcon,
   VerticalDividerIcon,
-  NoMediaIcon,
   TrashIcon,
 } from '@gitroom/frontend/components/ui/icons';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
@@ -559,33 +559,38 @@ export const MediaBox: FC<{
           >
             {!isLoading && !data?.results?.length && (
               <>
-                <NoMediaIcon />
-                <div className="text-[20px] font-[600]">
-                  {debouncedSearch
-                    ? t(
-                        'no_media_match_search',
-                        'No media matches your search'
-                      )
-                    : t(
-                        'you_dont_have_any_media_yet',
-                        "You don't have any media yet"
+                <TadweenEmptyState
+                  icon={debouncedSearch ? 'search' : 'media'}
+                  title={
+                    debouncedSearch
+                      ? t(
+                          'no_media_match_search',
+                          'No media matches your search'
+                        )
+                      : t(
+                          'you_dont_have_any_media_yet',
+                          "You don't have any media yet"
+                        )
+                  }
+                  body={
+                    <>
+                      {t(
+                        'select_or_upload_pictures_max_1gb',
+                        'Select or upload pictures (maximum 1 GB per upload).'
+                      )}{' '}
+                      {t(
+                        'you_can_drag_drop_pictures',
+                        'You can also drag & drop pictures.'
                       )}
-                </div>
-                <div className="whitespace-pre-line text-newTextColor/[0.6] text-center">
-                  {t(
-                    'select_or_upload_pictures_max_1gb',
-                    'Select or upload pictures (maximum 1 GB per upload).'
-                  )}{' '}
-                  {'\n'}
-                  {t(
-                    'you_can_drag_drop_pictures',
-                    'You can also drag & drop pictures.'
-                  )}
-                </div>
-                <div className="forceChange flex gap-[8px] mobile:w-full mobile:max-w-[300px] mobile:child:flex-1">
-                  {btn}
-                  <ThirdPartyMediaLibrary onImported={() => mutate()} />
-                </div>
+                    </>
+                  }
+                  action={
+                    <div className="forceChange flex gap-[8px] mobile:w-full mobile:max-w-[300px] mobile:child:flex-1">
+                      {btn}
+                      <ThirdPartyMediaLibrary onImported={() => mutate()} />
+                    </div>
+                  }
+                />
               </>
             )}
             {isLoading && (

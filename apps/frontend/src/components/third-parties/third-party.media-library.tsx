@@ -4,6 +4,7 @@ import React, { FC, useCallback, useState } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import useSWR from 'swr';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import clsx from 'clsx';
@@ -101,9 +102,15 @@ const ThirdPartyMediaLibraryBrowser: FC<{
             </div>
           )}
           {!isLoading && (!data?.results || !data.results.length) && (
-            <div className="flex items-center justify-center h-full text-textColor/60">
-              {t('no_media_found', 'No media found')}
-            </div>
+            <TadweenEmptyState
+              size="sm"
+              icon="media"
+              title={t('no_media_found', 'No media found')}
+              body={t(
+                'tdw_no_third_party_media_body',
+                'Media you create in this tool will show up here to import.'
+              )}
+            />
           )}
           {!isLoading && !!data?.results?.length && (
             <div className="grid grid-cols-4 mobile:grid-cols-3 gap-[8px]">

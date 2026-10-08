@@ -6,6 +6,7 @@ import { ChartSocial } from '@gitroom/frontend/components/analytics/chart-social
 import { Select } from '@gitroom/react/form/select';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { MissingReleaseModal } from '@gitroom/frontend/components/launches/missing-release.modal';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 interface AnalyticsData {
   label: string;
@@ -152,7 +153,7 @@ export const StatisticsModal: FC<{
               {t('short_links_statistics', 'Short Links Statistics')}
             </h3>
             {statisticsData?.clicks?.length === 0 ? (
-              <div className="text-gray-400">
+              <div className="text-[13px] text-textItemBlur">
                 {t('no_short_link_results', 'No short link results')}
               </div>
             ) : (
@@ -186,9 +187,15 @@ export const StatisticsModal: FC<{
           {/* No analytics available message */}
           {(!analyticsData || !Array.isArray(analyticsData) || analyticsData.length === 0) &&
             (!statisticsData?.clicks || statisticsData.clicks.length === 0) && (
-              <div className="text-center text-gray-400 py-[20px]">
-                {t('no_statistics_available', 'No statistics available for this post')}
-              </div>
+              <TadweenEmptyState
+                size="sm"
+                icon="chart"
+                title={t('no_statistics_available', 'No statistics available for this post')}
+                body={t(
+                  'tdw_no_statistics_body',
+                  'Numbers show up once the network reports them, usually within a day of publishing.'
+                )}
+              />
             )}
         </div>
       )}

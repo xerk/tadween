@@ -15,6 +15,7 @@ import { CopyClient } from '@gitroom/frontend/components/preview/copy.client';
 import { getT } from '@gitroom/react/translation/get.translation.service.backend';
 import { RenderPreviewDateClient } from '@gitroom/frontend/components/preview/render.preview.date.client';
 import { CreationMethodBadge } from '@gitroom/frontend/components/launches/creation.method.badge';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 dayjs.extend(utc);
 export const metadata: Metadata = {
@@ -42,8 +43,15 @@ export default async function Auth(
   const t = await getT();
   if (!post.length) {
     return (
-      <div className="text-newTextColor fixed start-0 top-0 w-full h-full flex justify-center items-center text-[20px]">
-        {t('post_not_found', 'Post not found')}
+      <div className="text-newTextColor fixed start-0 top-0 w-full h-full flex justify-center items-center">
+        <TadweenEmptyState
+          icon="drafts"
+          title={t('post_not_found', 'Post not found')}
+          body={t(
+            'tdw_post_not_found_body',
+            'The link may be mistyped, or the post was deleted.'
+          )}
+        />
       </div>
     );
   }
@@ -54,7 +62,7 @@ export default async function Auth(
       organizationId={post[0].organizationId}
     >
       <div className="mx-auto w-full max-w-[1346px] p-[12px] flex flex-col gap-[8px] text-newTextColor">
-        <div className="flex bg-newBgColorInner rounded-[12px] min-h-[80px] px-[20px] py-[12px] items-center gap-[20px] flex-wrap">
+        <div className="tdw-surface flex bg-newBgColorInner rounded-[14px] min-h-[64px] px-[20px] py-[10px] items-center gap-[20px] flex-wrap">
           <Link
             href="/"
             className="flex items-center gap-[10px] text-textColor"
@@ -111,7 +119,7 @@ export default async function Auth(
             {post.map((p: any, index: number) => (
               <div
                 key={String(p.id)}
-                className="bg-newBgColorInner border border-newTableBorder rounded-[12px] p-[20px]"
+                className="tdw-surface bg-newBgColorInner rounded-[14px] p-[20px]"
               >
                 <div className="flex gap-[12px]">
                   <div>
@@ -175,7 +183,7 @@ export default async function Auth(
             ))}
           </div>
           <div className="w-full lg:w-[380px] lg:flex-shrink-0">
-            <div className="bg-newBgColorInner border border-newTableBorder rounded-[12px] p-[20px] lg:sticky lg:top-[12px]">
+            <div className="tdw-surface bg-newBgColorInner rounded-[14px] p-[20px] lg:sticky lg:top-[12px]">
               <CommentsComponents previewId={id} />
             </div>
           </div>

@@ -28,7 +28,10 @@ import { CopilotKit } from '@copilotkit/react-core';
 import { MantineWrapper } from '@gitroom/react/helpers/mantine.wrapper';
 import { Impersonate } from '@gitroom/frontend/components/layout/impersonate';
 import { AnnouncementBanner } from '@gitroom/frontend/components/layout/announcement.banner';
-import { Title } from '@gitroom/frontend/components/layout/title';
+import {
+  isBareTopBar,
+  Title,
+} from '@gitroom/frontend/components/layout/title';
 import { TopMenu } from '@gitroom/frontend/components/layout/top.menu';
 import { ChromeExtensionComponent } from '@gitroom/frontend/components/layout/chrome.extension.component';
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
@@ -99,7 +102,18 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                 jakartaSans.className
               )}
             >
-              <div>{user?.admin ? <Impersonate /> : <div />}</div>
+              {/* Tadween: the full admin bar while impersonating; otherwise the
+                  admin tools are one pill in the top bar (here only when the
+                  first-billing screen replaces the top bar) */}
+              <div>
+                {user?.admin &&
+                (user?.impersonate ||
+                  (user.tier === 'FREE' && isGeneral && billingEnabled)) ? (
+                  <Impersonate />
+                ) : (
+                  <div />
+                )}
+              </div>
               {user.tier === 'FREE' && isGeneral && billingEnabled ? (
                 <FirstBillingComponent />
               ) : (
@@ -125,7 +139,9 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                         id="left-menu"
                         className={clsx(
                           'tdw-side-inner fixed h-full flex flex-1 top-0 mobile:static mobile:h-auto mobile:min-h-full mobile:mx-auto',
-                          user?.admin && 'pt-[60px] max-h-[1000px]:w-[500px]'
+                          user?.admin &&
+                            user?.impersonate &&
+                            'pt-[60px] max-h-[1000px]:w-[500px]'
                         )}
                       >
                         <div className="tdw-side-body flex flex-col h-full gap-[32px] mobile:gap-[16px] flex-1 py-[12px]">
@@ -139,7 +155,14 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                       </div>
                     </div>
                     <div className="flex-1 min-w-0 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
-                      <div className="flex bg-newBgColorInner h-[80px] mobile:h-[64px] px-[20px] mobile:px-[12px] gap-[12px] items-center">
+                      <div
+                        className={clsx(
+                          'tdw-topbar flex bg-newBgColorInner px-[20px] mobile:px-[12px] gap-[12px] items-center',
+                          isBareTopBar(pathname)
+                            ? 'is-bare h-[48px] mobile:h-[56px]'
+                            : 'h-[68px] mobile:h-[56px]'
+                        )}
+                      >
                         <button
                           className="hidden mobile:flex items-center justify-center w-[36px] h-[36px] -ms-[6px] rounded-[8px] text-textItemBlur hover:text-newTextColor hover:bg-boxFocused"
                           onClick={() => setMenuOpen(true)}
@@ -160,10 +183,11 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                             />
                           </svg>
                         </button>
-                        <div className="text-[24px] mobile:text-[20px] font-[600] flex flex-1 min-w-0">
+                        <div className="tdw-topbar-title flex flex-1 min-w-0">
                           <Title />
                         </div>
-                        <div className="flex gap-[20px] mobile:gap-[14px] mobile:items-center text-textItemBlur">
+                        <div className="tdw-topbar-actions flex items-center gap-[6px] text-textItemBlur">
+                          {user?.admin && !user?.impersonate ? <Impersonate /> : null}
                           <StreakComponent />
                           <div className="w-[1px] h-[20px] bg-blockSeparator mobile:hidden" />
                           <OrganizationSelector />

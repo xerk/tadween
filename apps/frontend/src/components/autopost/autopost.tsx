@@ -17,6 +17,7 @@ import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { CopilotTextarea } from '@copilotkit/react-textarea';
 import { Slider } from '@gitroom/react/form/slider';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 export const Autopost: FC = () => {
   const fetch = useFetch();
   const t = useT();
@@ -115,6 +116,18 @@ export const Autopost: FC = () => {
               ))}
             </div>
           )}
+          {data && !data.length ? (
+            <TadweenEmptyState
+              size="sm"
+              icon="rss"
+              className="tdw-empty-with-next"
+              title={t('tdw_no_autoposts', 'No autoposts yet')}
+              body={t(
+                'tdw_no_autoposts_body',
+                'Add an RSS feed and new items will be posted to your channels.'
+              )}
+            />
+          ) : null}
           <div>
             <Button
               onClick={addWebhook()}

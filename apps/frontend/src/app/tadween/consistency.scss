@@ -1,0 +1,463 @@
+// Tadween consistency layer: the shared Postiz building blocks every screen uses,
+// restyled once at the source so pages that were never redesigned still read as
+// Tadween.
+//   · Button            (libraries/react-shared-libraries/src/form/button.tsx)
+//   · Input / Textarea / Select labels + errors, Checkbox, Slider (form/*)
+//   · Modal shell + confirm dialog (components/layout/new-modal.tsx)
+//   · Spinner           (components/layout/loading.tsx)
+//   · Top bar, admin bar, page title (components/new-layout, components/layout)
+//   · Page surfaces for screens without their own design (analytics, media…)
+//
+// Tokens come from ../tadween.scss. global.scss loads this before Tailwind, so a
+// rule at single-class specificity loses to a call site's utility class (that's
+// how `className` overrides keep working); state rules are scoped with `body` so
+// they win over the base utilities.
+
+@keyframes tdw-spin { to { transform: rotate(360deg); } }
+@keyframes tdw-breathe { 50% { opacity: 0.4; } }
+@keyframes tdw-materialize {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes tdw-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes tdw-check-in {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes tdw-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+// ── Button ──────────────────────────────────────────────────────────────────
+// Base at single-class specificity: a call site's `h-[52px]`, `w-full`,
+// `rounded-[10px]`… still win. Press feedback (scale .97) is global in tadween.scss.
+.tdw-button {
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: var(--tdw-radius-md);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.tdw-button-primary { background-color: var(--tdw-primary-strong); color: #fff; }
+.tdw-button-secondary { background-color: var(--tdw-card); color: var(--tdw-foreground); border-color: var(--tdw-border); }
+.tdw-button-ghost { background-color: transparent; color: var(--tdw-foreground); }
+.tdw-button-destructive { background-color: var(--tdw-destructive); color: #fff; }
+body.dark .tdw-button-destructive { background-color: #c8323e; }
+body {
+  .tdw-button { transition: transform 100ms ease-out, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, filter 180ms ease; }
+  .tdw-button-primary:hover, .tdw-button-destructive:hover { filter: brightness(1.08); }
+  .tdw-button-secondary:hover, .tdw-button-ghost:hover { background-color: var(--tdw-accent); }
+  .tdw-button.is-loading { cursor: progress; }
+  // disabled reads quieter than Postiz's 50% (pointer-events stay off)
+  .tdw-button.opacity-50:not(.is-loading) { opacity: 0.45; }
+}
+
+// ── Spinner ─────────────────────────────────────────────────────────────────
+.tdw-spinner {
+  display: inline-block;
+  flex: none;
+  box-sizing: border-box;
+  border-style: solid;
+  border-color: color-mix(in srgb, currentColor 20%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: tdw-spin 0.8s linear infinite;
+}
+.tdw-loading { color: var(--tdw-primary); }
+
+// ── Fields (Input, Textarea, Select) ────────────────────────────────────────
+body {
+  .tdw-field-label { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--tdw-foreground); }
+  .tdw-field-label:empty { display: none; }
+  .tdw-field-error { font-size: 12px; line-height: 16px; color: var(--tdw-destructive); }
+  .tdw-field-box { transition: border-color 180ms ease, box-shadow 180ms ease; }
+  .tdw-field-box input::placeholder, textarea.tdw-field-box::placeholder { color: var(--tdw-muted-foreground); opacity: 1; }
+  .tdw-field-box:hover { border-color: color-mix(in srgb, var(--tdw-foreground) 22%, transparent); }
+  .tdw-field-box:focus-within, textarea.tdw-field-box:focus {
+    border-color: var(--tdw-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tdw-primary) 22%, transparent);
+  }
+  // the field shows its own ring: no second outline on the inner input
+  .tdw-field-box input:focus-visible, textarea.tdw-field-box:focus-visible { outline: none !important; }
+  .tdw-field-box.is-invalid { border-color: var(--tdw-destructive); }
+  .tdw-field-box.is-invalid:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--tdw-destructive) 20%, transparent); }
+  .tdw-field-box.is-disabled { opacity: 0.55; }
+  .tdw-textarea { resize: vertical; font-size: 14px; line-height: 20px; }
+}
+
+// ── Checkbox ────────────────────────────────────────────────────────────────
+.tdw-checkbox { border-radius: 6px; }
+body {
+  .tdw-checkbox {
+    flex: none;
+    border: 1.5px solid var(--tdw-input);
+    background: var(--tdw-card);
+    color: #fff;
+    transition: background-color 180ms ease, border-color 180ms ease, transform 100ms ease-out;
+  }
+  .tdw-checkbox:hover { border-color: var(--tdw-primary); }
+  .tdw-checkbox[aria-checked='true'] { background: var(--tdw-primary-strong); border-color: var(--tdw-primary-strong); }
+  .tdw-checkbox[aria-checked='true'] svg { animation: tdw-check-in 320ms var(--tdw-ease-bounce) both; }
+  .tdw-checkbox:active { transform: scale(0.92); }
+  .tdw-check-row { align-items: center; font-size: 14px; }
+}
+
+// ── Switch (Slider) ─────────────────────────────────────────────────────────
+body {
+  .tdw-switch {
+    position: relative;
+    flex: none;
+    width: 40px;
+    height: 24px;
+    border-radius: 9999px;
+    background: var(--tdw-muted);
+    box-shadow: inset 0 0 0 1px var(--tdw-border);
+    transition: background-color 260ms ease, box-shadow 260ms ease;
+  }
+  .tdw-switch[aria-checked='true'] { background: var(--tdw-primary-strong); box-shadow: none; }
+  .tdw-switch-thumb {
+    position: absolute;
+    top: 3px;
+    inset-inline-start: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transition: transform 420ms var(--tdw-ease-spring), width 180ms ease;
+  }
+  .tdw-switch[aria-checked='true'] .tdw-switch-thumb { transform: translateX(16px); }
+  .tdw-switch:active .tdw-switch-thumb { width: 22px; }
+  .tdw-switch[aria-checked='true']:active .tdw-switch-thumb { transform: translateX(12px); }
+  [dir='rtl'] & .tdw-switch[aria-checked='true'] .tdw-switch-thumb { transform: translateX(-16px); }
+  [dir='rtl'] & .tdw-switch[aria-checked='true']:active .tdw-switch-thumb { transform: translateX(-12px); }
+}
+
+// ── Modal shell + confirm (new-modal.tsx) ───────────────────────────────────
+body {
+  .tdw-modal-scrim {
+    background: var(--tdw-scrim);
+    -webkit-backdrop-filter: blur(6px) saturate(1.1);
+    backdrop-filter: blur(6px) saturate(1.1);
+  }
+  .tdw-modal {
+    box-shadow: var(--tdw-shadow-lg);
+    animation: tdw-materialize 420ms var(--tdw-ease-spring) both;
+  }
+  .tdw-modal-head:has(.tdw-modal-title:empty) { min-height: 16px; }
+  .tdw-modal-title { font-size: 20px; line-height: 26px; letter-spacing: -0.01em; color: var(--tdw-foreground); }
+  .tdw-modal-close {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    background: var(--tdw-muted);
+    color: var(--tdw-muted-foreground);
+    z-index: 2;
+    transition: background-color 180ms ease, color 180ms ease, transform 100ms ease-out;
+  }
+  .tdw-modal-close:hover { background: var(--tdw-accent); color: var(--tdw-foreground); box-shadow: inset 0 0 0 1px var(--tdw-border); }
+  .tdw-confirm-desc { font-size: 14px; line-height: 21px; color: var(--tdw-muted-foreground); }
+
+  // Phones: a plain dialog rises from the bottom edge as a sheet
+  @media (max-width: 640px) {
+    .tdw-modal-scrim:has(> div > .tdw-modal-frame.is-sheet) { padding-bottom: 0; }
+    .tdw-modal-frame.is-sheet {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 48px 0 0 !important;
+    }
+    .tdw-modal-frame.is-sheet > .tdw-modal {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0;
+      margin: 0;
+      border-radius: 20px 20px 0 0;
+      padding-top: 28px;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+      animation: tdw-sheet-up 420ms var(--tdw-ease-spring) both;
+    }
+    .tdw-modal-frame.is-sheet > .tdw-modal::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      inset-inline-start: 50%;
+      width: 36px;
+      height: 5px;
+      margin-inline-start: -18px;
+      border-radius: 3px;
+      background: var(--tdw-border);
+    }
+    .tdw-confirm-actions > .tdw-button { flex: 1; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .tdw-spinner {
+    animation: tdw-breathe 1.2s ease-in-out infinite !important;
+    animation-duration: 1.2s !important;
+    animation-iteration-count: infinite !important;
+  }
+  body .tdw-modal, body .tdw-modal-frame.is-sheet > .tdw-modal { animation: none !important; }
+}
+
+// ── Top bar (new-layout/layout.component.tsx) ───────────────────────────────
+body {
+  .tdw-page-title {
+    display: grid;
+    gap: 1px;
+    h1 { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.015em; color: var(--tdw-foreground); }
+    p { margin: 0; font-size: 13px; line-height: 18px; color: var(--tdw-muted-foreground); }
+    @media (max-width: 1025px) { h1 { font-size: 17px; line-height: 22px; } }
+  }
+  .tdw-topbar-actions {
+    > .w-\[1px\] { height: 18px; margin-inline: 6px; }
+    // separators only between things that rendered
+    > .w-\[1px\]:first-child,
+    > .w-\[1px\] + .w-\[1px\],
+    > .w-\[1px\] + .contents:empty + .w-\[1px\],
+    > .w-\[1px\]:first-child + .contents:empty + .w-\[1px\] { display: none; }
+    // every icon in the cluster gets the same 36px hit area and hover tile
+    > a, > button, .tdw-topbar-icon, .tdw-org-switch > .group > .flex {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-width: 36px;
+      height: 36px;
+      padding: 0 8px;
+      border-radius: var(--tdw-radius-md);
+      color: var(--tdw-muted-foreground);
+      transition: background-color 180ms ease, color 180ms ease;
+    }
+    > a:hover, > button:hover, .tdw-topbar-icon:hover, .tdw-topbar-icon.is-open, .tdw-org-switch:hover > .group > .flex {
+      background: var(--tdw-accent);
+      color: var(--tdw-foreground);
+    }
+    > a svg, > button svg, .tdw-topbar-icon svg, .tdw-org-switch > .group > .flex > svg { width: 20px; height: 20px; }
+    .tdw-org-switch > .group > .flex { font-size: 13px; font-weight: 500; }
+  }
+  // Today / Calendar: no title, so the bar is a thin, borderless strip that
+  // melts into the page and only carries the tools
+  .tdw-topbar.is-bare { position: relative; z-index: 1; margin-bottom: -1px; background: var(--tdw-background); }
+  // streak: a small Papyrus pill (amber is Tadween's "smart/progress" colour)
+  .tdw-streak {
+    height: 28px;
+    padding: 0 10px 0 8px;
+    border-radius: 9999px;
+    background: var(--tdw-smart-soft);
+    color: var(--tdw-smart);
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    gap: 5px;
+  }
+  // org switcher + notifications popovers
+  .tdw-org-menu {
+    gap: 2px;
+    padding: 6px;
+    min-width: 200px;
+    border-radius: var(--tdw-radius-lg);
+    border: 0;
+    background: var(--tdw-popover);
+    box-shadow: var(--tdw-shadow-lg);
+    z-index: 600;
+    font-size: 13px;
+  }
+  .tdw-org-item { padding: 8px 10px; border-radius: 8px; color: var(--tdw-foreground); }
+  .tdw-org-item:hover { background: var(--tdw-accent); }
+  .tdw-popover-panel {
+    border: 0;
+    border-radius: var(--tdw-radius-lg);
+    background: var(--tdw-popover);
+    box-shadow: var(--tdw-shadow-lg);
+    overflow: hidden;
+  }
+  .tdw-popover-head { font-size: 15px; font-weight: 600; padding: 14px 16px; border-color: var(--tdw-border); }
+  .tdw-popover-panel .bg-seventh { background: var(--tdw-primary-soft); }
+}
+
+// ── Super-admin bar (layout/impersonate.tsx) ────────────────────────────────
+// 40px tall + 8px gap, under the 12px page padding = the 60px the sidebar already reserves.
+body {
+  .tdw-adminbar {
+    position: relative;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    margin-bottom: 8px;
+    padding: 4px 6px 4px 6px;
+    border-radius: 12px;
+    background: var(--tdw-card);
+    box-shadow: var(--tdw-shadow-sm);
+    font-size: 13px;
+    color: var(--tdw-foreground);
+  }
+  .tdw-adminbar-badge {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 7px;
+    background: var(--tdw-smart-soft);
+    color: var(--tdw-smart);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .tdw-adminbar-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .tdw-adminbar-note { color: var(--tdw-muted-foreground); white-space: nowrap; }
+  .tdw-adminbar-search { height: 32px !important; border-radius: 8px; background: var(--tdw-background); }
+  .tdw-adminbar-search input { font-size: 13px; }
+  .tdw-adminbar-select .tdw-select-trigger { height: 32px; font-size: 13px; }
+  .tdw-adminbar-btn { height: 32px; padding: 0 12px; font-size: 13px; }
+  .tdw-adminbar-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 8px;
+    background: var(--tdw-muted);
+    color: var(--tdw-foreground);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .tdw-adminbar-item:hover { background: var(--tdw-accent); box-shadow: inset 0 0 0 1px var(--tdw-border); }
+  .tdw-adminbar-item.is-danger { color: var(--tdw-destructive); }
+  // the "Admin" pill (top bar) that holds every super-admin tool
+  .tdw-adminbar-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 9999px;
+    background: var(--tdw-smart-soft);
+    color: var(--tdw-smart);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: filter 180ms ease, transform 100ms ease-out;
+  }
+  .tdw-adminbar-pill:hover, .tdw-adminbar-pill[aria-expanded='true'] { filter: brightness(0.97); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tdw-smart) 30%, transparent); }
+  .tdw-adminbar-pill[aria-expanded='true'] svg { transform: rotate(180deg); }
+  .tdw-adminbar-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    inset-inline-start: 0;
+    z-index: 999;
+    display: grid;
+    gap: 1px;
+    width: 340px;
+    max-width: calc(100vw - 24px);
+    color: var(--tdw-foreground);
+    padding: 6px;
+    border-radius: var(--tdw-radius-lg);
+    background: var(--tdw-popover);
+    box-shadow: var(--tdw-shadow-lg);
+    animation: tdw-fade-up 180ms ease both;
+    .tdw-adminbar-item { justify-content: flex-start; background: transparent; width: 100%; }
+    .tdw-adminbar-item:hover { background: var(--tdw-accent); box-shadow: none; }
+    // impersonation search sits at the top, its matches listed under it
+    .tdw-adminbar-menu-search { display: grid; gap: 4px; padding: 4px; }
+    .tdw-adminbar-results { margin: 0; padding: 0; max-height: 280px; background: transparent; box-shadow: none; border-radius: 0; }
+    .tdw-adminbar-result { white-space: normal; }
+  }
+  // in the top bar the pill sits at the end, so the menu opens towards the start
+  .tdw-topbar-actions .tdw-adminbar-menu { inset-inline-start: auto; inset-inline-end: 0; }
+  @media (max-width: 640px) {
+    .tdw-topbar-actions .tdw-adminbar-menu { position: fixed; top: 64px; inset-inline: 12px; width: auto; }
+  }
+  .tdw-adminbar-menu-sep { height: 1px; margin: 4px 6px; background: var(--tdw-border); }
+  .tdw-adminbar-scrim { background: transparent; }
+  .tdw-adminbar-results {
+    margin-top: 6px;
+    padding: 6px;
+    max-height: 60vh;
+    overflow-y: auto;
+    border-radius: var(--tdw-radius-lg);
+    background: var(--tdw-popover);
+    box-shadow: var(--tdw-shadow-lg);
+  }
+  .tdw-adminbar-result { padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+  .tdw-adminbar-result:hover { background: var(--tdw-accent); }
+  @media (max-width: 1025px) {
+    .tdw-adminbar { align-items: flex-start; }
+    .tdw-adminbar-row { flex-wrap: wrap; }
+    .tdw-adminbar-badge { margin-top: 4px; }
+  }
+}
+
+// ── Empty states placed above a page's existing "Add …" button ──────────────
+body {
+  .tdw-empty-with-next { padding-bottom: 12px; }
+  .tdw-empty-with-next + div { display: flex; justify-content: center; padding-bottom: 20px; }
+  // a card surface for empty/info blocks that sit in a grid
+  .tdw-surface { border-radius: var(--tdw-radius-lg); background: var(--tdw-card); box-shadow: var(--tdw-shadow-sm); }
+}
+
+// ── Screens without their own design: Analytics, Plugs, Integrations, Agent ─
+body {
+  // left channel / tool list: the heading reads as a quiet section label
+  // (the page title already sits in the top bar)
+  .tdw-subnav h2 {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--tdw-muted-foreground);
+  }
+  // plug and third-party cards
+  .tdw-tile {
+    height: auto;
+    min-height: 0;
+    border-radius: var(--tdw-radius-lg);
+    background: var(--tdw-card);
+    box-shadow: var(--tdw-shadow-sm), inset 0 0 0 1px var(--tdw-border);
+    transition: box-shadow 180ms ease, transform 100ms ease-out;
+    cursor: pointer;
+  }
+  .tdw-tile:hover { background: var(--tdw-card); box-shadow: var(--tdw-shadow-md), inset 0 0 0 1px var(--tdw-border); }
+  .tdw-tile:active { transform: scale(0.99); }
+  .tdw-tile > .p-\[16px\] { padding: 20px; gap: 10px; }
+  .tdw-tile-title { margin-bottom: 0; font-size: 16px; line-height: 22px; font-weight: 600; letter-spacing: -0.01em; color: var(--tdw-foreground); }
+  .tdw-tile-desc { font-size: 14px; line-height: 20px; color: var(--tdw-muted-foreground); }
+  .tdw-tile .tdw-button { height: 36px; margin-top: 6px; }
+
+  // admin errors / stats (Postiz tables inside the admin console frame)
+  .tdw-admin-legacy {
+    select, input[type='date'], input[type='text'], input[type='search'] {
+      height: 36px;
+      padding: 0 10px;
+      border-radius: 8px;
+      border: 1px solid var(--tdw-border);
+      background: var(--tdw-card);
+      color: var(--tdw-foreground);
+      font-size: 13px;
+    }
+    .border-newTableBorder.rounded-\[8px\] { border-radius: var(--tdw-radius-lg); background: var(--tdw-card); box-shadow: var(--tdw-shadow-sm); border-color: transparent; }
+  }
+}

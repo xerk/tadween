@@ -1112,7 +1112,7 @@ const OpenAssistant: FC<{ request: number }> = ({ request }) => {
     if (request) {
       setOpen(true);
     }
-  }, [request]);
+  }, [request, setOpen]);
   return null;
 };
 

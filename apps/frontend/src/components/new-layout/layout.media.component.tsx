@@ -1,11 +1,11 @@
 'use client';
 
-import { MediaBox } from '@gitroom/frontend/components/media/media.component';
+import { MediaLibrary } from '@gitroom/frontend/components/tadween/media/media.library';
 
 export const MediaLayoutComponent = () => {
   return (
-    <div className="bg-newBgColorInner p-[20px] flex flex-1 flex-col gap-[15px] transition-all">
-      <MediaBox setMedia={() => {}} closeModal={() => {}} standalone={true} />
+    <div className="bg-newBgColorInner flex flex-1 flex-col min-h-0 transition-all">
+      <MediaLibrary mode="page" />
     </div>
   );
 };

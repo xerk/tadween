@@ -183,7 +183,7 @@ export const MiniMonth: FC = () => {
   const weekdays = Array.from({ length: 7 }, (_, i) => gridStart.add(i, 'day').format('dd'));
 
   const pick = (date: dayjs.Dayjs) =>
-    goTo(display === 'list' ? 'week' : (display as 'day' | 'week' | 'month'), date.format('YYYY-MM-DD'));
+    goTo(display as 'day' | 'week' | 'month' | 'list', date.format('YYYY-MM-DD'));
 
   return (
     <section aria-labelledby="tdw-ws-mini">
@@ -214,7 +214,7 @@ export const MiniMonth: FC = () => {
         ))}
         {days.map((date) => {
           const key = date.format('YYYY-MM-DD');
-          const inRange = display !== 'list' && key >= startDate && key <= endDate;
+          const inRange = key >= startDate && key <= endDate;
           return (
             <button
               key={key}

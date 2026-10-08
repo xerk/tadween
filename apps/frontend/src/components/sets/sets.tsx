@@ -14,6 +14,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.modal';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 const SaveSetModal: FC<{
   postData: any;
@@ -197,6 +198,18 @@ export const Sets: FC = () => {
               ))}
             </div>
           )}
+          {data && !data.length ? (
+            <TadweenEmptyState
+              size="sm"
+              icon="layers"
+              className="tdw-empty-with-next"
+              title={t('tdw_no_sets', 'No sets yet')}
+              body={t(
+                'tdw_no_sets_body',
+                'Save channels and settings as a set to reuse them in one click.'
+              )}
+            />
+          ) : null}
           <div>
             <Button
               onClick={addSet()}

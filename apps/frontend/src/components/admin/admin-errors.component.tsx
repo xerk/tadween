@@ -9,6 +9,7 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { Button } from '@gitroom/react/form/button';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 interface ErrorRow {
   id: string;
@@ -325,7 +326,11 @@ export const AdminErrorsComponent: FC = () => {
       ) : error ? (
         <div className="text-red-400">Failed to load errors.</div>
       ) : !data || data.items.length === 0 ? (
-        <div className="opacity-70">No errors found.</div>
+        <TadweenEmptyState
+          icon="alert"
+          title="No errors found."
+          body="Nothing failed for these filters. Clear them to see every error."
+        />
       ) : (
         <div className="border border-newTableBorder rounded-[8px] overflow-hidden">
           <div className="grid grid-cols-[170px_120px_220px_1fr_220px] gap-[12px] px-[12px] py-[10px] bg-newBgColorInner text-[12px] uppercase opacity-70 border-b border-newTableBorder">

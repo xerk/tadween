@@ -14,6 +14,8 @@ interface MenuItemInterface {
   name: string;
   icon: ReactNode;
   path: string;
+  // Tadween: one line under the page title in the top bar
+  description?: string;
   role?: string[];
   hide?: boolean;
   requireBilling?: boolean;
@@ -83,6 +85,7 @@ export const useMenuItem = () => {
     },
     {
       name: 'Agent',
+      description: t('tdw_agent_desc', 'Ask the agent to draft, schedule and manage posts for you.'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -102,6 +105,7 @@ export const useMenuItem = () => {
     },
     {
       name: t('analytics', 'Analytics'),
+      description: t('tdw_analytics_desc', 'How each connected channel is growing and what your posts earn.'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -124,6 +128,7 @@ export const useMenuItem = () => {
     },
     {
       name: t('media', 'Media'),
+      description: t('tdw_media_desc', 'Images and videos you can attach to any post.'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -146,6 +151,7 @@ export const useMenuItem = () => {
     },
     {
       name: t('plugs', 'Plugs'),
+      description: t('tdw_plugs_desc', 'Automations that run on a channel after a post goes out.'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -168,6 +174,7 @@ export const useMenuItem = () => {
     },
     {
       name: t('integrations', 'Integrations'),
+      description: t('tdw_integrations_desc', 'Third-party tools that create media and content for your posts.'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -295,6 +302,7 @@ export const useMenuItem = () => {
     },
     {
       name: t('admin', 'Admin'),
+      description: t('tdw_admin_desc', 'Run the instance: users, plans, channels and features.'),
       icon: <AdminMenuIcon />,
       path: '/admin',
       hide: !(user as { admin?: boolean })?.admin,

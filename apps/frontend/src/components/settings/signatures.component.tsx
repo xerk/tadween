@@ -13,6 +13,7 @@ import { Select } from '@gitroom/react/form/select';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 export const SignaturesComponent: FC<{
   appendSignature?: (value: string) => void;
 }> = (props) => {
@@ -143,6 +144,18 @@ export const SignaturesComponent: FC<{
               ))}
             </div>
           )}
+          {data && !data.length ? (
+            <TadweenEmptyState
+              size="sm"
+              icon="signature"
+              className="tdw-empty-with-next"
+              title={t('tdw_no_signatures', 'No signatures yet')}
+              body={t(
+                'tdw_no_signatures_body',
+                'Add a signature to append it to your posts automatically or on demand.'
+              )}
+            />
+          ) : null}
           <div>
             <Button
               onClick={addSignature()}

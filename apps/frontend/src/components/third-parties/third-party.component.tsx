@@ -11,6 +11,7 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import useCookie from 'react-use-cookie';
 import { SVGLine } from '@gitroom/frontend/components/launches/launches.component';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 export const ThirdPartyMenuComponent: FC<{
   reload: () => void;
@@ -116,7 +117,7 @@ export const ThirdPartyComponent = () => {
     <>
       <div
         className={clsx(
-          'bg-newBgColorInner p-[20px] mobile:p-[12px] flex flex-col gap-[15px] transition-all mobile:w-full',
+          'tdw-subnav bg-newBgColorInner p-[20px] mobile:p-[12px] flex flex-col gap-[15px] transition-all mobile:w-full',
           collapseMenu === '1' ? 'group sidebar w-[100px]' : 'w-[260px]'
         )}
       >
@@ -154,7 +155,16 @@ export const ThirdPartyComponent = () => {
                 )}
               >
                 {!isLoading && !data?.length ? (
-                  <div>No Integrations Yet</div>
+                  <TadweenEmptyState
+                    size="sm"
+                    icon="plug"
+                    className="group-[.sidebar]:hidden"
+                    title={t('tdw_no_integrations', 'No integrations yet')}
+                    body={t(
+                      'tdw_no_integrations_body',
+                      'Pick a tool from the list to connect it.'
+                    )}
+                  />
                 ) : (
                   data?.map((p: any) => (
                     <div

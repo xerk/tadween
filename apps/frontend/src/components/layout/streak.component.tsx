@@ -32,13 +32,13 @@ export const StreakComponent: FC = () => {
 
   return (
     <div
-      className="flex items-center gap-[6px] text-orange-500 hover:text-orange-400 cursor-default"
+      className="tdw-streak flex items-center gap-[6px] cursor-default"
       data-tooltip-id="tooltip"
       data-tooltip-content={tooltipContent}
     >
       <svg
-        width="24"
-        height="24"
+        width="14"
+        height="17"
         viewBox="0 0 22 27"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -48,7 +48,7 @@ export const StreakComponent: FC = () => {
           fill="currentColor"
         />
       </svg>
-      <span className="text-[14px] font-semibold">{streakDays}</span>
+      <span className="tdw-streak-count">{streakDays}</span>
     </div>
   );
 };

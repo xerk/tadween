@@ -22,6 +22,7 @@ import { Integration } from '@prisma/client';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 export const MediaPortal: FC<{
   media: { path: string; id: string }[];
@@ -107,7 +108,7 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
   return (
     <div
       className={clsx(
-        'trz bg-newBgColorInner flex flex-col gap-[15px] transition-all relative mobile:w-full mobile:order-1',
+        'tdw-subnav trz bg-newBgColorInner flex flex-col gap-[15px] transition-all relative mobile:w-full mobile:order-1',
         collapseMenu === '1' ? 'group sidebar w-[100px]' : 'w-[260px]'
       )}
     >
@@ -230,7 +231,7 @@ const Threads: FC = () => {
   return (
     <div
       className={clsx(
-        'trz bg-newBgColorInner flex flex-col gap-[15px] transition-all relative',
+        'tdw-subnav trz bg-newBgColorInner flex flex-col gap-[15px] transition-all relative',
         'w-[260px] mobile:w-full mobile:order-2'
       )}
     >
@@ -261,6 +262,18 @@ const Threads: FC = () => {
             </div>
           </Link>
         </div>
+        {data?.threads && !data.threads.length ? (
+          <TadweenEmptyState
+            size="sm"
+            icon="comment"
+            className="mobile:hidden"
+            title={t('tdw_no_agent_chats', 'No chats yet')}
+            body={t(
+              'tdw_no_agent_chats_body',
+              'Start a new chat and it will be kept here.'
+            )}
+          />
+        ) : null}
         <div className="flex flex-col gap-[1px] mobile:flex-row mobile:gap-[4px]">
           {data?.threads?.map((p: any) => (
             <Link

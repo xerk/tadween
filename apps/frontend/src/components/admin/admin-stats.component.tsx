@@ -6,6 +6,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { Button } from '@gitroom/react/form/button';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 interface PerSocial {
   provider: string;
@@ -109,9 +110,11 @@ const PerSocialTable: FC<{ title: string; block: StatsBlock }> = ({
       <div className="text-right">Count</div>
     </div>
     {block.perSocial.length === 0 ? (
-      <div className="px-[12px] py-[10px] text-[13px] opacity-70">
-        No data for this timeframe.
-      </div>
+      <TadweenEmptyState
+        size="sm"
+        icon="chart"
+        title="No data for this timeframe."
+      />
     ) : (
       block.perSocial.map((row) => (
         <div

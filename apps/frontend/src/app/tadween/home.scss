@@ -35,6 +35,9 @@
 
   // ── Hero ────────────────────────────────────────────────────────────────
   .tdw-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding-bottom: 4px; }
+  // No transform left behind once the entrance ends: the customer picker's
+  // menu is position: fixed and would otherwise be placed against the hero.
+  .tdw-today > .tdw-hero { animation-fill-mode: backwards; }
   .tdw-hero-copy { min-width: 0; }
   .tdw-eyebrow { font-size: 13px; line-height: 18px; font-weight: 600; color: var(--primary); letter-spacing: 0.01em; }
   .tdw-h1 { margin: 6px 0 10px; font-size: 40px; line-height: 1.08; font-weight: 650; letter-spacing: -0.025em; color: var(--foreground); }

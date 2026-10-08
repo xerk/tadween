@@ -4,7 +4,7 @@ import { useCallback, useMemo } from 'react';
 import useSWR from 'swr';
 import dayjs from 'dayjs';
 import { orderBy } from 'lodash';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import {
   expandPosts,
@@ -56,32 +56,40 @@ const swrOptions = {
   refreshWhenOffline: false,
 };
 
+// The selected customer, read from `?customer=` like CalendarWeekProvider's
+// initial filter; '' means every customer, as on the calendar.
+export const useTodayCustomer = () => useSearchParams().get('customer') || '';
+
 // The calendar's week query: same params as CalendarWeekProvider.loadData
 export const useTodayWeekPosts = (startDate: string, endDate: string) => {
   const fetch = useFetch();
+  const customer = useTodayCustomer();
   const load = useCallback(async () => {
     const params = new URLSearchParams({
       display: 'week',
-      customer: '',
+      customer,
       startDate: dayjs.utc(startDate).format(),
       endDate: dayjs.utc(endDate).format(),
     }).toString();
     const data = await (await fetch(`/posts?${params}`)).json();
     return (expandPosts(data)?.posts || []) as TodayPost[];
-  }, [startDate, endDate]);
-  return useSWR(`today-week-${startDate}`, load, swrOptions);
+  }, [startDate, endDate, customer]);
+  return useSWR(`today-week-${startDate}-${customer}`, load, swrOptions);
 };
 
 // Upcoming QUEUE posts, soonest first (the calendar's list view, "scheduled")
 export const useTodayNextPost = () => {
   const fetch = useFetch();
+  const customer = useTodayCustomer();
   const load = useCallback(async () => {
     const data = await (
-      await fetch(`/posts/list?page=0&limit=1&customer=&state=scheduled`)
+      await fetch(
+        `/posts/list?page=0&limit=1&customer=${encodeURIComponent(customer)}&state=scheduled`
+      )
     ).json();
     return ((expandPostsList(data)?.posts || [])[0] || null) as TodayPost | null;
-  }, []);
-  return useSWR('today-next', load, swrOptions);
+  }, [customer]);
+  return useSWR(`today-next-${customer}`, load, swrOptions);
 };
 
 // The whole group of the next post: the only response that carries its media
@@ -95,30 +103,36 @@ export const useTodayPostGroup = (group?: string) => {
 
 export const useTodayDrafts = () => {
   const fetch = useFetch();
+  const customer = useTodayCustomer();
   const load = useCallback(async () => {
     const data = expandPostsList(
       await (
-        await fetch(`/posts/list?page=0&limit=5&customer=&state=draft`)
+        await fetch(
+          `/posts/list?page=0&limit=5&customer=${encodeURIComponent(customer)}&state=draft`
+        )
       ).json()
     );
     return {
       posts: (data?.posts || []) as TodayPost[],
       total: (data?.total || 0) as number,
     };
-  }, []);
-  return useSWR('today-drafts', load, swrOptions);
+  }, [customer]);
+  return useSWR(`today-drafts-${customer}`, load, swrOptions);
 };
 
 // The organisation's own most recent published posts, for "when you usually post"
 export const useTodayPublished = () => {
   const fetch = useFetch();
+  const customer = useTodayCustomer();
   const load = useCallback(async () => {
     const data = await (
-      await fetch(`/posts/list?page=0&limit=100&customer=&state=published`)
+      await fetch(
+        `/posts/list?page=0&limit=100&customer=${encodeURIComponent(customer)}&state=published`
+      )
     ).json();
     return (expandPostsList(data)?.posts || []) as TodayPost[];
-  }, []);
-  return useSWR('today-published', load, swrOptions);
+  }, [customer]);
+  return useSWR(`today-published-${customer}`, load, swrOptions);
 };
 
 // Same key and request as CalendarWeekProvider, so the two share one cache entry
@@ -128,6 +142,22 @@ export const useTodaySets = () => {
     return (await fetch('/sets')).json();
   }, []);
   return useSWR('sets', load, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    revalidateIfStale: false,
+    revalidateOnMount: true,
+    refreshWhenHidden: false,
+    refreshWhenOffline: false,
+  });
+};
+
+// Same key and request as CalendarWeekProvider's default signature
+export const useTodayDefaultSignature = () => {
+  const fetch = useFetch();
+  const load = useCallback(async () => {
+    return (await fetch('/signatures/default')).json();
+  }, []);
+  return useSWR('default-sign', load, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     revalidateIfStale: false,
@@ -162,9 +192,12 @@ export const useTodayActions = (
   const router = useRouter();
   const t = useT();
   const { data: sets } = useTodaySets();
+  const { data: signature } = useTodayDefaultSignature();
 
   // NewPost (launches/new.post.tsx): pick a set if there are any, then the editor
   // `day` (from the week strip) keeps the next free slot's time of day on that day
+  // and, like the calendar's "+" on a slot (CalendarColumn.addModal), starts the
+  // post with the default signature when no set was picked
   const create = useCallback(
     async (day?: dayjs.Dayjs) => {
       const slot = dayjs
@@ -220,6 +253,15 @@ export const useTodayActions = (
         children: (
           <AddEditModal
             allIntegrations={integrations.map((p) => ({ ...p }))}
+            {...(day && signature?.id && !set
+              ? {
+                  onlyValues: [
+                    {
+                      content: '\n' + signature.content,
+                    },
+                  ],
+                }
+              : {})}
             {...(set?.content ? { set: JSON.parse(set.content) } : {})}
             reopenModal={() => create(day)}
             mutate={reload}
@@ -231,7 +273,7 @@ export const useTodayActions = (
         title: ``,
       });
     },
-    [integrations, sets, reload]
+    [integrations, sets, signature, reload]
   );
 
   // The calendar chip's edit (launches/calendar.tsx → usePostActions.editPost)

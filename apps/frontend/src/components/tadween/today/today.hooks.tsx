@@ -19,6 +19,7 @@ import { SetSelectionModal } from '@gitroom/frontend/components/launches/calenda
 import { CustomVariables } from '@gitroom/frontend/components/launches/add.provider.component';
 import { ExistingDataContextProvider } from '@gitroom/frontend/components/launches/helpers/use.existing.data';
 import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.modal';
+import { hasUnsavedPostChanges } from '@gitroom/frontend/components/new-launch/store';
 
 // Data and actions for the Today page. Every request is an endpoint the calendar
 // already uses (/posts, /posts/list, /posts/group, /integrations/list, /sets),
@@ -245,7 +246,7 @@ export const useTodayActions = (
         removeLayout: true,
         closeOnEscape: false,
         withCloseButton: false,
-        askClose: true,
+        askClose: hasUnsavedPostChanges,
         fullScreen: true,
         classNames: {
           modal: 'w-[100%] max-w-[1400px] text-textColor',
@@ -291,7 +292,7 @@ export const useTodayActions = (
         removeLayout: true,
         closeOnEscape: false,
         withCloseButton: false,
-        askClose: true,
+        askClose: hasUnsavedPostChanges,
         fullScreen: true,
         classNames: {
           modal: 'w-[100%] max-w-[1400px] text-textColor',

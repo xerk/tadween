@@ -509,8 +509,8 @@ export const CommentsComponents: FC<{ previewId: string }> = () => {
           icon="comment"
           title={t('tdw_no_comments', 'No comments yet')}
           body={t(
-            'preview_no_comments_yet',
-            'No comments yet. Select some text in the post to comment on it, or add a general comment.'
+            'tdw_no_comments_body',
+            'Select some text in the post to comment on it, or add a general comment.'
           )}
         />
       )}

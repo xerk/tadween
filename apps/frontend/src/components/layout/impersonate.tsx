@@ -1050,7 +1050,6 @@ const AdminBarMenu: FC<{ children: ReactNode }> = ({ children }) => {
       <button
         type="button"
         className="tdw-adminbar-more"
-        aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t('tdw_admin_tools', 'Admin tools')}
         onClick={() => setOpen(!open)}
@@ -1064,7 +1063,6 @@ const AdminBarMenu: FC<{ children: ReactNode }> = ({ children }) => {
       {open && (
         <div
           className="tdw-adminbar-menu"
-          role="menu"
           onClick={() => setOpen(false)}
         >
           {children}

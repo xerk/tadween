@@ -35,7 +35,7 @@
 // ── Button ──────────────────────────────────────────────────────────────────
 // Base at single-class specificity: a call site's `h-[52px]`, `w-full`,
 // `rounded-[10px]`… still win. Press feedback (scale .97) is global in tadween.scss.
-.tdw-btn {
+.tdw-button {
   gap: 8px;
   height: 40px;
   padding: 0 20px;
@@ -49,18 +49,18 @@
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
-.tdw-btn-primary { background-color: var(--tdw-primary-strong); color: #fff; }
-.tdw-btn-secondary { background-color: var(--tdw-card); color: var(--tdw-foreground); border-color: var(--tdw-border); }
-.tdw-btn-ghost { background-color: transparent; color: var(--tdw-foreground); }
-.tdw-btn-destructive { background-color: var(--tdw-destructive); color: #fff; }
-body.dark .tdw-btn-destructive { background-color: #c8323e; }
+.tdw-button-primary { background-color: var(--tdw-primary-strong); color: #fff; }
+.tdw-button-secondary { background-color: var(--tdw-card); color: var(--tdw-foreground); border-color: var(--tdw-border); }
+.tdw-button-ghost { background-color: transparent; color: var(--tdw-foreground); }
+.tdw-button-destructive { background-color: var(--tdw-destructive); color: #fff; }
+body.dark .tdw-button-destructive { background-color: #c8323e; }
 body {
-  .tdw-btn { transition: transform 100ms ease-out, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, filter 180ms ease; }
-  .tdw-btn-primary:hover, .tdw-btn-destructive:hover { filter: brightness(1.08); }
-  .tdw-btn-secondary:hover, .tdw-btn-ghost:hover { background-color: var(--tdw-accent); }
-  .tdw-btn.is-loading { cursor: progress; }
+  .tdw-button { transition: transform 100ms ease-out, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, filter 180ms ease; }
+  .tdw-button-primary:hover, .tdw-button-destructive:hover { filter: brightness(1.08); }
+  .tdw-button-secondary:hover, .tdw-button-ghost:hover { background-color: var(--tdw-accent); }
+  .tdw-button.is-loading { cursor: progress; }
   // disabled reads quieter than Postiz's 50% (pointer-events stay off)
-  .tdw-btn.opacity-50:not(.is-loading) { opacity: 0.45; }
+  .tdw-button.opacity-50:not(.is-loading) { opacity: 0.45; }
 }
 
 // ── Spinner ─────────────────────────────────────────────────────────────────
@@ -172,7 +172,7 @@ body {
   .tdw-confirm-desc { font-size: 14px; line-height: 21px; color: var(--tdw-muted-foreground); }
 
   // Phones: a plain dialog rises from the bottom edge as a sheet
-  @media (max-width: 1025px) {
+  @media (max-width: 640px) {
     .tdw-modal-scrim:has(> div > .tdw-modal-frame.is-sheet) { padding-bottom: 0; }
     .tdw-modal-frame.is-sheet {
       display: flex;
@@ -201,7 +201,7 @@ body {
       border-radius: 3px;
       background: var(--tdw-border);
     }
-    .tdw-confirm-actions > .tdw-btn { flex: 1; }
+    .tdw-confirm-actions > .tdw-button { flex: 1; }
   }
 }
 
@@ -291,7 +291,7 @@ body {
 }
 
 // ── Super-admin bar (layout/impersonate.tsx) ────────────────────────────────
-// 40px tall + 8px gap = the 60px the sidebar already reserves for it.
+// 40px tall + 8px gap, under the 12px page padding = the 60px the sidebar already reserves.
 body {
   .tdw-adminbar {
     position: relative;
@@ -423,7 +423,7 @@ body {
   .tdw-tile > .p-\[16px\] { padding: 20px; gap: 10px; }
   .tdw-tile-title { margin-bottom: 0; font-size: 16px; line-height: 22px; font-weight: 600; letter-spacing: -0.01em; color: var(--tdw-foreground); }
   .tdw-tile-desc { font-size: 14px; line-height: 20px; color: var(--tdw-muted-foreground); }
-  .tdw-tile .tdw-btn { height: 36px; margin-top: 6px; }
+  .tdw-tile .tdw-button { height: 36px; margin-top: 6px; }
 
   // admin errors / stats (Postiz tables inside the admin console frame)
   .tdw-admin-legacy {

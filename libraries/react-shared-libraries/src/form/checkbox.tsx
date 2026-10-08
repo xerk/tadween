@@ -51,6 +51,13 @@ export const Checkbox = forwardRef<
         onClick={changeStatus}
         role="checkbox"
         aria-checked={!!val}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            changeStatus();
+          }
+        }}
         data-variant={variant || 'default'}
         className={clsx(
           'tdw-checkbox cursor-pointer select-none w-[20px] h-[20px] justify-center items-center flex',

@@ -82,8 +82,8 @@ export const Button: FC<
       aria-busy={loading || undefined}
       className={clsx(
         (props.disabled || loading) && 'opacity-50 pointer-events-none',
-        'tdw-btn',
-        `tdw-btn-${variant}`,
+        'tdw-button',
+        `tdw-button-${variant}`,
         variant === 'primary' && 'bg-forth text-white',
         variant === 'secondary' && 'bg-third',
         loading && 'is-loading',

@@ -16,7 +16,14 @@ export const Slider: FC<{
       aria-checked={value === 'on'}
       data-fill={fill ? 'true' : undefined}
       className="tdw-switch cursor-pointer"
+      tabIndex={0}
       onClick={change}
+      onKeyDown={(e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          change();
+        }
+      }}
     >
       <div className="tdw-switch-thumb" />
     </div>

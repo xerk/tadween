@@ -205,7 +205,6 @@ export const Component: FC<{
             )}
           >
             <div
-              data-destructive={modal.destructive ? 'true' : undefined}
               className={clsx(
                 !modal.removeLayout &&
                   'gap-[20px] p-[24px] mobile:gap-[16px] mobile:p-[20px]',

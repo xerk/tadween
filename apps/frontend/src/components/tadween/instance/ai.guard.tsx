@@ -1,7 +1,14 @@
 'use client';
 
-import React, { Component, ComponentProps, FC, ReactNode } from 'react';
+import React, {
+  Component,
+  ComponentProps,
+  FC,
+  ReactNode,
+  useContext,
+} from 'react';
 import { CopilotKit } from '@copilotkit/react-core';
+import { CopilotTextarea } from '@copilotkit/react-textarea';
 import {
   AiRuntimeFailedContext,
   useAiAvailable,
@@ -9,24 +16,49 @@ import {
 
 // Keeps a failing assistant from taking the page down with it: CopilotKit
 // throws during render when its runtime or agent is not what it expects.
+// `catches` limits which errors it handles; the others go up as before.
 class AiErrorBoundary extends Component<
-  { fallback: ReactNode; children: ReactNode },
-  { failed: boolean }
+  {
+    fallback: ReactNode;
+    children: ReactNode;
+    catches?: (error: unknown) => boolean;
+  },
+  { error: unknown; failed: boolean }
 > {
-  state = { failed: false };
+  state = { error: undefined as unknown, failed: false };
 
-  static getDerivedStateFromError() {
-    return { failed: true };
+  static getDerivedStateFromError(error: unknown) {
+    return { error, failed: true };
   }
 
   componentDidCatch(error: unknown) {
-    console.warn('AI assistant disabled after an error:', error);
+    if (!this.props.catches || this.props.catches(error)) {
+      console.warn('AI assistant disabled after an error:', error);
+    }
   }
 
   render() {
-    return this.state.failed ? this.props.fallback : this.props.children;
+    if (!this.state.failed) {
+      return this.props.children;
+    }
+    if (this.props.catches && !this.props.catches(this.state.error)) {
+      throw this.state.error;
+    }
+    return this.props.fallback;
   }
 }
+
+// CopilotKit's own errors: its error classes, and the plain errors its hooks
+// throw (`useAgent: Agent 'default' not found ...`).
+const isCopilotKitError = (error: unknown) => {
+  const { name = '', message = '' } = (error || {}) as {
+    name?: string;
+    message?: string;
+  };
+  return (
+    /CopilotKit/.test(name) || /CopilotKit|useAgent|useCopilot/.test(message)
+  );
+};
 
 // <CopilotKit> for the app shell. If CopilotKit itself throws (for example a
 // runtime that answers without the agent it needs), the app renders again
@@ -36,6 +68,7 @@ export const AiProvider: FC<ComponentProps<typeof CopilotKit>> = ({
   ...props
 }) => (
   <AiErrorBoundary
+    catches={isCopilotKitError}
     fallback={
       <AiRuntimeFailedContext.Provider value={true}>
         {children}
@@ -61,4 +94,23 @@ export const AiOnly: FC<{ children: ReactNode; fallback?: ReactNode }> = ({
     return <>{fallback}</>;
   }
   return <AiErrorBoundary fallback={fallback}>{children}</AiErrorBoundary>;
+};
+
+// CopilotTextarea needs <CopilotKit> above it; once AiProvider fell back it
+// becomes a plain textarea so the form keeps working.
+export const AiTextarea: FC<ComponentProps<typeof CopilotTextarea>> = (
+  props
+) => {
+  const runtimeFailed = useContext(AiRuntimeFailedContext);
+  if (!runtimeFailed) {
+    return <CopilotTextarea {...props} />;
+  }
+  return (
+    <textarea
+      className={props.className}
+      placeholder={props.placeholder}
+      value={props.value}
+      onChange={props.onChange}
+    />
+  );
 };

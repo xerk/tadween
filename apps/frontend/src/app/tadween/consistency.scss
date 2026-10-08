@@ -225,8 +225,11 @@ body {
   }
   .tdw-topbar-actions {
     > .w-\[1px\] { height: 18px; margin-inline: 6px; }
+    // separators only between things that rendered
     > .w-\[1px\]:first-child,
-    > .w-\[1px\] + .w-\[1px\] { display: none; }
+    > .w-\[1px\] + .w-\[1px\],
+    > .w-\[1px\] + .contents:empty + .w-\[1px\],
+    > .w-\[1px\]:first-child + .contents:empty + .w-\[1px\] { display: none; }
     // every icon in the cluster gets the same 36px hit area and hover tile
     > a, > button, .tdw-topbar-icon, .tdw-org-switch > .group > .flex {
       display: inline-flex;
@@ -247,7 +250,9 @@ body {
     > a svg, > button svg, .tdw-topbar-icon svg, .tdw-org-switch > .group > .flex > svg { width: 20px; height: 20px; }
     .tdw-org-switch > .group > .flex { font-size: 13px; font-weight: 500; }
   }
-  .tdw-topbar.is-bare { background: var(--tdw-background); }
+  // Today / Calendar: no title, so the bar is a thin, borderless strip that
+  // melts into the page and only carries the tools
+  .tdw-topbar.is-bare { position: relative; z-index: 1; margin-bottom: -1px; background: var(--tdw-background); }
   // streak: a small Papyrus pill (amber is Tadween's "smart/progress" colour)
   .tdw-streak {
     height: 28px;
@@ -388,4 +393,49 @@ body {
   .tdw-empty-with-next + div { display: flex; justify-content: center; padding-bottom: 20px; }
   // a card surface for empty/info blocks that sit in a grid
   .tdw-surface { border-radius: var(--tdw-radius-lg); background: var(--tdw-card); box-shadow: var(--tdw-shadow-sm); }
+}
+
+// ── Screens without their own design: Analytics, Plugs, Integrations, Agent ─
+body {
+  // left channel / tool list: the heading reads as a quiet section label
+  // (the page title already sits in the top bar)
+  .tdw-subnav h2 {
+    margin-bottom: 0;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--tdw-muted-foreground);
+  }
+  // plug and third-party cards
+  .tdw-tile {
+    height: auto;
+    min-height: 0;
+    border-radius: var(--tdw-radius-lg);
+    background: var(--tdw-card);
+    box-shadow: var(--tdw-shadow-sm), inset 0 0 0 1px var(--tdw-border);
+    transition: box-shadow 180ms ease, transform 100ms ease-out;
+    cursor: pointer;
+  }
+  .tdw-tile:hover { background: var(--tdw-card); box-shadow: var(--tdw-shadow-md), inset 0 0 0 1px var(--tdw-border); }
+  .tdw-tile:active { transform: scale(0.99); }
+  .tdw-tile > .p-\[16px\] { padding: 20px; gap: 10px; }
+  .tdw-tile-title { margin-bottom: 0; font-size: 16px; line-height: 22px; font-weight: 600; letter-spacing: -0.01em; color: var(--tdw-foreground); }
+  .tdw-tile-desc { font-size: 14px; line-height: 20px; color: var(--tdw-muted-foreground); }
+  .tdw-tile .tdw-btn { height: 36px; margin-top: 6px; }
+
+  // admin errors / stats (Postiz tables inside the admin console frame)
+  .tdw-admin-legacy {
+    select, input[type='date'], input[type='text'], input[type='search'] {
+      height: 36px;
+      padding: 0 10px;
+      border-radius: 8px;
+      border: 1px solid var(--tdw-border);
+      background: var(--tdw-card);
+      color: var(--tdw-foreground);
+      font-size: 13px;
+    }
+    .border-newTableBorder.rounded-\[8px\] { border-radius: var(--tdw-radius-lg); background: var(--tdw-card); box-shadow: var(--tdw-shadow-sm); border-color: transparent; }
+  }
 }

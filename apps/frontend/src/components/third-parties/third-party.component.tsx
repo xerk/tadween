@@ -117,7 +117,7 @@ export const ThirdPartyComponent = () => {
     <>
       <div
         className={clsx(
-          'bg-newBgColorInner p-[20px] mobile:p-[12px] flex flex-col gap-[15px] transition-all mobile:w-full',
+          'tdw-subnav bg-newBgColorInner p-[20px] mobile:p-[12px] flex flex-col gap-[15px] transition-all mobile:w-full',
           collapseMenu === '1' ? 'group sidebar w-[100px]' : 'w-[260px]'
         )}
       >

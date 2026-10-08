@@ -146,7 +146,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                         className={clsx(
                           'tdw-topbar flex bg-newBgColorInner px-[20px] mobile:px-[12px] gap-[12px] items-center',
                           isBareTopBar(pathname)
-                            ? 'is-bare h-[56px] mobile:h-[56px]'
+                            ? 'is-bare h-[48px] mobile:h-[56px]'
                             : 'h-[68px] mobile:h-[56px]'
                         )}
                       >

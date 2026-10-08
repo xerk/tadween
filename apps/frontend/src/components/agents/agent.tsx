@@ -108,7 +108,7 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
   return (
     <div
       className={clsx(
-        'trz bg-newBgColorInner flex flex-col gap-[15px] transition-all relative mobile:w-full mobile:order-1',
+        'tdw-subnav trz bg-newBgColorInner flex flex-col gap-[15px] transition-all relative mobile:w-full mobile:order-1',
         collapseMenu === '1' ? 'group sidebar w-[100px]' : 'w-[260px]'
       )}
     >
@@ -231,7 +231,7 @@ const Threads: FC = () => {
   return (
     <div
       className={clsx(
-        'trz bg-newBgColorInner flex flex-col gap-[15px] transition-all relative',
+        'tdw-subnav trz bg-newBgColorInner flex flex-col gap-[15px] transition-all relative',
         'w-[260px] mobile:w-full mobile:order-2'
       )}
     >

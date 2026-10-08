@@ -131,7 +131,7 @@ export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
         <div
           onClick={addApiKey(p.title, p.identifier)}
           key={p.identifier}
-          className="w-full h-full p-[20px] mobile:p-[14px] min-h-[100px] text-[14px] bg-newTableHeader hover:bg-newTableBorder rounded-[8px] transition-all text-textColor relative flex flex-col gap-[15px] cursor-pointer"
+          className="tdw-tile w-full h-full p-[20px] mobile:p-[14px] min-h-[100px] text-[14px] bg-newTableHeader hover:bg-newTableBorder rounded-[8px] transition-all text-textColor relative flex flex-col gap-[15px] cursor-pointer"
         >
           <div>
             <img
@@ -139,8 +139,8 @@ export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
               src={`/icons/third-party/${p.identifier}.png`}
             />
           </div>
-          <div className="whitespace-pre-wrap text-left text-lg">{p.title}</div>
-          <div className="whitespace-pre-wrap text-left">{p.description}</div>
+          <div className="tdw-tile-title whitespace-pre-wrap text-left text-lg">{p.title}</div>
+          <div className="tdw-tile-desc whitespace-pre-wrap text-left">{p.description}</div>
           <div className="w-full flex">
             <Button className="w-full">Add</Button>
           </div>

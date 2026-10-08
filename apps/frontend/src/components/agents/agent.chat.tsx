@@ -28,7 +28,11 @@ import {
 } from '@gitroom/frontend/components/agents/agent';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useParams } from 'next/navigation';
-import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import {
+  useCopilotConnection,
+  useFetch,
+} from '@gitroom/helpers/utils/custom.fetch';
+import { AiOnly } from '@gitroom/frontend/components/tadween/instance/ai.guard';
 import {
   Message as CopilotMessage,
   TextMessage,
@@ -41,7 +45,31 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 
 export const AgentChat: FC = () => {
+  const t = useT();
+  return (
+    <AiOnly
+      fallback={
+        <div className="flex-1 flex flex-col items-center justify-center gap-[8px] p-[24px] text-center">
+          <div className="text-[16px] font-[600]">
+            {t('tdw_ai_not_configured', "AI isn't configured")}
+          </div>
+          <div className="text-[14px] text-textItemBlur max-w-[420px]">
+            {t(
+              'tdw_ai_not_configured_description',
+              'The agent needs an AI provider on this server. Ask your administrator to set it up.'
+            )}
+          </div>
+        </div>
+      }
+    >
+      <AgentChatRuntime />
+    </AiOnly>
+  );
+};
+
+const AgentChatRuntime: FC = () => {
   const { backendUrl } = useVariables();
+  const copilotConnection = useCopilotConnection();
   const params = useParams<{ id: string }>();
   const { properties } = useContext(PropertiesContext);
   const t = useT();
@@ -49,7 +77,7 @@ export const AgentChat: FC = () => {
   return (
     <CopilotKit
       {...(params.id === 'new' ? {} : { threadId: params.id })}
-      credentials="include"
+      {...copilotConnection}
       runtimeUrl={backendUrl + '/copilot/agent'}
       useSingleEndpoint={true}
       showDevConsole={false}

@@ -39,14 +39,33 @@ const copilotCors = () => ({
   credentials: !process.env.NOT_SECURED,
 });
 
-// Tadween: without an OpenAI key, answer instead of leaving the request open.
-// The assistant asks for runtime info on every page load; an empty agent list
-// lets it start disconnected quietly, and real calls get a clear 503.
-const aiNotConfigured = (req: Request, res: Response) => {
+// Tadween: without an OpenAI key, answer instead of leaving the request open
+// (CopilotKit asks for runtime info on every page load). The info call gets
+// the shape the real runtime returns with one placeholder agent, because
+// CopilotKit throws during render when the agent a component uses is missing
+// (an empty `agents` takes down every page). Runs and everything else get a
+// 503. The frontend hides the assistant in this case (`ai.available` in
+// GET /instance/settings), so this only keeps CopilotKit quiet.
+const aiNotConfigured = (req: Request, res: Response, agentId: string) => {
   if ((req.body as { method?: string } | undefined)?.method === 'info') {
-    return res.json({ version: '0.0.0', agents: {}, audioFileTranscriptionEnabled: false });
+    return res.status(200).json({
+      version: '0.0.0',
+      agents: {
+        [agentId]: {
+          name: agentId,
+          description: 'AI is not configured on this server.',
+          className: 'NotConfigured',
+        },
+      },
+      audioFileTranscriptionEnabled: false,
+      suggestions: false,
+      a2uiEnabled: false,
+      openGenerativeUIEnabled: false,
+    });
   }
-  return res.status(503).json({ error: 'AI is not configured on this server.' });
+  return res
+    .status(503)
+    .json({ error: 'AI is not configured on this server.' });
 };
 
 @Controller('/copilot')
@@ -62,7 +81,7 @@ export class CopilotController {
       process.env.OPENAI_API_KEY === ''
     ) {
       Logger.warn('OpenAI API key not set, chat functionality will not work');
-      return aiNotConfigured(req, res);
+      return aiNotConfigured(req, res, 'default');
     }
 
     const copilotRuntimeHandler = copilotRuntimeNodeHttpEndpoint({
@@ -89,7 +108,7 @@ export class CopilotController {
       process.env.OPENAI_API_KEY === ''
     ) {
       Logger.warn('OpenAI API key not set, chat functionality will not work');
-      return aiNotConfigured(req, res);
+      return aiNotConfigured(req, res, 'postiz');
     }
     const mastra = await this._mastraService.mastra();
     const requestContext = new RequestContext<ChannelsContext>();

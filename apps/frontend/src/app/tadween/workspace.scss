@@ -1670,7 +1670,8 @@ html[dir='rtl'] .tdw-ws-sheet-head {
   .tdw-ws-views,
   .tdw-ws-liststate {
     order: 10;
-    // Too wide to share row 1, narrow enough to share row 2 with Channels
+    // The view switch: too wide to share row 1, narrow enough to share row 2
+    // with Channels (the list filter overrides the basis below)
     flex: 1 1 220px;
     min-width: 0;
 

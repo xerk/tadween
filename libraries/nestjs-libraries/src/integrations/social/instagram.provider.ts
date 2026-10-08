@@ -45,6 +45,9 @@ export class InstagramProvider
   override maxConcurrentJob = 400;
   editor = 'normal' as const;
   dto = InstagramDto;
+  defaultSettings() {
+    return { post_type: 'post', collaborators: [] as any[] };
+  }
   maxLength() {
     return 2200;
   }

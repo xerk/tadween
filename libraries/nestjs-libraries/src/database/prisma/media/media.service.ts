@@ -5,6 +5,12 @@ import { generationError } from '@gitroom/nestjs-libraries/openai/generation.err
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { Organization } from '@prisma/client';
 import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/save.media.information.dto';
+import { GetMediaDto } from '@gitroom/nestjs-libraries/dtos/media/get.media.dto';
+import {
+  CreateMediaFolderDto,
+  MoveMediaDto,
+  UpdateMediaFolderDto,
+} from '@gitroom/nestjs-libraries/dtos/media/media.folder.dto';
 import { VideoManager } from '@gitroom/nestjs-libraries/videos/video.manager';
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
@@ -458,8 +464,211 @@ export class MediaService {
     );
   }
 
-  getMedia(org: string, page: number, search?: string) {
-    return this._mediaRepository.getMedia(org, page, search);
+  // Post.image holds the composer's own ids, so a media is matched by its path
+  private groupsByPath(
+    posts: { group: string; image: string | null }[],
+    paths?: string[]
+  ) {
+    const groups = new Map<string, Set<string>>();
+    for (const post of posts) {
+      let images: { path?: string }[] = [];
+      try {
+        images = JSON.parse(post.image || '[]');
+      } catch (err) {
+        continue;
+      }
+      for (const image of Array.isArray(images) ? images : []) {
+        const path = image?.path;
+        if (!path || (paths && !paths.includes(path))) {
+          continue;
+        }
+        groups.set(path, (groups.get(path) || new Set()).add(post.group));
+      }
+    }
+    return groups;
+  }
+
+  // Every path the organization's posts use. The "Used in posts / Not used
+  // yet" filter needs it for each page it loads, so it's kept for a minute
+  private async getUsedPaths(org: string): Promise<string[]> {
+    const key = `media-used-paths:${org}`;
+    try {
+      const cached = await ioRedis.get(key);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (err) {
+      // no cache, read it from the posts
+    }
+    const paths = [
+      ...this.groupsByPath(
+        await this._mediaRepository.getPostsWithMedia(org)
+      ).keys(),
+    ];
+    try {
+      await ioRedis.set(key, JSON.stringify(paths), 'EX', 60);
+    } catch (err) {
+      // the next page reads the posts again
+    }
+    return paths;
+  }
+
+  async getMedia(org: string, query: GetMediaDto) {
+    const usedPaths = query.usage ? await this.getUsedPaths(org) : undefined;
+
+    const media = await this._mediaRepository.getMedia(
+      org,
+      query,
+      usedPaths
+        ? query.usage === 'used'
+          ? { in: usedPaths }
+          : { notIn: usedPaths }
+        : undefined
+    );
+
+    const paths = media.results.map((p) => p.path);
+    const groups = this.groupsByPath(
+      await this._mediaRepository.getPostsUsingPaths(org, paths),
+      paths
+    );
+
+    return {
+      pages: media.pages,
+      results: media.results.map((p) => ({
+        ...p,
+        usedIn: groups.get(p.path)?.size || 0,
+      })),
+    };
+  }
+
+  // one row per post group (a post and its channels / thread share a group)
+  async getMediaUsage(org: string, id: string) {
+    const media = await this._mediaRepository.getMediaDetails(org, id);
+    if (!media) {
+      throw new HttpException('Media not found', 404);
+    }
+
+    // `contains` also matches longer paths that start the same way
+    const posts = (
+      await this._mediaRepository.getMediaUsage(org, media.path)
+    ).filter((post) =>
+      this.groupsByPath(
+        [{ group: post.group, image: post.image }],
+        [media.path]
+      ).has(media.path)
+    );
+    const byGroup = new Map<
+      string,
+      {
+        group: string;
+        postId: string;
+        state: string;
+        publishDate: Date;
+        content: string;
+        integrations: {
+          id: string;
+          name: string;
+          picture: string | null;
+          providerIdentifier: string;
+        }[];
+      }
+    >();
+    for (const post of posts) {
+      const existing = byGroup.get(post.group);
+      if (existing) {
+        if (
+          !existing.integrations.some((p) => p.id === post.integration.id)
+        ) {
+          existing.integrations.push(post.integration);
+        }
+        continue;
+      }
+      byGroup.set(post.group, {
+        group: post.group,
+        postId: post.id,
+        state: post.state,
+        publishDate: post.publishDate,
+        content: post.content.replace(/<[^>]*>/g, ' ').slice(0, 160),
+        integrations: [post.integration],
+      });
+    }
+
+    return [...byGroup.values()];
+  }
+
+  async renameMedia(org: string, id: string, name: string) {
+    if (!(await this._mediaRepository.getMediaDetails(org, id))) {
+      throw new HttpException('Media not found', 404);
+    }
+    return this._mediaRepository.renameMedia(org, id, name);
+  }
+
+  async moveMedia(org: string, body: MoveMediaDto) {
+    if (body.folderId) {
+      await this.getFolderOrFail(org, body.folderId);
+    }
+    const { count } = await this._mediaRepository.moveMedia(
+      org,
+      body.ids,
+      body.folderId || null
+    );
+    return { moved: count };
+  }
+
+  async getFolders(org: string) {
+    return (await this._mediaRepository.getFolders(org)).map(
+      ({ _count, ...folder }) => ({ ...folder, mediaCount: _count.media })
+    );
+  }
+
+  private async getFolderOrFail(org: string, id: string) {
+    const folder = await this._mediaRepository.getFolder(org, id);
+    if (!folder) {
+      throw new BadRequestException('Folder not found');
+    }
+    return folder;
+  }
+
+  async createFolder(org: string, body: CreateMediaFolderDto) {
+    if (body.parentId) {
+      await this.getFolderOrFail(org, body.parentId);
+    }
+    return this._mediaRepository.createFolder(
+      org,
+      body.name,
+      body.parentId || null
+    );
+  }
+
+  async updateFolder(org: string, id: string, body: UpdateMediaFolderDto) {
+    await this.getFolderOrFail(org, id);
+    if (body.parentId) {
+      // a folder can't go inside itself or one of its own subfolders
+      const folders = await this._mediaRepository.getFolders(org);
+      const parents = new Map(folders.map((p) => [p.id, p.parentId]));
+      if (!parents.has(body.parentId)) {
+        throw new BadRequestException('Folder not found');
+      }
+      let current: string | null | undefined = body.parentId;
+      while (current) {
+        if (current === id) {
+          throw new BadRequestException(
+            'A folder cannot be moved into itself'
+          );
+        }
+        current = parents.get(current);
+      }
+    }
+
+    return this._mediaRepository.updateFolder(org, id, {
+      ...(body.name ? { name: body.name } : {}),
+      ...(body.parentId !== undefined ? { parentId: body.parentId } : {}),
+    });
+  }
+
+  async deleteFolder(org: string, id: string) {
+    const folder = await this.getFolderOrFail(org, id);
+    return this._mediaRepository.deleteFolder(org, id, folder.parentId);
   }
 
   saveMediaInformation(org: string, data: SaveMediaInformationDto) {

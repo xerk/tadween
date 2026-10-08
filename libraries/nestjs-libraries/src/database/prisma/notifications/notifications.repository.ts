@@ -5,8 +5,81 @@ import { Injectable } from '@nestjs/common';
 export class NotificationsRepository {
   constructor(
     private _notifications: PrismaRepository<'notifications'>,
-    private _user: PrismaRepository<'user'>
+    private _user: PrismaRepository<'user'>,
+    private _post: PrismaRepository<'post'>,
+    private _integration: PrismaRepository<'integration'>
   ) {}
+
+  // What the notifications panel shows about a post and its channel. Only
+  // display fields: the channel's credentials never leave the repository.
+  private readonly _postSummarySelect = {
+    id: true,
+    group: true,
+    content: true,
+    image: true,
+    publishDate: true,
+    state: true,
+    error: true,
+    integration: {
+      select: {
+        id: true,
+        name: true,
+        picture: true,
+        providerIdentifier: true,
+      },
+    },
+  } as const;
+
+  getPostsByReleaseUrls(organizationId: string, urls: string[]) {
+    return this._post.model.post.findMany({
+      where: {
+        organizationId,
+        releaseURL: { in: urls },
+        parentPostId: null,
+        deletedAt: null,
+      },
+      select: {
+        ...this._postSummarySelect,
+        releaseURL: true,
+      },
+    });
+  }
+
+  getFailedPostsBetween(
+    organizationId: string,
+    providers: string[],
+    from: Date,
+    to: Date
+  ) {
+    return this._post.model.post.findMany({
+      where: {
+        organizationId,
+        state: 'ERROR',
+        parentPostId: null,
+        deletedAt: null,
+        publishDate: { gte: from, lte: to },
+        integration: { providerIdentifier: { in: providers } },
+      },
+      select: this._postSummarySelect,
+    });
+  }
+
+  getChannelsByProviders(organizationId: string, providers: string[]) {
+    return this._integration.model.integration.findMany({
+      where: {
+        organizationId,
+        deletedAt: null,
+        providerIdentifier: { in: providers },
+      },
+      select: {
+        id: true,
+        name: true,
+        picture: true,
+        providerIdentifier: true,
+        refreshNeeded: true,
+      },
+    });
+  }
 
   getLastReadNotification(userId: string) {
     return this._user.model.user.findFirst({
@@ -112,11 +185,12 @@ export class NotificationsRepository {
         orderBy: {
           createdAt: 'desc',
         },
-        take: 10,
+        take: 30,
         where: {
           organizationId,
         },
         select: {
+          id: true,
           createdAt: true,
           content: true,
         },

@@ -58,7 +58,7 @@ const swrOptions = {
 
 // The selected customer, read from `?customer=` like CalendarWeekProvider's
 // initial filter; '' means every customer, as on the calendar.
-const useTodayCustomer = () => useSearchParams().get('customer') || '';
+export const useTodayCustomer = () => useSearchParams().get('customer') || '';
 
 // The calendar's week query: same params as CalendarWeekProvider.loadData
 export const useTodayWeekPosts = (startDate: string, endDate: string) => {

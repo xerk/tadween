@@ -1036,6 +1036,22 @@ html[dir='rtl'] body .tdw-ws .tdw-chip::before {
   display: none !important;
 }
 
+// Touch screens have no hover: every chip shows only ⋯, which opens the same
+// actions, and the chip's text keeps clear of it
+@media (hover: none) {
+  .tdw-chip-acts > .tdw-chip-act:not(.tdw-chip-more) {
+    display: none;
+  }
+
+  .tdw-chip-acts > .tdw-chip-more {
+    display: grid !important;
+  }
+
+  .tdw-ws .tdw-chip-meta {
+    padding-inline-end: 24px;
+  }
+}
+
 @container (max-width: 210px) {
   .tdw-chip-acts > .tdw-chip-act:not(.tdw-chip-more) {
     display: none;
@@ -1631,10 +1647,11 @@ html[dir='rtl'] .tdw-ws-sheet-head {
     line-height: 24px;
   }
 
+  // Day view moves between days by swiping (and the day strip), so its arrows
+  // go; week and month keep previous / next
   .tdw-ws.is-day .tdw-ws-range,
-  .tdw-ws-arrow,
-  .tdw-ws-create,
-  .tdw-ws-liststate {
+  .tdw-ws.is-day .tdw-ws-arrow,
+  .tdw-ws-create {
     display: none !important;
   }
 
@@ -1647,15 +1664,30 @@ html[dir='rtl'] .tdw-ws-sheet-head {
   }
 
 
-  // The view switch gets its own full-width row
-  .tdw-ws-views {
+  // Row 1 holds the title and navigation (with the arrows of week and month
+  // it has no room for more); row 2 the view switch with Channels beside it;
+  // the list view's post-state filter gets a row of its own below
+  .tdw-ws-views,
+  .tdw-ws-liststate {
     order: 10;
-    flex-basis: 100%;
+    // The view switch: too wide to share row 1, narrow enough to share row 2
+    // with Channels (the list filter overrides the basis below)
+    flex: 1 1 220px;
+    min-width: 0;
 
     .pz-seg {
       display: grid;
       width: 100%;
     }
+  }
+
+  .tdw-ws-channels {
+    order: 11;
+  }
+
+  .tdw-ws-liststate {
+    order: 12;
+    flex-basis: 100%;
   }
 
   .tdw-ws-canvas {
@@ -1671,7 +1703,10 @@ html[dir='rtl'] .tdw-ws-sheet-head {
     min-height: calc(100dvh - 310px);
   }
 
+  // Rows take their full content height even when the day overflows the
+  // scroller, so a slot's posts and its "+" never spill into the next slot
   .tdw-ws .tdw-ws-day-list {
+    grid-auto-rows: max-content;
     grid-template-columns: 62px minmax(0, 1fr);
     column-gap: 8px;
     padding-block: 12px 96px;
@@ -1712,8 +1747,18 @@ html[dir='rtl'] .tdw-ws-sheet-head {
     }
   }
 
-  .tdw-ws .tdw-ws-day-slot:has(.tdw-chip) div:has(> div > .tdw-ws-day-add) {
-    display: none;
+  // A slot that has posts keeps a slim "+" under them to add another
+  .tdw-ws .tdw-ws-day-slot:has(.tdw-chip) div:has(> .tdw-ws-day-add) {
+    min-height: 0;
+  }
+
+  .tdw-ws .tdw-ws-day-slot:has(.tdw-chip) .tdw-ws-day-add {
+    min-height: 30px;
+    opacity: 0.55;
+
+    &::after {
+      font-size: 17px;
+    }
   }
 
   .tdw-ws .tdw-ws-day-slot:has(.tdw-chip) > div:not(.repeated-strip) {

@@ -4,6 +4,7 @@ import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { timer } from '@gitroom/helpers/utils/timer';
 import { useToaster } from '@gitroom/react/toaster/toaster';
+import { AuthProviderButton } from '@gitroom/frontend/components/tadween/auth/auth.parts';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { Button } from '@gitroom/react/form/button';
@@ -30,14 +31,16 @@ export const FarcasterProvider = () => {
     });
   }, []);
   return (
-    <div
+    <AuthProviderButton
       onClick={open}
-      className={`cursor-pointer bg-white h-[52px] flex-1 rounded-[10px] flex justify-center items-center text-[#0E0E0E] gap-[5px]`}
-    >
-    <svg
+      label={t('tdw_auth_continue_with', 'Continue with {{provider}}', {
+        provider: t('farcaster', 'Farcaster'),
+      })}
+      mark={
+        <svg
       xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
+      width="20"
+      height="20"
       viewBox="0 0 24 24"
       fill="none"
     >
@@ -57,8 +60,8 @@ export const FarcasterProvider = () => {
         </clipPath>
       </defs>
     </svg>
-      <div className="block xs:hidden">{t('farcaster', 'Farcaster')}</div>
-    </div>
+      }
+    />
   );
 };
 export const FarcasterApproval: FC<{

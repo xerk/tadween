@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { getT } from '@gitroom/react/translation/get.translation.service.backend';
 import { LoginWithOidc } from '@gitroom/frontend/components/auth/login.with.oidc';
 import { cookies } from 'next/headers';
+import { AuthHeading } from '@gitroom/frontend/components/tadween/auth/auth.parts';
 export const metadata: Metadata = {
   title: `${isGeneralServerSide() ? 'Tadween' : 'Gitroom'} Register`,
   description: '',
@@ -26,19 +27,21 @@ export default async function Auth(params: {searchParams: Promise<{provider: str
   if (!canRegister && !(await params?.searchParams)?.provider) {
     return (
       <>
+        <AuthHeading
+          title={t('tdw_auth_register_title', 'Create your account')}
+          subtitle={
+            registration.mode === 'invite'
+              ? t(
+                  'registration_invite_only',
+                  'Invite only. Ask your workspace admin for an invite link.'
+                )
+              : t('registration_is_disabled', 'Registration is disabled')
+          }
+        />
         <LoginWithOidc />
-        <div className="text-center">
-          {registration.mode === 'invite'
-            ? t(
-                'registration_invite_only',
-                'Invite only. Ask your workspace admin for an invite link.'
-              )
-            : t('registration_is_disabled', 'Registration is disabled')}
-          <br />
-          <Link className="underline hover:font-bold" href="/auth/login">
-            {t('login_instead', 'Login instead')}
-          </Link>
-        </div>
+        <Link href="/auth/login" className="pz-btn pz-btn-primary tdw-auth-submit">
+          {t('login_instead', 'Login instead')}
+        </Link>
       </>
     );
   }

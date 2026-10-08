@@ -115,7 +115,6 @@ export class NotificationService {
     const failed = parsed.filter(
       (p) => (p.kind === 'failed' || p.kind === 'unconfirmed') && p.provider
     );
-    const failedAt = failed.map((p) => p.notification.createdAt.getTime());
     const providers = [
       ...new Set(parsed.map((p) => p.provider).filter(Boolean) as string[]),
     ];
@@ -130,8 +129,12 @@ export class NotificationService {
         ? this._notificationRepository.getFailedPostsBetween(
             organizationId,
             [...new Set(failed.map((p) => p.provider!))],
-            new Date(Math.min(...failedAt) - FAILED_BEFORE_MS),
-            new Date(Math.max(...failedAt) + FAILED_AFTER_MS)
+            failed.map((p) => ({
+              from: new Date(
+                p.notification.createdAt.getTime() - FAILED_BEFORE_MS
+              ),
+              to: new Date(p.notification.createdAt.getTime() + FAILED_AFTER_MS),
+            }))
           )
         : [],
       providers.length
@@ -147,6 +150,9 @@ export class NotificationService {
       notifications: parsed.map(
         ({ notification, kind, provider, channelName, reason, link }) => {
           const time = notification.createdAt.getTime();
+          const providerChannels = channels.filter(
+            (c) => c.providerIdentifier === provider
+          );
           const post =
             kind === 'published'
               ? this.closestPost(
@@ -169,17 +175,14 @@ export class NotificationService {
                       p.publishDate.getTime() <= time + FAILED_AFTER_MS
                   ),
                   time,
-                  reason
+                  reason,
+                  !!channelName || providerChannels.length <= 1
                 )
               : undefined;
 
           const channel =
             post?.integration ||
-            this.namedChannel(
-              channels.filter((c) => c.providerIdentifier === provider),
-              kind,
-              channelName
-            );
+            this.namedChannel(providerChannels, kind, channelName);
 
           return {
             ...notification,
@@ -270,11 +273,14 @@ export class NotificationService {
   }
 
   // The post whose stored error carries the platform's message, or the only
-  // failed post of that channel around that time. Nothing when it's ambiguous.
+  // failed post around that time when the channel is known (named in the
+  // sentence, or the org's only channel of that network). Nothing when it's
+  // ambiguous: a wrong post is worse than none.
   private failedPost<T extends { publishDate: Date; error: string | null }>(
     posts: T[],
     time: number,
-    reason?: string
+    reason: string | undefined,
+    channelIsKnown: boolean
   ) {
     const withReason = reason
       ? posts.filter((p) => p.error?.includes(reason))
@@ -283,7 +289,7 @@ export class NotificationService {
       return this.closestPost(withReason, time);
     }
 
-    return posts.length === 1 ? posts[0] : undefined;
+    return channelIsKnown && posts.length === 1 ? posts[0] : undefined;
   }
 
   private namedChannel<T extends { name: string; refreshNeeded: boolean }>(

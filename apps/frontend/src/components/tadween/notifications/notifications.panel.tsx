@@ -2,6 +2,7 @@
 
 import React, { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
+import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
@@ -12,7 +13,6 @@ import {
   EmptyState,
   Icon,
   IconName,
-  LinkButton,
   Pill,
   SegmentedControl,
   Skeleton,
@@ -224,7 +224,8 @@ const NotificationRow: FC<{
   integration?: TodayIntegration;
   onEdit: (item: NotificationItem) => void;
   onReconnect: (integration: TodayIntegration) => void;
-}> = ({ item, unread, index, integration, onEdit, onReconnect }) => {
+  onOpenChannels: () => void;
+}> = ({ item, unread, index, integration, onEdit, onReconnect, onOpenChannels }) => {
   const t = useT();
   const title = useTitle();
   const time = useTimeLabels();
@@ -359,9 +360,9 @@ const NotificationRow: FC<{
             </Pill>
           ) : null}
           {item.kind === 'channel_disabled' ? (
-            <LinkButton size="sm" variant="secondary" icon="settings" href="/launches">
+            <Button size="sm" variant="secondary" icon="settings" onClick={onOpenChannels}>
               {t('tdw_notif_open_channels', 'Open channels')}
-            </LinkButton>
+            </Button>
           ) : null}
         </div>
       </div>
@@ -389,6 +390,7 @@ const NotificationsBody: FC<{ onClose: () => void; phone: boolean }> = ({
   phone,
 }) => {
   const t = useT();
+  const router = useRouter();
   const { data, isLoading, mutate } = useNotificationsList();
   const { integrations } = useTodayIntegrations();
   const { edit, reconnect } = useTodayActions(integrations, () => mutate());
@@ -447,6 +449,11 @@ const NotificationsBody: FC<{ onClose: () => void; phone: boolean }> = ({
     },
     [edit, onClose]
   );
+
+  const onOpenChannels = useCallback(() => {
+    onClose();
+    router.push('/launches');
+  }, [router, onClose]);
 
   const onReconnect = useCallback(
     (integration: TodayIntegration) => {
@@ -524,6 +531,7 @@ const NotificationsBody: FC<{ onClose: () => void; phone: boolean }> = ({
                     integration={item.channel ? byId.get(item.channel.id) : undefined}
                     onEdit={onEdit}
                     onReconnect={onReconnect}
+                    onOpenChannels={onOpenChannels}
                   />
                 ))}
               </ul>

@@ -48,8 +48,7 @@ export class NotificationsRepository {
   getFailedPostsBetween(
     organizationId: string,
     providers: string[],
-    from: Date,
-    to: Date
+    windows: { from: Date; to: Date }[]
   ) {
     return this._post.model.post.findMany({
       where: {
@@ -57,7 +56,9 @@ export class NotificationsRepository {
         state: 'ERROR',
         parentPostId: null,
         deletedAt: null,
-        publishDate: { gte: from, lte: to },
+        OR: windows.map(({ from, to }) => ({
+          publishDate: { gte: from, lte: to },
+        })),
         integration: { providerIdentifier: { in: providers } },
       },
       select: this._postSummarySelect,

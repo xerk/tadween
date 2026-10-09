@@ -289,7 +289,7 @@ export const usePostActions = (onMutate?: () => void) => {
 };
 
 // Tadween: the clock the views mark "now" with (header, now-line, hour label)
-const useNow = (everyMs = 30000) => {
+const useNow = (everyMs = 60000) => {
   const [now, setNow] = useState(() => newDayjs());
   useEffect(() => {
     const id = setInterval(() => setNow(newDayjs()), everyMs);
@@ -1217,12 +1217,16 @@ const CalendarItem: FC<{
   }[];
   // Tadween: the chip element, for the hover card
   const chipRef = React.useRef<HTMLDivElement>(null);
+  const setChipRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      dragRef(el);
+      chipRef.current = el;
+    },
+    [dragRef]
+  );
   return (
     <div
-      ref={(el) => {
-        dragRef(el);
-        chipRef.current = el;
-      }}
+      ref={setChipRef}
       data-state={stateKey}
       className={clsx('tdw-chip group', `tdw-chip--${display}`, isBeforeNow && 'is-past')}
       style={{ opacity }}

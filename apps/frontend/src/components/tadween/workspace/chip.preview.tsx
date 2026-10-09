@@ -71,7 +71,9 @@ export const ChipPreview: FC<{
     };
     const down = () => close();
     const focus = () => {
-      if (el.matches(':focus-visible, :has(:focus-visible)')) later(() => setOpen(true), 300);
+      if (el.matches(':focus-visible') || el.querySelector(':focus-visible')) {
+        later(() => setOpen(true), 300);
+      }
     };
     const blur = (e: FocusEvent) => {
       if (!card.current?.contains(e.relatedTarget as Node)) later(close, CLOSE_DELAY);
@@ -149,6 +151,8 @@ export const ChipPreview: FC<{
       className={clsx('tdw-ui tdw-chip-card', pos && `is-${pos.side}`)}
       data-state={stateKey}
       style={{ width: WIDTH, top: pos?.top ?? -9999, left: pos?.left ?? -9999 }}
+      // A portal still bubbles through the chip's React tree
+      onClick={(e) => e.stopPropagation()}
       onPointerEnter={() => clearTimeout(timer.current)}
       onPointerLeave={(e) => {
         if (!anchor.current?.contains(e.relatedTarget as Node)) later(close, CLOSE_DELAY);
@@ -171,7 +175,7 @@ export const ChipPreview: FC<{
         <div className="tdw-chip-card-who">
           <b>{post.integration?.name}</b>
           <span>
-            {date.format('ddd, LL')} · {date.format(isUSCitizen() ? 'hh:mm A' : 'HH:mm')}
+            {date.format('ddd, ll')} · {date.format(isUSCitizen() ? 'hh:mm A' : 'HH:mm')}
           </span>
         </div>
         <span className={clsx('tdw-chip-card-state', `is-${stateKey}`)}>

@@ -996,5 +996,9 @@
   "tdw_cm_when_to_post": "When to post",
   "tdw_cm_none": "None",
   "tdw_cm_repeat_on": "On",
-  "tdw_cm_repeat_never": "Never"
+  "tdw_cm_repeat_never": "Never",
+  "search_languages": "Search languages",
+  "suggested": "Suggested",
+  "all_languages": "All languages",
+  "no_language_found": "No language matches your search"
 }

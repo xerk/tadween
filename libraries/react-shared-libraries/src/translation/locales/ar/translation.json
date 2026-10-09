@@ -1038,5 +1038,9 @@
   "tdw_cm_when_to_post": "موعد النشر",
   "tdw_cm_none": "لا شيء",
   "tdw_cm_repeat_on": "مفعّل",
-  "tdw_cm_repeat_never": "أبدًا"
+  "tdw_cm_repeat_never": "أبدًا",
+  "search_languages": "ابحث عن لغة",
+  "suggested": "مقترحة",
+  "all_languages": "كل اللغات",
+  "no_language_found": "لا توجد لغة تطابق بحثك"
 }

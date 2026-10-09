@@ -76,6 +76,15 @@ export class ProviderSettingsDto {
   providers: ProviderSettingItemDto[];
 }
 
+// Env var name → new value. A string sets (or replaces) the console value; null
+// or "" removes it so the env var is used again. Names a provider doesn't
+// declare are rejected by the service.
+export class ProviderCredentialsDto {
+  @IsDefined()
+  @IsObject()
+  values: Record<string, string | null>;
+}
+
 // ── Plans ────────────────────────────────────────────────────────────────────
 export class PlanDto {
   @IsString()

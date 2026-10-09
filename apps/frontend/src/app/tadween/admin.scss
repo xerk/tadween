@@ -1,0 +1,837 @@
+// Tadween super-admin console (components/tadween/admin/admin.shell.tsx) and
+// the UI kit pieces it introduced: DataTable (ui/data.table.tsx) and Drawer
+// (ui/drawer.tsx). Loaded from global.scss after the other Tadween sheets.
+//
+// Full-screen frame, separate from the customer shell: sidebar (full / icon
+// rail via `.is-collapsed`, slide-in drawer below 1026px) + main column with a
+// sticky top bar. Colours are the --tdw-* tokens, so light / dark follow
+// body.light / body.dark; everything uses logical properties for Arabic (RTL).
+
+$adm-mobile: '(max-width: 1025px)';
+$adm-desktop: '(min-width: 1026px)';
+
+// ── Frame ───────────────────────────────────────────────────────────────────
+.tdw-ui.adm-root {
+  --adm-side-w: 248px;
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  background: var(--tdw-background);
+  color: var(--tdw-foreground);
+
+  @media #{$adm-desktop} {
+    &.is-collapsed {
+      --adm-side-w: 72px;
+    }
+  }
+}
+
+.adm-side {
+  position: sticky;
+  top: 0;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: var(--adm-side-w);
+  height: 100vh;
+  height: 100dvh;
+  padding: 12px 10px;
+  box-sizing: border-box;
+  background: var(--tdw-card);
+  border-inline-end: 1px solid var(--tdw-border);
+  overflow-x: hidden;
+  overflow-y: auto;
+  transition: width 420ms var(--tdw-ease-spring);
+
+  @media #{$adm-mobile} {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 491;
+    width: min(288px, 86vw);
+    box-shadow: var(--tdw-shadow-lg);
+    transform: translateX(-105%);
+    transition: transform 360ms var(--tdw-ease-spring);
+
+    &.is-open {
+      transform: none;
+    }
+  }
+}
+
+@media #{$adm-mobile} {
+  html[dir='rtl'] .adm-side:not(.is-open) {
+    transform: translateX(105%);
+  }
+}
+
+.adm-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 490;
+  background: var(--tdw-scrim);
+
+  @media #{$adm-desktop} {
+    display: none;
+  }
+}
+
+.adm-side-top {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+}
+
+.adm-brand {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+
+  > svg {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+  }
+}
+
+.adm-brand-text {
+  display: grid;
+  line-height: 1.25;
+}
+
+.adm-brand-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.adm-brand-sub {
+  font-size: 12px;
+  color: var(--tdw-primary);
+  font-weight: 500;
+}
+
+.adm-side-toggle,
+.adm-side-close,
+.adm-menu-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--tdw-muted-foreground);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--tdw-accent);
+    color: var(--tdw-foreground);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tdw-ring);
+    outline-offset: 1px;
+  }
+}
+
+.adm-side-close,
+.adm-menu-btn {
+  @media #{$adm-desktop} {
+    display: none;
+  }
+}
+
+.adm-side-toggle {
+  @media #{$adm-mobile} {
+    display: none;
+  }
+}
+
+html[dir='rtl'] .adm-flip {
+  transform: scaleX(-1);
+}
+
+.adm-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.adm-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.adm-nav-heading {
+  padding: 0 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tdw-muted-foreground);
+}
+
+.adm-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tdw-muted-foreground);
+  transition: background-color 150ms ease, color 150ms ease;
+
+  .pz-icon {
+    flex: none;
+  }
+
+  &:hover {
+    background: var(--tdw-accent);
+    color: var(--tdw-foreground);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tdw-ring);
+    outline-offset: -2px;
+  }
+
+  &.is-active {
+    background: var(--tdw-primary-soft);
+    color: var(--tdw-primary);
+    font-weight: 600;
+  }
+}
+
+.adm-label {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 180ms ease;
+}
+
+.adm-side-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--tdw-border);
+}
+
+// Icon rail
+@media #{$adm-desktop} {
+  .adm-root.is-collapsed {
+    .adm-label,
+    .adm-side .tdw-side-label {
+      display: none;
+    }
+
+    .adm-side-top {
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .adm-brand {
+      flex: none;
+    }
+
+    .adm-nav-item {
+      justify-content: center;
+      width: 44px;
+      margin-inline: auto;
+      padding: 0;
+    }
+
+    .adm-nav-heading {
+      height: 1px;
+      margin: 4px 10px;
+      padding: 0;
+      overflow: hidden;
+      background: var(--tdw-border);
+      color: transparent;
+    }
+
+    .tdw-acct-trigger {
+      justify-content: center;
+      width: 44px;
+      margin-inline: auto;
+      padding: 6px 0;
+    }
+  }
+}
+
+// ── Main column ─────────────────────────────────────────────────────────────
+.adm-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.adm-top {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 60px;
+  padding: 0 24px;
+  background: color-mix(in oklab, var(--tdw-background) 86%, transparent);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom: 1px solid var(--tdw-border);
+
+  @media #{$adm-mobile} {
+    gap: 8px;
+    padding: 0 12px;
+  }
+}
+
+.adm-top-spacer {
+  flex: 1;
+
+  @media #{$adm-mobile} {
+    display: none;
+  }
+}
+
+.adm-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 14px;
+
+  @media #{$adm-mobile} {
+    display: none;
+  }
+}
+
+.adm-crumb {
+  white-space: nowrap;
+  color: var(--tdw-muted-foreground);
+
+  &.is-current {
+    color: var(--tdw-foreground);
+    font-weight: 600;
+  }
+}
+
+a.adm-crumb:hover {
+  color: var(--tdw-foreground);
+}
+
+.adm-crumb-sep {
+  color: var(--tdw-muted-foreground);
+  opacity: 0.6;
+}
+
+html[dir='rtl'] .adm-crumb-sep {
+  transform: scaleX(-1);
+}
+
+.adm-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 320px;
+  max-width: 100%;
+  height: 36px;
+  border-radius: var(--tdw-radius-md);
+  border: 1px solid var(--tdw-border);
+  background: var(--tdw-card);
+
+  &:focus-within {
+    border-color: var(--tdw-ring);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--tdw-ring) 20%, transparent);
+  }
+
+  @media #{$adm-mobile} {
+    flex: 1;
+    width: auto;
+  }
+}
+
+.adm-search-icon {
+  flex: none;
+  margin-inline: 10px 6px;
+  color: var(--tdw-muted-foreground);
+}
+
+.adm-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  color: var(--tdw-foreground);
+
+  &::placeholder {
+    color: var(--tdw-muted-foreground);
+  }
+
+  &::-webkit-search-cancel-button {
+    display: none;
+  }
+}
+
+// The box shows focus (:focus-within above), not the bare input.
+// (tadween.scss puts an !important ring on every :focus-visible.)
+body .adm-search .adm-search-input:focus-visible {
+  outline: none !important;
+  box-shadow: none;
+}
+
+.adm-search-kbd {
+  flex: none;
+  margin-inline-end: 8px;
+  padding: 0 6px;
+  border-radius: 5px;
+  border: 1px solid var(--tdw-border);
+  font: 500 11px/18px var(--font-mono, monospace);
+  color: var(--tdw-muted-foreground);
+
+  @media #{$adm-mobile} {
+    display: none;
+  }
+}
+
+.adm-search-results {
+  display: grid;
+  gap: 2px;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.adm-search-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  color: var(--tdw-foreground);
+  cursor: pointer;
+
+  .pz-icon {
+    flex: none;
+    color: var(--tdw-muted-foreground);
+  }
+
+  &:hover,
+  &:focus-visible {
+    outline: 0;
+    background: var(--tdw-accent);
+  }
+}
+
+.adm-search-empty {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.adm-env {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+  background: var(--tdw-accent);
+  color: var(--tdw-muted-foreground);
+
+  &.is-prod {
+    background: color-mix(in oklab, var(--tdw-destructive) 12%, transparent);
+    color: var(--tdw-destructive);
+  }
+
+  &.is-dev {
+    background: color-mix(in oklab, var(--tdw-warning) 14%, transparent);
+    color: var(--tdw-warning);
+  }
+
+  @media #{$adm-mobile} {
+    display: none;
+  }
+}
+
+.adm-env-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.tdw-ui .adm-back {
+  @media #{$adm-mobile} {
+    display: none;
+  }
+}
+
+html[dir='rtl'] .adm-back .pz-icon {
+  transform: scaleX(-1);
+}
+
+.adm-content {
+  flex: 1;
+  min-width: 0;
+  padding: 24px 28px 40px;
+
+  @media #{$adm-mobile} {
+    padding: 16px 12px 32px;
+  }
+}
+
+// ── Page ────────────────────────────────────────────────────────────────────
+.adm-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+  animation: pz-fade 260ms ease both;
+}
+
+.adm-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  h1 {
+    margin: 0;
+  }
+
+  @media #{$adm-mobile} {
+    flex-direction: column;
+  }
+}
+
+.adm-page-desc {
+  margin: 4px 0 0;
+  max-width: 760px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--tdw-muted-foreground);
+}
+
+.adm-page-actions {
+  flex: none;
+  display: flex;
+  gap: 8px;
+}
+
+// Postiz screens shown inside the console (usage stats)
+.adm-legacy {
+  min-width: 0;
+  overflow-x: auto;
+  padding: 20px;
+  border-radius: var(--tdw-radius-lg);
+  background: var(--tdw-card);
+  box-shadow: var(--tdw-shadow-sm);
+}
+
+// Detail drawer bits
+.adm-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px 20px;
+}
+
+.adm-field {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.adm-field-value {
+  min-width: 0;
+  font-size: 14px;
+}
+
+.adm-pre {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: var(--tdw-radius-md);
+  background: var(--tdw-muted);
+  font: 12px/18px var(--font-mono, monospace);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.adm-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 520px;
+}
+
+.adm-key {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--tdw-radius-md);
+  border: 1px solid var(--tdw-border);
+}
+
+.adm-key-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.adm-key-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+
+  > :first-child {
+    flex: 1;
+  }
+}
+
+// ── UI kit: DataTable ───────────────────────────────────────────────────────
+.tdw-ui {
+  .pz-dt {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .pz-dt-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    > .pz-field:first-child {
+      width: 300px;
+      max-width: 100%;
+    }
+
+    @media #{$adm-mobile} {
+      > .pz-field:first-child {
+        width: 100%;
+      }
+    }
+  }
+
+  .pz-dt-spacer {
+    flex: 1;
+  }
+
+  .pz-dt-scroll {
+    max-height: calc(100vh - 260px);
+    max-height: calc(100dvh - 260px);
+    min-height: 180px;
+
+    @media #{$adm-mobile} {
+      max-height: none;
+    }
+  }
+
+  .pz-dt .pz-table {
+    transition: opacity 180ms ease;
+
+    &.is-refreshing tbody {
+      opacity: 0.55;
+    }
+
+    th {
+      z-index: 2;
+    }
+  }
+
+  .pz-dt.is-dense .pz-table td {
+    padding: 5px 12px;
+  }
+
+  .pz-dt.is-dense .pz-table th {
+    padding: 7px 12px;
+  }
+
+  .pz-dt-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+
+    .pz-dt-sort-icon {
+      opacity: 0;
+      transition: opacity 150ms ease;
+    }
+
+    &:hover .pz-dt-sort-icon,
+    &.is-active .pz-dt-sort-icon {
+      opacity: 1;
+    }
+
+    &.is-active {
+      color: var(--foreground);
+    }
+  }
+
+  // Dates and "used / limit" read left to right in Arabic too.
+  .pz-dt td .time {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
+  .pz-dt-select {
+    width: 40px;
+    padding-inline-end: 0 !important;
+  }
+
+  .pz-dt-check {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+
+  .pz-table tbody tr.is-clickable:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+
+  .pz-dt-state {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+  }
+
+  .pz-dt-foot {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .pz-dt-menu {
+    display: grid;
+    gap: 2px;
+  }
+
+  .pz-dt-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--accent);
+    }
+  }
+
+  // ── UI kit: Drawer ──────────────────────────────────────────────────────
+  .pz-drawer-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .pz-drawer-layer[data-state='closed'] .pz-scrim {
+    opacity: 0;
+  }
+
+  .pz-drawer {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: var(--popover);
+    box-shadow: var(--shadow-lg);
+    transition: transform var(--duration-spring) var(--ease-spring),
+      opacity var(--duration-base) ease;
+  }
+
+  .pz-drawer-md {
+    max-width: 520px;
+  }
+
+  .pz-drawer-lg {
+    max-width: 760px;
+  }
+
+  .pz-drawer[data-state='closed'] {
+    transform: translateX(100%);
+    opacity: 0.6;
+  }
+
+  .pz-drawer-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 24px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .pz-drawer-body {
+    flex: 1;
+    overflow: auto;
+    padding: 20px 24px;
+  }
+
+  .pz-drawer-foot {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media #{$adm-mobile} {
+    .pz-drawer-head,
+    .pz-drawer-body,
+    .pz-drawer-foot {
+      padding-inline: 16px;
+    }
+  }
+}
+
+html[dir='rtl'] .tdw-ui .pz-drawer[data-state='closed'] {
+  transform: translateX(-100%);
+}

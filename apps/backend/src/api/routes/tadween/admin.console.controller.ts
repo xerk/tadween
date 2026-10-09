@@ -20,15 +20,21 @@ import { PlatformSettingsService } from '@gitroom/nestjs-libraries/database/pris
 import { ProviderSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-settings.service';
 import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
 import { AdminConsoleService } from '@gitroom/nestjs-libraries/database/prisma/tadween/admin-console.service';
+import { ProviderCredentialsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-credentials.service';
 import {
   AdminOrgTierDto,
   AdminUserActivationDto,
   BrandingSettingsDto,
   FeatureSettingsDto,
   PlanDto,
+  ProviderCredentialsDto,
   ProviderSettingsDto,
   RegistrationSettingsDto,
 } from '@gitroom/nestjs-libraries/dtos/tadween/admin.console.dto';
+import {
+  AdminOrganizationsQueryDto,
+  AdminUsersQueryDto,
+} from '@gitroom/nestjs-libraries/dtos/tadween/admin.list.dto';
 import { FEATURES } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 
@@ -42,7 +48,8 @@ export class AdminConsoleController {
     private _settings: PlatformSettingsService,
     private _providers: ProviderSettingsService,
     private _plans: PlansService,
-    private _console: AdminConsoleService
+    private _console: AdminConsoleService,
+    private _credentials: ProviderCredentialsService
   ) {}
 
   // While impersonating, `user` is the impersonated account; the admin is the
@@ -127,6 +134,21 @@ export class AdminConsoleController {
     return this._providers.save(body.providers);
   }
 
+  // Write-only: answers with set / not set per name, never a value.
+  @Put('/providers/:identifier/credentials')
+  saveCredentials(
+    @GetUserFromRequest() user: User,
+    @Req() req: Request,
+    @Param('identifier') identifier: string,
+    @Body() body: ProviderCredentialsDto
+  ) {
+    return this._credentials.save(
+      identifier,
+      body.values,
+      this.adminId(req, user)
+    );
+  }
+
   // ── Plans ──────────────────────────────────────────────────────────────────
   @Get('/plans')
   async plans() {
@@ -159,8 +181,13 @@ export class AdminConsoleController {
 
   // ── Users and workspaces ───────────────────────────────────────────────────
   @Get('/users')
-  users(@Query('search') search?: string, @Query('page') page?: string) {
-    return this._console.listUsers(search || '', parseInt(page || '0', 10));
+  users(@Query() query: AdminUsersQueryDto) {
+    return this._console.listUsers(query);
+  }
+
+  @Get('/users/:id')
+  user(@Param('id') id: string) {
+    return this._console.getUser(id);
   }
 
   @Put('/users/:id/activation')
@@ -175,6 +202,18 @@ export class AdminConsoleController {
       id,
       body.activated
     );
+  }
+
+  // Subscribers page: every workspace with its subscription. Nothing here
+  // calls Stripe; the ids are the ones Postiz stored.
+  @Get('/organizations')
+  organizations(@Query() query: AdminOrganizationsQueryDto) {
+    return this._console.listOrganizations(query);
+  }
+
+  @Get('/organizations/:id')
+  organization(@Param('id') id: string) {
+    return this._console.organizationDetail(id);
   }
 
   @Put('/organizations/:id/tier')

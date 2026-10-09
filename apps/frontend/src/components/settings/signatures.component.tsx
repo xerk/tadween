@@ -176,7 +176,7 @@ const details = object().shape({
   content: string().required(),
   autoAdd: boolean().required(),
 });
-const AddOrRemoveSignature: FC<{
+export const AddOrRemoveSignature: FC<{
   data?: any;
   reload: () => void;
 }> = (props) => {

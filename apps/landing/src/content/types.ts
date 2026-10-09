@@ -95,14 +95,11 @@ export interface ChannelsDict {
   index: Head & {
     groups: Record<ChannelGroup, string>;
     more: Head;
-    open: string;
   };
   page: {
-    eyebrow: string;
     start: string;
     factsTitle: string;
     limit: string;
-    characters: string;
     editor: string;
     editors: Record<'normal' | 'markdown' | 'html', string>;
     comments: string;
@@ -111,7 +108,6 @@ export interface ChannelsDict {
     mediaTitle: string;
     featuresTitle: string;
     shared: { icon: IconName; title: string; body: string }[];
-    previewTitle: string;
     previewNote: string;
     previewAuthor: PostAuthor;
     faqTitle: string;
@@ -215,6 +211,7 @@ export interface Dict {
     prompts: Head & { items: { lang: Lang; text: string }[] };
     inApp: Head & { points: string[] };
     connectors: Head & { badge: string; items: { icon: IconName; title: string; body: string }[]; planNote: string };
+    faqTitle: string;
     faq: Faq[];
   };
   developersPage: Head & {

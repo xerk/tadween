@@ -13,7 +13,7 @@ export const ar: Dict = {
   meta: {
     title: 'تدوين — جدولة منشورات لينكدإن بلغتين',
     description:
-      'خطّط منشورات حسابك الشخصي وصفحات شركتك على لينكدإن، وعاينها كما ستظهر تمامًا، وانشرها في الساعة التي يقرأ فيها جمهورك. بالعربية والإنجليزية، مع أكثر من ٣٠ قناة ووكيل ذكي.',
+      'خطّط منشورات حسابك الشخصي وصفحات شركتك على لينكدإن، وعاينها كما ستظهر تمامًا، وانشرها في الساعة التي تختارها. بالعربية والإنجليزية، مع أكثر من ٣٠ قناة ووكيل ذكي.',
     pricingTitle: 'الأسعار — تدوين',
     pricingDescription: 'أربع خطط للأفراد والعلامات التجارية والوكالات على لينكدإن، تبدأ من ٩ دولارات شهريًا. كل خطة تبدأ بسبعة أيام مجانًا، والدفع بالجنيه المصري أو بالدولار.',
     ogLocale: 'ar_EG',
@@ -54,11 +54,11 @@ export const ar: Dict = {
   hero: {
     eyebrow: 'مصمَّم للينكدإن، ويتقن العربية',
     title: 'أسبوعك على لينكدإن، مكتوبٌ ومجدوَل.',
-    sub: 'خطّط منشوراتك لحسابك الشخصي وصفحات شركتك، وشاهدها كما ستظهر على لينكدإن تمامًا، ثم انشرها في الساعة التي يقرأ فيها جمهورك. وأكثر من ٣٠ قناة أخرى في التقويم نفسه.',
+    sub: 'خطّط منشوراتك لحسابك الشخصي وصفحات شركتك، وشاهدها كما ستظهر على لينكدإن تمامًا، ثم جدوِلها في الساعة التي تختارها. وأكثر من ٣٠ قناة أخرى في التقويم نفسه.',
     primary: 'ابدأ تجربة ٧ أيام',
     secondary: 'شاهد كيف يعمل',
     fine: 'دون بطاقة دفع · ألغِ في أي وقت · ادفع بالجنيه أو بالدولار',
-    tagBest: 'أفضل وقت · الأربعاء ٨:٤٥ ص',
+    tagBest: 'أقرب موعد متاح · الأربعاء ٨:٤٥ ص',
     tagScheduled: '٨ منشورات مجدولة',
     scroll: 'مرِّر للأسفل',
   },
@@ -75,7 +75,7 @@ export const ar: Dict = {
     steps: [
       { title: 'اكتب', body: 'اكتب مرة واحدة بالعربية أو الإنجليزية، والوكيل الذكي بجوارك إن أردت.', icon: 'pencil' },
       { title: 'عاين في كل مكان', body: 'شاهد المنشور كما سيظهر على لينكدإن وإكس وثريدز، وعدّل كلًّا منها.', icon: 'eye' },
-      { title: 'جدوِل', body: 'ضعه على التقويم، أو اختر أفضل وقت لجمهورك.', icon: 'calendar' },
+      { title: 'جدوِل', body: 'ضعه على التقويم، أو خذ أقرب موعد متاح.', icon: 'calendar' },
       { title: 'نُشر', body: 'ينشره تدوين في موعده، ويضيف تعليقك الأول، ويُخطر الويب هوك الخاص بك.', icon: 'circle-check' },
     ],
     author: { name: 'منى عادل', headline: 'مؤسِّسة ستوديو النيل', initials: 'مع' },
@@ -306,6 +306,7 @@ export const ar: Dict = {
       ],
       planNote: 'مخطّط لها ولم تُبنَ بعد، وقد يتغير الترتيب.',
     },
+    faqTitle: 'أسئلة شائعة',
     faq: [
       { title: 'أي عملاء ذكاء اصطناعي يمكنني استخدامهم؟', content: 'أي عميل يدعم MCP عبر HTTP: Claude وChatGPT وClaude Code وCursor وVS Code وWindsurf وCodex وGemini CLI وغيرها. ويمكن لـ Claude وChatGPT تسجيل الدخول عبر OAuth بدل المفتاح البرمجي.' },
       { title: 'أين أجد مفتاحي البرمجي؟', content: 'في تدوين، افتح الإعدادات ثم API & MCP. تجد هناك المفتاح وإعدادات جاهزة لكل عميل.' },
@@ -364,7 +365,8 @@ export const ar: Dict = {
       samples: [
         { label: 'Claude Code', code: 'claude mcp add --transport http tadween {api}/mcp \\\n  --header "Authorization: Bearer YOUR_API_KEY"' },
         { label: 'Cursor وVS Code وWindsurf', code: '{\n  "mcpServers": {\n    "tadween": {\n      "url": "{api}/mcp",\n      "headers": { "Authorization": "Bearer YOUR_API_KEY" }\n    }\n  }\n}' },
-        { label: 'Claude وChatGPT (OAuth)', code: '{api}/mcp-oauth-dynamic' },
+        { label: 'Claude وCursor وغيرها (OAuth)', code: '{api}/mcp-oauth-dynamic' },
+        { label: 'ChatGPT (OAuth)', code: '{api}/mcp-oauth-chatgpt' },
         { label: 'الواجهة البرمجية', code: 'curl {api}/public/v1/integrations \\\n  -H "Authorization: YOUR_API_KEY"' },
       ],
     },
@@ -394,7 +396,7 @@ export const ar: Dict = {
     items: [
       { icon: 'link', title: 'اربط', body: 'اربط حسابك الشخصي على لينكدإن وكل صفحة تديرها. نقرتان فقط، ولا نحفظ أي كلمة مرور.' },
       { icon: 'pencil', title: 'اكتب', body: 'اكتب بالعربية أو الإنجليزية، وأضف صورًا أو ملف PDF متتابع الصفحات، ثم راجع المعاينة.' },
-      { icon: 'calendar', title: 'جدوِل', body: 'اختر وقتًا، أو خذ أفضل وقت مقترح. ينشر تدوين منشورك ثم يضيف تعليقك الأول.' },
+      { icon: 'calendar', title: 'جدوِل', body: 'اختر وقتًا، أو خذ أقرب موعد متاح. ينشر تدوين منشورك ثم يضيف تعليقك الأول.' },
     ],
   },
   pricing: {
@@ -425,7 +427,7 @@ export const ar: Dict = {
     faqTitle: 'أسئلة شائعة',
     unlimited: 'بلا حدود',
     plans: [
-      { key: 'creator', name: 'صانع المحتوى', for: 'لصوت واحد على لينكدإن', features: ['حساب شخصي وصفحة شركة واحدة', 'منشورات مجدولة بلا حدود', 'التعليق الأول وتكرار المنشورات', 'تلميحات أفضل وقت للنشر', 'التحليلات'] },
+      { key: 'creator', name: 'صانع المحتوى', for: 'لصوت واحد على لينكدإن', features: ['حساب شخصي وصفحة شركة واحدة', 'منشورات مجدولة بلا حدود', 'التعليق الأول وتكرار المنشورات', 'تقويم يومي وأسبوعي وشهري وقائمة', 'التحليلات'] },
       { key: 'pro', name: 'المحترف', for: 'لمن ينشر كل أسبوع', features: ['٥ قنوات على لينكدإن', 'كل ما في خطة صانع المحتوى', 'إعادة صياغة الافتتاحيات بالعربية والإنجليزية', 'إنشاء عروض PDF متتابعة', 'المجموعات والتواقيع'] },
       { key: 'team', name: 'الفريق', for: 'للعلامات التجارية التي لديها فريق', features: ['١٥ قناة', 'أعضاء فريق بلا حدود', 'روابط معاينة للعملاء', 'تقويم ووسوم مشتركة', 'الوصول عبر الوكيل وMCP'] },
       { key: 'agency', name: 'الوكالة', for: 'للوكالات وعملائها الكثيرين', features: ['٥٠ قناة', 'مجموعات للعملاء', 'تقارير جاهزة للعملاء', 'دعم ذو أولوية بالعربية', 'فواتير بالجنيه أو بالدولار'] },
@@ -439,11 +441,11 @@ export const ar: Dict = {
       { label: 'التعليق الأول والتأخير', help: 'انشر تعليقًا بعد المنشور بدقائق.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'تكرار المنشورات', help: 'أعد نشر المحتوى الدائم وفق جدول.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'التحليلات', help: 'نتائج القنوات والمنشورات، حيث تشاركها الشبكة.', values: { creator: true, pro: true, team: true, agency: true } },
-      { label: 'المجموعات والتواقيع', help: 'مجموعات قنوات محفوظة وعبارات ختام جاهزة.', values: { creator: false, pro: true, team: true, agency: true } },
+      { label: 'المجموعات والتواقيع', help: 'مجموعات قنوات محفوظة وعبارات ختام جاهزة.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'النشر التلقائي من RSS', help: 'حوّل العناصر الجديدة في الخلاصة إلى منشورات.', field: 'autoPost' },
       { label: 'الويب هوك', help: 'طلبات HTTP عند نشر المنشور.', field: 'webhooks' },
       { label: 'الواجهة البرمجية وMCP', help: 'جدوِل من Claude أو ChatGPT أو Cursor أو شيفرتك.', values: { creator: true, pro: true, team: true, agency: true } },
-      { label: 'مجموعات العملاء', help: 'افصل قنوات كل عميل عن غيره.', values: { creator: false, pro: false, team: false, agency: true } },
+      { label: 'مجموعات العملاء', help: 'افصل قنوات كل عميل عن غيره.', values: { creator: true, pro: true, team: true, agency: true } },
     ],
     faq: [
       { title: 'هل توجد تجربة مجانية؟', content: 'تبدأ كل خطة بتجربة مجانية مدتها ٧ أيام، ولا تدفع إلا إذا قررت الاستمرار في استخدام تدوين.' },

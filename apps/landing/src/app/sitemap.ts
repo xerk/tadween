@@ -5,7 +5,7 @@ import { ALL_PAGES, localePath } from '@/lib/routes';
 // Each page exists in English and Arabic; every entry lists both (and x-default) as alternates.
 export default function sitemap(): MetadataRoute.Sitemap {
   return ALL_PAGES.flatMap(({ path, priority }) => {
-    const en = `${SITE_URL}${localePath('en', path)}`;
+    const en = path ? `${SITE_URL}${path}` : SITE_URL; // the same form as the canonical link
     const ar = `${SITE_URL}${localePath('ar', path)}`;
     const languages = { en, ar, 'x-default': en };
     return [

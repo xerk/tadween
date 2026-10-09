@@ -5,7 +5,7 @@ import type { ChannelsDict } from './types';
 // @Rules in plain words. Nothing here promises more than the provider code does.
 export const channelsEn: ChannelsDict = {
   meta: {
-    title: 'Channels — schedule posts to LinkedIn, X, Instagram and 20 networks | Tadween',
+    title: 'Channels — schedule posts to LinkedIn and 30+ networks | Tadween',
     description:
       'Every network Tadween publishes to, with the real limits: characters per post, media rules and post types. LinkedIn first, and 30+ channels in one calendar.',
   },
@@ -23,14 +23,11 @@ export const channelsEn: ChannelsDict = {
       title: 'Also supported',
       sub: 'Tadween publishes to these too. Their pages are coming.',
     },
-    open: 'Open',
   },
   page: {
-    eyebrow: 'Channel',
     start: 'Start 7-day trial',
     factsTitle: 'At a glance',
     limit: 'Characters per post',
-    characters: 'characters',
     editor: 'Editor',
     editors: { normal: 'Plain text', markdown: 'Markdown', html: 'Rich text' },
     comments: 'Follow-up comments',
@@ -44,7 +41,6 @@ export const channelsEn: ChannelsDict = {
       { icon: 'users', title: 'Your team and clients', body: 'Invite teammates, keep each client in their own group and share a preview link for feedback.' },
       { icon: 'sparkles', title: 'An agent that can post', body: 'Ask the Tadween agent, Claude or ChatGPT to draft and schedule it for you through MCP.' },
     ],
-    previewTitle: 'How it looks',
     previewNote: 'An illustration of the post. The editor shows a live preview as you write.',
     previewAuthor: { name: 'Mona Adel', headline: 'Founder at Studio Nile', initials: 'MA' },
     faqTitle: 'Questions',
@@ -62,7 +58,7 @@ export const channelsEn: ChannelsDict = {
       description:
         'Schedule LinkedIn posts for your personal profile: text up to 3,000 characters, images, video and document carousels, with a first comment and an exact preview. In English and Arabic.',
       h1: 'Schedule LinkedIn posts for your profile',
-      intro: 'Tadween was built around LinkedIn. Write in English or Arabic, see the post the way the feed will show it, and publish at the hour your network is reading.',
+      intro: 'Tadween was built around LinkedIn. Write in English or Arabic, see the post the way the feed will show it, and publish at the hour you choose.',
       formats: ['Text posts', 'Single image or several images', 'One video', 'Images as a swipeable document carousel, with a title', 'A first comment, posted right after'],
       media: 'A video must be the only attachment. A carousel needs two or more pictures and no video.',
       features: [
@@ -321,6 +317,7 @@ export const channelsEn: ChannelsDict = {
       intro: 'Tell the team, then tell the world. Schedule the Slack message and the public posts together.',
       formats: ['Messages in any channel the app can post to', 'Pictures', 'Follow-up messages in the thread'],
       media: 'Pictures can be attached. Text-only messages work too.',
+      limitNote: 'Slack itself may shorten very long messages, so keep announcements to a few paragraphs.',
       features: [
         { title: 'Internal first', body: 'Give the team a heads-up minutes before the public post goes out.' },
         { title: 'Channel picker', body: 'Choose the channel from a list instead of copying IDs.' },

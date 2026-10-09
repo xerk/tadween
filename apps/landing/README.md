@@ -17,13 +17,14 @@ pnpm --filter tadween-landing start   # serves the build on :4300
 
 ## Environment
 
-All three are read at build time (`NEXT_PUBLIC_*` values are inlined into the bundle), so set them before `build`.
+All of these are read at build time (`NEXT_PUBLIC_*` values are inlined into the bundle), so set them before `build`.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:4200` | The Tadween app. Sign-up buttons go to `${APP_URL}/auth` and sign-in to `${APP_URL}/auth/login`. |
 | `NEXT_PUBLIC_SITE_URL` | `http://localhost:4300` | Where this site is served. Used for canonical URLs, hreflang, the sitemap and Open Graph. |
 | `NEXT_PUBLIC_API_URL` | unset | The Tadween API. When set, pricing reads plans from `GET ${API_URL}/instance/settings` (added in PR #4) at build time and refreshes them at most hourly. If it's unset, unreachable or has no plans saved, the site uses its built-in placeholder plans. The developer and agent pages also use it for the MCP and API URLs in their examples (a placeholder otherwise). |
+| `NEXT_PUBLIC_SHOW_PROOF_PLACEHOLDERS` | unset | Set to `1` to show the home page's social-proof section with its marked placeholder slots (for previews). Leave it unset in production until real customer logos and quotes replace the placeholders in `src/content`. |
 
 All prices are placeholders, and the page says so. The API returns USD prices only, so EGP amounts always come from the placeholders in `src/lib/plans.ts`.
 

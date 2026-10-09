@@ -14,7 +14,7 @@ export const en: Dict = {
   meta: {
     title: 'Tadween — LinkedIn scheduling, written in two languages',
     description:
-      'Plan LinkedIn posts for your profile and company pages, preview them exactly as LinkedIn will show them, and publish at the hour your audience is reading. In English and Arabic, with 30+ channels and an AI agent.',
+      'Plan LinkedIn posts for your profile and company pages, preview them exactly as LinkedIn will show them, and publish at the hour you choose. In English and Arabic, with 30+ channels and an AI agent.',
     pricingTitle: 'Pricing — Tadween',
     pricingDescription:
       'Four plans for people, brands and agencies on LinkedIn, from $9 a month. Every plan starts with seven days free. Pay in Egyptian pounds or US dollars.',
@@ -56,11 +56,11 @@ export const en: Dict = {
   hero: {
     eyebrow: 'Built for LinkedIn, fluent in Arabic',
     title: 'Your LinkedIn week, written and scheduled.',
-    sub: 'Plan posts for your profile and company pages, see them exactly as LinkedIn will, and publish at the hour your audience is reading. Then reach 30+ other channels from the same calendar.',
+    sub: 'Plan posts for your profile and company pages, see them exactly as LinkedIn will, and schedule them for the hour you choose. Then reach 30+ other channels from the same calendar.',
     primary: 'Start 7-day trial',
     secondary: 'See how it works',
     fine: 'No card needed · Cancel any time · Pay in EGP or USD',
-    tagBest: 'Best time · Wed 08:45',
+    tagBest: 'Next free slot · Wed 08:45',
     tagScheduled: '8 posts scheduled',
     scroll: 'Scroll',
   },
@@ -77,7 +77,7 @@ export const en: Dict = {
     steps: [
       { title: 'Write', body: 'Draft once, in English or Arabic, with the agent beside you if you want it.', icon: 'pencil' },
       { title: 'Preview everywhere', body: 'See the post the way LinkedIn, X and Threads will show it, and adjust each one.', icon: 'eye' },
-      { title: 'Schedule', body: 'Drop it on the calendar, or take the best time for your audience.', icon: 'calendar' },
+      { title: 'Schedule', body: 'Drop it on the calendar, or take the next free slot.', icon: 'calendar' },
       { title: 'Published', body: 'Tadween posts it on time, adds your first comment and tells your webhooks.', icon: 'circle-check' },
     ],
     author: { name: 'Mona Adel', headline: 'Founder at Studio Nile', initials: 'MA' },
@@ -308,6 +308,7 @@ export const en: Dict = {
       ],
       planNote: 'Planned, not built yet. The order may change.',
     },
+    faqTitle: 'Questions',
     faq: [
       { title: 'Which AI clients can I use?', content: 'Any client that supports MCP over HTTP: Claude, ChatGPT, Claude Code, Cursor, VS Code, Windsurf, Codex, Gemini CLI and more. Claude and ChatGPT can also sign in with OAuth instead of an API key.' },
       { title: 'Where do I find my API key?', content: 'In Tadween, open Settings, then API & MCP. You can copy the key and see ready-made settings for each client there.' },
@@ -366,7 +367,8 @@ export const en: Dict = {
       samples: [
         { label: 'Claude Code', code: 'claude mcp add --transport http tadween {api}/mcp \\\n  --header "Authorization: Bearer YOUR_API_KEY"' },
         { label: 'Cursor, VS Code, Windsurf', code: '{\n  "mcpServers": {\n    "tadween": {\n      "url": "{api}/mcp",\n      "headers": { "Authorization": "Bearer YOUR_API_KEY" }\n    }\n  }\n}' },
-        { label: 'Claude and ChatGPT (OAuth)', code: '{api}/mcp-oauth-dynamic' },
+        { label: 'Claude, Cursor and other clients (OAuth)', code: '{api}/mcp-oauth-dynamic' },
+        { label: 'ChatGPT (OAuth)', code: '{api}/mcp-oauth-chatgpt' },
         { label: 'Public API', code: 'curl {api}/public/v1/integrations \\\n  -H "Authorization: YOUR_API_KEY"' },
       ],
     },
@@ -396,7 +398,7 @@ export const en: Dict = {
     items: [
       { icon: 'link', title: 'Connect', body: 'Link your LinkedIn profile and every page you manage. Two clicks, no passwords stored.' },
       { icon: 'pencil', title: 'Write', body: 'Draft in English or Arabic, add images or a PDF carousel, and check the preview.' },
-      { icon: 'calendar', title: 'Schedule', body: 'Pick a time, or take the suggested best time. Tadween publishes and posts your first comment.' },
+      { icon: 'calendar', title: 'Schedule', body: 'Pick a time, or take the next free slot. Tadween publishes and posts your first comment.' },
     ],
   },
   pricing: {
@@ -427,7 +429,7 @@ export const en: Dict = {
     faqTitle: 'Questions',
     unlimited: 'Unlimited',
     plans: [
-      { key: 'creator', name: 'Creator', for: 'For one voice on LinkedIn', features: ['Profile + 1 company page', 'Unlimited scheduled posts', 'First comments and repeats', 'Best-time hints', 'Analytics'] },
+      { key: 'creator', name: 'Creator', for: 'For one voice on LinkedIn', features: ['Profile + 1 company page', 'Unlimited scheduled posts', 'First comments and repeats', 'Day, week, month and list calendar', 'Analytics'] },
       { key: 'pro', name: 'Pro', for: 'For creators who post every week', features: ['5 LinkedIn channels', 'Everything in Creator', 'Hook rewrites in Arabic and English', 'PDF carousel builder', 'Sets and signatures'] },
       { key: 'team', name: 'Team', for: 'For brands with a team', features: ['15 channels', 'Unlimited team members', 'Preview links for clients', 'Shared calendar and tags', 'Agent and MCP access'] },
       { key: 'agency', name: 'Agency', for: 'For agencies and many clients', features: ['50 channels', 'Customer groups', 'Client-ready reports', 'Priority support in Arabic', 'Invoices in EGP or USD'] },
@@ -441,11 +443,11 @@ export const en: Dict = {
       { label: 'First comments and delays', help: 'Post a comment minutes after the post.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'Repeated posts', help: 'Republish evergreen posts on a schedule.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'Analytics', help: 'Channel and post results, where the network shares them.', values: { creator: true, pro: true, team: true, agency: true } },
-      { label: 'Sets and signatures', help: 'Saved channel groups and sign-offs.', values: { creator: false, pro: true, team: true, agency: true } },
+      { label: 'Sets and signatures', help: 'Saved channel groups and sign-offs.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'RSS auto-post', help: 'Turn new items from a feed into posts.', field: 'autoPost' },
       { label: 'Webhooks', help: 'HTTP callbacks when a post is published.', field: 'webhooks' },
       { label: 'Public API and MCP', help: 'Schedule from Claude, ChatGPT, Cursor or your own code.', values: { creator: true, pro: true, team: true, agency: true } },
-      { label: 'Customer groups', help: 'Keep each client’s channels apart.', values: { creator: false, pro: false, team: false, agency: true } },
+      { label: 'Customer groups', help: 'Keep each client’s channels apart.', values: { creator: true, pro: true, team: true, agency: true } },
     ],
     faq: [
       { title: 'Is there a free trial?', content: 'Every plan starts with a 7-day free trial. You only pay if you keep using Tadween.' },

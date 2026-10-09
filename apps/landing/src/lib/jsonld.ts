@@ -21,8 +21,9 @@ export function organization() {
   };
 }
 
-export function softwareApplication(t: Dict, plans: PlanView[]) {
-  const prices = plans.map((p) => p.usd.monthly);
+/** `plans` is null while prices are placeholders: no offer is published until they're real. */
+export function softwareApplication(t: Dict, plans: PlanView[] | null) {
+  const prices = plans?.map((p) => p.usd.monthly) ?? [];
   return {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -33,17 +34,21 @@ export function softwareApplication(t: Dict, plans: PlanView[]) {
     operatingSystem: 'Web',
     inLanguage: ['en', 'ar'],
     publisher: { '@id': ORG_ID },
-    offers: {
-      '@type': 'AggregateOffer',
-      priceCurrency: 'USD',
-      lowPrice: Math.min(...prices),
-      highPrice: Math.max(...prices),
-      offerCount: plans.length,
-    },
+    ...(plans?.length
+      ? {
+          offers: {
+            '@type': 'AggregateOffer',
+            priceCurrency: 'USD',
+            lowPrice: Math.min(...prices),
+            highPrice: Math.max(...prices),
+            offerCount: plans.length,
+          },
+        }
+      : {}),
   };
 }
 
-/** Each plan as an Offer at its monthly USD price. */
+/** Each plan as an Offer at its monthly USD price. Only for prices set in the app. */
 export function product(t: Dict, plans: PlanView[]) {
   const url = abs(localePath(t.lang, '/pricing'));
   return {

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { Dict, Faq } from '@/content/types';
 import { ar } from '@/content/ar';
 import { CHANNELS, MORE_CHANNELS, channelBySlug } from '@/lib/channels';
@@ -227,7 +228,7 @@ export function Features({ t }: { t: Dict }) {
       <div className="pz-bento" data-stagger>
         {t.featuresPage.sections.map((f) => (
           <a key={f.id} className={cx('pz-feat', 'pz-bento-card', `is-${f.id}`)} href={`${localePath(t.lang, PATHS.features)}#${f.id}`} data-tilt data-art>
-            <FeatureArt kind={f.art} rtl={t.dir === 'rtl'} />
+            <FeatureArt kind={f.art} />
             <span className={cx('pz-feat-icon', f.smart && 'is-smart')}>
               <Icon name={f.icon} size={18} />
             </span>
@@ -380,14 +381,7 @@ export function ArabicSection({ t }: { t: Dict }) {
             {t.arabic.title}
           </h2>
           <p className="pz-lsec-sub">{t.arabic.sub}</p>
-          <ul className="pz-plan-list">
-            {t.arabic.bullets.map((b) => (
-              <li key={b}>
-                <Icon name="check" />
-                {b}
-              </li>
-            ))}
-          </ul>
+          <CheckList items={t.arabic.bullets} />
         </div>
         <div className="pz-lar-shot" data-flip>
           <LinkedInPreview
@@ -405,6 +399,20 @@ export function ArabicSection({ t }: { t: Dict }) {
   );
 }
 
+/** A list with check marks, the plan-list look from the design system. */
+export function CheckList({ items }: { items: string[] }) {
+  return (
+    <ul className="pz-plan-list">
+      {items.map((it) => (
+        <li key={it}>
+          <Icon name="check" />
+          {it}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** Questions and answers in the design system's accordion. */
 export function FaqSection({ id, title, items }: { id: string; title: string; items: Faq[] }) {
   return (
@@ -419,10 +427,11 @@ export function FaqSection({ id, title, items }: { id: string; title: string; it
   );
 }
 
-/** The header of an inner page: optional breadcrumb and eyebrow, an H1 and its lead. */
-export function PageHead({ t, title, sub, eyebrow, crumbs }: { t: Dict; title: string; sub: string; eyebrow?: string; crumbs?: { name: string; href: string }[] }) {
+/** The header of an inner page: breadcrumb, then an optional badge or eyebrow, the H1, its
+    lead and anything after it (a CTA). The breadcrumb matches the page's BreadcrumbList. */
+export function PageHead({ t, title, sub, eyebrow, crumbs, badge, className, children }: { t: Dict; title: string; sub: string; eyebrow?: string; crumbs?: { name: string; href: string }[]; badge?: ReactNode; className?: string; children?: ReactNode }) {
   return (
-    <header className="pz-phead">
+    <header className={cx('pz-phead', className)}>
       <div className="pz-lsec-head">
         {crumbs ? (
           <nav className="pz-crumbs" aria-label={t.nav.breadcrumb}>
@@ -435,6 +444,7 @@ export function PageHead({ t, title, sub, eyebrow, crumbs }: { t: Dict; title: s
             </ol>
           </nav>
         ) : null}
+        {badge}
         {eyebrow ? <span className="pz-hero-eyebrow pz-center">{eyebrow}</span> : null}
         <h1 className="display" data-hero-in>
           {title}
@@ -442,6 +452,7 @@ export function PageHead({ t, title, sub, eyebrow, crumbs }: { t: Dict; title: s
         <p className="pz-lsec-sub" data-hero-in>
           {sub}
         </p>
+        {children}
       </div>
     </header>
   );

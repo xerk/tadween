@@ -13,7 +13,7 @@ export const dynamicParams = false;
 
 const PAGES: Record<string, { eyebrow: string; title: string }> = {
   home: { eyebrow: 'LinkedIn-first scheduling', title: en.hero.title },
-  pricing: { eyebrow: 'Pricing', title: 'Four plans, from $9 a month. Seven days free.' },
+  pricing: { eyebrow: 'Pricing', title: 'Four plans for people, brands and agencies. Seven days free.' },
   features: { eyebrow: 'Features', title: en.featuresPage.title },
   'ai-agent': { eyebrow: 'AI agent', title: en.agentPage.title },
   developers: { eyebrow: 'Developers', title: 'Public API, MCP server and webhooks' },
@@ -30,7 +30,7 @@ const asset = async (file: string, type: string) =>
 export async function GET(_req: Request, { params }: { params: Promise<{ card: string }> }) {
   const card = (await params).card.replace(/\.png$/, '');
   const channel = card.startsWith('channel-') ? channelBySlug(card.slice('channel-'.length)) : undefined;
-  const page = channel ? { eyebrow: channel.name, title: en.channels.items[channel.slug].h1 } : PAGES[card] ?? PAGES.home;
+  const page = channel ? { eyebrow: channel.name, title: en.channels.items[channel.slug].h1 } : PAGES[card];
   const logo = await asset('logo.svg', 'image/svg+xml');
   const icon = channel ? await asset(channel.icon.replace(/^\//, ''), 'image/png') : null;
 

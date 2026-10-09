@@ -9,9 +9,10 @@ import { ThemeToggle } from './ThemeToggle';
     Below 900px the links move into a disclosure menu (no script needed). */
 export function LandingNav({ t, altHref, current }: { t: Dict; altHref: string; current?: string }) {
   const other = t.nav.switchTo;
-  const isCurrent = (href: string) => current === href || (!!current && current.startsWith(`${href}/`));
+  // The page itself is "page"; its section (Channels while on a channel page) is "true".
+  const currentOf = (href: string) => (current === href ? 'page' : current?.startsWith(`${href}/`) ? 'true' : undefined);
   const links = t.nav.links.map((l) => (
-    <a key={l.href} href={l.href} aria-current={isCurrent(l.href) ? 'page' : undefined}>
+    <a key={l.href} href={l.href} aria-current={currentOf(l.href)}>
       {l.label}
     </a>
   ));

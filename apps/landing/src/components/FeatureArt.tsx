@@ -3,11 +3,12 @@ import { Icon } from './Icon';
 
 /* Small product illustrations for the feature cards: drawn with the app's tokens, decorative
    only (aria-hidden), and animated in CSS when the card scrolls into view (`.is-in`, set by
-   the motion engine) so reduced motion simply shows the finished state. */
+   the motion engine). Without the engine, or with reduced motion, they show the finished
+   state: the start state only applies once the engine has marked the page motion-ready. */
 
 const BARS = [38, 54, 46, 72, 60, 88, 66];
 
-export function FeatureArt({ kind, rtl }: { kind: ArtKind; rtl: boolean }) {
+export function FeatureArt({ kind }: { kind: ArtKind }) {
   switch (kind) {
     case 'linkedin':
       return (
@@ -116,11 +117,11 @@ export function FeatureArt({ kind, rtl }: { kind: ArtKind; rtl: boolean }) {
           <span className="pz-art-node">
             <Icon name="rss" size={16} />
           </span>
-          <span className={rtl ? 'pz-art-wire is-rtl' : 'pz-art-wire'} />
+          <span className="pz-art-wire" />
           <span className="pz-art-node is-main">
             <Icon name="calendar" size={16} />
           </span>
-          <span className={rtl ? 'pz-art-wire is-rtl' : 'pz-art-wire'} />
+          <span className="pz-art-wire" />
           <span className="pz-art-node">
             <Icon name="webhook" size={16} />
           </span>

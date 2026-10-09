@@ -1,5 +1,5 @@
 // The hero's week: 7 columns × 5 rows of tiles. Scheduled posts are Nile, published posts
-// are the soft tint, and one Papyrus tile is the suggested best time. Shared by the static
+// are the soft tint, and one Papyrus tile is the next free slot. Shared by the static
 // poster (server-rendered) and the three.js scene so both show the same week.
 export const COLS = 7;
 export const ROWS = 5;

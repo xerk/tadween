@@ -78,7 +78,7 @@ export function initLanding(root: HTMLElement, { rtl }: { rtl: boolean }): () =>
           });
         };
         if (reduce) {
-          setStep(1);
+          setStep(1); // progress 1 is the finished state: published, on the week
           flow.dataset.net = '0';
           if (bar) bar.style.transform = 'scaleX(1)';
         } else {

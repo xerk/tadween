@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ChannelCopy, Dict } from '@/content/types';
 import { CHANNELS, MORE_CHANNELS, channelBySlug, type ChannelFacts, type ChannelGroup } from '@/lib/channels';
-import { DOCS_API_URL, SIGN_UP_URL } from '@/lib/config';
+import { DOCS_API_URL, SHOW_PROOF, SIGN_UP_URL } from '@/lib/config';
 import { breadcrumbs, faqPage, organization, product, softwareApplication } from '@/lib/jsonld';
 import { loadPlans } from '@/lib/plans';
 import { PATHS, channelPath, localePath } from '@/lib/routes';
@@ -12,7 +12,7 @@ import { JsonLd } from './JsonLd';
 import { LandingMotion } from './LandingMotion';
 import { LandingNav } from './LandingNav';
 import { PricingTable } from './PricingTable';
-import { AgentDemo, AgentTeaser, ArabicSection, ChannelsSection, CTA, FaqSection, Features, Flow, Footer, Hero, PageHead, Proof, Steps } from './sections';
+import { AgentDemo, AgentTeaser, ArabicSection, ChannelsSection, CheckList, CTA, FaqSection, Features, Flow, Footer, Hero, PageHead, Proof, Steps } from './sections';
 
 /** Every page: skip link, nav (with the same page in the other language), main, footer
     and the motion engine. `path` has no language prefix. */
@@ -37,13 +37,35 @@ const channelName = (t: Dict, c: ChannelFacts) => t.channels.items[c.slug].name 
 
 const crumbHome = (t: Dict) => ({ name: t.nav.home, href: localePath(t.lang, PATHS.home) });
 
+/** Breadcrumb trail from home to `page`, as the page shows it and as BreadcrumbList data. */
+const trail = (t: Dict, ...pages: { name: string; href: string }[]) => [crumbHome(t), ...pages];
+const trailLd = (crumbs: { name: string; href: string }[]) => breadcrumbs(crumbs.map((c) => ({ name: c.name, path: c.href })));
+
+/** Fills {name} and {limit} in a channel page template. */
+const fillChannel = (t: Dict, facts: ChannelFacts) => (s: string) =>
+  s.replaceAll('{name}', channelName(t, facts)).replaceAll('{limit}', new Intl.NumberFormat(t.numberLocale).format(facts.limit));
+
+/** A link card to a channel page, used on the index and under related channels. */
+function ChannelCard({ t, c }: { t: Dict; c: ChannelFacts }) {
+  return (
+    <a className="pz-chcard" href={localePath(t.lang, channelPath(c.slug))}>
+      <img src={c.icon} width={36} height={36} alt="" loading="lazy" />
+      <span>
+        <strong>{channelName(t, c)}</strong>
+        <span>{t.channels.items[c.slug].h1}</span>
+      </span>
+      <Icon name="chevron-right" className="pz-flip-rtl pz-muted" />
+    </a>
+  );
+}
+
 /** The landing page (LandingExperience in the design system), in either language. */
 export async function LandingPage({ t }: { t: Dict }) {
   const { plans, source } = await loadPlans();
   return (
-    <Shell t={t} path={PATHS.home} jsonLd={[organization(), softwareApplication(t, plans)]}>
+    <Shell t={t} path={PATHS.home} jsonLd={[organization(), softwareApplication(t, source === 'api' ? plans : null)]}>
       <Hero t={t} />
-      <Proof t={t} />
+      {SHOW_PROOF ? <Proof t={t} /> : null}
       <Flow t={t} />
       <Features t={t} />
       <ArabicSection t={t} />
@@ -71,7 +93,8 @@ export async function LandingPage({ t }: { t: Dict }) {
 export async function PricingPage({ t }: { t: Dict }) {
   const { plans, source } = await loadPlans();
   return (
-    <Shell t={t} path={PATHS.pricing} jsonLd={[product(t, plans), faqPage(t.pricing.faq)]}>
+    // Offers are published only for prices set in the app, never for the placeholders.
+    <Shell t={t} path={PATHS.pricing} jsonLd={source === 'api' ? [product(t, plans), faqPage(t.pricing.faq)] : [faqPage(t.pricing.faq)]}>
       <PageHead t={t} title={t.pricing.pageTitle} sub={t.pricing.pageSub} />
       <section className="pz-lsec pz-lsec-tight" aria-label={t.pricing.pageTitle}>
         <PricingTable p={t.pricing} lang={t.lang} numberLocale={t.numberLocale} plans={plans} source={source} />
@@ -105,17 +128,10 @@ export function FeaturesPage({ t }: { t: Dict }) {
                 {s.title}
               </h2>
               <p className="pz-lsec-sub">{s.body}</p>
-              <ul className="pz-plan-list">
-                {s.points.map((p) => (
-                  <li key={p}>
-                    <Icon name="check" />
-                    {p}
-                  </li>
-                ))}
-              </ul>
+              <CheckList items={s.points} />
             </div>
             <div className="pz-fsec-art" data-reveal data-art>
-              <FeatureArt kind={s.art} rtl={t.dir === 'rtl'} />
+              <FeatureArt kind={s.art} />
             </div>
           </div>
         </section>
@@ -139,10 +155,10 @@ function Code({ label, code }: { label: string; code: string }) {
 
 export function AgentPage({ t }: { t: Dict }) {
   const a = t.agentPage;
-  const path = localePath(t.lang, PATHS.agent);
+  const crumbs = trail(t, { name: a.eyebrow, href: localePath(t.lang, PATHS.agent) });
   return (
-    <Shell t={t} path={PATHS.agent} jsonLd={[faqPage(a.faq), breadcrumbs([{ name: crumbHome(t).name, path: crumbHome(t).href }, { name: a.eyebrow, path }])]}>
-      <PageHead t={t} eyebrow={a.eyebrow} title={a.title} sub={a.sub} />
+    <Shell t={t} path={PATHS.agent} jsonLd={[faqPage(a.faq), trailLd(crumbs)]}>
+      <PageHead t={t} crumbs={crumbs} title={a.title} sub={a.sub} />
       <section className="pz-lsec pz-lsec-tight" aria-label={t.agentTeaser.title}>
         <div className="pz-narrow" data-reveal>
           <AgentDemo t={t} />
@@ -217,17 +233,10 @@ export function AgentPage({ t }: { t: Dict }) {
               {a.inApp.title}
             </h2>
             <p className="pz-lsec-sub">{a.inApp.sub}</p>
-            <ul className="pz-plan-list">
-              {a.inApp.points.map((p) => (
-                <li key={p}>
-                  <Icon name="check" />
-                  {p}
-                </li>
-              ))}
-            </ul>
+            <CheckList items={a.inApp.points} />
           </div>
           <div className="pz-fsec-art" data-reveal data-art>
-            <FeatureArt kind="agent" rtl={t.dir === 'rtl'} />
+            <FeatureArt kind="agent" />
           </div>
         </div>
       </section>
@@ -254,7 +263,7 @@ export function AgentPage({ t }: { t: Dict }) {
         </ul>
         <p className="caption pz-muted pz-center-text">{a.connectors.planNote}</p>
       </section>
-      <FaqSection id="faq" title={t.pricing.faqTitle} items={a.faq} />
+      <FaqSection id="faq" title={a.faqTitle} items={a.faq} />
       <CTA t={t} />
     </Shell>
   );
@@ -262,16 +271,6 @@ export function AgentPage({ t }: { t: Dict }) {
 
 export function DevelopersPage({ t }: { t: Dict }) {
   const d = t.developersPage;
-  const bullets = (points: string[]) => (
-    <ul className="pz-plan-list">
-      {points.map((p) => (
-        <li key={p}>
-          <Icon name="check" />
-          {p}
-        </li>
-      ))}
-    </ul>
-  );
   return (
     <Shell t={t} path={PATHS.developers}>
       <PageHead t={t} eyebrow={d.eyebrow} title={d.title} sub={d.sub} />
@@ -322,7 +321,7 @@ export function DevelopersPage({ t }: { t: Dict }) {
           ))}
         </div>
       </section>
-      <section className="pz-lsec" aria-label={d.webhooks.title}>
+      <section className="pz-lsec">
         <div className="pz-cols3" data-stagger>
           {[
             { id: 'webhooks', icon: 'webhook' as const, block: d.webhooks },
@@ -335,7 +334,7 @@ export function DevelopersPage({ t }: { t: Dict }) {
               </span>
               <h2 className="headline">{block.title}</h2>
               <p>{block.sub}</p>
-              {bullets(block.points)}
+              <CheckList items={block.points} />
             </div>
           ))}
         </div>
@@ -349,10 +348,10 @@ const GROUPS: ChannelGroup[] = ['professional', 'social', 'video', 'community', 
 
 export function ChannelsIndexPage({ t }: { t: Dict }) {
   const c = t.channels;
-  const path = localePath(t.lang, PATHS.channels);
+  const crumbs = trail(t, { name: t.footer.channelsTitle, href: localePath(t.lang, PATHS.channels) });
   return (
-    <Shell t={t} path={PATHS.channels} jsonLd={[breadcrumbs([{ name: crumbHome(t).name, path: crumbHome(t).href }, { name: t.footer.channelsTitle, path }])]}>
-      <PageHead t={t} title={c.index.title} sub={c.index.sub} />
+    <Shell t={t} path={PATHS.channels} jsonLd={[trailLd(crumbs)]}>
+      <PageHead t={t} crumbs={crumbs} title={c.index.title} sub={c.index.sub} />
       {GROUPS.map((g) => (
         <section key={g} className="pz-lsec pz-lsec-tight" aria-labelledby={`g-${g}`}>
           <h2 id={`g-${g}`} className="title-2 pz-group-title">
@@ -361,14 +360,7 @@ export function ChannelsIndexPage({ t }: { t: Dict }) {
           <ul className="pz-chcards" data-stagger>
             {CHANNELS.filter((ch) => ch.group === g).map((ch) => (
               <li key={ch.slug}>
-                <a className="pz-chcard" href={localePath(t.lang, channelPath(ch.slug))}>
-                  <img src={ch.icon} width={36} height={36} alt="" loading="lazy" />
-                  <span>
-                    <strong>{channelName(t, ch)}</strong>
-                    <span>{c.items[ch.slug].h1}</span>
-                  </span>
-                  <Icon name="chevron-right" className="pz-flip-rtl pz-muted" />
-                </a>
+                <ChannelCard t={t} c={ch} />
               </li>
             ))}
           </ul>
@@ -399,7 +391,7 @@ export function ChannelsIndexPage({ t }: { t: Dict }) {
     network's own questions. */
 function channelFaq(t: Dict, facts: ChannelFacts, copy: ChannelCopy) {
   const p = t.channels.page;
-  const fill = (s: string) => s.replaceAll('{name}', channelName(t, facts)).replaceAll('{limit}', new Intl.NumberFormat(t.numberLocale).format(facts.limit));
+  const fill = fillChannel(t, facts);
   return [
     { title: fill(p.limitQ), content: [fill(p.limitA), copy.limitNote].filter(Boolean).join(' ') },
     { title: fill(p.scheduleQ), content: fill(p.scheduleA) },
@@ -412,39 +404,31 @@ export function ChannelPage({ t, slug }: { t: Dict; slug: string }) {
   const copy = t.channels.items[slug];
   const p = t.channels.page;
   const fmt = new Intl.NumberFormat(t.numberLocale);
-  const path = localePath(t.lang, channelPath(slug));
-  const crumbs = [crumbHome(t), { name: t.footer.channelsTitle, href: localePath(t.lang, PATHS.channels) }, { name: channelName(t, facts), href: path }];
+  const crumbs = trail(t, { name: t.footer.channelsTitle, href: localePath(t.lang, PATHS.channels) }, { name: channelName(t, facts), href: localePath(t.lang, channelPath(slug)) });
   const faq = channelFaq(t, facts, copy);
   const comments = facts.comments === true ? p.commentsValue.yes : facts.comments === 'text-only' ? p.commentsValue.text : p.commentsValue.no;
-  const fill = (s: string) => s.replaceAll('{name}', channelName(t, facts));
+  const fill = fillChannel(t, facts);
   return (
-    <Shell t={t} path={channelPath(slug)} jsonLd={[faqPage(faq), breadcrumbs(crumbs.map((c) => ({ name: c.name, path: c.href })))]}>
-      <header className="pz-phead pz-chhead">
-        <div className="pz-lsec-head">
-          <nav className="pz-crumbs" aria-label={t.nav.breadcrumb}>
-            <ol>
-              {crumbs.map((c, i) => (
-                <li key={c.href}>{i < crumbs.length - 1 ? <a href={c.href}>{c.name}</a> : <span aria-current="page">{c.name}</span>}</li>
-              ))}
-            </ol>
-          </nav>
+    <Shell t={t} path={channelPath(slug)} jsonLd={[faqPage(faq), trailLd(crumbs)]}>
+      <PageHead
+        t={t}
+        className="pz-chhead"
+        crumbs={crumbs}
+        title={copy.h1}
+        sub={copy.intro}
+        badge={
           <span className="pz-chbadge">
             <img src={facts.icon} width={40} height={40} alt="" />
           </span>
-          <h1 className="display" data-hero-in>
-            {copy.h1}
-          </h1>
-          <p className="pz-lsec-sub" data-hero-in>
-            {copy.intro}
-          </p>
-          <p className="pz-hero-cta pz-center" data-hero-in>
-            <a className="pz-btn pz-btn-primary pz-btn-lg" href={SIGN_UP_URL}>
-              {p.start}
-              <Icon name="arrow-right" className="pz-flip-rtl" />
-            </a>
-          </p>
-        </div>
-      </header>
+        }
+      >
+        <p className="pz-hero-cta pz-center" data-hero-in>
+          <a className="pz-btn pz-btn-primary pz-btn-lg" href={SIGN_UP_URL}>
+            {p.start}
+            <Icon name="arrow-right" className="pz-flip-rtl" />
+          </a>
+        </p>
+      </PageHead>
       <section className="pz-lsec pz-lsec-tight" aria-labelledby="facts-title">
         <div className="pz-split">
           <div className="pz-split-copy" data-reveal>
@@ -467,14 +451,7 @@ export function ChannelPage({ t, slug }: { t: Dict; slug: string }) {
             </dl>
             {copy.limitNote ? <p className="caption pz-muted">{copy.limitNote}</p> : null}
             <h3 className="headline">{p.formatsTitle}</h3>
-            <ul className="pz-plan-list">
-              {copy.formats.map((f) => (
-                <li key={f}>
-                  <Icon name="check" />
-                  {f}
-                </li>
-              ))}
-            </ul>
+            <CheckList items={copy.formats} />
             <h3 className="headline">{p.mediaTitle}</h3>
             <p className="pz-muted pz-media-rule">{copy.media}</p>
           </div>
@@ -518,21 +495,11 @@ export function ChannelPage({ t, slug }: { t: Dict; slug: string }) {
           {p.relatedTitle}
         </h2>
         <ul className="pz-chcards">
-          {facts.related.map((r) => {
-            const rc = channelBySlug(r)!;
-            return (
-              <li key={r}>
-                <a className="pz-chcard" href={localePath(t.lang, channelPath(r))}>
-                  <img src={rc.icon} width={36} height={36} alt="" loading="lazy" />
-                  <span>
-                    <strong>{channelName(t, rc)}</strong>
-                    <span>{t.channels.items[r].h1}</span>
-                  </span>
-                  <Icon name="chevron-right" className="pz-flip-rtl pz-muted" />
-                </a>
-              </li>
-            );
-          })}
+          {facts.related.map((r) => (
+            <li key={r}>
+              <ChannelCard t={t} c={channelBySlug(r)!} />
+            </li>
+          ))}
         </ul>
         <p className="pz-center-text">
           <a className="pz-more-link" href={localePath(t.lang, PATHS.channels)}>
@@ -545,4 +512,3 @@ export function ChannelPage({ t, slug }: { t: Dict; slug: string }) {
     </Shell>
   );
 }
-

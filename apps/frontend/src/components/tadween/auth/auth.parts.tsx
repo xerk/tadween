@@ -4,7 +4,7 @@
 // (components/auth/*). Presentation only; forms, fetches and redirects stay in
 // those components. Styles live in app/tadween/auth.scss and render inside the
 // `.tdw-ui` scope of the auth layout, so the kit's Field / Button classes apply.
-import { FC, ReactNode, useCallback, useEffect, useId, useState } from 'react';
+import { FC, ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useFormContext } from 'react-hook-form';
 import useCookie from 'react-use-cookie';
@@ -12,6 +12,7 @@ import i18next from 'i18next';
 import {
   cookieName,
   fallbackLng,
+  languages,
 } from '@gitroom/react/translation/i18n.config';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
@@ -242,12 +243,22 @@ export const AuthLegal: FC = () => {
   );
 };
 
-/* Language (English / العربية) and appearance, top of the form pane.
+/* Language menu and appearance, top of the form pane.
    Same cookies as the in-app LanguageComponent / ModeComponent. The auth layout
    paints theme and direction on the `.tdw-auth` shell from those cookies; these
    controls keep the shell, <body> (theme, for portalled modals) and <html>
    (direction) in sync when they change. */
 const shell = () => document.querySelector<HTMLElement>('.tdw-auth');
+
+// a language's name in itself ("العربية", "Français"); `ka_ge` isn't BCP 47
+const nativeLanguageName = (code: string) => {
+  const locale = code.replace('_', '-');
+  try {
+    return new Intl.DisplayNames([locale], { type: 'language' }).of(locale) || code;
+  } catch (e) {
+    return code;
+  }
+};
 
 export const AuthControls: FC = () => {
   const t = useT();
@@ -274,7 +285,7 @@ export const AuthControls: FC = () => {
     setLanguage(lng);
     setCurrent(lng);
     i18next.changeLanguage(lng);
-    const dir = ['he', 'ar'].includes(lng) ? 'rtl' : 'ltr';
+    const dir = lng === 'ar' ? 'rtl' : 'ltr';
     for (const el of [document.documentElement, shell()]) {
       el?.setAttribute('dir', dir);
       el?.setAttribute('lang', lng);
@@ -288,18 +299,62 @@ export const AuthControls: FC = () => {
     applyMode(next);
   }, [mode]);
 
-  const isArabic = current === 'ar';
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const close = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [open]);
+
   return (
     <div className="tdw-auth-controls">
-      <button
-        type="button"
-        className="tdw-auth-control"
-        onClick={() => changeLanguage(isArabic ? 'en' : 'ar')}
-        title={t('change_language', 'Change Language')}
-      >
-        <Icon name="languages" size={16} />
-        <span lang={isArabic ? 'en' : 'ar'}>{isArabic ? 'English' : 'العربية'}</span>
-      </button>
+      <div className="tdw-auth-lang" ref={menuRef}>
+        <button
+          type="button"
+          className="tdw-auth-control"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          title={t('change_language', 'Change Language')}
+        >
+          <Icon name="languages" size={16} />
+          <span lang={current.replace('_', '-')}>{nativeLanguageName(current)}</span>
+          <Icon name="chevron-down" size={14} />
+        </button>
+        {open && (
+          <div className="tdw-auth-lang-menu" role="listbox" aria-label={t('change_language', 'Change Language')}>
+            {languages.map((lng) => (
+              <button
+                key={lng}
+                type="button"
+                role="option"
+                aria-selected={lng === current}
+                className="tdw-auth-lang-option"
+                onClick={() => {
+                  changeLanguage(lng);
+                  setOpen(false);
+                }}
+              >
+                <span lang={lng.replace('_', '-')}>{nativeLanguageName(lng)}</span>
+                {lng === current && <Icon name="check" size={14} />}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <button
         type="button"
         className="tdw-auth-control is-icon"

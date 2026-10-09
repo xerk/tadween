@@ -5,7 +5,7 @@
 // lazily by NetworkPreview, so the provider list only downloads when shown.
 // The providers' DTOs use class-validator decorators, hence reflect-metadata.
 import 'reflect-metadata';
-import { FC, useEffect, useMemo, useState } from 'react';
+import { FC, useLayoutEffect, useMemo, useState } from 'react';
 import { Providers } from '@gitroom/frontend/components/new-launch/providers/show.all.providers';
 import { getProviderSettingsMeta } from '@gitroom/frontend/components/new-launch/providers/high.order.provider';
 import { GeneralPreviewComponent } from '@gitroom/frontend/components/launches/general.preview.component';
@@ -21,12 +21,15 @@ const ProviderPostPreview: FC<{ post: PublicPost }> = ({ post }) => {
   const { integration, parts } = post;
 
   // The previews read the composer's current channel; on 'global' they draw
-  // the shared draft ("Global Edit", no picture). Set it before they render.
-  useState(() => useLaunchStore.setState({ current: post.id }));
-  useEffect(
-    () => () => useLaunchStore.setState({ current: 'global' }),
-    []
-  );
+  // the shared draft ("Global Edit", no picture). Point it at this post before
+  // the preview renders, and put it back when the preview goes away.
+  const [ready, setReady] = useState(false);
+  useLayoutEffect(() => {
+    const previous = useLaunchStore.getState().current;
+    useLaunchStore.setState({ current: post.id });
+    setReady(true);
+    return () => useLaunchStore.setState({ current: previous });
+  }, [post.id]);
 
   const meta = useMemo(() => {
     const entry = Providers.find(
@@ -75,7 +78,7 @@ const ProviderPostPreview: FC<{ post: PublicPost }> = ({ post }) => {
   const Preview = meta?.CustomPreviewComponent || GeneralPreviewComponent;
   return (
     <IntegrationContext.Provider value={context}>
-      <Preview maximumCharacters={maximumCharacters} />
+      {ready && <Preview maximumCharacters={maximumCharacters} />}
     </IntegrationContext.Provider>
   );
 };

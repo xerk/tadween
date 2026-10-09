@@ -4,11 +4,13 @@
 // use (1 / 2 / 3 / 4+ with a "+N" tile), opening into a Lightbox.
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { cx, Icon, usePresence } from '@gitroom/frontend/components/tadween/ui';
+import { cx, Icon, useEscape, usePresence } from '@gitroom/frontend/components/tadween/ui';
 import type { PublicPostMedia } from '@gitroom/frontend/components/tadween/post-page/post.page';
 
-export const isVideo = (path: string) => /\.(mp4|mov|webm|m4v)(\?|$)/i.test(path);
+// Same rule as VideoOrImage: Tadween uploads videos as mp4.
+const isVideo = (path: string) => hasExtension(path, 'mp4');
 
 const Lightbox: FC<{
   media: PublicPostMedia[];
@@ -56,23 +58,23 @@ const Lightbox: FC<{
     }
   }, [open, mounted]);
 
+  useEscape(open, onClose);
+  // Arrow keys follow the reading direction.
   useEffect(() => {
-    if (!open) {
+    if (!open || !many) {
       return;
     }
     const rtl = document.documentElement.dir === 'rtl';
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      } else if (many && e.key === 'ArrowRight') {
+      if (e.key === 'ArrowRight') {
         step(rtl ? -1 : 1);
-      } else if (many && e.key === 'ArrowLeft') {
+      } else if (e.key === 'ArrowLeft') {
         step(rtl ? 1 : -1);
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, many, step, onClose]);
+  }, [open, many, step]);
 
   if (!mounted || typeof document === 'undefined') {
     return null;

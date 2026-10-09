@@ -7,6 +7,7 @@ import {
   postContentPlainText,
   sanitizePostContent,
 } from '@gitroom/helpers/utils/sanitize.post.content';
+import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 import { isGeneralServerSide } from '@gitroom/helpers/utils/is.general.server.side';
 import {
   PublicPost,
@@ -109,7 +110,7 @@ export async function generateMetadata(props: {
   const description = clip(lines.join(' '), 200);
   const image = post.parts
     .flatMap((p) => p.media)
-    .map((m) => (/\.(mp4|mov|webm)(\?|$)/i.test(m.path) ? m.thumbnail : m.path))
+    .map((m) => (hasExtension(m.path, 'mp4') ? m.thumbnail : m.path))
     .find(Boolean);
   const imageUrl = image ? absolute(image) : '';
 

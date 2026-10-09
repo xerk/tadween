@@ -14,10 +14,12 @@ import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
-import { PublicComponent } from '@gitroom/frontend/components/public-api/public.component';
 import Link from 'next/link';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { ApprovedAppsComponent } from '@gitroom/frontend/components/approved-apps/approved-apps.component';
+import {
+  ApiSettings,
+  ApprovedAppsSettings,
+} from '@gitroom/frontend/components/tadween/settings/api.settings';
 import { useFeatures } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { TeamSettings } from '@gitroom/frontend/components/tadween/settings/team.settings';
 import {
@@ -195,7 +197,21 @@ export const SettingsPopup: FC<{
           'tdw_set_api_desc',
           'Use Tadween from your code, the CLI or an AI agent.'
         ),
-        keywords: ['API key', 'MCP', 'CLI', 'OAuth'],
+        keywords: [
+          'API key',
+          'MCP',
+          'CLI',
+          'OAuth',
+          'Claude',
+          'ChatGPT',
+          'Cursor',
+          'VS Code',
+          'Windsurf',
+          'n8n',
+          'Make',
+          'Zapier',
+          'Grok',
+        ],
       });
     }
     arr.push({
@@ -340,8 +356,8 @@ export const SettingsPopup: FC<{
           {tab === 'sets' && <SetsSettings />}
           {tab === 'autopost' && <AutopostSettings />}
           {tab === 'webhooks' && <WebhooksSettings />}
-          {tab === 'api' && <PublicComponent />}
-          {tab === 'approved_apps' && <ApprovedAppsComponent />}
+          {tab === 'api' && <ApiSettings />}
+          {tab === 'approved_apps' && <ApprovedAppsSettings />}
           {tab === 'danger' && <DangerSettings />}
         </div>
       </div>

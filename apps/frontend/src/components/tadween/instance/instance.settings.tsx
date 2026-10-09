@@ -52,6 +52,8 @@ export interface InstanceSettings {
     supportEmail: string;
     defaultLanguage: string;
     defaultTimezone: string;
+    // public docs site, from Branding → Links (sent once PR #17 is merged)
+    docsUrl?: string;
   };
   plans: PublicPlan[];
   pricing: PricingInterface;

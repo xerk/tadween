@@ -170,10 +170,21 @@ export const MiniMonth: FC = () => {
   const { startDate, endDate, display } = useCalendar();
   const { goTo } = useCalendarNavigation();
   const [month, setMonth] = useState(newDayjs(startDate).startOf('month').format('YYYY-MM-DD'));
+  // Follow the calendar, but stay on the month shown while the range still
+  // touches it (a click on 2 Oct opening 28 Sep – 4 Oct keeps October)
   useEffect(() => {
-    setMonth(newDayjs(startDate).startOf('month').format('YYYY-MM-DD'));
-  }, [startDate]);
+    setMonth((m) =>
+      m <= endDate && newDayjs(m).endOf('month').format('YYYY-MM-DD') >= startDate
+        ? m
+        : newDayjs(startDate).startOf('month').format('YYYY-MM-DD')
+    );
+  }, [startDate, endDate]);
   const busy = useMonthPostDays(month);
+  // The day last clicked stays marked while it is in the range shown
+  const [picked, setPicked] = useState<string | null>(null);
+  useEffect(() => {
+    setPicked((p) => (p && p >= startDate && p <= endDate ? p : null));
+  }, [startDate, endDate]);
 
   const first = newDayjs(month);
   const gridStart = first.startOf('isoWeek');
@@ -222,11 +233,15 @@ export const MiniMonth: FC = () => {
               className={clsx(
                 date.month() !== first.month() && 'is-out',
                 inRange && 'is-range',
+                key === picked && 'is-picked',
                 key === today && 'is-today'
               )}
               aria-current={key === today ? 'date' : undefined}
               aria-label={date.format('LL')}
-              onClick={() => pick(date)}
+              onClick={() => {
+                setPicked(key);
+                pick(date);
+              }}
             >
               {date.date()}
               {busy.has(key) && <i />}

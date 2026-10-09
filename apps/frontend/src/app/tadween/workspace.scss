@@ -1127,6 +1127,230 @@ html[dir='rtl'] body .tdw-ws .tdw-chip::before {
   }
 }
 
+// Hover card: the whole post beside its chip (chip.preview.tsx, portalled)
+.tdw-chip-card {
+  --card-ink: var(--tdw-primary);
+  position: fixed;
+  z-index: 170;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--tdw-popover) 96%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 0 0 1px var(--tdw-border), var(--tdw-shadow-lg);
+  color: var(--tdw-foreground);
+  font-size: 13px;
+  line-height: 1.45;
+  transform-origin: top left;
+  animation: tdw-ws-pop 200ms var(--tdw-ease-spring) both;
+
+  &.is-start {
+    transform-origin: top right;
+  }
+
+  &[data-state='published'] {
+    --card-ink: var(--tdw-success);
+  }
+
+  &[data-state='failed'] {
+    --card-ink: var(--tdw-destructive);
+  }
+
+  &[data-state='draft'] {
+    --card-ink: var(--tdw-muted-foreground);
+  }
+}
+html[dir='rtl'] .tdw-chip-card {
+  transform-origin: top right;
+
+  &.is-start {
+    transform-origin: top left;
+  }
+}
+
+.tdw-chip-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tdw-chip-card-who {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  line-height: 1.3;
+
+  b,
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  b {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  span {
+    font-size: 12px;
+    color: var(--tdw-muted-foreground);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.tdw-chip-card-state {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--card-ink) 12%, transparent);
+  color: var(--card-ink);
+  font-size: 11px;
+  font-weight: 600;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+}
+
+.tdw-chip-card-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tdw-destructive) 9%, transparent);
+  color: var(--tdw-destructive);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+
+  svg {
+    flex: none;
+    margin-top: 1px;
+  }
+}
+
+// About eight lines, then it scrolls and fades out at the bottom
+.tdw-chip-card-text {
+  max-height: calc(1.45em * 8);
+  margin: 0;
+  overflow-y: auto;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  unicode-bidi: plaintext;
+  text-align: start;
+  scrollbar-width: thin;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+  padding-bottom: 10px;
+
+  &:focus-visible {
+    outline: 2px solid var(--tdw-ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.tdw-chip-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 11px;
+    background: var(--tdw-muted);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+}
+
+.tdw-chip-card-acts {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--tdw-border);
+}
+
+.tdw-chip-card-grow {
+  flex: 1;
+}
+
+.tdw-chip-card-edit,
+.tdw-chip-card-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--tdw-muted-foreground);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--tdw-accent);
+    color: var(--tdw-foreground);
+    outline: none;
+  }
+
+  &.is-danger:hover,
+  &.is-danger:focus-visible {
+    color: var(--tdw-destructive);
+  }
+}
+
+.tdw-chip-card-edit {
+  gap: 6px;
+  padding: 0 12px;
+  background: var(--tdw-primary-strong);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--tdw-primary-strong);
+    color: #fff;
+    filter: brightness(1.08);
+  }
+}
+
+.tdw-chip-card-act {
+  width: 30px;
+
+  svg {
+    width: 15px;
+    height: 15px;
+  }
+}
+
 // ── 7. Side panel ───────────────────────────────────────────────────────────
 .tdw-ws-side {
   display: none;
@@ -1871,6 +2095,7 @@ html[dir='rtl'] .tdw-ws-sheet-head {
   .tdw-ws-sheet,
   .tdw-ws-scrim,
   .tdw-ws-menu,
+  .tdw-chip-card,
   .tdw-ws-dayitem,
   .tdw-ws-fab > button,
   html body .tdw-ws .tdw-chip {

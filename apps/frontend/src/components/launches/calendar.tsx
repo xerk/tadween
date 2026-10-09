@@ -60,6 +60,7 @@ import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
 import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 import { ChipMoreMenu } from '@gitroom/frontend/components/tadween/workspace/chip.more.menu';
+import { ChipPreview } from '@gitroom/frontend/components/tadween/workspace/chip.preview';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -1210,14 +1211,25 @@ const CalendarItem: FC<{
     onClick: () => void;
     danger?: boolean;
   }[];
+  // Tadween: the chip element, for the hover card
+  const chipRef = React.useRef<HTMLDivElement>(null);
   return (
     <div
-      // @ts-ignore
-      ref={dragRef}
+      ref={(el) => {
+        dragRef(el);
+        chipRef.current = el;
+      }}
       data-state={stateKey}
       className={clsx('tdw-chip group', `tdw-chip--${display}`, isBeforeNow && 'is-past')}
       style={{ opacity }}
     >
+      <ChipPreview
+        anchor={chipRef}
+        post={post}
+        stateKey={stateKey}
+        onEdit={editPost}
+        actions={actions}
+      />
       {state === 'ERROR' && (
         <div
           className="tdw-chip-error"

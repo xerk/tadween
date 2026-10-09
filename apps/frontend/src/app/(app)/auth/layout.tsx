@@ -1,10 +1,11 @@
 export const dynamic = 'force-dynamic';
 import { ReactNode } from 'react';
 import loadDynamic from 'next/dynamic';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import {
   cookieName,
   fallbackLng,
+  headerName,
 } from '@gitroom/react/translation/i18n.config';
 import { MantineWrapper } from '@gitroom/react/helpers/mantine.wrapper';
 import { Toaster } from '@gitroom/react/toaster/toaster';
@@ -25,8 +26,12 @@ export default async function AuthLayout({
 }) {
   const cookieStore = await cookies();
   const mode = cookieStore.get('mode')?.value === 'light' ? 'light' : 'dark';
-  const language = cookieStore.get(cookieName)?.value || fallbackLng;
-  const dir = ['ar', 'he'].includes(language) ? 'rtl' : 'ltr';
+  // no cookie yet (first visit): proxy.ts detected the language from the country / browser
+  const language =
+    cookieStore.get(cookieName)?.value ||
+    (await headers()).get(headerName) ||
+    fallbackLng;
+  const dir = language === 'ar' ? 'rtl' : 'ltr';
 
   return (
     <MantineWrapper>

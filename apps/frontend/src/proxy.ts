@@ -63,6 +63,10 @@ export async function proxy(request: NextRequest) {
 
   if (lng) {
     topResponse.headers.set(cookieName, lng);
+    // remember the detected language, so the client and later requests agree with it
+    if (!request.cookies.has(cookieName)) {
+      topResponse.cookies.set(cookieName, lng, { path: '/', maxAge: 60 * 60 * 24 * 365 });
+    }
   }
 
   if (nextUrl.pathname.startsWith('/modal/') && !authCookie) {

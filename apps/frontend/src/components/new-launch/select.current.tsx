@@ -189,9 +189,9 @@ export const SelectCurrent: FC = () => {
             <button
               type="button"
               onClick={removeSocial(integration)}
-              aria-label={`${t('tdw_remove_channel', 'Remove channel')}: ${
-                integration.name
-              }`}
+              aria-label={t('tdw_remove_channel_name', 'Remove {{name}}', {
+                name: integration.name,
+              })}
               className="tdw-scope-x"
             >
               <svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true">

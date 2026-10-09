@@ -84,6 +84,7 @@ export const GeneralPreviewComponent: FC<{
                   <TadweenAvatarImage
                     src={integration?.picture}
                     name={integration?.name}
+                    size={40}
                     className="rounded-full relative z-[2]"
                   />
                 )}

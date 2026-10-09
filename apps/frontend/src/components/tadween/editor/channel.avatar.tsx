@@ -19,8 +19,9 @@ const initials = (value: string) =>
 export const TadweenAvatarImage: FC<{
   src?: string | null;
   name?: string;
+  size?: number;
   className?: string;
-}> = ({ src, name = '', className }) => {
+}> = ({ src, name = '', size, className }) => {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
 
@@ -30,6 +31,7 @@ export const TadweenAvatarImage: FC<{
         className={clsx('tdw-avatar-initials', className)}
         role="img"
         aria-label={name}
+        style={size ? { width: size, height: size } : undefined}
       >
         {initials(name) || '?'}
       </span>
@@ -102,7 +104,7 @@ export const TadweenNetworkMarks: FC<{ identifiers: string[] }> = ({
       <SafeImage
         key={identifier}
         src={`/icons/platforms/${identifier}.png`}
-        alt={identifier}
+        alt=""
         width={14}
         height={14}
       />

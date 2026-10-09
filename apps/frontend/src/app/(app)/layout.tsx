@@ -10,28 +10,45 @@ import { tadweenFont as jakartaSans } from '@gitroom/frontend/app/fonts';
 import PlausibleProvider from 'next-plausible';
 import clsx from 'clsx';
 import { VariableContextComponent } from '@gitroom/react/helpers/variable.context';
+import { isGenericOauth } from '@gitroom/helpers/utils/is.generic.oauth';
 import { Fragment } from 'react';
 import { PHProvider } from '@gitroom/react/helpers/posthog';
 import UtmSaver from '@gitroom/helpers/utils/utm.saver';
 import { DubAnalytics } from '@gitroom/frontend/components/layout/dubAnalytics';
 import { FacebookComponent } from '@gitroom/frontend/components/layout/facebook.component';
 import { GoogleTagManagerComponent } from '@gitroom/frontend/components/layout/gtm.component';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import {
   cookieName,
   fallbackLng,
+  headerName,
 } from '@gitroom/react/translation/i18n.config';
 import { HtmlComponent } from '@gitroom/frontend/components/layout/html.component';
 import Script from 'next/script';
 import { ChangeDirClient } from '@gitroom/frontend/components/new-layout/change.dir.client';
 
 
+// DataFast site: DATAFAST_DOMAIN, else this instance's host (was postiz.com)
+const datafastDomain = () => {
+  try {
+    return new URL(process.env.FRONTEND_URL || '').hostname;
+  } catch (e) {
+    return '';
+  }
+};
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
-  const language = cookieStore.get(cookieName)?.value || fallbackLng;
-  const Plausible = !!process.env.STRIPE_PUBLISHABLE_KEY
-    ? PlausibleProvider
-    : Fragment;
+  // no cookie yet (first visit): proxy.ts detected the language from the country / browser
+  const language =
+    cookieStore.get(cookieName)?.value ||
+    (await headers()).get(headerName) ||
+    fallbackLng;
+  // Tadween: analytics only report to accounts configured here, never to
+  // Postiz's (it used to send to the postiz.com Plausible site whenever Stripe
+  // was on).
+  const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || '';
+  const Plausible = plausibleDomain ? PlausibleProvider : Fragment;
   return (
     <html>
       <head>
@@ -39,7 +56,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         {!!process.env.DATAFAST_WEBSITE_ID && (
           <Script
             data-website-id={process.env.DATAFAST_WEBSITE_ID}
-            data-domain="postiz.com"
+            data-domain={process.env.DATAFAST_DOMAIN || datafastDomain()}
             src="https://datafa.st/js/script.js"
             strategy="afterInteractive"
           />
@@ -62,14 +79,20 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           discordUrl={process.env.NEXT_PUBLIC_DISCORD_SUPPORT!}
           frontEndUrl={process.env.FRONTEND_URL!}
           isGeneral={!!process.env.IS_GENERAL}
-          genericOauth={!!process.env.POSTIZ_GENERIC_OAUTH}
+          genericOauth={isGenericOauth()}
           oauthLogoUrl={process.env.NEXT_PUBLIC_POSTIZ_OAUTH_LOGO_URL!}
           oauthDisplayName={process.env.NEXT_PUBLIC_POSTIZ_OAUTH_DISPLAY_NAME!}
           uploadDirectory={process.env.NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY!}
           cloudflareUrl={process.env.CLOUDFLARE_BUCKET_URL || ''}
           mainUrl={process.env.MAIN_URL || ''}
           mcpUrl={process.env.MCP_URL}
-          dub={!!process.env.STRIPE_PUBLISHABLE_KEY}
+          dub={
+            !!process.env.STRIPE_PUBLISHABLE_KEY &&
+            !!process.env.NEXT_PUBLIC_DUB_REFER_DOMAIN
+          }
+          dubReferDomain={process.env.NEXT_PUBLIC_DUB_REFER_DOMAIN || ''}
+          mcpOfficialConnectors={process.env.MCP_OFFICIAL_CONNECTORS === 'true'}
+          chromeExtensionUrl={process.env.CHROME_EXTENSION_URL || ''}
           facebookPixel={process.env.NEXT_PUBLIC_FACEBOOK_PIXEL!}
           telegramBotName={process.env.TELEGRAM_BOT_NAME!}
           neynarClientId={process.env.NEYNAR_CLIENT_ID!}
@@ -83,6 +106,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           googleAdsTrialTracking={process.env.NEXT_PUBLIC_TRACKING_TRIAL}
           language={language}
           recaptchaSiteKey={process.env.RECAPTCHA_SITE_KEY || ''}
+          termsUrl={process.env.NEXT_PUBLIC_TERMS_URL || ''}
+          privacyUrl={process.env.NEXT_PUBLIC_PRIVACY_URL || ''}
           mediaProcessing={
             process.env.STORAGE_PROVIDER === 'cloudflare' &&
             !!process.env.RUNPOD_API_KEY &&
@@ -103,9 +128,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <DubAnalytics />
             <FacebookComponent />
             <GoogleTagManagerComponent gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
-            <Plausible
-              domain={!!process.env.IS_GENERAL ? 'postiz.com' : 'gitroom.com'}
-            >
+            <Plausible domain={plausibleDomain}>
               <PHProvider
                 phkey={process.env.NEXT_PUBLIC_POSTHOG_KEY}
                 host={process.env.NEXT_PUBLIC_POSTHOG_HOST}

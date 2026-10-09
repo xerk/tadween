@@ -173,7 +173,7 @@
   }
 
   // Arabic type styles inside RTL surfaces
-  &.is-ar, .is-ar { font-family: var(--font-plex-arabic), var(--font-geist), system-ui, sans-serif; }
+  &.is-ar, .is-ar { font-family: var(--font-arabic), var(--font-geist), system-ui, sans-serif; }
   .is-ar .title-1 { font-size: 28px; line-height: 40px; letter-spacing: 0; }
   .is-ar .pz-ob-lead { font-size: 15px; line-height: 26px; }
   .is-ar .caption { letter-spacing: 0; }

@@ -7,6 +7,7 @@
 @use './tadween/home.scss';
 @use './tadween/workspace.scss';
 @use './tadween/composer-mobile.scss';
+@use './tadween/auth.scss';
 @use './tadween/billing.scss';
 @use './polonto.css';
 @use '@uppy/core/dist/style.css' as uppyCore;
@@ -601,7 +602,7 @@ html[dir='rtl'] [dir='ltr'] {
 //
 
 .ProseMirror {
-  font-family: Arial;
+  font-family: Arial, var(--font-arabic), sans-serif;
 }
 
 .ProseMirror:focus {

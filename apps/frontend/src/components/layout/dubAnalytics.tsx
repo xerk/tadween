@@ -5,12 +5,12 @@ import { Analytics as DubAnalyticsIn } from '@dub/analytics/react';
 import { getCookie } from 'react-use-cookie';
 
 export const DubAnalytics = () => {
-  const { dub } = useVariables();
-  if (!dub) return null;
+  const { dub, dubReferDomain } = useVariables();
+  if (!dub || !dubReferDomain) return null;
   return (
     <DubAnalyticsIn
       domainsConfig={{
-        refer: 'postiz.pro',
+        refer: dubReferDomain,
       }}
     />
   );

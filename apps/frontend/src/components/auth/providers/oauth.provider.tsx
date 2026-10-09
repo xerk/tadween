@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
+import { AuthProviderButton } from '@gitroom/frontend/components/tadween/auth/auth.parts';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 export const OauthProvider = () => {
   const fetch = useFetch();
@@ -24,23 +25,19 @@ export const OauthProvider = () => {
     }
   }, []);
   return (
-    <div
+    <AuthProviderButton
       onClick={gotoLogin}
-      className={`cursor-pointer flex-1 bg-white h-[44px] rounded-[4px] flex justify-center items-center text-customColor16 gap-[4px]`}
-    >
-      <div>
+      label={t('tdw_auth_continue_with', 'Continue with {{provider}}', {
+        provider: oauthDisplayName || 'OAuth',
+      })}
+      mark={
         <SafeImage
           src={oauthLogoUrl || '/icons/generic-oauth.svg'}
-          alt="genericOauth"
-          width={40}
-          height={40}
-          className="-mt-[7px]"
+          alt=""
+          width={20}
+          height={20}
         />
-      </div>
-      <div>
-        {t('sign_in_with', 'Sign in with')}&nbsp;
-        {oauthDisplayName || 'OAuth'}
-      </div>
-    </div>
+      }
+    />
   );
 };

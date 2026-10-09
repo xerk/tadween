@@ -44,10 +44,21 @@ export interface PublicPlan {
   features: string[];
 }
 
+// Public links from /admin → Branding (env TADWEEN_*_URL until saved). An
+// empty value means "hide the link", never "use Postiz's".
+export interface BrandLinks {
+  websiteUrl: string;
+  termsUrl: string;
+  privacyUrl: string;
+  docsUrl: string;
+  supportUrl: string;
+  tutorialVideoUrl: string;
+}
+
 export interface InstanceSettings {
   registration: { mode: 'open' | 'invite' | 'closed' };
   features: Partial<Record<FeatureKey, boolean>>;
-  branding: {
+  branding: BrandLinks & {
     instanceName: string;
     supportEmail: string;
     defaultLanguage: string;
@@ -55,6 +66,8 @@ export interface InstanceSettings {
   };
   plans: PublicPlan[];
   pricing: PricingInterface;
+  // social sign-in providers the backend has credentials for, { google: true }
+  login?: Record<string, boolean>;
 }
 
 export const INSTANCE_SETTINGS_KEY = '/instance/settings';
@@ -83,6 +96,38 @@ export const useFeatures = () => {
     (key: FeatureKey) => data?.features?.[key] !== false,
     [data]
   );
+};
+
+// `isConfigured('google')` — true once the backend reports credentials for
+// that sign-in provider. False while loading, so a button that cannot work
+// never shows.
+export const useLoginProviders = () => {
+  const { data } = useInstanceSettings();
+  return useCallback(
+    (provider: string) => data?.login?.[provider] === true,
+    [data]
+  );
+};
+
+// Brand name and public links for UI text and hrefs. `docs('/mcp')` joins a
+// path onto the docs base, or returns '' when no docs site is set.
+export const useBrandLinks = () => {
+  const { data } = useInstanceSettings();
+  return useMemo(() => {
+    const branding = data?.branding;
+    const docsUrl = (branding?.docsUrl || '').replace(/\/+$/, '');
+    return {
+      name: branding?.instanceName || 'Tadween',
+      supportEmail: branding?.supportEmail || '',
+      websiteUrl: branding?.websiteUrl || '',
+      termsUrl: branding?.termsUrl || '',
+      privacyUrl: branding?.privacyUrl || '',
+      supportUrl: branding?.supportUrl || '',
+      tutorialVideoUrl: branding?.tutorialVideoUrl || '',
+      docsUrl,
+      docs: (path = '') => (docsUrl ? `${docsUrl}${path}` : ''),
+    };
+  }, [data]);
 };
 
 // Billing data: the static Postiz pricing map with the admin's plans overlaid

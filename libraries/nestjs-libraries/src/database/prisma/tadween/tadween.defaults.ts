@@ -94,20 +94,72 @@ export const featureDefaultsFromEnv = (): Record<FeatureKey, boolean> => {
 };
 
 // ── Branding ─────────────────────────────────────────────────────────────────
-export interface Branding {
+// Public links shown in the product (terms, docs, support…). Empty hides the
+// link; nothing falls back to Postiz's own sites.
+export const BRAND_LINK_KEYS = [
+  'websiteUrl',
+  'termsUrl',
+  'privacyUrl',
+  'docsUrl',
+  'supportUrl',
+  'tutorialVideoUrl',
+] as const;
+export type BrandLinkKey = (typeof BRAND_LINK_KEYS)[number];
+export type BrandLinks = Record<BrandLinkKey, string>;
+
+export interface Branding extends BrandLinks {
   instanceName: string;
   supportEmail: string;
   defaultLanguage: string;
   defaultTimezone: string;
 }
 
+// Env fallbacks until the admin saves Branding: TADWEEN_WEBSITE_URL,
+// TADWEEN_TERMS_URL, TADWEEN_PRIVACY_URL, TADWEEN_DOCS_URL, TADWEEN_SUPPORT_URL,
+// TADWEEN_TUTORIAL_VIDEO_URL.
+export const brandLinksFromEnv = (): BrandLinks => ({
+  websiteUrl: process.env.TADWEEN_WEBSITE_URL || '',
+  termsUrl: process.env.TADWEEN_TERMS_URL || '',
+  privacyUrl: process.env.TADWEEN_PRIVACY_URL || '',
+  docsUrl: process.env.TADWEEN_DOCS_URL || '',
+  supportUrl: process.env.TADWEEN_SUPPORT_URL || '',
+  tutorialVideoUrl: process.env.TADWEEN_TUTORIAL_VIDEO_URL || '',
+});
+
 export const brandingDefaults = (): Branding => ({
-  instanceName: 'Tadween',
+  instanceName: process.env.TADWEEN_INSTANCE_NAME || 'Tadween',
   supportEmail: process.env.EMAIL_FROM_ADDRESS || '',
   defaultLanguage: 'en',
   // Empty means "use the browser's time zone", which is what Postiz does today.
   defaultTimezone: '',
+  ...brandLinksFromEnv(),
 });
+
+// For code that has no access to the settings service (provider user agents,
+// MCP server metadata): the instance name from env, never "Postiz".
+export const brandNameFromEnv = () => brandingDefaults().instanceName;
+
+// User-Agent for outgoing provider calls (WordPress, Tumblr): this instance,
+// not postiz.com.
+export const brandUserAgent = () =>
+  `${brandNameFromEnv().replace(/[^A-Za-z0-9._-]/g, '') || 'Tadween'}/1.0 (+${
+    process.env.FRONTEND_URL || 'http://localhost'
+  })`;
+
+// Domain for generated addresses (accounts without an email, Stripe customers):
+// TADWEEN_PLACEHOLDER_EMAIL_DOMAIN, else this instance's host. Used to be
+// @postiz.com, which would route Stripe mail to Postiz's domain.
+export const placeholderEmailDomain = () => {
+  if (process.env.TADWEEN_PLACEHOLDER_EMAIL_DOMAIN) {
+    return process.env.TADWEEN_PLACEHOLDER_EMAIL_DOMAIN;
+  }
+  try {
+    const host = new URL(process.env.FRONTEND_URL || '').hostname;
+    return host.includes('.') ? host : 'example.com';
+  } catch (e) {
+    return 'example.com';
+  }
+};
 
 // ── Providers ────────────────────────────────────────────────────────────────
 // Instance credentials each provider needs. Only the *names* are ever sent to

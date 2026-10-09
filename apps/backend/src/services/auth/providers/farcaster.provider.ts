@@ -10,6 +10,10 @@ const client = new NeynarAPIClient({
 
 @AuthProvider({ provider: 'FARCASTER' })
 export class FarcasterProvider extends AuthProviderAbstract {
+  override isConfigured() {
+    return !!process.env.NEYNAR_SECRET_KEY;
+  }
+
   // no OAuth redirect here, the frontend only needs the state nonce that
   // pairs with the oauth_state cookie set by /auth/oauth/FARCASTER
   generateLink(query?: { state?: string }) {

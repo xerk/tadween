@@ -6,21 +6,12 @@
 // this one import. Only the `arabic` subset is loaded, so Latin text always stays on Geist.
 import { Geist, Geist_Mono, Tajawal } from 'next/font/google';
 
-// No metric fallback for the Latin faces: next/font's "Geist Fallback" is local Arial, which
-// also has Arabic glyphs, so it sat before --font-arabic in every stack and drew all Arabic
-// text in Arial on Windows/macOS.
-const geist = Geist({
-  subsets: ['latin', 'latin-ext'],
-  variable: '--font-geist',
-  display: 'swap',
-  adjustFontFallback: false,
-});
-const geistMono = Geist_Mono({
-  subsets: ['latin'],
-  variable: '--font-geist-mono',
-  display: 'swap',
-  adjustFontFallback: false,
-});
+// `--font-geist` is "'Geist', 'Geist Fallback'" and that fallback is local Arial, which also
+// has Arabic glyphs. So every stack names 'Geist' first, then --font-arabic, then
+// --font-geist: Arabic must reach the Arabic face before Arial, or it renders in Arial on
+// Windows/macOS.
+const geist = Geist({ subsets: ['latin', 'latin-ext'], variable: '--font-geist', display: 'swap' });
+const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono', display: 'swap' });
 // Tajawal has no 600 weight: semibold text resolves to 700
 const arabic = Tajawal({
   subsets: ['arabic'],

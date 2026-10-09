@@ -238,7 +238,7 @@ body {
 // same fallback. Form controls inherit it (Tailwind preflight).
 html[dir='rtl'] body,
 html[lang='ar'] body {
-  font-family: var(--font-geist), var(--font-arabic), system-ui, sans-serif;
+  font-family: 'Geist', var(--font-arabic), var(--font-geist), system-ui, sans-serif;
 }
 
 // Postiz removes every outline (`body * { outline: none !important }`).
@@ -280,7 +280,7 @@ body button:not(:disabled):active {
 // Typeface: the variables come from app/fonts.ts on <body class="tdw-font …">
 body.tdw-font,
 .tdw-font {
-  font-family: var(--font-geist), var(--font-arabic), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: 'Geist', var(--font-arabic), var(--font-geist), system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 // ── Calendar post chip (launches/calendar.tsx → CalendarItem) ─────────────

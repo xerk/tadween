@@ -8,6 +8,10 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ? trim(process.env.NEXT_P
 /** Where this marketing site is served from (canonical URLs, sitemap, Open Graph). */
 export const SITE_URL = trim(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:4300');
 
+/** The API base the developer and agent pages show in their examples. Without
+    NEXT_PUBLIC_API_URL they show a placeholder the reader replaces. */
+export const DOCS_API_URL = API_URL || 'https://api.your-tadween-domain';
+
 export const SIGN_UP_URL = `${APP_URL}/auth`;
 export const SIGN_IN_URL = `${APP_URL}/auth/login`;
 

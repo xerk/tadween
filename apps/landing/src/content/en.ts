@@ -1,8 +1,11 @@
 import { LICENSE_URL, SIGN_IN_URL, SIGN_UP_URL, SOURCE_URL } from '@/lib/config';
+import { channelsEn } from './channels.en';
 import type { Dict } from './types';
 
 // English copy, from the design system's landing and pricing components
-// (components/src/pages.tsx). Sentence case, no emoji, no invented stats.
+// (components/src/pages.tsx). Sentence case, no emoji, no invented stats. Claims about the
+// product follow the app's code: calendar views are day, week, month and list; the media
+// library has no folders; the agent can't delete posts.
 export const en: Dict = {
   lang: 'en',
   dir: 'ltr',
@@ -11,31 +14,49 @@ export const en: Dict = {
   meta: {
     title: 'Tadween — LinkedIn scheduling, written in two languages',
     description:
-      'Plan LinkedIn posts for your profile and company pages, preview them exactly as LinkedIn will show them, and publish at the hour your audience is reading. In English and Arabic.',
+      'Plan LinkedIn posts for your profile and company pages, preview them exactly as LinkedIn will show them, and publish at the hour your audience is reading. In English and Arabic, with 30+ channels and an AI agent.',
     pricingTitle: 'Pricing — Tadween',
     pricingDescription:
-      'Four plans for people, brands and agencies on LinkedIn. Every plan starts with seven days free. Pay in Egyptian pounds or US dollars.',
+      'Four plans for people, brands and agencies on LinkedIn, from $9 a month. Every plan starts with seven days free. Pay in Egyptian pounds or US dollars.',
     ogLocale: 'en_US',
+    features: {
+      title: 'Features — calendar, previews, team, analytics and AI agent | Tadween',
+      description:
+        'Everything in Tadween: LinkedIn-first previews, Arabic right-to-left writing, a team calendar, analytics, the media library, automation and an AI agent that schedules for you.',
+    },
+    agent: {
+      title: 'AI agent for social media scheduling, with MCP | Tadween',
+      description:
+        'Let Tadween’s agent, Claude, ChatGPT or Cursor write and schedule your LinkedIn posts. Connect any MCP client with your API key and schedule in English or Arabic.',
+    },
+    developers: {
+      title: 'Developers — public API, MCP server and webhooks | Tadween',
+      description:
+        'Schedule posts, upload media and read analytics from your own code. Tadween’s public API, MCP server and webhooks, with the endpoints and limits.',
+    },
   },
   skip: 'Skip to content',
   nav: {
     label: 'Main',
     links: [
-      { href: '/#features', label: 'Product' },
-      { href: '/#flow', label: 'How it works' },
-      { href: '/#arabic', label: 'Arabic' },
+      { href: '/features', label: 'Features' },
+      { href: '/channels', label: 'Channels' },
+      { href: '/ai-agent', label: 'AI agent' },
       { href: '/pricing', label: 'Pricing' },
+      { href: '/developers', label: 'Developers' },
     ],
     signIn: 'Sign in',
     startTrial: 'Start free trial',
     home: 'Tadween home',
     switchTo: { label: 'ع', title: 'العربية', lang: 'ar' },
     theme: 'Switch between light and dark',
+    menu: 'Menu',
+    breadcrumb: 'Breadcrumb',
   },
   hero: {
     eyebrow: 'Built for LinkedIn, fluent in Arabic',
     title: 'Your LinkedIn week, written and scheduled.',
-    sub: 'Plan posts for your profile and company pages, see them exactly as LinkedIn will, and publish at the hour your audience is reading.',
+    sub: 'Plan posts for your profile and company pages, see them exactly as LinkedIn will, and publish at the hour your audience is reading. Then reach 30+ other channels from the same calendar.',
     primary: 'Start 7-day trial',
     secondary: 'See how it works',
     fine: 'No card needed · Cancel any time · Pay in EGP or USD',
@@ -54,26 +75,321 @@ export const en: Dict = {
   flow: {
     title: 'From idea to published, in one calm flow.',
     steps: [
-      { title: 'Write', body: 'Draft in English or Arabic. The smart layer suggests a stronger first line.', icon: 'pencil' },
-      { title: 'Preview', body: 'See the post exactly as the feed will: “…more”, images, first comment.', icon: 'eye' },
+      { title: 'Write', body: 'Draft once, in English or Arabic, with the agent beside you if you want it.', icon: 'pencil' },
+      { title: 'Preview everywhere', body: 'See the post the way LinkedIn, X and Threads will show it, and adjust each one.', icon: 'eye' },
       { title: 'Schedule', body: 'Drop it on the calendar, or take the best time for your audience.', icon: 'calendar' },
+      { title: 'Published', body: 'Tadween posts it on time, adds your first comment and tells your webhooks.', icon: 'circle-check' },
     ],
     author: { name: 'Mona Adel', headline: 'Founder at Studio Nile', initials: 'MA' },
     text: 'We hired our first 10 engineers in Cairo in 90 days.\n\nThree things made it work — and none of them was a recruiter.',
     chipWhen: 'Wed 14 Oct · 08:45',
-    chipWhere: 'Scheduled on 2 channels',
+    chipWhere: 'Scheduled on 3 channels',
+    published: 'Published',
+    publishedWhere: 'LinkedIn, X and Threads · 08:45',
+    xText: 'Hired 10 engineers in Cairo in 90 days. What worked ↓',
+    threadsText: 'Three things made our Cairo hiring work. 1/3',
+    week: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'],
+  },
+  proof: {
+    title: 'Trusted by teams in Egypt and the Gulf',
+    placeholder: 'Placeholder — replace with real customers before launch',
+    logo: 'Customer logo',
+    quote: 'A real customer quote goes here, with their permission.',
+    quoteBy: 'Name, role, company',
   },
   features: {
     title: 'Everything a LinkedIn week needs',
     sub: 'The full power of an open-source scheduler, rebuilt around one network and two languages.',
-    items: [
-      { icon: 'calendar-days', title: 'A calendar that feels physical', body: 'Drag posts between days; they follow your hand and settle into place. Day, week, month and list views.' },
-      { icon: 'eye', title: 'See it before LinkedIn does', body: 'Pixel-true previews for profiles and pages, on desktop and mobile, with “…more”, carousels and first comments.' },
-      { icon: 'sparkles', title: 'A quiet smart layer', body: 'Best-time hints and stronger hooks, drawn from your own posts. Nothing changes until you apply it.', smart: true },
-      { icon: 'languages', title: 'Arabic, done properly', body: 'Right-to-left editor and previews, Arabic digits, and rewrites written for Egyptian and Gulf readers.' },
-      { icon: 'message-square', title: 'First comments, on time', body: 'Put links in the first comment and post it minutes later, so your reach stays high.' },
-      { icon: 'users', title: 'Built for teams', body: 'Invite teammates, keep each client in their own group, share preview links for feedback, and see everyone on one calendar.' },
+    more: 'See every feature',
+  },
+  channelsSection: {
+    title: 'LinkedIn first. 30+ channels when you need them.',
+    sub: 'Your profile and pages lead; X, Instagram, TikTok, YouTube and the rest sit on the same calendar.',
+    all: 'See all channels',
+    more: 'and 13 more',
+  },
+  agentTeaser: {
+    title: 'Ask, and it’s on the calendar.',
+    sub: 'Tadween’s agent writes and schedules for you, in the app or from Claude, ChatGPT and Cursor through MCP.',
+    prompt: 'Write three LinkedIn posts about our hiring week, one of them in Arabic, and schedule them Sunday to Tuesday at 9:00.',
+    calls: [
+      { tool: 'integrationList', label: 'Found your LinkedIn profile and 2 pages' },
+      { tool: 'integrationSchema', label: 'Checked LinkedIn’s rules and limits' },
+      { tool: 'integrationSchedulePostTool', label: 'Scheduled 3 posts' },
     ],
+    done: 'Sun, Mon and Tue at 09:00 · ready to review',
+    link: 'Meet the agent',
+  },
+  homeFaq: {
+    title: 'Questions',
+    items: [
+      { title: 'What is Tadween?', content: 'A social media scheduler built for LinkedIn first and for Arabic writers. You write, preview and schedule posts for your profile and company pages, and for 30+ other networks, from one calendar.' },
+      { title: 'Which networks can I post to?', content: 'LinkedIn profiles and pages, X, Instagram, Facebook, Threads, TikTok, YouTube, Pinterest, Bluesky, Mastodon, Reddit, Telegram, Discord, Slack, Google Business Profile, Medium, Dev.to, Hashnode, WordPress and more.' },
+      { title: 'Does it really handle Arabic?', content: 'Yes. The editor and previews are right to left, the interface is in Arabic, and posts keep their punctuation and numbers where Arabic readers expect them.' },
+      { title: 'Can an AI agent schedule for me?', content: 'Yes. Use the agent inside Tadween, or connect Claude, ChatGPT, Cursor or any MCP client with your API key. It can write, schedule, list posts and add media. It can’t delete posts.' },
+      { title: 'Can my team and clients work in it?', content: 'Invite teammates, keep each client’s channels in their own customer group, and send preview links so people can comment before a post goes out.' },
+      { title: 'Is there a free trial?', content: 'Every plan starts with seven days free, and you can pay in Egyptian pounds or US dollars.' },
+    ],
+  },
+  featuresPage: {
+    title: 'Everything in Tadween',
+    sub: 'A calm scheduler for LinkedIn and every other channel, in English and Arabic, for one person or a whole agency.',
+    jump: 'On this page',
+    sections: [
+      {
+        id: 'linkedin',
+        icon: 'briefcase',
+        art: 'linkedin',
+        title: 'LinkedIn first',
+        body: 'Profiles and company pages, previews that match the feed, and the first comment on time.',
+        points: [
+          'Your profile and every page you admin, on one calendar',
+          'Previews with “…more”, image crops and the first comment',
+          'Document carousels from two or more images',
+          'Links in the first comment, posted right after the post',
+          'Auto-repost or auto-comment on pages once a post passes your like threshold',
+        ],
+      },
+      {
+        id: 'arabic',
+        icon: 'languages',
+        art: 'arabic',
+        title: 'Arabic, done properly',
+        body: 'Right-to-left editor and previews, an Arabic interface, and posts that read the way your audience reads.',
+        points: [
+          'Right-to-left editing and previews on every network',
+          'A full Arabic interface, and English when you switch',
+          'Punctuation, numbers and mentions stay in the right place',
+          'Write one post in English and one in Arabic for the same moment',
+        ],
+      },
+      {
+        id: 'calendar',
+        icon: 'calendar-days',
+        art: 'calendar',
+        title: 'A calendar for the whole week',
+        body: 'Day, week, month and list views. Drag a post to move it; every channel sits side by side.',
+        points: [
+          'Day, week, month and list views',
+          'Drag and drop to reschedule',
+          'Filter by customer to see one client’s week',
+          'Repeat evergreen posts on a schedule',
+          'Tags to colour-code campaigns',
+        ],
+      },
+      {
+        id: 'team',
+        icon: 'users',
+        art: 'team',
+        title: 'Teams and clients',
+        body: 'Invite teammates, keep each client apart, and collect feedback with preview links.',
+        points: [
+          'Invite teammates to write and schedule',
+          'Customer groups keep each client’s channels apart',
+          'Preview links anyone can open and comment on',
+          'Sets save a group of channels with a template',
+          'Signatures add your sign-off automatically',
+        ],
+      },
+      {
+        id: 'analytics',
+        icon: 'chart-column',
+        art: 'analytics',
+        title: 'Analytics that stay simple',
+        body: 'See how each channel and each post performs, where the network shares the numbers.',
+        points: [
+          'Channel analytics over the period you pick',
+          'Post-level results for the networks that report them',
+          'Short links that count clicks',
+          'The same numbers through the public API',
+        ],
+      },
+      {
+        id: 'media',
+        icon: 'image',
+        art: 'media',
+        title: 'A media library you reuse',
+        body: 'Upload once and use it everywhere. Import from a link, or generate an image for a post.',
+        points: [
+          'One library for images and video, shared by the workspace',
+          'Import media from any public link',
+          'Generate images for a post with AI credits',
+          'Each network’s media rules checked before publishing',
+        ],
+      },
+      {
+        id: 'agent',
+        icon: 'bot',
+        art: 'agent',
+        title: 'An AI agent that schedules',
+        body: 'Ask in plain words and the agent writes, checks each network’s rules and puts posts on the calendar.',
+        smart: true,
+        points: [
+          'An agent inside Tadween, in English or Arabic',
+          'MCP server for Claude, ChatGPT, Cursor and other clients',
+          'Writes, schedules, lists posts and imports media',
+          'Can’t delete posts, so the calendar stays yours',
+        ],
+      },
+      {
+        id: 'automation',
+        icon: 'zap',
+        art: 'automation',
+        title: 'Automation and integrations',
+        body: 'RSS auto-post, plugs that react to traction, webhooks and a public API.',
+        points: [
+          'RSS auto-post turns new feed items into posts',
+          'Plugs repost or comment when a post takes off',
+          'Webhooks when a post is published',
+          'Public API and MCP for your own tools',
+        ],
+      },
+    ],
+  },
+  agentPage: {
+    eyebrow: 'AI agent',
+    title: 'An AI agent that writes and schedules your posts',
+    sub: 'Talk to Tadween’s agent in the app, or connect Claude, ChatGPT, Cursor and other MCP clients. It knows your channels and each network’s rules, and puts the posts on your calendar.',
+    can: {
+      title: 'What the agent can do today',
+      sub: 'The same tools power the in-app agent, the MCP server and the public API.',
+      items: [
+        { icon: 'pencil', title: 'Write posts', body: 'Drafts in English or Arabic, shaped for each network and its character limit.' },
+        { icon: 'calendar', title: 'Schedule and publish', body: 'Picks the channels, reads each network’s settings and schedules the posts, or publishes now.' },
+        { icon: 'calendar-days', title: 'List what’s planned', body: 'Reads the posts in any date range, so you can ask what’s going out this week.' },
+        { icon: 'upload', title: 'Import media', body: 'Brings an image or video into your media library from a public link and attaches it.' },
+        { icon: 'image', title: 'Generate images and video', body: 'Creates images or short videos for a post, using your plan’s AI credits.' },
+        { icon: 'users', title: 'Work per client', body: 'Lists customer groups and their channels, so agencies keep clients apart.' },
+      ],
+    },
+    cannot: 'The agent can’t delete posts. Deleting stays a person’s decision, in the calendar.',
+    connect: {
+      title: 'Connect your agent in a minute',
+      sub: 'Any client that speaks MCP can use Tadween.',
+      steps: [
+        { title: 'Open Settings → API & MCP', body: 'In Tadween, go to Settings and open API & MCP.' },
+        { title: 'Copy your API key', body: 'Or skip the key: Claude and ChatGPT can sign in to Tadween with OAuth.' },
+        { title: 'Add the MCP server', body: 'Paste the endpoint into your client with the key as a Bearer header.' },
+        { title: 'Ask', body: '“What’s scheduled on LinkedIn this week?” is a good first question.' },
+      ],
+      endpointLabel: 'MCP endpoint',
+      keyLabel: 'Header',
+      clientsNote: 'Works with Claude, ChatGPT, Claude Code, Cursor, VS Code, Windsurf, Codex, Gemini CLI and other MCP clients.',
+    },
+    prompts: {
+      title: 'Things to ask',
+      sub: 'LinkedIn first, in either language.',
+      items: [
+        { lang: 'en', text: 'Turn this blog post into three LinkedIn posts for my profile and schedule them Sunday, Tuesday and Thursday at 9:00.' },
+        { lang: 'ar', text: 'اكتب منشورًا على لينكدإن لصفحة الشركة عن افتتاح فرعنا في الرياض، وجدوِله غدًا الساعة ٨:٤٥ صباحًا.' },
+        { lang: 'en', text: 'What’s scheduled on LinkedIn and X next week? Move anything on Friday to Thursday.' },
+        { lang: 'ar', text: 'حوّل هذا المنشور الإنجليزي إلى العربية بأسلوب مهني، وانشره على حسابي الشخصي مع رابط المقال في التعليق الأول.' },
+        { lang: 'en', text: 'Import the image from this link and post it to our LinkedIn page and Instagram tomorrow morning.' },
+        { lang: 'ar', text: 'ما المنشورات المجدولة لعميل «ستوديو النيل» هذا الشهر؟' },
+      ],
+    },
+    inApp: {
+      title: 'Inside Tadween, too',
+      sub: 'Open the agent from the sidebar and chat. It uses your channels, your customers and your calendar.',
+      points: ['No setup: it’s part of your workspace', 'Remembers the conversation', 'You see every post before and after it’s scheduled'],
+    },
+    connectors: {
+      title: 'Connectors, coming soon',
+      sub: 'We’re adding connectors so the agent can pull from the tools you already use and publish from them.',
+      badge: 'Coming soon',
+      items: [
+        { icon: 'hard-drive', title: 'Google Drive and Dropbox', body: 'Pick images and video straight from your drives.' },
+        { icon: 'file-text', title: 'Notion and Google Docs', body: 'Turn a doc or a page into posts for each channel.' },
+        { icon: 'rss', title: 'Blogs and RSS', body: 'Smarter auto-posting from your blog, with drafts to review.' },
+        { icon: 'layers', title: 'Canva', body: 'Bring designs into the media library without downloading them.' },
+        { icon: 'users', title: 'HubSpot', body: 'Plan campaigns around your CRM and report back.' },
+        { icon: 'bell', title: 'Slack and Microsoft Teams', body: 'Get told when a post publishes or fails.' },
+        { icon: 'webhook', title: 'Zapier, Make and n8n', body: 'Connect anything else through webhooks and the API.' },
+      ],
+      planNote: 'Planned, not built yet. The order may change.',
+    },
+    faq: [
+      { title: 'Which AI clients can I use?', content: 'Any client that supports MCP over HTTP: Claude, ChatGPT, Claude Code, Cursor, VS Code, Windsurf, Codex, Gemini CLI and more. Claude and ChatGPT can also sign in with OAuth instead of an API key.' },
+      { title: 'Where do I find my API key?', content: 'In Tadween, open Settings, then API & MCP. You can copy the key and see ready-made settings for each client there.' },
+      { title: 'Can the agent post without asking me?', content: 'It does what you ask. If you ask it to schedule, it schedules; you can always open the post in the calendar, edit it or delete it.' },
+      { title: 'Can it delete posts?', content: 'No. The agent has no delete tool. Deleting is done in the calendar, or by your own code through the public API.' },
+      { title: 'Does it write in Arabic?', content: 'Yes. Ask in Arabic or English and say which language the post should be in.' },
+      { title: 'Is the agent on every plan?', content: 'Yes, the agent and the MCP server come with every paid plan. Generated images and videos use your plan’s AI credits.' },
+    ],
+  },
+  developersPage: {
+    eyebrow: 'Developers',
+    title: 'Build on Tadween',
+    sub: 'A public API, an MCP server and webhooks. Schedule posts, upload media and read analytics from your own code.',
+    api: {
+      title: 'Public API',
+      sub: 'REST over HTTPS, JSON in and out. Every path below starts with /public/v1.',
+      authNote: 'Send your API key in the Authorization header. Find it in Settings → API & MCP.',
+      groups: [
+        {
+          title: 'Posts',
+          endpoints: [
+            ['GET', '/posts', 'List posts in a date range'],
+            ['POST', '/posts', 'Create, schedule or publish posts'],
+            ['DELETE', '/posts/:id', 'Delete a post'],
+            ['GET', '/find-slot/:id', 'Next free time slot on a channel'],
+          ],
+        },
+        {
+          title: 'Channels',
+          endpoints: [
+            ['GET', '/integrations', 'Connected channels'],
+            ['GET', '/integration-settings/:id', 'A channel’s settings and rules'],
+            ['GET', '/social/:integration', 'Link to connect a new channel'],
+          ],
+        },
+        {
+          title: 'Media',
+          endpoints: [
+            ['POST', '/upload', 'Upload a file'],
+            ['POST', '/upload-from-url', 'Import media from a public link'],
+          ],
+        },
+        {
+          title: 'Analytics and account',
+          endpoints: [
+            ['GET', '/analytics/:integration', 'Channel analytics'],
+            ['GET', '/analytics/post/:postId', 'A post’s analytics'],
+            ['GET', '/groups', 'Customer groups'],
+          ],
+        },
+      ],
+    },
+    mcp: {
+      title: 'MCP server',
+      sub: 'Give any AI agent the same tools as Tadween’s own: list channels, read a network’s rules, schedule posts, list posts and import media.',
+      samples: [
+        { label: 'Claude Code', code: 'claude mcp add --transport http tadween {api}/mcp \\\n  --header "Authorization: Bearer YOUR_API_KEY"' },
+        { label: 'Cursor, VS Code, Windsurf', code: '{\n  "mcpServers": {\n    "tadween": {\n      "url": "{api}/mcp",\n      "headers": { "Authorization": "Bearer YOUR_API_KEY" }\n    }\n  }\n}' },
+        { label: 'Claude and ChatGPT (OAuth)', code: '{api}/mcp-oauth-dynamic' },
+        { label: 'Public API', code: 'curl {api}/public/v1/integrations \\\n  -H "Authorization: YOUR_API_KEY"' },
+      ],
+    },
+    webhooks: {
+      title: 'Webhooks',
+      sub: 'Tadween sends an HTTP POST to your URL when a post is published.',
+      points: ['Add webhooks in Settings → Webhooks, for every channel or only some', 'The body is the published post as JSON', 'Send a test from the settings page', 'Plans include 2, 10, 30 or unlimited webhooks'],
+    },
+    automate: {
+      title: 'Automate with the tools you use',
+      sub: 'Zapier, Make and n8n can call the public API and receive webhooks today.',
+      points: ['Create posts from a form, a sheet or a CMS', 'Send published posts to Slack, a sheet or your CRM', 'RSS auto-post is built in, no glue needed'],
+    },
+    limits: {
+      title: 'Limits',
+      sub: 'Fair use keeps publishing reliable for everyone.',
+      points: ['Creating posts is rate-limited per workspace (90 requests an hour by default)', 'Each network’s own limits still apply, and Tadween checks them first', 'The API is on every paid plan'],
+    },
+  },
+  arabic: {
+    title: 'Write in Arabic. See it right.',
+    sub: 'Most schedulers flip Arabic into a mess of reversed punctuation. Tadween previews, edits and publishes right-to-left text exactly as your readers see it.',
+    bullets: ['Right-to-left editor and preview', 'Arabic interface and support', 'Hook rewrites in Modern Standard Arabic'],
   },
   steps: {
     title: 'From idea to published in three steps',
@@ -82,11 +398,6 @@ export const en: Dict = {
       { icon: 'pencil', title: 'Write', body: 'Draft in English or Arabic, add images or a PDF carousel, and check the preview.' },
       { icon: 'calendar', title: 'Schedule', body: 'Pick a time, or take the suggested best time. Tadween publishes and posts your first comment.' },
     ],
-  },
-  arabic: {
-    title: 'Write in Arabic. See it right.',
-    sub: 'Most schedulers flip Arabic into a mess of reversed punctuation. Tadween previews, edits and publishes right-to-left text exactly as your readers see it.',
-    bullets: ['Right-to-left editor and preview', 'Arabic interface and support', 'Hook rewrites in Modern Standard Arabic'],
   },
   pricing: {
     sectionTitle: 'Simple pricing, in pounds or dollars',
@@ -114,6 +425,7 @@ export const en: Dict = {
     notIncluded: 'Not included',
     notListed: 'Not listed',
     faqTitle: 'Questions',
+    unlimited: 'Unlimited',
     plans: [
       { key: 'creator', name: 'Creator', for: 'For one voice on LinkedIn', features: ['Profile + 1 company page', 'Unlimited scheduled posts', 'First comments and repeats', 'Best-time hints', 'Analytics'] },
       { key: 'pro', name: 'Pro', for: 'For creators who post every week', features: ['5 LinkedIn channels', 'Everything in Creator', 'Hook rewrites in Arabic and English', 'PDF carousel builder', 'Sets and signatures'] },
@@ -121,25 +433,26 @@ export const en: Dict = {
       { key: 'agency', name: 'Agency', for: 'For agencies and many clients', features: ['50 channels', 'Customer groups', 'Client-ready reports', 'Priority support in Arabic', 'Invoices in EGP or USD'] },
     ],
     compare: [
-      { label: 'LinkedIn channels', help: 'Profiles and company pages you can connect.', values: { creator: '2', pro: '5', team: '15', agency: '50' } },
+      { label: 'Channels', help: 'LinkedIn profiles and pages, and any other network you connect.', field: 'channels' },
       { label: 'Scheduled posts', help: 'Posts you can schedule each month.', values: { creator: '∞', pro: '∞', team: '∞', agency: '∞' } },
-      { label: 'Team members', help: 'People who can write and schedule.', values: { creator: false, pro: false, team: true, agency: true } },
+      { label: 'Team members', help: 'People who can write and schedule with you.', field: 'teamMembers' },
+      { label: 'AI credits a month', help: 'Credits for AI-generated images and videos.', field: 'aiCredits' },
       { label: 'Preview links', help: 'Send anyone a link to see a post and leave comments.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'First comments and delays', help: 'Post a comment minutes after the post.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'Repeated posts', help: 'Republish evergreen posts on a schedule.', values: { creator: true, pro: true, team: true, agency: true } },
-      { label: 'Best-time hints', help: 'When your audience opens LinkedIn.', values: { creator: true, pro: true, team: true, agency: true } },
-      { label: 'Hook rewrites', help: 'Stronger first lines in Arabic or English.', values: { creator: false, pro: true, team: true, agency: true } },
-      { label: 'PDF carousels', help: 'Turn images into a swipeable document post.', values: { creator: false, pro: true, team: true, agency: true } },
+      { label: 'Analytics', help: 'Channel and post results, where the network shares them.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'Sets and signatures', help: 'Saved channel groups and sign-offs.', values: { creator: false, pro: true, team: true, agency: true } },
-      { label: 'Agent, MCP and API', help: 'Schedule from Claude, ChatGPT or your tools.', values: { creator: false, pro: false, team: true, agency: true } },
+      { label: 'RSS auto-post', help: 'Turn new items from a feed into posts.', field: 'autoPost' },
+      { label: 'Webhooks', help: 'HTTP callbacks when a post is published.', field: 'webhooks' },
+      { label: 'Public API and MCP', help: 'Schedule from Claude, ChatGPT, Cursor or your own code.', values: { creator: true, pro: true, team: true, agency: true } },
       { label: 'Customer groups', help: 'Keep each client’s channels apart.', values: { creator: false, pro: false, team: false, agency: true } },
-      { label: 'Webhooks and RSS auto-post', help: 'Integrate and automate.', values: { creator: true, pro: true, team: true, agency: true } },
     ],
     faq: [
       { title: 'Is there a free trial?', content: 'Every plan starts with a 7-day free trial. You only pay if you keep using Tadween.' },
       { title: 'Can I pay in Egyptian pounds?', content: 'Yes. Pay in EGP with a local card or wallet, or in USD with any international card. Invoices are issued in the currency you pay with.' },
       { title: 'Does it work with LinkedIn company pages?', content: 'Yes. Connect your profile and every page you admin, then schedule to one or many at once.' },
       { title: 'Can I write in Arabic?', content: 'Tadween is built right-to-left from the start: Arabic previews, Arabic hook rewrites, and an Arabic interface.' },
+      { title: 'Is the API and MCP server on every plan?', content: 'Yes. Every paid plan includes the public API and the MCP server, so you can schedule from Claude, ChatGPT or your own code.' },
       { title: 'Can I change or cancel my plan?', content: 'Any time from Billing. Upgrades apply immediately with a prorated charge; downgrades apply at the end of the period.' },
       { title: 'What happens to scheduled posts if I cancel?', content: 'They stay in your calendar as drafts until the end of your billing period, then pause. Nothing is deleted.' },
     ],
@@ -150,17 +463,25 @@ export const en: Dict = {
     primary: 'Start 7-day trial',
     secondary: 'Sign in',
   },
+  channels: channelsEn,
   footer: {
     tagline: 'LinkedIn scheduling for people and brands in Egypt and the region.',
+    channelsTitle: 'Channels',
     columns: [
       {
         title: 'Product',
         links: [
-          { href: '/#features', label: 'Calendar' },
-          { href: '/#flow', label: 'Previews' },
-          { href: '/#features', label: 'Smart layer' },
-          { href: '/#arabic', label: 'Arabic' },
+          { href: '/features', label: 'Features' },
+          { href: '/ai-agent', label: 'AI agent' },
+          { href: '/channels', label: 'Channels' },
           { href: '/pricing', label: 'Pricing' },
+        ],
+      },
+      {
+        title: 'Developers',
+        links: [
+          { href: '/developers', label: 'API and MCP' },
+          { href: '/developers#webhooks', label: 'Webhooks' },
         ],
       },
       {

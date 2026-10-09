@@ -53,8 +53,10 @@ export function initLanding(root: HTMLElement, { rtl }: { rtl: boolean }): () =>
         });
       }
 
-      // Pinned workflow: the post types itself, the card straightens, the Scheduled chip
-      // drops in, and Write → Preview → Schedule light up. Scrubbed, so it reverses.
+      // Pinned workflow, four steps: the post types itself (Write), the LinkedIn, X and
+      // Threads previews take turns (Preview everywhere), the post lands on the week and
+      // the Scheduled chip drops in (Schedule), and the chip turns to Published. Scrubbed,
+      // so it reverses. Stage and network go to data-stage / data-net; CSS does the swaps.
       const flow = root.querySelector<HTMLElement>('[data-flow]');
       if (flow) {
         const steps = flow.querySelectorAll<HTMLElement>('[data-flow-step]');
@@ -63,8 +65,13 @@ export function initLanding(root: HTMLElement, { rtl }: { rtl: boolean }): () =>
         const chip = flow.querySelector('[data-flow-chip]');
         const bar = flow.querySelector<HTMLElement>('[data-flow-bar]');
         const card = flow.querySelector('[data-flow-card]');
+        const n = steps.length;
         const setStep = (p: number) => {
-          const k = p < 0.34 ? 0 : p < 0.67 ? 1 : 2;
+          const k = Math.min(n - 1, Math.floor(p * n));
+          // Inside the preview step, the three networks take a third each.
+          const net = k === 1 ? Math.min(2, Math.floor((p * n - 1) * 3)) : 0;
+          flow.dataset.stage = String(k);
+          flow.dataset.net = String(net);
           steps.forEach((s, i) => {
             s.classList.toggle('is-active', i === k);
             s.classList.toggle('is-done', i < k);
@@ -72,13 +79,14 @@ export function initLanding(root: HTMLElement, { rtl }: { rtl: boolean }): () =>
         };
         if (reduce) {
           setStep(1);
+          flow.dataset.net = '0';
           if (bar) bar.style.transform = 'scaleX(1)';
         } else {
           const tl = gsap.timeline({
             scrollTrigger: {
               trigger: flow,
-              // Desktop pins the section for 1600px of scroll; phones scrub it in place.
-              ...(desktop ? { start: 'top top', end: '+=1600', pin: true } : { start: 'top 75%', end: 'bottom 45%' }),
+              // Desktop pins the section for 2400px of scroll; phones scrub it in place.
+              ...(desktop ? { start: 'top top', end: '+=2400', pin: true } : { start: 'top 70%', end: 'bottom 40%' }),
               scrub: 0.5,
               onUpdate: (self) => {
                 setStep(self.progress);
@@ -88,9 +96,10 @@ export function initLanding(root: HTMLElement, { rtl }: { rtl: boolean }): () =>
           });
           const o = { n: 0 };
           const chars = Array.from(full); // code points, so Arabic and dashes never split
+          // The timeline runs 0 → 4, one unit per step.
           tl.to(o, {
             n: chars.length,
-            duration: 1,
+            duration: 0.85,
             ease: 'none',
             onUpdate: () => {
               if (typed) typed.textContent = chars.slice(0, Math.round(o.n)).join('');
@@ -98,15 +107,28 @@ export function initLanding(root: HTMLElement, { rtl }: { rtl: boolean }): () =>
           })
             .from(card, { rotateX: 14, y: 30, scale: 0.94, duration: 0.6, ease: 'power2.out' }, 0)
             .to(card, { rotateX: 0, duration: 0.4 }, 0.6)
-            .from(chip, { y: -120, x: 80 * dirX, rotate: -8 * dirX, opacity: 0, scale: 0.8, duration: 0.7, ease: 'back.out(1.6)' }, 1.15)
-            .to(card, { scale: 0.96, opacity: 0.85, duration: 0.4 }, 1.4);
+            .from(chip, { y: -120, x: 80 * dirX, rotate: -8 * dirX, opacity: 0, scale: 0.8, duration: 0.6, ease: 'back.out(1.6)' }, 2.1)
+            .to({}, { duration: 0.01 }, 3.99);
           if (typed) typed.textContent = '';
+          setStep(0);
         }
         // Undo DOM changes when the media query flips or the page unmounts.
         offs.push(() => {
           if (typed) typed.textContent = full;
+          flow.dataset.stage = '3';
+          flow.dataset.net = '0';
         });
       }
+
+      // Illustrations play their small CSS animation once they're on screen; with reduced
+      // motion they're marked at once and show the finished state.
+      root.querySelectorAll<HTMLElement>('[data-art]').forEach((el) => {
+        if (reduce) {
+          el.classList.add('is-in');
+          return;
+        }
+        ScrollTrigger.create({ trigger: el, start: 'top 85%', once: true, onEnter: () => el.classList.add('is-in') });
+      });
 
       if (!reduce) {
         // Reveals.

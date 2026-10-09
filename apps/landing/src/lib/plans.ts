@@ -11,10 +11,27 @@ export interface PlanView {
   popular: boolean;
   trialDays: number;
   channels: number;
+  /** -1 = unlimited, 0 = none (the app's Plan.teamMembers). */
+  teamMembers: number;
+  /** AI image and video credits a month; -1 = unlimited (Plan.aiCredits). */
+  aiCredits: number;
+  /** The app's subscription tier, which decides webhooks and RSS auto-post. */
+  tier: Tier;
   usd: { monthly: number; yearly: number };
   /** Null when the API returns a plan this site has no EGP placeholder for. */
   egp: { monthly: number; yearly: number } | null;
 }
+
+type Tier = 'STANDARD' | 'TEAM' | 'PRO' | 'ULTIMATE';
+
+/* What each tier unlocks that a Tadween plan can't change: `webhooks` and `autoPost` in
+   libraries/nestjs-libraries/src/database/prisma/subscriptions/pricing.ts. -1 = unlimited. */
+export const TIER_LIMITS: Record<Tier, { webhooks: number; autoPost: boolean }> = {
+  STANDARD: { webhooks: 2, autoPost: false },
+  TEAM: { webhooks: 10, autoPost: true },
+  PRO: { webhooks: 30, autoPost: true },
+  ULTIMATE: { webhooks: -1, autoPost: true },
+};
 
 export interface PlansResult {
   plans: PlanView[];
@@ -24,10 +41,10 @@ export interface PlansResult {
 /* Placeholder prices, the same as the seeded Tadween plans in the app
    (tadween.defaults.ts): yearly is 20% off twelve months. Not final. */
 export const DEFAULT_PLANS: PlanView[] = [
-  { key: 'creator', popular: false, trialDays: 7, channels: 2, usd: { monthly: 9, yearly: 86 }, egp: { monthly: 299, yearly: 2868 } },
-  { key: 'pro', popular: false, trialDays: 7, channels: 5, usd: { monthly: 19, yearly: 182 }, egp: { monthly: 599, yearly: 5748 } },
-  { key: 'team', popular: true, trialDays: 7, channels: 15, usd: { monthly: 39, yearly: 374 }, egp: { monthly: 1199, yearly: 11508 } },
-  { key: 'agency', popular: false, trialDays: 7, channels: 50, usd: { monthly: 79, yearly: 758 }, egp: { monthly: 2499, yearly: 23988 } },
+  { key: 'creator', tier: 'STANDARD', popular: false, trialDays: 7, channels: 2, teamMembers: 0, aiCredits: 20, usd: { monthly: 9, yearly: 86 }, egp: { monthly: 299, yearly: 2868 } },
+  { key: 'pro', tier: 'TEAM', popular: false, trialDays: 7, channels: 5, teamMembers: 0, aiCredits: 100, usd: { monthly: 19, yearly: 182 }, egp: { monthly: 599, yearly: 5748 } },
+  { key: 'team', tier: 'PRO', popular: true, trialDays: 7, channels: 15, teamMembers: -1, aiCredits: 300, usd: { monthly: 39, yearly: 374 }, egp: { monthly: 1199, yearly: 11508 } },
+  { key: 'agency', tier: 'ULTIMATE', popular: false, trialDays: 7, channels: 50, teamMembers: -1, aiCredits: 500, usd: { monthly: 79, yearly: 758 }, egp: { monthly: 2499, yearly: 23988 } },
 ];
 
 /** The public plan shape of GET /instance/settings (PlansService.getPublicPlans). */
@@ -41,7 +58,13 @@ interface ApiPlan {
   mostPopular: boolean;
   channels: number;
   features: string[];
+  /** Also in getPublicPlans; optional so an older API still parses. */
+  tier?: string;
+  teamMembers?: number;
+  aiCredits?: number;
 }
+
+const isTier = (t: unknown): t is Tier => typeof t === 'string' && t in TIER_LIMITS;
 
 const isApiPlan = (p: unknown): p is ApiPlan =>
   !!p && typeof p === 'object' && typeof (p as ApiPlan).key === 'string' && typeof (p as ApiPlan).monthlyPriceUsd === 'number';
@@ -56,6 +79,9 @@ function fromApi(p: ApiPlan): PlanView {
     popular: !!p.mostPopular,
     trialDays: p.trialDays ?? 7,
     channels: p.channels,
+    teamMembers: p.teamMembers ?? fallback?.teamMembers ?? 0,
+    aiCredits: p.aiCredits ?? fallback?.aiCredits ?? 0,
+    tier: isTier(p.tier) ? p.tier : fallback?.tier ?? 'STANDARD',
     usd: { monthly: p.monthlyPriceUsd, yearly: p.yearlyPriceUsd ?? p.monthlyPriceUsd * 12 },
     // The public endpoint has no EGP prices yet, so EGP stays a placeholder.
     egp: fallback?.egp ?? null,

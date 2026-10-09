@@ -26,7 +26,6 @@ const LANGUAGES = [
   { value: 'it', label: 'Italiano', description: 'Italian' },
   { value: 'tr', label: 'Türkçe', description: 'Turkish' },
   { value: 'ru', label: 'Русский', description: 'Russian' },
-  { value: 'he', label: 'עברית', description: 'Hebrew' },
   { value: 'zh', label: '中文', description: 'Chinese' },
   { value: 'ja', label: '日本語', description: 'Japanese' },
   { value: 'ko', label: '한국어', description: 'Korean' },

@@ -8,63 +8,34 @@ import {
 } from '@gitroom/react/translation/i18n.config';
 import i18next from 'i18next';
 import useCookie from 'react-use-cookie';
-import ReactCountryFlag from 'react-country-flag';
-import { List, Box, Group, Text } from '@mantine/core';
-import React, { useCallback } from 'react';
-import countries from 'i18n-iso-countries';
-
-// Register required locales
-import countriesEn from 'i18n-iso-countries/langs/en.json';
+import React, { useMemo, useState } from 'react';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { ModalWrapperComponent } from '../new-launch/modal.wrapper.component';
+import { Icon } from '@gitroom/frontend/components/tadween/ui/primitives';
 
-import clsx from 'clsx';
-countries.registerLocale(countriesEn);
+// Tadween: languages are listed by name (native + the UI language), not by
+// country flag — a language isn't a country.
+const SUGGESTED = ['ar', 'en'];
+const RTL_LANGUAGES = ['ar'];
 
-const getCountryCodeForFlag = (languageCode: string) => {
-  // For multi-region languages, here are some common defaults
-  if (languageCode === 'en') return 'GB';
-  if (languageCode === 'es') return 'ES';
-  if (languageCode === 'ar') return 'SA';
-  if (languageCode === 'zh') return 'CN';
-  if (languageCode === 'he') return 'IL';
-  if (languageCode === 'ja') return 'JP';
-  if (languageCode === 'ko') return 'KR';
-  if (languageCode === 'vi') return 'VN';
+// i18n codes like `ka_ge` aren't BCP 47; Intl wants `ka-GE`
+const toLocale = (code: string) => code.replace('_', '-');
 
-  // Check if language code itself is a valid country code
+const languageName = (code: string, inLanguage: string) => {
   try {
-    const countryName = countries.getName(languageCode.toUpperCase(), 'en');
-    if (countryName) {
-      return languageCode.toUpperCase();
-    }
+    return (
+      new Intl.DisplayNames([toLocale(inLanguage)], { type: 'language' }).of(
+        toLocale(code)
+      ) || code
+    );
   } catch (e) {
-    // Not a valid country code, continue to next approach
+    return code;
   }
-
-  // Try to extract region code if language code has a region component (e.g., en-US)
-  const parts = languageCode.split('-');
-  if (parts.length > 1) {
-    const regionCode = parts[1].toUpperCase();
-    try {
-      const countryName = countries.getName(regionCode, 'en');
-      if (countryName) {
-        return regionCode;
-      }
-    } catch (e) {
-      // Not a valid country code, continue to next approach
-    }
-  }
-
-  // For most language codes that match their primary country
-  // Examples: fr->FR, it->IT, de->DE, etc.
-  return languageCode.toUpperCase();
 };
 
 export const ChangeLanguageComponent = () => {
   const currentLanguage = i18next.resolvedLanguage || fallbackLng;
-  const availableLanguages = languages;
   const [_, setCookie] = useCookie(cookieName, currentLanguage || fallbackLng);
+  const [query, setQuery] = useState('');
   const modals = useModals();
   const t = useT();
 
@@ -72,55 +43,97 @@ export const ChangeLanguageComponent = () => {
     setCookie(language);
     i18next.changeLanguage(language);
     modals.closeCurrent();
-    const rtlLanguages = ['he', 'ar'];
-    const dir = rtlLanguages.includes(language) ? 'rtl' : 'ltr';
+    const dir = RTL_LANGUAGES.includes(language) ? 'rtl' : 'ltr';
     document.documentElement.setAttribute('dir', dir);
   };
 
-  // Function to get language name in its native script
-  const getLanguageName = useCallback((code: string) => {
-    try {
-      // Use browser's Intl API to get language name in native script
-      const displayNames = new Intl.DisplayNames([code], {
-        type: 'language',
-      });
-      return displayNames.of(code);
-    } catch (error) {
-      // Fallback to language code if the API isn't supported or language is not found
-      return code;
+  const items = useMemo(
+    () =>
+      languages.map((code) => ({
+        code,
+        native: languageName(code, code),
+        local: languageName(code, currentLanguage),
+      })),
+    [currentLanguage]
+  );
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      return items;
     }
-  }, []);
+    return items.filter((item) =>
+      [item.code, item.native, item.local].some((v) =>
+        v.toLowerCase().includes(q)
+      )
+    );
+  }, [items, query]);
+
+  const suggested = filtered.filter((item) => SUGGESTED.includes(item.code));
+  const others = filtered
+    .filter((item) => !SUGGESTED.includes(item.code))
+    .sort((a, b) => a.local.localeCompare(b.local, toLocale(currentLanguage)));
+
+  const renderGroup = (title: string, list: typeof items) =>
+    !!list.length && (
+      <div className="tdw-lang-group" role="group" aria-label={title}>
+        <div className="tdw-lang-group-title">{title}</div>
+        {list.map((item) => {
+          const selected = item.code === currentLanguage;
+          return (
+            <button
+              key={item.code}
+              type="button"
+              className="tdw-lang-option"
+              aria-pressed={selected}
+              onClick={() => handleLanguageChange(item.code)}
+            >
+              <span className="tdw-lang-names">
+                <span
+                  className="tdw-lang-native"
+                  lang={toLocale(item.code)}
+                  dir="auto"
+                >
+                  {item.native}
+                </span>
+                {item.local !== item.native && (
+                  <span className="tdw-lang-local">{item.local}</span>
+                )}
+              </span>
+              {selected && (
+                <Icon name="check" size={16} className="tdw-lang-check" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    );
 
   return (
-    <div className="relative">
-      <div className="grid grid-cols-4 gap-2">
-        {availableLanguages.map((language) => (
-          <div
-            className={clsx(
-              'flex items-center flex-col bg-newTableHeader hover:bg-newTableBorder p-[20px] cursor-pointer gap-2',
-              language === currentLanguage ? 'border border-textColor' : ''
-            )}
-            key={language}
-            onClick={() => handleLanguageChange(language)}
-          >
-            <ReactCountryFlag
-              countryCode={getCountryCodeForFlag(language)}
-              svg
-              style={{
-                width: '1.5em',
-                height: '1.5em',
-              }}
-              title={language}
-            />
-            <Text weight={language === currentLanguage ? 'bold' : 'normal'}>
-              {getLanguageName(language)}
-            </Text>
+    <div className="tdw-lang">
+      <label className="tdw-lang-search">
+        <Icon name="search" size={16} />
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t('search_languages', 'Search languages')}
+          aria-label={t('search_languages', 'Search languages')}
+        />
+      </label>
+      <div className="tdw-lang-list">
+        {renderGroup(t('suggested', 'Suggested'), suggested)}
+        {renderGroup(t('all_languages', 'All languages'), others)}
+        {!filtered.length && (
+          <div className="tdw-lang-empty">
+            {t('no_language_found', 'No language matches your search')}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
 };
+
 export const LanguageComponent = () => {
   const modal = useModals();
   const currentLanguage = i18next.resolvedLanguage || fallbackLng;
@@ -133,24 +146,14 @@ export const LanguageComponent = () => {
     });
   };
   return (
-    <div
+    <button
+      type="button"
       onClick={openModal}
-      className="rounded-full overflow-hidden h-[22px] w-[22px] relative cursor-pointer"
+      className="tdw-lang-trigger"
+      aria-label={t('change_language', 'Change Language')}
+      title={languageName(currentLanguage, currentLanguage)}
     >
-      <ReactCountryFlag
-        countryCode={getCountryCodeForFlag(currentLanguage)}
-        svg
-        style={{
-          width: '22px',
-          height: '22px',
-          position: 'absolute',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          objectFit: 'cover',
-        }}
-        title={currentLanguage}
-      />
-    </div>
+      <Icon name="globe" size={18} />
+    </button>
   );
 };

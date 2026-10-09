@@ -1309,5 +1309,9 @@
   "tdw_media_video_too_large": "حجم الفيديو يصل إلى 1 جيجابايت كحد أقصى",
   "tdw_media_view": "العرض",
   "tdw_media_zoom_in": "تكبير",
-  "tdw_media_zoom_out": "تصغير"
+  "tdw_media_zoom_out": "تصغير",
+  "search_languages": "ابحث عن لغة",
+  "suggested": "مقترحة",
+  "all_languages": "كل اللغات",
+  "no_language_found": "لا توجد لغة تطابق بحثك"
 }

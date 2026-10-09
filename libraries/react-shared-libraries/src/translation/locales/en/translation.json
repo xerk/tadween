@@ -1272,5 +1272,9 @@
   "tdw_media_video_too_large": "Videos can be up to 1 GB",
   "tdw_media_view": "View",
   "tdw_media_zoom_in": "Zoom in",
-  "tdw_media_zoom_out": "Zoom out"
+  "tdw_media_zoom_out": "Zoom out",
+  "search_languages": "Search languages",
+  "suggested": "Suggested",
+  "all_languages": "All languages",
+  "no_language_found": "No language matches your search"
 }

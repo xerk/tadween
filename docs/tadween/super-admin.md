@@ -55,7 +55,7 @@ All `/admin/console/*` routes go through `AuthMiddleware` and then `PlatformAdmi
 | GET/POST | `/admin/console/plans` | List (plus Postiz's static pricing for reference) and create |
 | POST | `/admin/console/plans/defaults` | Seed the four Tadween plans (only when there are none) |
 | PUT/DELETE | `/admin/console/plans/:id` | Update and soft delete |
-| GET | `/admin/console/users?search=&page=` | Users with workspaces, roles, subscription and channel count, selected without password or tokens |
+| GET | `/admin/console/users` | Users with workspaces, roles, subscription and channel count, selected without password or tokens. Paged, sorted and filtered server-side (see admin-console.md) |
 | PUT | `/admin/console/users/:id/activation` | Activate or deactivate. Refuses self and other super admins. |
 | PUT | `/admin/console/organizations/:id/tier` | Grant a tier the way Postiz's "add subscription" does. Refuses workspaces paying through Stripe (`cus_…`) and lifetime deals. |
 | GET | `/instance/settings` (public) | Registration mode, features, branding, public plans (no provider ids) and merged pricing |
@@ -67,6 +67,8 @@ Changes to existing routes:
 - `GET /auth/can-register` also returns `mode`.
 
 ## Pages (`/admin`, guarded server-side in `admin/layout.tsx`, which redirects non-admins to `/launches`)
+
+The console has its own full-screen layout, the Subscribers page, provider keys and one DataTable for every list: see [admin-console.md](admin-console.md).
 
 - **Overview**: stat tiles, subscriptions per tier, instance summary, and links to Post errors and Usage stats (the existing Postiz pages, now inside the console frame).
 - **Channels**: every provider with an order (up/down, "LinkedIn first"), an on/off switch, status (Ready, Missing credentials, No setup needed, Hidden by env) and the env vars to set.
@@ -93,7 +95,7 @@ Hiding is UI-only. The API routes behind these features still answer, so Phase B
 ## Phase B (not in this PR)
 
 - Backend enforcement of feature switches (guards per controller), and hiding AI buttons in the editor.
-- Provider credentials from the UI. This needs encrypted storage: an encrypted column with a key from env or KMS, write-only from the UI, and runtime reads in each provider (which today read `process.env` at import time).
+- ~~Provider credentials from the UI~~: done, see admin-console.md ("Provider keys").
 - Use provider price ids at checkout. Charge in EGP through a local provider (Paymob, Fawry or Stripe EGP), with currency picked per workspace.
 - Enforce team-member counts (Postiz only supports on/off) and posts/month.
 - Apply the default language and time zone to new accounts. Use the instance name in page titles and the UI.

@@ -58,6 +58,8 @@ import { OauthProvider } from '@gitroom/backend/services/auth/providers/oauth.pr
 import { StripeController } from '@gitroom/backend/api/routes/stripe.controller';
 import { AdminConsoleController } from '@gitroom/backend/api/routes/tadween/admin.console.controller';
 import { InstanceController } from '@gitroom/backend/api/routes/tadween/instance.controller';
+import { AdminOrganizationsController } from '@gitroom/backend/api/routes/tadween/admin.organizations.controller';
+import { AdminCredentialsController } from '@gitroom/backend/api/routes/tadween/admin.credentials.controller';
 
 const authenticatedController = [
   UsersController,
@@ -81,6 +83,8 @@ const authenticatedController = [
   AnnouncementsController,
   AdminController,
   AdminConsoleController,
+  AdminOrganizationsController,
+  AdminCredentialsController,
 ];
 @Module({
   imports: [UploadModule],

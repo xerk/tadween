@@ -1851,12 +1851,23 @@ model PlatformSetting {
 }
 
 // "Add channel" enablement and order per provider identifier (linkedin, x…).
-// No OAuth secrets here: provider credentials stay in env vars.
+// No OAuth secrets here: see ProviderCredential.
 model ProviderSetting {
   identifier String   @id
   enabled    Boolean  @default(true)
   position   Int      @default(0)
   updatedAt  DateTime @updatedAt
+}
+
+// Super-admin override for one provider app credential, keyed by the env var
+// it replaces (LINKEDIN_CLIENT_SECRET…). `value` is encrypted with
+// AuthService.fixedEncryption and is never sent to the browser. No row = the
+// env var is used.
+model ProviderCredential {
+  name      String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+  updatedBy String?
 }
 
 // A sellable plan. `tier` maps it onto Postiz's SubscriptionTier so Stripe,

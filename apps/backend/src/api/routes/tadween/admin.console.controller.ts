@@ -29,6 +29,7 @@ import {
   ProviderSettingsDto,
   RegistrationSettingsDto,
 } from '@gitroom/nestjs-libraries/dtos/tadween/admin.console.dto';
+import { AdminUsersQueryDto } from '@gitroom/nestjs-libraries/dtos/tadween/admin.list.dto';
 import { FEATURES } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 
@@ -159,8 +160,8 @@ export class AdminConsoleController {
 
   // ── Users and workspaces ───────────────────────────────────────────────────
   @Get('/users')
-  users(@Query('search') search?: string, @Query('page') page?: string) {
-    return this._console.listUsers(search || '', parseInt(page || '0', 10));
+  users(@Query() query: AdminUsersQueryDto) {
+    return this._console.listUsers(query);
   }
 
   @Put('/users/:id/activation')

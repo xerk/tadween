@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, ReactNode, useMemo, useRef, useState } from 'react';
+import { FC, ReactNode, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { groupBy } from 'lodash';
@@ -9,12 +9,18 @@ import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validatio
 import { TadweenChannelAvatar } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 import {
   Icon,
+  IconButton,
   IconName,
   LinkButton,
-  Popover,
+  Skeleton,
   cx,
 } from '@gitroom/frontend/components/tadween/ui';
-import { AgentChannel, useAgentChannels } from './agent.hooks';
+import {
+  AgentChannel,
+  useAgentChannels,
+  useAgentNetworks,
+  useAgentWorkspace,
+} from './agent.hooks';
 
 // Pieces of the agent chat, reusable by any CopilotKit chat in Tadween
 // (docs/tadween/analytics-agent.md). Styles: app/tadween/agent.scss.
@@ -277,27 +283,56 @@ export const ToolCard: FC<{
   );
 };
 
-// ── Channel context picker ──────────────────────────────────────────────────
-/* One row of small network logos and a count (never an avatar stack) */
-const NetworkMarks: FC<{ channels: AgentChannel[] }> = ({ channels }) => {
-  const networks = Object.keys(groupBy(channels, (c) => c.identifier)).slice(0, 4);
-  return (
-    <span className="tdw-ag-marks" aria-hidden="true">
-      {networks.map((n) => (
-        <img key={n} src={n === 'youtube' ? '/icons/platforms/youtube.svg' : `/icons/platforms/${n}.png`} alt="" />
-      ))}
-    </span>
-  );
+// ── Channels ────────────────────────────────────────────────────────────────
+// Like Postiz's agent page: every connected channel, multi-select, and the
+// ticked ones go to the agent with each message (agent.chat.tsx). The panel is
+// the only control that changes the selection.
+
+const ChannelState: FC<{ channel: AgentChannel }> = ({ channel }) => {
+  const t = useT();
+  if (channel.disabled) {
+    return <span className="tdw-ag-ch-state">{t('tdw_an_disabled', 'Disabled')}</span>;
+  }
+  if (channel.inBetweenSteps) {
+    return (
+      <span className="tdw-ag-ch-state is-warn">
+        <Icon name="info" size={12} />
+        {t('tdw_an_finish_setup', 'Finish setup')}
+      </span>
+    );
+  }
+  if (channel.refreshNeeded) {
+    return (
+      <span className="tdw-ag-ch-state is-bad">
+        <Icon name="refresh-cw" size={12} />
+        {t('tdw_an_reconnect_needed', 'Reconnect needed')}
+      </span>
+    );
+  }
+  return null;
 };
 
-export const ChannelContextPicker: FC<{
-  selected: AgentChannel[];
-  onChange: (channels: AgentChannel[]) => void;
-}> = ({ selected, onChange }) => {
+// the search field shows from this many channels
+const CHANNEL_SEARCH_FROM = 6;
+
+/* ChannelPanel: the workspace's channel list (desktop panel and phone sheet).
+   `onCollapse` adds the collapse button; `collapsed` shows avatars only. */
+export const ChannelPanel: FC<{
+  collapsed?: boolean;
+  onCollapse?: (collapsed: boolean) => void;
+}> = ({ collapsed, onCollapse }) => {
   const t = useT();
-  const anchor = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
-  const { channels } = useAgentChannels();
+  const { selected, setSelected } = useAgentWorkspace();
+  const { channels, isLoading } = useAgentChannels();
+  const { data: networks } = useAgentNetworks();
+  const [query, setQuery] = useState('');
+  const [customer, setCustomer] = useState<string>();
+
+  const networkName = useMemo(() => {
+    const names = new Map((networks?.social || []).map((s) => [s.identifier, s.name]));
+    return (identifier: string) => names.get(identifier) || identifier;
+  }, [networks]);
+
   const customers = useMemo(
     () =>
       Object.values(
@@ -305,81 +340,214 @@ export const ChannelContextPicker: FC<{
           channels.filter((c) => c.customer?.id),
           (c) => c.customer!.id
         )
-      ).map((list) => ({ id: list[0].customer!.id, name: list[0].customer!.name, list })),
+      ).map((list) => ({ id: list[0].customer!.id, name: list[0].customer!.name })),
     [channels]
   );
+
+  // a customer whose channels are gone stops filtering
+  const activeCustomer = customers.some((c) => c.id === customer) ? customer : undefined;
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return channels.filter(
+      (c) =>
+        (!activeCustomer || c.customer?.id === activeCustomer) &&
+        (!q ||
+          c.name.toLowerCase().includes(q) ||
+          networkName(c.identifier).toLowerCase().includes(q))
+    );
+  }, [channels, activeCustomer, query, networkName]);
+
   const isOn = (c: AgentChannel) => selected.some((p) => p.id === c.id);
   const toggle = (c: AgentChannel) =>
-    onChange(isOn(c) ? selected.filter((p) => p.id !== c.id) : [...selected, c]);
+    setSelected(isOn(c) ? selected.filter((p) => p.id !== c.id) : [...selected, c]);
+  // disabled channels can't be posted to, so they are never selected
+  const selectable = visible.filter((c) => !c.disabled);
+  const allOn = selectable.length > 0 && selectable.every(isOn);
+  const selectAll = () => setSelected([...selected, ...selectable.filter((c) => !isOn(c))]);
 
-  const label = selected.length
-    ? t('tdw_ag_n_channels', '{{count}} channels', { count: selected.length })
-    : t('tdw_ag_choose_channels', 'Choose channels');
+  const count = t('tdw_ag_channels_count', '{{selected}} of {{total}} selected', {
+    selected: selected.length,
+    total: channels.filter((c) => !c.disabled).length,
+  });
 
-  return (
-    <div className="pz-anchor tdw-ag-picker" ref={anchor}>
-      <button
-        type="button"
-        className={cx('tdw-ag-chip', selected.length && 'is-on')}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-      >
-        {selected.length ? <NetworkMarks channels={selected} /> : <Icon name="users" size={15} />}
-        <span>{label}</span>
-        <Icon name="chevron-down" size={14} />
-      </button>
-      <Popover open={open} onClose={() => setOpen(false)} anchor={anchor} width={300} className="tdw-ag-pop">
-        <div className="tdw-ag-pop-h">
-          <span>{t('tdw_ag_post_to', 'The agent can post to')}</span>
-          {selected.length ? (
-            <button type="button" className="tdw-ag-pop-clear" onClick={() => onChange([])}>
-              {t('tdw_ag_clear', 'Clear')}
-            </button>
-          ) : null}
-        </div>
-        {customers.length > 1 ? (
-          <div className="tdw-ag-pop-customers" role="group" aria-label={t('select_customer', 'Select customer')}>
-            {customers.map((c) => (
-              <button key={c.id} type="button" className="tdw-ag-chip is-small" onClick={() => onChange(c.list.filter((p) => !p.disabled))}>
-                {c.name}
-              </button>
-            ))}
-          </div>
-        ) : null}
-        <ul className="tdw-ag-pop-list" role="listbox" aria-multiselectable="true">
+  if (collapsed) {
+    return (
+      <div className="tdw-ag-channels-body is-collapsed">
+        <IconButton
+          icon="chevron-right"
+          label={t('tdw_ag_expand_channels', 'Show channel names')}
+          className="tdw-ag-ch-toggle"
+          aria-expanded={false}
+          onClick={() => onCollapse?.(false)}
+        />
+        <span className="tdw-ag-ch-count-mini" title={count} aria-label={count}>
+          {selected.length}
+        </span>
+        <div className="tdw-ag-ch-mini-list" role="group" aria-label={t('channels', 'Channels')}>
           {channels.map((c) => {
             const on = isOn(c);
-            const warn = c.refreshNeeded || c.inBetweenSteps;
+            const label = [
+              c.name,
+              networkName(c.identifier),
+              c.refreshNeeded || c.inBetweenSteps
+                ? t('tdw_an_reconnect_needed', 'Reconnect needed')
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' · ');
             return (
-              <li key={c.id}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={on}
-                  disabled={c.disabled}
-                  className={cx('tdw-ag-pop-row', on && 'is-on')}
-                  onClick={() => toggle(c)}
-                >
-                  <TadweenChannelAvatar integration={c} size={26} />
-                  <span className="tdw-ag-pop-name">{c.name}</span>
-                  {warn ? (
-                    <span className="tdw-ag-pop-warn" title={t('tdw_an_reconnect_needed', 'Reconnect needed')}>
-                      <Icon name="triangle-alert" size={13} />
-                    </span>
-                  ) : null}
-                  <span className={cx('tdw-ag-check', on && 'is-on')} aria-hidden="true">
-                    {on ? <Icon name="check" size={12} /> : null}
+              <button
+                key={c.id}
+                type="button"
+                role="checkbox"
+                aria-checked={on}
+                aria-label={label}
+                title={label}
+                disabled={c.disabled}
+                className={cx('tdw-ag-ch-mini', on && 'is-on')}
+                onClick={() => toggle(c)}
+              >
+                <TadweenChannelAvatar integration={c} size={36} />
+                {on ? (
+                  <span className="tdw-ag-ch-mini-tick" aria-hidden="true">
+                    <Icon name="check" size={10} />
                   </span>
-                </button>
-              </li>
+                ) : null}
+                {c.refreshNeeded || c.inBetweenSteps ? (
+                  <span className="tdw-ag-ch-mini-warn" aria-hidden="true">
+                    !
+                  </span>
+                ) : null}
+              </button>
             );
           })}
-        </ul>
-        <p className="tdw-ag-pop-help">
-          {t('tdw_ag_channels_help', 'Sent with your next message, so the agent knows where to post.')}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="tdw-ag-channels-body">
+      <div className="tdw-ag-ch-head">
+        <div className="tdw-ag-ch-heading">
+          {/* the phone sheet has its own title */}
+          {onCollapse ? <h2 className="tdw-ag-ch-title">{t('channels', 'Channels')}</h2> : null}
+          <span className="tdw-ag-ch-count" aria-live="polite">
+            {count}
+          </span>
+        </div>
+        {onCollapse ? (
+          <IconButton
+            icon="chevron-left"
+            label={t('tdw_ag_collapse_channels', 'Hide channel names')}
+            className="tdw-ag-ch-toggle"
+            aria-expanded={true}
+            onClick={() => onCollapse(true)}
+          />
+        ) : null}
+      </div>
+      <p className="tdw-ag-ch-help">
+        {t('tdw_ag_channels_help', 'The agent posts only to the channels you tick. They go with every message you send.')}
+      </p>
+      {channels.length >= CHANNEL_SEARCH_FROM ? (
+        <label className="tdw-ag-search">
+          <Icon name="search" size={15} />
+          <span className="sr-only">{t('tdw_ag_search_channels', 'Search channels')}</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t('tdw_ag_search_channels', 'Search channels')}
+          />
+        </label>
+      ) : null}
+      {customers.length > 1 ? (
+        <div className="tdw-ag-ch-customers" role="group" aria-label={t('select_customer', 'Select customer')}>
+          <button
+            type="button"
+            className={cx('tdw-ag-chip is-small', !activeCustomer && 'is-on')}
+            aria-pressed={!activeCustomer}
+            onClick={() => setCustomer(undefined)}
+          >
+            {t('tdw_ag_all_customers', 'All customers')}
+          </button>
+          {customers.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={cx('tdw-ag-chip is-small', activeCustomer === c.id && 'is-on')}
+              aria-pressed={activeCustomer === c.id}
+              onClick={() => setCustomer(c.id)}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {channels.length ? (
+        <div className="tdw-ag-ch-actions">
+          <button type="button" className="tdw-ag-ch-link" disabled={allOn} onClick={selectAll}>
+            {t('tdw_ag_select_all', 'Select all')}
+          </button>
+          <button type="button" className="tdw-ag-ch-link" disabled={!selected.length} onClick={() => setSelected([])}>
+            {t('tdw_ag_clear', 'Clear')}
+          </button>
+        </div>
+      ) : null}
+      {isLoading ? (
+        <div className="tdw-ag-ch-list" aria-hidden="true">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="tdw-ag-ch">
+              <Skeleton width={36} height={36} radius={10} />
+              <span className="tdw-ag-ch-copy">
+                <Skeleton width={110} height={12} />
+                <Skeleton width={70} height={10} className="mt-[6px]" />
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : !channels.length ? (
+        <div className="tdw-ag-ch-empty">
+          <p>{t('tdw_ag_no_channels', 'No channels yet. Connect one from the calendar and it shows up here.')}</p>
+          <LinkButton href="/launches" size="sm" icon="plus">
+            {t('tdw_ag_add_channel', 'Add a channel')}
+          </LinkButton>
+        </div>
+      ) : visible.length ? (
+        <div className="tdw-ag-ch-list" role="group" aria-label={t('channels', 'Channels')}>
+          {visible.map((c) => {
+            const on = isOn(c);
+            return (
+              <button
+                key={c.id}
+                type="button"
+                role="checkbox"
+                aria-checked={on}
+                disabled={c.disabled}
+                className={cx('tdw-ag-ch', on && 'is-on')}
+                onClick={() => toggle(c)}
+              >
+                <TadweenChannelAvatar integration={c} size={36} />
+                <span className="tdw-ag-ch-copy">
+                  <span className="tdw-ag-ch-name">{c.name}</span>
+                  <span className="tdw-ag-ch-meta">{networkName(c.identifier)}</span>
+                  <ChannelState channel={c} />
+                </span>
+                <span className={cx('tdw-ag-check', on && 'is-on')} aria-hidden="true">
+                  {on ? <Icon name="check" size={12} /> : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="tdw-ag-ch-empty">
+          {query.trim()
+            ? t('tdw_ag_no_channel_match', 'No channels match "{{query}}"', { query })
+            : t('tdw_ag_no_customer_channels', 'This customer has no channels.')}
         </p>
-      </Popover>
+      )}
     </div>
   );
 };
@@ -423,8 +591,12 @@ export const SuggestedPrompts: FC<{
         <Icon name="sparkles" size={22} />
       </span>
       <h2 className="tdw-ag-hero-title">{t('tdw_ag_hero_title', 'What should we post?')}</h2>
-      <p className="tdw-ag-hero-sub">
-        {t('tdw_ag_hero_sub', 'Choose channels below, then ask me to draft, schedule or review posts. I can also generate images and videos.')}
+      {/* the channel panel is a side panel on desktop and a sheet on phones */}
+      <p className="tdw-ag-hero-sub tdw-ag-desktop-only">
+        {t('tdw_ag_hero_sub', 'Select the channels I should use from the Channels panel on the left, then ask me to draft, schedule or review posts. I can schedule to several channels at once and generate images and videos. Your past chats are on the right.')}
+      </p>
+      <p className="tdw-ag-hero-sub tdw-ag-phone-only">
+        {t('tdw_ag_hero_sub_phone', 'Tap Channels at the top to select the channels I should use, then ask me to draft, schedule or review posts. I can schedule to several channels at once and generate images and videos.')}
       </p>
       <div className="tdw-ag-prompts">
         {suggestions.map((s) => (

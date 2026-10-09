@@ -1,6 +1,6 @@
 'use client';
 
-import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
+import React, { FC, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   AssistantMessage as CopilotAssistantMessage,
@@ -21,33 +21,22 @@ import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { AiOnly } from '@gitroom/frontend/components/tadween/instance/ai.guard';
 import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
-import { TadweenSheet } from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
 import { MultiMediaComponent } from '@gitroom/frontend/components/media/media.component';
 import AutoResizingTextarea from '@gitroom/frontend/components/agents/agent.textarea';
 import {
   Hooks,
   LoadMessages,
 } from '@gitroom/frontend/components/agents/agent.chat';
-import {
-  Icon,
-  IconButton,
-  TadweenScope,
-  cx,
-} from '@gitroom/frontend/components/tadween/ui';
+import { Icon, cx } from '@gitroom/frontend/components/tadween/ui';
 import { AgentChannel, useAgentThreads, useAgentWorkspace } from './agent.hooks';
-import {
-  ChannelContextPicker,
-  ChatBubble,
-  SuggestedPrompts,
-  ToolCard,
-} from './agent.parts';
-import { ChatThreadList, useStartNewChat } from './agent.workspace';
+import { ChatBubble, SuggestedPrompts, ToolCard } from './agent.parts';
 
-// The Tadween agent conversation (/agents/new and /agents/[id]). Same runtime
+// The Tadween agent conversation (/agents/new and /agents/[id]), the middle of
+// the workspace (agent.workspace.tsx: channels, top bar, chats). Same runtime
 // as Postiz's agent page: CopilotKit on /copilot/agent with the "postiz" agent,
 // the chat's history from /copilot/:id/list (LoadMessages) and the
-// "manualPosting" action (Hooks). Tadween adds the layout, bubbles, tool
-// cards, suggested prompts and the composer. Styles: app/tadween/agent.scss.
+// "manualPosting" action (Hooks). Tadween adds the bubbles, tool cards,
+// suggested prompts and the composer. Styles: app/tadween/agent.scss.
 
 // What the agent reads with every message (unchanged from Postiz's agent page):
 // the text, the media as "Image:/Video: url" lines and the chosen channels.
@@ -136,7 +125,7 @@ const Thinking: FC = () => {
 /* Composer: text, attachments, channels, send / stop */
 const Composer: FC<InputProps> = ({ inProgress, onSend, onStop, hideStopButton }) => {
   const t = useT();
-  const { selected, setSelected, draft } = useAgentWorkspace();
+  const { selected, draft } = useAgentWorkspace();
   const { interrupt } = useCopilotChatInternal();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState('');
@@ -203,7 +192,6 @@ const Composer: FC<InputProps> = ({ inProgress, onSend, onStop, hideStopButton }
               onClose={() => {}}
             />
           </div>
-          <ChannelContextPicker selected={selected} onChange={setSelected} />
           <span className="flex-1" />
           <button
             type="button"
@@ -235,54 +223,13 @@ const ToolRenderers: FC = () => {
   return null;
 };
 
-const ChatHeader: FC<{ title: string }> = ({ title }) => {
-  const t = useT();
-  const startNewChat = useStartNewChat();
-  const [open, setOpen] = useState(false);
-  return (
-    <header className="tdw-ag-head">
-      <IconButton
-        icon="message-square"
-        label={t('tdw_ag_chats', 'Chats')}
-        className="tdw-ag-phone-only"
-        onClick={() => setOpen(true)}
-      />
-      <h2 className="tdw-ag-head-title" dir="auto">{title}</h2>
-      <IconButton
-        icon="plus"
-        label={t('start_a_new_chat', 'Start a new chat')}
-        className="tdw-ag-phone-only"
-        onClick={startNewChat}
-      />
-      <TadweenSheet
-        open={open}
-        onClose={() => setOpen(false)}
-        title={t('tdw_ag_chats', 'Chats')}
-        detent="large"
-      >
-        <TadweenScope className="tdw-ag-sheet">
-          <ChatThreadList onNavigate={() => setOpen(false)} />
-        </TadweenScope>
-      </TadweenSheet>
-    </header>
-  );
-};
-
 const ChatSurface: FC = () => {
   const t = useT();
   const { id } = useParams<{ id: string }>();
   const { messages, isLoading } = useCopilotChatInternal();
   const { setDraft } = useAgentWorkspace();
-  const { data, mutate } = useAgentThreads();
-  const isNew = id === 'new';
-  const empty = isNew && !messages?.length && !isLoading;
-
-  const title = useMemo(
-    () =>
-      (!isNew && data?.threads?.find((p) => p.id === id)?.title) ||
-      t('tdw_ag_new_chat', 'New chat'),
-    [data, id, isNew]
-  );
+  const { mutate } = useAgentThreads();
+  const empty = id === 'new' && !messages?.length && !isLoading;
 
   // the greeting sits between the header and the composer, which grows as
   // the user types: its height lives in a CSS variable
@@ -304,7 +251,6 @@ const ChatSurface: FC = () => {
 
   return (
     <div ref={surface} className={cx('tdw-ag-chat', empty && 'is-empty')}>
-      <ChatHeader title={title} />
       <CopilotChat
         className="tdw-ag-copilot"
         labels={{
@@ -367,7 +313,9 @@ const AgentChatRuntime: FC = () => {
   );
 };
 
-/* Shown instead of the chat when the server has no AI provider */
+/* The conversation when the server has no AI provider: the reason in place of
+   the messages and a composer that can't send. The channel panel and the
+   chats around it keep working. */
 const AiNotConfigured: FC = () => {
   const t = useT();
   const user = useUser();
@@ -403,6 +351,22 @@ const AiNotConfigured: FC = () => {
             ) : null
           }
         />
+      </div>
+      <div className="tdw-ag-composer-wrap">
+        <div className="tdw-ag-composer is-disabled">
+          <textarea
+            disabled
+            rows={1}
+            aria-label={t('tdw_ag_off_placeholder', "The agent can't reply until AI is configured")}
+            placeholder={t('tdw_ag_off_placeholder', "The agent can't reply until AI is configured")}
+          />
+          <div className="tdw-ag-composer-bar">
+            <span className="flex-1" />
+            <button type="button" className="tdw-ag-send" disabled aria-label={t('tdw_ag_send', 'Send')}>
+              <Icon name="arrow-up" size={18} />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

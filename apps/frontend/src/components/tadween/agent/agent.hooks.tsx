@@ -41,6 +41,22 @@ export const useAgentThreads = () => {
   });
 };
 
+// Network names ("LinkedIn Page", "X"…) for the channel list, from the same
+// provider catalogue the "Add channel" dialog reads
+export const useAgentNetworks = () => {
+  const fetch = useFetch();
+  const load = useCallback(async () => {
+    return (await (await fetch('/integrations')).json()) as {
+      social: { identifier: string; name: string }[];
+    };
+  }, []);
+  return useSWR('agent-networks', load, {
+    revalidateOnFocus: false,
+    refreshWhenHidden: false,
+    shouldRetryOnError: false,
+  });
+};
+
 // Channels in the order the agent page always listed them
 export const useAgentChannels = () => {
   const { data, isLoading } = useIntegrationList();
@@ -58,9 +74,13 @@ export const useAgentChannels = () => {
 
 // Workspace state shared by the rail, the chat and the composer
 export interface AgentWorkspaceState {
-  // channels the next message tells the agent to use
+  // channels the next message tells the agent to use (the channel panel is
+  // the only place that changes them)
   selected: AgentChannel[];
   setSelected: (channels: AgentChannel[]) => void;
+  // the channel panel's sheet on phones
+  channelsOpen: boolean;
+  setChannelsOpen: (open: boolean) => void;
   // text a suggested prompt put into the composer
   draft: { text: string; at: number };
   setDraft: (text: string) => void;
@@ -72,6 +92,8 @@ export interface AgentWorkspaceState {
 export const AgentWorkspaceContext = createContext<AgentWorkspaceState>({
   selected: [],
   setSelected: () => {},
+  channelsOpen: false,
+  setChannelsOpen: () => {},
   draft: { text: '', at: 0 },
   setDraft: () => {},
   chatKey: 0,

@@ -2,13 +2,14 @@
 //
 // The create / edit post modal (components/new-launch/*):
 //   · channel avatar with network badge      (tadween/editor/channel.avatar.tsx)
-//   · scope strip: All channels + one tab per channel   (new-launch/select.current.tsx)
+//   · scope strip: All channels + one avatar tab per channel (new-launch/select.current.tsx)
+//   · "All channels" identity in the shared preview (launches/general.preview.component.tsx)
 //   · lock card and "own version" note       (tadween/editor/scope.tsx)
 //   · character counter + per-channel list   (launches/information.component.tsx)
 //   · checks chip                            (tadween/editor/checks.tsx)
 //   · settings panel, footer buttons, split "Add to calendar ▾ Post now"
 // Tokens come from ../tadween.scss. `body` raises specificity above Tailwind
-// utilities on the same elements. Social previews are not touched here.
+// utilities on the same elements. Per-network social previews are not touched here.
 
 @keyframes tdw-ed-pop {
   from { opacity: 0; transform: scale(0.96) translateY(4px); }
@@ -32,6 +33,42 @@ body {
     height: 100% !important;
     border-radius: 50%;
     object-fit: cover;
+  }
+  // a picture that failed to load (TadweenAvatarImage)
+  .tdw-avatar-initials {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--tdw-primary-soft);
+    color: var(--tdw-primary);
+    font-size: 0.8em;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .tdw-ch-avatar .tdw-avatar-initials { font-size: 10px; }
+
+  // ── "All channels" identity in the shared preview ────────────────────────
+  .tdw-global-avatar {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--tdw-primary-soft);
+    color: var(--tdw-primary);
+  }
+  .tdw-net-marks {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    img {
+      width: 14px !important;
+      height: 14px !important;
+      border-radius: 3px;
+    }
   }
   .tdw-ch-avatar-net {
     position: absolute;
@@ -65,6 +102,7 @@ body {
     align-items: center;
     gap: 4px;
     width: 100%;
+    min-width: 0;
     padding: 4px;
     border-radius: 12px;
     background: var(--tdw-muted);
@@ -96,11 +134,19 @@ body {
       box-shadow: var(--tdw-shadow-sm);
     }
   }
-  .tdw-scope-name {
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  // one channel: its avatar only (name in the tooltip and aria-label)
+  .tdw-scope.tdw-scope-ch {
+    justify-content: center;
+    width: 42px;
+    padding: 0;
+    .tdw-ch-avatar-img,
+    .tdw-avatar-initials {
+      transition: box-shadow 150ms ease;
+    }
+    &.is-on .tdw-ch-avatar-img,
+    &.is-on .tdw-avatar-initials {
+      box-shadow: 0 0 0 2px var(--tdw-card), 0 0 0 3.5px var(--tdw-primary);
+    }
   }
   .tdw-scope-sep {
     flex: none;
@@ -113,32 +159,47 @@ body {
     position: relative;
     flex: none;
   }
+  // remove: a small red × on the tab's top-start corner (the avatar's
+  // top-end corner keeps the "own version" / "needs a fix" dot). Shown on the
+  // open tab, and on hover or keyboard focus, so the strip stays calm.
   .tdw-scope-x {
     position: absolute;
-    top: -3px;
-    inset-inline-end: -3px;
+    top: -1px;
+    inset-inline-start: -1px;
     display: grid;
     place-items: center;
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     padding: 0;
     border: 0;
     border-radius: 50%;
-    background: var(--tdw-foreground);
-    color: var(--tdw-card);
+    background: var(--tdw-card);
+    color: var(--tdw-destructive);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--tdw-destructive) 35%, transparent),
+      var(--tdw-shadow-sm);
     opacity: 0;
     transform: scale(0.8);
+    pointer-events: none;
     cursor: pointer;
-    transition: opacity 150ms ease, transform 200ms var(--tdw-ease-spring);
+    transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease,
+      transform 200ms var(--tdw-ease-spring);
+    // a bigger hit area than the dot it draws
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -5px;
+    }
+    &:hover {
+      background: var(--tdw-destructive);
+      color: #fff;
+    }
   }
+  .tdw-scope.is-on + .tdw-scope-x,
   .tdw-scope-item:hover .tdw-scope-x,
   .tdw-scope-x:focus-visible {
     opacity: 1;
     transform: none;
-  }
-  .tdw-scope-x:hover { background: var(--tdw-destructive); color: #fff; }
-  @media (hover: none) {
-    .tdw-scope-x { opacity: 1; transform: none; }
+    pointer-events: auto;
   }
 
   // ── "Own version" note and the lock card ─────────────────────────────────

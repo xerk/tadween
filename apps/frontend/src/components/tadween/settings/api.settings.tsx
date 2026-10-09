@@ -12,6 +12,7 @@ import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { useInstanceSettings } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { McpClientIcon } from '@gitroom/frontend/components/public-api/mcp.client.icons';
+import { getMcpOauthUrl } from '@gitroom/frontend/components/public-api/public.component';
 import { DeveloperComponent } from '@gitroom/frontend/components/developer/developer.component';
 import {
   TadweenSheet,
@@ -50,10 +51,10 @@ import {
 
 const KEY_PLACEHOLDER = 'YOUR_API_KEY';
 
-// What the key looks like until revealed: the ends stay, so people can tell
-// two keys apart
+// What the key looks like until revealed: only the last 4 characters stay,
+// so people can tell two keys apart without any of the start being shown
 const maskKey = (key: string) =>
-  key.length > 8 ? `${key.slice(0, 4)}${'•'.repeat(12)}${key.slice(-4)}` : '•'.repeat(12);
+  key.length > 8 ? `${'•'.repeat(16)}${key.slice(-4)}` : '•'.repeat(16);
 
 const useCopy = () => {
   const t = useT();
@@ -145,7 +146,7 @@ const useConnectContext = (): ConnectContext => {
       name,
       slug,
       mcp: `${mcpBase}/mcp`,
-      oauth: `${mcpBase}/mcp-oauth-dynamic`,
+      oauth: getMcpOauthUrl(mcpBase),
       backend,
       api: `${backend}/public/v1`,
       key: user?.publicApi || KEY_PLACEHOLDER,
@@ -1503,7 +1504,7 @@ const useApprovedApps = () => {
   const fetch = useFetch();
   const load = useCallback(async () => {
     return (await fetch('/user/approved-apps')).json();
-  }, []);
+  }, [fetch]);
   return useSWR('approved-apps', load, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
@@ -1533,14 +1534,19 @@ export const ApprovedAppsSettings: FC = () => {
         return;
       }
       try {
-        await fetch(`/user/approved-apps/${app.id}`, { method: 'DELETE' });
+        const response = await fetch(`/user/approved-apps/${app.id}`, {
+          method: 'DELETE',
+        });
+        if (!response.ok) {
+          throw new Error('revoke failed');
+        }
         toaster.show(t('access_revoked', 'Access revoked successfully'), 'success');
         mutate();
       } catch {
         toaster.show(t('failed_to_revoke', 'Failed to revoke access'), 'warning');
       }
     },
-    [t, mutate]
+    [t, fetch, toaster, mutate]
   );
 
   return (

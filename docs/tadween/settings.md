@@ -114,5 +114,5 @@ app's pre-registered client.
 | `useConnectContext` | Instance name and slug (server name in configs), MCP/OAuth/API addresses, the key or `YOUR_API_KEY` for Members (the backend blanks the key for the `USER` role). |
 | `useClientGuides` | The client list. Each guide has methods (`auth: 'key' \| 'oauth' \| 'none'`), optional OS tabs, numbered steps (text + snippet), a test prompt and troubleshooting tips. Add a client here. |
 | `GuideBody` | Method and OS switches, **Show key**, the steps, the test hint, troubleshooting. A Dialog on desktop, a `TadweenSheet` on phones. |
-| `CodeBlock` | A snippet: monospace, always left to right, the key masked until **Show key**; the copy button copies the real text. |
+| `CodeBlock` | A snippet: monospace, always left to right, the key masked to its last 4 characters until **Show key**; the copy button copies the real text. |
 | `CopyField` | One-line value with a copy button (addresses, the auth header). |

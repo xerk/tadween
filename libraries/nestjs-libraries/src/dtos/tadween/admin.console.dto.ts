@@ -44,7 +44,7 @@ export class BrandingSettingsDto {
   supportEmail?: string;
 
   @IsString()
-  @IsIn(['en', 'ar', 'bn', 'de', 'es', 'fr', 'he', 'it', 'ja', 'ka_ge', 'ko', 'pt', 'ru', 'tr', 'vi', 'zh'])
+  @IsIn(['en', 'ar', 'bn', 'de', 'es', 'fr', 'it', 'ja', 'ka_ge', 'ko', 'pt', 'ru', 'tr', 'vi', 'zh'])
   defaultLanguage: string;
 
   // IANA zone such as Africa/Cairo, or empty for the browser's own zone

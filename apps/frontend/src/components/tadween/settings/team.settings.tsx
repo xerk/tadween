@@ -354,13 +354,6 @@ export const TeamSettings = () => {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                // The settings page wraps every tab in the profile <form>;
-                // Enter here must not submit it.
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                }
-              }}
               placeholder={t('tdw_team_search', 'Search by name or email')}
               aria-label={t('tdw_team_search', 'Search by name or email')}
             />

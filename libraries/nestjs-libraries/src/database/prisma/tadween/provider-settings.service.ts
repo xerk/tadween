@@ -8,6 +8,7 @@ import {
   credentialStatus,
   PROVIDER_PRIORITY,
 } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
+import { ProviderCredentialsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-credentials.service';
 
 const TTL_MS = 15_000;
 
@@ -19,7 +20,8 @@ export class ProviderSettingsService {
 
   constructor(
     private _repository: ProviderSettingsRepository,
-    private _integrationManager: IntegrationManager
+    private _integrationManager: IntegrationManager,
+    private _credentials: ProviderCredentialsService
   ) {}
 
   private async rows(): Promise<Row[]> {
@@ -65,12 +67,16 @@ export class ProviderSettingsService {
       .sort((a, b) => a.position - b.position);
   }
 
-  // For the admin console: no secret values, only env var names and whether they are set.
+  // For the admin console: no secret values, only env var names, whether they
+  // are set and where from (console or env).
   async getAdminProviders() {
     return (await this.resolved()).map((p) => ({
       ...p,
       hiddenByEnv: this._integrationManager.isHiddenProvider(p.identifier),
-      credentials: credentialStatus(p.identifier),
+      credentials: {
+        ...credentialStatus(p.identifier),
+        fields: this._credentials.status(p.identifier),
+      },
     }));
   }
 

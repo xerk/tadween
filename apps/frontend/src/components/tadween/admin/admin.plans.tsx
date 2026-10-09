@@ -18,7 +18,7 @@ import {
   SegmentedControl,
   Select,
   Switch,
-  Table,
+  DataTable,
   Textarea,
 } from '@gitroom/frontend/components/tadween/ui';
 import { INSTANCE_SETTINGS_KEY } from '@gitroom/frontend/components/tadween/instance/instance.settings';
@@ -394,10 +394,14 @@ export const AdminPlansPage = () => {
             people already subscribed keep what they pay. Limits apply to everyone on the tier, so they can’t go below
             today’s while a workspace is subscribed to it.
           </Banner>
-          <Table
+          <DataTable
+            id="admin-plans"
             loading={isLoading}
             rowKey={(p) => p.id}
             rows={plans}
+            paginate={false}
+            searchable={false}
+            onRowClick={(p) => setEditing(p)}
             columns={[
               {
                 key: 'name',
@@ -463,7 +467,7 @@ export const AdminPlansPage = () => {
                 label: '',
                 align: 'right',
                 render: (p) => (
-                  <span className="pz-row-actions">
+                  <span className="pz-row-actions" onClick={(e) => e.stopPropagation()}>
                     <IconButton size="sm" icon="pencil" label={`Edit ${p.name}`} onClick={() => setEditing(p)} />
                     <IconButton size="sm" icon="trash-2" label={`Delete ${p.name}`} onClick={() => setRemoving(p)} />
                   </span>

@@ -57,7 +57,7 @@ export const AdminOverviewPage = () => {
           hint={data?.inactiveUsers ? `${n(data.inactiveUsers)} not activated` : 'All activated'}
           href="/admin/users"
         />
-        <StatTile loading={isLoading} label="Workspaces" value={n(data?.organizations)} />
+        <StatTile loading={isLoading} label="Workspaces" value={n(data?.organizations)} hint="Open subscribers" href="/admin/organizations" />
         <StatTile
           loading={isLoading}
           label="Channels"
@@ -83,9 +83,9 @@ export const AdminOverviewPage = () => {
           title="Subscriptions"
           description="Workspaces on each paid tier."
           action={
-            <LinkButton href="/admin/plans" size="sm" variant="ghost" iconEnd="arrow-right">
-                Plans
-              </LinkButton>
+            <LinkButton href="/admin/organizations" size="sm" variant="ghost" iconEnd="arrow-right">
+              Subscribers
+            </LinkButton>
           }
         >
           <Table

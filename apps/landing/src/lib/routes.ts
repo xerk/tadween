@@ -7,11 +7,16 @@ export const PATHS = {
   features: '/features',
   channels: '/channels',
   agent: '/ai-agent',
-  developers: '/developers',
   pricing: '/pricing',
 } as const;
 
+/** The tool pages under /features, in the order the menus and the overview list them.
+    The AI agent has its own page at /ai-agent. */
+export const FEATURE_SLUGS = ['calendar', 'board', 'composer', 'media-library', 'analytics', 'collaboration', 'auto-post', 'signatures-sets'] as const;
+export type FeatureSlug = (typeof FEATURE_SLUGS)[number];
+
 export const channelPath = (slug: string) => `${PATHS.channels}/${slug}`;
+export const featurePath = (slug: FeatureSlug) => `${PATHS.features}/${slug}`;
 
 /** The URL of a page in one language: English has no prefix, Arabic lives under /ar. */
 export const localePath = (lang: Lang, path: string) => (lang === 'ar' ? `/ar${path}` : path || '/');
@@ -22,7 +27,7 @@ export const ALL_PAGES: { path: string; priority: number }[] = [
   { path: PATHS.pricing, priority: 0.9 },
   { path: PATHS.features, priority: 0.8 },
   { path: PATHS.agent, priority: 0.8 },
+  ...FEATURE_SLUGS.map((slug) => ({ path: featurePath(slug), priority: 0.8 })),
   { path: PATHS.channels, priority: 0.8 },
-  { path: PATHS.developers, priority: 0.6 },
   ...CHANNELS.map((c) => ({ path: channelPath(c.slug), priority: c.group === 'professional' ? 0.8 : 0.6 })),
 ];

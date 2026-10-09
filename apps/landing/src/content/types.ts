@@ -1,22 +1,9 @@
 import type { IconName } from '@/components/icons';
 import type { ChannelGroup } from '@/lib/channels';
+import type { FeatureSlug } from '@/lib/routes';
+import type { ShotId } from '@/lib/shots';
 
 export type Lang = 'en' | 'ar';
-
-export interface PostAuthor {
-  name: string;
-  headline: string;
-  initials: string;
-}
-
-export interface LinkedInLabels {
-  you: string;
-  now: string;
-  visibleToAnyone: string;
-  comments: string;
-  reposts: string;
-  actions: [string, string, string, string];
-}
 
 /** Placeholder plan copy and prices; the API (when configured) overrides prices and limits. */
 export interface PlanCopy {
@@ -52,22 +39,42 @@ export interface Head {
   sub: string;
 }
 
-export type ArtKind = 'linkedin' | 'calendar' | 'team' | 'analytics' | 'media' | 'agent' | 'arabic' | 'automation';
-
-export interface FeatureDetail {
-  /** Anchor on /features. */
-  id: string;
-  icon: IconName;
-  title: string;
-  body: string;
-  art: ArtKind;
-  points: string[];
-  smart?: boolean;
+/** A menu or card entry for a feature page. */
+export interface FeatureNav {
+  label: string;
+  blurb: string;
 }
 
-export interface CodeSample {
-  label: string;
-  code: string;
+/** One block of a feature page: copy beside a product screenshot. */
+export interface Benefit {
+  title: string;
+  body: string;
+  points?: string[];
+  shot: ShotId;
+}
+
+/** A tool page under /features. Its icon and related pages live in lib/features.ts. */
+export interface FeatureCopy {
+  nav: FeatureNav;
+  meta: PageMeta;
+  h1: string;
+  sub: string;
+  hero: ShotId;
+  /** Two short labels pinned to the hero screenshot. */
+  callouts?: [string, string];
+  benefits: Benefit[];
+  steps: { title: string; body: string }[];
+  faq: Faq[];
+}
+
+/** One conversation with the agent, the way the chat shows it. */
+export interface ChatDemo {
+  lang: Lang;
+  prompt: string;
+  tools: { tool: string; label: string }[];
+  reply: string;
+  /** The posts it scheduled: channel icon slug, channel name, first words, time. */
+  posts: { net: string; name: string; text: string; when: string }[];
 }
 
 /** One network's page. Limits and flags come from lib/channels.ts; this is only the words. */
@@ -108,8 +115,11 @@ export interface ChannelsDict {
     mediaTitle: string;
     featuresTitle: string;
     shared: { icon: IconName; title: string; body: string }[];
-    previewNote: string;
-    previewAuthor: PostAuthor;
+    /** Caption under the composer screenshot; "{name}" is the network. */
+    previewTitle: string;
+    previewSub: string;
+    /** Caption for networks without their own screenshot yet. */
+    previewGeneric: string;
     faqTitle: string;
     relatedTitle: string;
     /** "{name}" is replaced with the network's name. */
@@ -137,20 +147,47 @@ export interface Dict {
     ogLocale: string;
     features: PageMeta;
     agent: PageMeta;
-    developers: PageMeta;
   };
   skip: string;
   nav: {
     label: string;
-    links: { href: string; label: string }[];
+    features: string;
+    channels: string;
+    resources: string;
+    pricing: string;
     signIn: string;
     startTrial: string;
     home: string;
     switchTo: { label: string; title: string; lang: Lang };
     theme: string;
     menu: string;
+    close: string;
     breadcrumb: string;
+    allFeatures: string;
+    allChannels: string;
+    /** The featured card in the Features menu. */
+    spotlight: { title: string; body: string };
+    resourceLinks: { href: string; label: string; body: string; icon: IconName; external?: boolean }[];
   };
+  /** Feed chrome and status chips of the hero showcase cards. */
+  showcase: {
+    like: string;
+    comment: string;
+    repost: string;
+    send: string;
+    share: string;
+    followers: string;
+    now: string;
+    yesterday: string;
+    location: string;
+    sound: string;
+    commentsShares: string;
+    status: Record<string, string>;
+  };
+  /** Alt text of every product screenshot, in this language. */
+  shots: Record<ShotId, string>;
+  /** The address bar text on framed screenshots. */
+  shotUrl: string;
   hero: {
     eyebrow: string;
     title: string;
@@ -158,78 +195,62 @@ export interface Dict {
     primary: string;
     secondary: string;
     fine: string;
-    tagBest: string;
-    tagScheduled: string;
-    scroll: string;
+    nets: string;
   };
-  linkedin: LinkedInLabels;
-  flow: {
-    title: string;
-    steps: { title: string; body: string; icon: IconName }[];
-    author: PostAuthor;
-    text: string;
-    chipWhen: string;
-    chipWhere: string;
-    published: string;
-    publishedWhere: string;
-    /** Short sample posts for the per-network preview step, keyed by preview kind. */
-    xText: string;
-    threadsText: string;
-    week: string[];
+  product: Head & { calloutA: string; calloutB: string };
+  netstrip: { title: string; all: string };
+  tour: Head & {
+    rows: { href: string; kicker: string; icon: IconName; title: string; body: string; points: string[]; shot: ShotId; link: string }[];
   };
-  proof: {
-    title: string;
-    placeholder: string;
-    logo: string;
-    quote: string;
-    quoteBy: string;
-  };
-  /** The home page's feature grid; its cards are featuresPage.sections. */
-  features: Head & { more: string };
-  channelsSection: Head & { all: string; more: string };
-  agentTeaser: Head & {
-    prompt: string;
-    calls: { tool: string; label: string }[];
-    done: string;
-    link: string;
-  };
-  homeFaq: { title: string; items: Faq[] };
-  featuresPage: Head & {
-    jump: string;
-    sections: FeatureDetail[];
-  };
-  agentPage: Head & {
-    eyebrow: string;
-    can: Head & { items: { icon: IconName; title: string; body: string }[] };
-    cannot: string;
-    connect: Head & {
-      steps: { title: string; body: string }[];
-      endpointLabel: string;
-      keyLabel: string;
-      clientsNote: string;
-    };
-    prompts: Head & { items: { lang: Lang; text: string }[] };
-    inApp: Head & { points: string[] };
-    connectors: Head & { badge: string; items: { icon: IconName; title: string; body: string }[]; planNote: string };
-    faqTitle: string;
-    faq: Faq[];
-  };
-  developersPage: Head & {
-    eyebrow: string;
-    api: Head & { authNote: string; groups: { title: string; endpoints: [string, string, string][] }[] };
-    mcp: Head & { samples: CodeSample[] };
-    webhooks: Head & { points: string[] };
-    automate: Head & { points: string[] };
-    limits: Head & { points: string[] };
-  };
+  arabic: Head & { bullets: string[] };
+  agentTeaser: Head & { link: string; eyebrow: string };
+  allFeatures: Head & { more: string };
   steps: {
     title: string;
-    items: { icon: IconName; title: string; body: string }[];
+    items: { title: string; body: string }[];
   };
-  arabic: {
-    title: string;
-    sub: string;
-    bullets: string[];
+  homeFaq: { title: string; items: Faq[] };
+  featuresIndex: Head & { agentNav: FeatureNav };
+  featurePage: {
+    start: string;
+    tour: string;
+    howTitle: string;
+    relatedTitle: string;
+    faqTitle: string;
+    learnMore: string;
+  };
+  features: Record<FeatureSlug, FeatureCopy>;
+  agentPage: Head & {
+    eyebrow: string;
+    hero: ChatDemo;
+    works: Head & { items: string[]; note: string };
+    /** Connect and ask: the address to copy, a first question, four short steps, then a
+        card per client. "{api}" in code is replaced with the API address. */
+    connect: Head & {
+      connectTitle: string;
+      connectBody: string;
+      linkLabel: string;
+      copy: string;
+      copied: string;
+      askTitle: string;
+      askBody: string;
+      ask: ChatDemo;
+      alsoTry: string;
+      suggestions: string[];
+      steps: { title: string; body: string }[];
+      clientsTitle: string;
+      clientsSub: string;
+      clients: { name: string; how: string; steps: string[]; codeLabel: string; code: string }[];
+      keyNote: string;
+    };
+    examples: Head & { items: ChatDemo[] };
+    can: Head & { items: { icon: IconName; title: string; body: string }[] };
+    cannot: string;
+    inApp: Head & { points: string[] };
+    connectors: Head & { badge: string; items: { icon: IconName; title: string; body: string }[]; planNote: string };
+    chat: { title: string; online: string; input: string };
+    faqTitle: string;
+    faq: Faq[];
   };
   pricing: {
     sectionTitle: string;
@@ -273,6 +294,7 @@ export interface Dict {
   footer: {
     tagline: string;
     channelsTitle: string;
+    toolsTitle: string;
     columns: { title: string; links: { href: string; label: string; external?: boolean }[] }[];
     copyright: string;
   };

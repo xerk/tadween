@@ -1,8 +1,6 @@
 import {
-  IsDefined,
   IsIn,
   IsInt,
-  IsObject,
   IsOptional,
   IsString,
   Matches,
@@ -73,13 +71,4 @@ export class AdminUsersQueryDto extends AdminListQueryDto {
   @IsOptional()
   @IsIn(['superadmin', 'member'])
   role?: 'superadmin' | 'member';
-}
-
-// Env var name → new value. A string sets (or replaces) the console value; null
-// or "" removes it so the env var is used again. Names a provider doesn't
-// declare are rejected by the service.
-export class ProviderCredentialsDto {
-  @IsDefined()
-  @IsObject()
-  values: Record<string, string | null>;
 }

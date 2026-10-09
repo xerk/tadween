@@ -6,6 +6,48 @@ import {
   AdminUsersQueryDto,
 } from '@gitroom/nestjs-libraries/dtos/tadween/admin.list.dto';
 
+// What the console shows of a user: no password, tokens or API keys.
+const USER_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+  lastName: true,
+  providerName: true,
+  activated: true,
+  isSuperAdmin: true,
+  createdAt: true,
+  lastOnline: true,
+  organizations: {
+    where: { organization: { deletedAt: null as Date | null } },
+    select: {
+      id: true,
+      role: true,
+      disabled: true,
+      organization: {
+        select: {
+          id: true,
+          name: true,
+          subscription: {
+            select: {
+              subscriptionTier: true,
+              period: true,
+              isLifetime: true,
+              provider: true,
+              cancelAt: true,
+              deletedAt: true,
+            },
+          },
+          _count: {
+            select: {
+              Integration: { where: { deletedAt: null as Date | null } },
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.UserSelect;
+
 // Read models for the super-admin console. Every query selects only the fields
 // the console shows: no passwords, tokens or API keys.
 @Injectable()
@@ -136,46 +178,7 @@ export class AdminConsoleRepository {
         orderBy,
         skip,
         take,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          lastName: true,
-          providerName: true,
-          activated: true,
-          isSuperAdmin: true,
-          createdAt: true,
-          lastOnline: true,
-          organizations: {
-            where: { organization: { deletedAt: null } },
-            select: {
-              id: true,
-              role: true,
-              disabled: true,
-              organization: {
-                select: {
-                  id: true,
-                  name: true,
-                  subscription: {
-                    select: {
-                      subscriptionTier: true,
-                      period: true,
-                      isLifetime: true,
-                      provider: true,
-                      cancelAt: true,
-                      deletedAt: true,
-                    },
-                  },
-                  _count: {
-                    select: {
-                      Integration: { where: { deletedAt: null } },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
+        select: USER_SELECT,
       }),
     ]);
     return { total, users };
@@ -392,6 +395,13 @@ export class AdminConsoleRepository {
       ...organization,
       usage: { publishedMonth, publishedTotal, scheduled, failed30d },
     };
+  }
+
+  getUser(id: string) {
+    return this._user.model.user.findFirst({
+      where: { id, deletedAt: null },
+      select: USER_SELECT,
+    });
   }
 
   getUserForAdmin(id: string) {

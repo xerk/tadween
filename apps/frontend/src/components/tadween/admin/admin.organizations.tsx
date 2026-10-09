@@ -28,6 +28,7 @@ import { AdminPage } from './admin.shell';
 import {
   AdminOrganization,
   SubscriptionStatus,
+  date,
   TIER_LABEL,
   useAdminMutation,
   useAdminOrganization,
@@ -35,11 +36,6 @@ import {
   useExportAll,
 } from './admin.api';
 import { ChangePlanDialog, PlanTarget } from './admin.change.plan';
-
-export const date = (iso?: string | null) =>
-  iso
-    ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-    : '—';
 
 const STATUS: Record<SubscriptionStatus, { label: string; key: string; tone: 'ok' | 'warn' | 'brand' | 'neutral'; icon: string }> = {
   active: { label: 'Active', key: 'tdw_admin_status_active', tone: 'ok', icon: 'check' },
@@ -154,7 +150,7 @@ const OrganizationDrawer: FC<{
         }
       >
         {error ? (
-          <Banner tone="error" title="Couldn’t load this workspace.">
+          <Banner tone="error" title={t('tdw_admin_workspace_error', 'Couldn’t load this workspace.')}>
             {error.message}
           </Banner>
         ) : !org ? (
@@ -182,7 +178,11 @@ const OrganizationDrawer: FC<{
                 <Field label={t('tdw_admin_since', 'Subscribed since')}>{date(sub?.createdAt)}</Field>
                 <Field label={t('tdw_admin_col_ends', 'Cancels on')}>{date(sub?.cancelAt)}</Field>
                 <Field label={t('tdw_admin_trial', 'Trial')}>
-                  {org.isTrailing ? 'In trial' : org.allowTrial ? 'Can start a trial' : 'No trial'}
+                  {org.isTrailing
+                    ? t('tdw_admin_trial_in', 'In trial')
+                    : org.allowTrial
+                    ? t('tdw_admin_trial_can', 'Can start a trial')
+                    : t('tdw_admin_trial_none', 'No trial')}
                 </Field>
                 <Field label={t('tdw_admin_customer_id', 'Customer id')}>
                   <CopyValue value={org.paymentId} />
@@ -222,7 +222,7 @@ const OrganizationDrawer: FC<{
                 dense
                 rowKey={(m) => m.id}
                 rows={[...org.users].sort((a, b) => Number(b.role === 'SUPERADMIN') - Number(a.role === 'SUPERADMIN'))}
-                empty="No members"
+                empty={t('tdw_admin_no_members', 'No members')}
                 columns={[
                   {
                     key: 'user',
@@ -241,9 +241,19 @@ const OrganizationDrawer: FC<{
                     label: t('tdw_admin_role', 'Role'),
                     render: (m) => (
                       <span className="inline-flex gap-[6px] flex-wrap">
-                        <Pill>{m.role === 'SUPERADMIN' ? 'Owner' : m.role === 'ADMIN' ? 'Admin' : 'Member'}</Pill>
-                        {m.disabled ? <Pill tone="warn">Disabled</Pill> : null}
-                        {!m.user.activated ? <Pill tone="warn" icon="lock">Inactive</Pill> : null}
+                        <Pill>
+                          {m.role === 'SUPERADMIN'
+                            ? t('tdw_admin_role_owner', 'Owner')
+                            : m.role === 'ADMIN'
+                            ? t('tdw_admin_role_admin', 'Admin')
+                            : t('tdw_admin_role_member', 'Member')}
+                        </Pill>
+                        {m.disabled ? <Pill tone="warn">{t('tdw_admin_disabled', 'Disabled')}</Pill> : null}
+                        {!m.user.activated ? (
+                          <Pill tone="warn" icon="lock">
+                            {t('tdw_admin_inactive', 'Inactive')}
+                          </Pill>
+                        ) : null}
                       </span>
                     ),
                   },
@@ -266,7 +276,7 @@ const OrganizationDrawer: FC<{
                 dense
                 rowKey={(c) => c.id}
                 rows={org.Integration}
-                empty="No channels connected"
+                empty={t('tdw_admin_no_channels', 'No channels connected')}
                 columns={[
                   {
                     key: 'name',
@@ -283,11 +293,11 @@ const OrganizationDrawer: FC<{
                     label: t('tdw_admin_col_status', 'Status'),
                     render: (c) =>
                       c.disabled ? (
-                        <Pill icon="minus">Disabled</Pill>
+                        <Pill icon="minus">{t('tdw_admin_disabled', 'Disabled')}</Pill>
                       ) : c.refreshNeeded || c.inBetweenSteps ? (
-                        <Pill tone="warn" icon="refresh-cw">Needs reconnecting</Pill>
+                        <Pill tone="warn" icon="refresh-cw">{t('tdw_admin_reconnect', 'Needs reconnecting')}</Pill>
                       ) : (
-                        <Pill tone="ok" icon="check">Connected</Pill>
+                        <Pill tone="ok" icon="check">{t('tdw_admin_connected', 'Connected')}</Pill>
                       ),
                   },
                   { key: 'created', label: t('tdw_admin_col_created', 'Created'), render: (c) => <span className="time">{date(c.createdAt)}</span> },
@@ -332,7 +342,7 @@ export const AdminOrganizationsPage = () => {
       render: (o) => (
         <span className="grid min-w-0">
           <span className="pz-set-label truncate">{o.name}</span>
-          <span className="caption pz-muted truncate">{o.owner?.email || 'No owner'}</span>
+          <span className="caption pz-muted truncate">{o.owner?.email || t('tdw_admin_no_owner', 'No owner')}</span>
         </span>
       ),
     },

@@ -69,7 +69,7 @@
 | `onRowClick`, `activeKey` | | Clickable rows (Enter too); `activeKey` highlights the open one. |
 | `selectable`, `bulkActions(selected, clear)` | | Checkbox column (page-level select all) and a sticky bulk bar. Selection clears when the query changes. |
 | `empty` | ReactNode | Shown when there are no rows and nothing is filtered ("Nothing matches these filters." otherwise). |
-| `exportAll` | `() => Promise<R[]>` | Server mode CSV of the whole current query. `useExportAll()` (admin.api.tsx) walks the list endpoint at `pageSize=100`, at most 50 pages (5,000 rows). Client mode exports the filtered rows. The file has a UTF-8 BOM so Excel opens Arabic correctly. |
+| `exportAll` | `() => Promise<R[]>` | Server mode CSV of the whole current query. `useExportAll()` (admin.api.tsx) walks the list endpoint at `pageSize=100`, at most 50 pages (5,000 rows). Client mode exports the filtered rows. The file has a UTF-8 BOM so Excel opens Arabic correctly, and cells starting with `= + - @` are prefixed with `'` so a spreadsheet never runs them as formulas. |
 | `paginate` | boolean | false = no footer (short lists). |
 
 ### URL state (`useTableQuery({ filters, pageSize })`)
@@ -110,13 +110,13 @@ Not stored, so not shown: the current period end (Stripe only) and subscription 
 
 - **Storage**: `ProviderCredential { name (env var name) @id, value, updatedAt, updatedBy }`. `value` is encrypted with `AuthService.fixedEncryption` (AES-256-CBC keyed from `JWT_SECRET`, the helper Postiz uses for organization API keys and third-party keys).
 - **Resolution** (`ProviderCredentialsService`, registered in `DatabaseModule`): console value first, then the deployment's env var. Upstream provider code reads `process.env.<NAME>` in 28 files when it builds an auth URL, refreshes a token or publishes; instead of rewriting those reads (which would conflict with every upstream sync), the service is the one place that resolves the value and publishes it on `process.env` for exactly the names in `PROVIDER_CREDENTIALS`. It runs at start-up and every 60 s in every process that loads `DatabaseModule`: the backend and the orchestrator's Temporal worker. No workflow or activity changed. Removing a console value restores the env var captured at start-up.
-- **Write-only**: `PUT /admin/console/providers/:identifier/credentials { values: { NAME: "value" | null } }`. Only names that provider declares are accepted; `null` or `""` removes the console value. Responses and `GET /admin/console/providers` carry `{ name, set, source: console | env | null, last4, updatedAt, editable, envOnlyReason, usedBy }` and never a value. `last4` is only given for names that don't look secret (no SECRET/TOKEN/KEY/MNEMONIC/PASSWORD).
+- **Write-only**: `PUT /admin/console/providers/:identifier/credentials { values: { NAME: "value" | null } }`. Only names that provider declares are accepted; `null` or `""` removes the console value. Responses and `GET /admin/console/providers` carry `{ name, set, source: console | env | null, unreadable, secret, last4, updatedAt, editable, envOnlyReason, usedBy }` and never a value. `secret` (the name contains SECRET/TOKEN/KEY/MNEMONIC/PASSWORD) masks the input and withholds `last4`. A save is one Prisma transaction; refreshes run one after another so an older read can't overwrite a newer save.
 - **Env-only names**: `TELEGRAM_TOKEN` (the Telegram bot is created when the module is imported) and `NEYNAR_CLIENT_ID` (the web app reads it too).
-- **Caveats**: a key shared by two channel types (LinkedIn profile and page, Facebook and Instagram) changes both, which the drawer says. Google sign-in reads `YOUTUBE_CLIENT_ID/SECRET` at import, so a console value for YouTube does not change Google sign-in until the env var is set. If `JWT_SECRET` changes, stored values can't be decrypted; the service logs it and falls back to env.
+- **Caveats**: a key shared by two channel types (LinkedIn profile and page, Facebook and Instagram) changes both, which the drawer says. Google sign-in reads `YOUTUBE_CLIENT_ID/SECRET` at import, so a console value for YouTube does not change Google sign-in until the env var is set. If `JWT_SECRET` changes, stored values can't be decrypted; the service logs it, falls back to env and reports `unreadable`, and the drawer asks for the value again.
 
 ## Endpoints
 
-All under `PlatformAdminGuard` unless marked Postiz.
+All in `AdminConsoleController` (`/admin/console`, `PlatformAdminGuard`) unless marked Postiz.
 
 | Method | Path | Query / body | Returns |
 | --- | --- | --- | --- |
@@ -125,6 +125,7 @@ All under `PlatformAdminGuard` unless marked Postiz.
 | GET | `/admin/console/organizations/:id` | | workspace detail: subscription, members, channels (no tokens), usage, limits |
 | PUT | `/admin/console/organizations/:id/tier` | `{ tier }` | unchanged |
 | GET | `/admin/console/users` | `page`, `pageSize`, `sort` (`createdAt`, `lastOnline`, `email`, `name`), `order`, `search` (email, name, exact id, workspace name), `status` (`active`/`inactive`), `role` (`superadmin`/`member`) | `{ items, total, page, pageSize, pages }` (was `{ users, … }`) |
+| GET | `/admin/console/users/:id` | | one user, same fields as a list row (opens a drawer for a user not on the current page) |
 | PUT | `/admin/console/users/:id/activation` | `{ activated }` | unchanged |
 | GET / PUT | `/admin/console/providers` | | now includes `credentials.fields` |
 | PUT | `/admin/console/providers/:identifier/credentials` | `{ values }` | key status list |

@@ -28,7 +28,6 @@ import {
 } from './admin.api';
 
 const LINKEDIN_FIRST = ['linkedin', 'linkedin-page'];
-const SECRET_NAME = /SECRET|TOKEN|KEY|MNEMONIC|PASSWORD/i;
 
 type ChannelState = 'ready' | 'missing' | 'none' | 'hidden';
 
@@ -182,11 +181,16 @@ const KeysDrawer: FC<{
                 </Pill>
                 {f.last4 ? <span className="caption pz-muted">ends in {f.last4}</span> : null}
               </div>
+              {f.unreadable ? (
+                <Banner tone="warning" title="The value saved here can’t be read.">
+                  The server’s JWT_SECRET changed since it was saved, so the env var is used. Enter it again.
+                </Banner>
+              ) : null}
               {f.editable ? (
                 <div className="adm-key-row">
                   <Input
                     aria-label={`New value for ${f.name}`}
-                    type={SECRET_NAME.test(f.name) ? 'password' : 'text'}
+                    type={f.secret ? 'password' : 'text'}
                     autoComplete="off"
                     spellCheck={false}
                     placeholder={f.set ? 'Enter a new value to replace it' : 'Paste the value'}

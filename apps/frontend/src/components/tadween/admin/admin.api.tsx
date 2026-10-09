@@ -72,6 +72,8 @@ export interface CredentialField {
   name: string;
   set: boolean;
   source: 'console' | 'env' | null;
+  unreadable: boolean;
+  secret: boolean;
   last4: string | null;
   updatedAt: string | null;
   editable: boolean;
@@ -288,12 +290,11 @@ export const useAdminUsers = (query: string) =>
     { ...swrOptions, keepPreviousData: true }
   );
 
-// A user that isn't on the current page (opened from search or a link): the
-// list endpoint matches ids exactly.
-export const useAdminUserById = (id: string | null) =>
-  useSWR<AdminUsersPage>(
-    id ? `/admin/console/users?pageSize=1&search=${encodeURIComponent(id)}` : null,
-    useLoader<AdminUsersPage>(),
+// A user that isn't on the current page (opened from search or a link).
+export const useAdminUser = (id: string | null) =>
+  useSWR<AdminUser>(
+    id ? `/admin/console/users/${encodeURIComponent(id)}` : null,
+    useLoader<AdminUser>(),
     swrOptions
   );
 
@@ -346,17 +347,17 @@ const EXPORT_MAX_PAGES = 50;
 export const useExportAll = () => {
   const fetch = useFetch();
   return useCallback(
-    async <T,>(path: string, query: string): Promise<T[]> => {
+    async <T,>(path: string, query: string, sizeParam = 'pageSize'): Promise<T[]> => {
       const all: T[] = [];
       const params = new URLSearchParams(query);
-      params.set('pageSize', '100');
+      params.set(sizeParam, '100');
       for (let page = 0; page < EXPORT_MAX_PAGES; page++) {
         params.set('page', String(page));
         const res = await fetch(`${path}?${params.toString()}`);
         if (!res.ok) {
           throw new Error(await readError(res));
         }
-        const body: AdminListPage<T> = await res.json();
+        const body: { items: T[]; total: number } = await res.json();
         all.push(...body.items);
         if (all.length >= body.total || !body.items.length) {
           break;
@@ -403,6 +404,11 @@ export const useAdminMutation = () => {
     []
   );
 };
+
+export const date = (iso?: string | null) =>
+  iso
+    ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '—';
 
 export const TIER_LABEL: Record<string, string> = {
   FREE: 'Free',

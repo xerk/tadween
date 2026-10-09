@@ -23,16 +23,14 @@ import {
   AdminUser,
   TIER_LABEL,
   useAdminMutation,
-  useAdminUserById,
+  date,
+  useAdminUser,
   useAdminUsers,
   useExportAll,
 } from './admin.api';
 import { ChangePlanDialog, PlanTarget } from './admin.change.plan';
 
 type Workspace = AdminUser['organizations'][number];
-
-const date = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const fullName = (u: AdminUser) => [u.name, u.lastName].filter(Boolean).join(' ') || u.email;
 
@@ -195,10 +193,10 @@ export const AdminUsersPage = () => {
   const [bulk, setBulk] = useState<{ users: AdminUser[]; activated: boolean } | null>(null);
 
   const onPage = data?.items.find((u) => u.id === openId) || null;
-  const { data: single, mutate: mutateSingle } = useAdminUserById(
+  const { data: single, mutate: mutateSingle } = useAdminUser(
     openId && data && !onPage ? openId : null
   );
-  const open = onPage || single?.items.find((u) => u.id === openId) || null;
+  const open = onPage || (single?.id === openId ? single : null);
 
   // One request per user through the same endpoint as the drawer; super
   // admins and your own account are refused by the server and counted.

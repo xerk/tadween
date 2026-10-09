@@ -23,6 +23,7 @@ import {
   AdminErrorRow,
   useAdminErrorPlatforms,
   useAdminErrors,
+  useExportAll,
 } from './admin.api';
 
 const safeParse = (value: string) => {
@@ -120,6 +121,7 @@ export const AdminErrorsPage = () => {
   const { data, error, isLoading, isValidating, mutate } = useAdminErrors(qs);
   const [openId, setOpenId] = useOpenRow();
   const open = data?.items.find((r) => r.id === openId) || null;
+  const exportAll = useExportAll();
 
   const columns: DataColumn<AdminErrorRow>[] = [
     {
@@ -191,6 +193,7 @@ export const AdminErrorsPage = () => {
         ]}
         onRowClick={(r) => setOpenId(r.id)}
         activeKey={openId}
+        exportAll={() => exportAll<AdminErrorRow>('/admin/errors', qs, 'limit')}
         empty="No failed posts. Nice."
       />
       <ErrorDrawer row={open} onClose={() => setOpenId(null)} />

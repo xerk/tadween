@@ -42,10 +42,17 @@ const SECRET_NAME = /SECRET|TOKEN|KEY|MNEMONIC|PASSWORD/i;
 // The deployment's own values, captured before this service writes anything.
 let envSnapshot: Record<string, string | undefined> | null = null;
 
+// Own keys only, so `constructor` & co. are never a provider.
+export const hasCredentials = (identifier: string) =>
+  Object.prototype.hasOwnProperty.call(PROVIDER_CREDENTIALS, identifier);
+
 export const credentialNames = (identifier?: string) => {
-  const specs = identifier
-    ? [PROVIDER_CREDENTIALS[identifier]].filter(Boolean)
-    : Object.values(PROVIDER_CREDENTIALS);
+  const specs =
+    identifier === undefined
+      ? Object.values(PROVIDER_CREDENTIALS)
+      : hasCredentials(identifier)
+      ? [PROVIDER_CREDENTIALS[identifier]]
+      : [];
   return Array.from(
     new Set(specs.flatMap((s) => [...s.required, ...(s.anyOf || []).flat()]))
   );
@@ -65,6 +72,11 @@ export interface CredentialStatus {
   name: string;
   set: boolean;
   source: 'console' | 'env' | null;
+  // A console value exists but can't be decrypted (JWT_SECRET changed): the
+  // env var is used until it is saved again.
+  unreadable: boolean;
+  // Looks like a secret (SECRET/TOKEN/KEY…): never shows last4, masked input.
+  secret: boolean;
   last4: string | null;
   updatedAt: string | null;
   editable: boolean;
@@ -79,6 +91,9 @@ export class ProviderCredentialsService
   private _logger = new Logger(ProviderCredentialsService.name);
   private _timer: ReturnType<typeof setInterval> | null = null;
   private _console = new Map<string, { value: string; updatedAt: Date }>();
+  private _unreadable = new Set<string>();
+  // Refreshes run one after another, so an older read can't win over a save.
+  private _queue: Promise<void> = Promise.resolve();
 
   constructor(private _repository: ProviderCredentialsRepository) {
     snapshot();
@@ -86,7 +101,9 @@ export class ProviderCredentialsService
 
   async onModuleInit() {
     await this.refresh();
-    this._timer = setInterval(() => this.refresh(), REFRESH_MS);
+    this._timer = setInterval(() => {
+      this.refresh().catch(() => undefined);
+    }, REFRESH_MS);
     this._timer.unref?.();
   }
 
@@ -96,8 +113,13 @@ export class ProviderCredentialsService
     }
   }
 
+  refresh() {
+    this._queue = this._queue.catch(() => undefined).then(() => this.load());
+    return this._queue;
+  }
+
   // Never throws: a missing table or an undecryptable row leaves the env value.
-  async refresh() {
+  private async load() {
     let rows: { name: string; value: string; updatedAt: Date }[] = [];
     try {
       rows = await this._repository.getAll();
@@ -108,6 +130,7 @@ export class ProviderCredentialsService
 
     const names = credentialNames();
     const next = new Map<string, { value: string; updatedAt: Date }>();
+    const unreadable = new Set<string>();
     for (const row of rows) {
       if (!names.includes(row.name) || ENV_ONLY[row.name]) {
         continue;
@@ -118,12 +141,14 @@ export class ProviderCredentialsService
           updatedAt: row.updatedAt,
         });
       } catch (e) {
+        unreadable.add(row.name);
         this._logger.error(
           `Provider credential ${row.name} can't be decrypted (JWT_SECRET changed?); using the env var`
         );
       }
     }
     this._console = next;
+    this._unreadable = unreadable;
 
     const env = snapshot();
     for (const name of names) {
@@ -145,6 +170,8 @@ export class ProviderCredentialsService
         name,
         set: !!value,
         source: own ? 'console' : env[name] ? 'env' : null,
+        unreadable: this._unreadable.has(name),
+        secret: SECRET_NAME.test(name),
         last4:
           value && !SECRET_NAME.test(name) && value.length > 4
             ? value.slice(-4)
@@ -164,7 +191,7 @@ export class ProviderCredentialsService
     values: Record<string, string | null>,
     adminId: string
   ) {
-    if (!PROVIDER_CREDENTIALS[identifier]) {
+    if (!hasCredentials(identifier)) {
       throw new HttpException('This channel type has no app credentials', 400);
     }
     const allowed = credentialNames(identifier);
@@ -187,18 +214,16 @@ export class ProviderCredentialsService
       }
     }
 
-    for (const [name, value] of entries) {
-      const clean = (value || '').trim();
-      if (clean) {
-        await this._repository.upsert(
+    await this._repository.saveAll(
+      entries.map(([name, value]) => {
+        const clean = (value || '').trim();
+        return {
           name,
-          AuthService.fixedEncryption(clean),
-          adminId
-        );
-      } else {
-        await this._repository.remove(name);
-      }
-    }
+          value: clean ? AuthService.fixedEncryption(clean) : null,
+        };
+      }),
+      adminId
+    );
 
     await this.refresh();
     return this.status(identifier);

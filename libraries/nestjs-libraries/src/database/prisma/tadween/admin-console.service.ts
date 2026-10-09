@@ -47,9 +47,10 @@ const sorting = <T>(
   map: Record<string, (order: Prisma.SortOrder) => T>,
   query: AdminListQueryDto
 ): T[] => {
-  const key = query.sort && map[query.sort] ? query.sort : Object.keys(map)[0];
-  const order: Prisma.SortOrder =
-    query.order || (query.sort && map[query.sort] ? 'asc' : 'desc');
+  const known =
+    !!query.sort && Object.prototype.hasOwnProperty.call(map, query.sort);
+  const key = known ? query.sort! : Object.keys(map)[0];
+  const order: Prisma.SortOrder = query.order || (known ? 'asc' : 'desc');
   return [map[key](order), { id: 'asc' } as T];
 };
 
@@ -102,6 +103,14 @@ export class AdminConsoleService {
       pages: Math.max(1, Math.ceil(total / pageSize)),
       items: users,
     };
+  }
+
+  async getUser(id: string) {
+    const user = await this._repository.getUser(id);
+    if (!user) {
+      throw new HttpException('User not found', 404);
+    }
+    return user;
   }
 
   // Limits come from the Tadween plan selling the tier (Plan.channels /

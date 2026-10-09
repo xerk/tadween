@@ -173,8 +173,11 @@ export const useOpenRow = (param = 'open') => {
   return [open, setOpen] as const;
 };
 
+// Cells that start like a formula are prefixed with ' so a spreadsheet shows
+// them as text (names and emails come from users).
 const csvCell = (v: unknown) => {
-  const s = v === null || v === undefined ? '' : String(v);
+  const raw = v === null || v === undefined ? '' : String(v);
+  const s = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
@@ -214,8 +217,9 @@ export interface DataTableProps<R> {
   columns: DataColumn<R>[];
   rows: R[];
   rowKey: (row: R) => string;
-  // Server mode (inferred when onQueryChange is given). A client-mode table
-  // can still take a controlled `query` to know what the user searched.
+  // Server mode is inferred when `query` and `onQueryChange` are given. A
+  // client-mode table (mode="client") can be controlled the same way, so its
+  // page knows what the user searched or filtered.
   mode?: 'server' | 'client';
   query?: TableQuery;
   onQueryChange?: (patch: Partial<TableQuery>) => void;
@@ -305,12 +309,17 @@ export function DataTable<R>({
   };
   const shown = columns.filter((c) => !hidden.includes(c.key));
 
-  // Search box: typed text goes to the query after a pause
+  // Search box: typed text goes to the query after a pause. `change` is read
+  // from a ref so a filter picked meanwhile isn't undone by a stale closure.
   const [draft, setDraft] = useState(query.search);
-  useEffect(() => setDraft(query.search), [query.search]);
+  const changeRef = useRef(change);
+  changeRef.current = change;
   useEffect(() => {
-    if (draft === query.search) return;
-    const timer = setTimeout(() => change({ search: draft.trim() }), 300);
+    if (draft.trim() !== query.search) setDraft(query.search);
+  }, [query.search]);
+  useEffect(() => {
+    if (draft.trim() === query.search) return;
+    const timer = setTimeout(() => changeRef.current({ search: draft.trim() }), 300);
     return () => clearTimeout(timer);
   }, [draft]);
 
@@ -368,7 +377,9 @@ export function DataTable<R>({
   };
 
   const [exporting, setExporting] = useState(false);
-  const exportable = columns.filter((c) => c.csv && !hidden.includes(c.key));
+  // Server mode exports only with exportAll (the whole query, not one page).
+  const exportable =
+    server && !exportAll ? [] : columns.filter((c) => c.csv && !hidden.includes(c.key));
   const runExport = async () => {
     setExporting(true);
     try {
@@ -486,9 +497,7 @@ export function DataTable<R>({
                     aria-label={t('tdw_dt_select_page', 'Select all on this page')}
                     checked={allOnPage}
                     disabled={!pageKeys.length}
-                    onChange={() =>
-                      setSelected(allOnPage ? [] : Array.from(new Set([...selected, ...pageKeys])))
-                    }
+                    onChange={() => setSelected(allOnPage ? [] : pageKeys)}
                   />
                 </th>
               ) : null}

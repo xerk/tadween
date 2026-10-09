@@ -1355,9 +1355,9 @@ html[dir='rtl'] .tdw-chip-card {
 .tdw-ws-side {
   display: none;
   flex-direction: column;
-  gap: 28px;
+  gap: 26px;
   min-width: 0;
-  padding: 24px 20px 28px;
+  padding: 26px 20px;
   border-inline-start: 1px solid var(--ws-line);
   background: var(--tdw-background);
 
@@ -1552,7 +1552,7 @@ html[dir='rtl'] .tdw-ws-draft {
 .tdw-mini {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px 0;
+  gap: 2px;
   text-align: center;
 
   em {
@@ -1587,8 +1587,8 @@ html[dir='rtl'] .tdw-ws-draft {
       opacity: 0.5;
     }
 
+    // The days shown on the calendar, each its own soft tile
     &.is-range {
-      border-radius: 0;
       background: var(--tdw-muted);
     }
 

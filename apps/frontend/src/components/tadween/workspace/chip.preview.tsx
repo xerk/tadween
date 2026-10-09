@@ -42,7 +42,7 @@ export const ChipPreview: FC<{
 }> = ({ anchor, post, stateKey, onEdit, actions }) => {
   const t = useT();
   const card = useRef<HTMLDivElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<null | { top: number; left: number; side: 'start' | 'end' }>(null);
 

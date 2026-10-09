@@ -405,14 +405,18 @@ export const WeekView = () => {
   useEffect(() => {
     const el = weekScrollRef.current;
     if (!el || loading || scrolledWeek.current === startDate) return;
-    scrolledWeek.current = startDate;
     const today = newDayjs().format('YYYY-MM-DD');
-    const target =
-      today >= startDate && today <= endDate
-        ? Math.max(0, newDayjs().hour() - 1)
-        : posts.length
-        ? Math.min(...posts.map((p) => dayjs.utc(p.publishDate).local().hour()))
-        : 7;
+    const thisWeek = today >= startDate && today <= endDate;
+    // The posts land a render after `loading` clears: an empty list may
+    // still fill in, so only a week with posts (or this week) is done
+    const done = thisWeek || posts.length ? startDate : `${startDate}:empty`;
+    if (scrolledWeek.current === done) return;
+    scrolledWeek.current = done;
+    const target = thisWeek
+      ? Math.max(0, newDayjs().hour() - 1)
+      : posts.length
+      ? Math.min(...posts.map((p) => dayjs.utc(p.publishDate).local().hour()))
+      : 7;
     const row = el.querySelector<HTMLElement>(`[data-tdw-hour="${target}"]`);
     if (row) el.scrollTop = row.offsetTop - 70;
   }, [startDate, endDate, posts, loading]);

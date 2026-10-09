@@ -160,6 +160,7 @@ export const SelectCurrent: FC = () => {
               type="button"
               role="tab"
               aria-selected={current === integration.id}
+              aria-label={integration.name}
               onClick={() => {
                 setHide(true);
                 setCurrent(integration.id);
@@ -169,13 +170,13 @@ export const SelectCurrent: FC = () => {
                 'data-tooltip-content': integration.name,
               }}
               className={clsx(
-                'tdw-scope',
+                'tdw-scope tdw-scope-ch',
                 current === integration.id && 'is-on'
               )}
             >
               <TadweenChannelAvatar
                 integration={integration}
-                size={22}
+                size={26}
                 dot={
                   hasIssue ? (
                     <span className="tdw-ch-dot is-error" />
@@ -184,15 +185,16 @@ export const SelectCurrent: FC = () => {
                   )
                 }
               />
-              <span className="tdw-scope-name">{integration.name}</span>
             </button>
             <button
               type="button"
               onClick={removeSocial(integration)}
-              aria-label={t('tdw_remove_channel', 'Remove channel')}
+              aria-label={`${t('tdw_remove_channel', 'Remove channel')}: ${
+                integration.name
+              }`}
               className="tdw-scope-x"
             >
-              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+              <svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true">
                 <path
                   d="M2 2l6 6M8 2L2 8"
                   stroke="currentColor"

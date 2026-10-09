@@ -7,13 +7,29 @@ import { textSlicer } from '@gitroom/helpers/utils/count.length';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { useShallow } from 'zustand/react/shallow';
+import {
+  TadweenAvatarImage,
+  TadweenGlobalAvatar,
+  TadweenNetworkMarks,
+} from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 
 export const GeneralPreviewComponent: FC<{
   maximumCharacters?: number;
 }> = (props) => {
   const { value: topValue, integration } = useIntegration();
   const current = useLaunchStore((state) => state.current);
+  // the networks the shared post goes to, one mark each
+  const networks = useLaunchStore(
+    useShallow((state) =>
+      Array.from(
+        new Set(state.selectedIntegrations.map((p) => p.integration.identifier))
+      )
+    )
+  );
   const mediaDir = useMediaDirectory();
+  const t = useT();
 
   const renderContent = topValue.map((p) => {
     const newContent = stripHtmlValidation(
@@ -62,15 +78,15 @@ export const GeneralPreviewComponent: FC<{
           >
             <div className="min-w-[40px] h-[40px] min-h-[40px] w-[40px] flex flex-col items-center">
               <div className="relative">
-                <img
-                  src={
-                    current === 'global'
-                      ? '/no-picture.jpg'
-                      : integration?.picture || '/no-picture.jpg'
-                  }
-                  alt="x"
-                  className="rounded-full relative z-[2]"
-                />
+                {current === 'global' ? (
+                  <TadweenGlobalAvatar size={40} />
+                ) : (
+                  <TadweenAvatarImage
+                    src={integration?.picture}
+                    name={integration?.name}
+                    className="rounded-full relative z-[2]"
+                  />
+                )}
 
                 {current !== 'global' && (
                   <SafeImage
@@ -89,7 +105,9 @@ export const GeneralPreviewComponent: FC<{
             <div className="flex-1 flex flex-col gap-[4px]">
               <div className="flex">
                 <div className="h-[22px] text-[15px] font-[700]">
-                  {current === 'global' ? 'Global Edit' : integration?.name}
+                  {current === 'global'
+                    ? t('tdw_all_channels', 'All channels')
+                    : integration?.name}
                 </div>
                 <div className="text-[15px] text-customColor26 mt-[1px] ms-[2px]">
                   <svg
@@ -105,9 +123,11 @@ export const GeneralPreviewComponent: FC<{
                   </svg>
                 </div>
                 <div className="text-[15px] font-[400] text-customColor27 ms-[4px]">
-                  {current === 'global'
-                    ? ''
-                    : integration?.display || '@username'}
+                  {current === 'global' ? (
+                    <TadweenNetworkMarks identifiers={networks} />
+                  ) : (
+                    integration?.display || '@username'
+                  )}
                 </div>
               </div>
               <div

@@ -4,6 +4,7 @@ import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.reque
 import { ApiTags } from '@nestjs/swagger';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
+import { GetPublishedPostsDto } from '@gitroom/nestjs-libraries/dtos/analytics/get.published.posts.dto';
 
 @ApiTags('Analytics')
 @Controller('/analytics')
@@ -12,6 +13,14 @@ export class AnalyticsController {
     private _integrationService: IntegrationService,
     private _postsService: PostsService
   ) {}
+
+  @Get('/posts/published')
+  async getPublishedPosts(
+    @GetOrgFromRequest() org: Organization,
+    @Query() query: GetPublishedPostsDto
+  ) {
+    return this._postsService.getPublishedPostsSummary(org.id, query);
+  }
 
   @Get('/:integration')
   async getIntegration(

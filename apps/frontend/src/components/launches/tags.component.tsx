@@ -25,6 +25,8 @@ export const TagsComponent: FC<{
   label: string;
   initial: any[];
   list?: boolean;
+  // called with true before the new-tag dialog opens and false after it closes
+  onModal?: (open: boolean) => void;
   onChange: (event: {
     target: {
       value: any[];
@@ -53,6 +55,7 @@ export const TagsComponentInner: FC<{
   initial: any[];
   allTags: any;
   list?: boolean;
+  onModal?: (open: boolean) => void;
   mutate: () => Promise<any>;
   onChange: (event: {
     target: {
@@ -60,7 +63,7 @@ export const TagsComponentInner: FC<{
       name: string;
     };
   }) => void;
-}> = ({ initial, onChange, name, mutate, allTags: data, list }) => {
+}> = ({ initial, onChange, name, mutate, allTags: data, list, onModal }) => {
   const t = useT();
   const fetch = useFetch();
   const [isOpen, setIsOpen] = useState(false);
@@ -80,33 +83,40 @@ export const TagsComponentInner: FC<{
   });
 
   const addTag = useCallback(async () => {
-    const val: string | undefined = await new Promise((resolve) => {
-      modals.openModal({
-        title: t('add_new_tag', 'Add New Tag'),
-        children: (close) => (
-          <ShowModal tag="" close={close} resolve={resolve} />
-        ),
+    onModal?.(true);
+    try {
+      const val: string | undefined = await new Promise((resolve) => {
+        modals.openModal({
+          title: t('add_new_tag', 'Add New Tag'),
+          onClose: () => resolve(undefined),
+          children: (close) => (
+            <ShowModal tag="" close={close} resolve={resolve} />
+          ),
+        });
       });
-    });
 
-    const newValues = await mutate();
+      const newValues = await mutate();
 
-    if (!val) {
-      return;
+      if (!val) {
+        return;
+      }
+
+      const newTag = newValues.tags.find((p: any) => p.name === val);
+      if (newTag) {
+        const modify = [...tagValue, newTag];
+        setTagValue(modify);
+        onChange({
+          target: {
+            value: modify,
+            name,
+          },
+        });
+      }
+    } finally {
+      // after onChange, so a remounted list starts with the new tag selected
+      onModal?.(false);
     }
-
-    const newTag = newValues.tags.find((p: any) => p.name === val);
-    if (newTag) {
-      const modify = [...tagValue, newTag];
-      setTagValue(modify);
-      onChange({
-        target: {
-          value: modify,
-          name,
-        },
-      });
-    }
-  }, [tagValue, name, onChange, mutate, modals, t]);
+  }, [tagValue, name, onChange, mutate, modals, t, onModal]);
 
   const toggleTag = useCallback(
     (tag: any) => () => {

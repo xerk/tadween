@@ -1,24 +1,40 @@
-// Tadween settings styles (phase 4). Loaded from global.scss after ui-kit.scss.
+// Tadween settings styles. Loaded from global.scss after ui-kit.scss.
+// Layout pieces are documented in docs/tadween/settings.md.
 //
-// Settings shell (components/tadween/settings/settings.nav.tsx): grouped side nav
-// whose icon tile fills Nile when selected, a page header, and inset grouped
-// sections (label left, control right, hairlines between rows).
-// Postiz's own settings panels (webhooks, auto post, sets, signatures, global
-// settings, developers, approved apps) are re-skinned by selector inside
-// .tdw-settings-page so their files stay untouched, the same approach as
-// tadween.scss §3. `body` raises specificity above Tailwind's utilities.
+// Settings shell (components/tadween/settings/settings.nav.tsx): a full-width
+// two-pane screen — a searchable, grouped side nav styled like the app
+// sidebar, and a content pane whose header stays put while the page scrolls.
+// Pages are inset grouped sections (label left, control right, hairlines
+// between rows). On phones the nav is an iOS-style list screen and a page
+// opens over it with a back button.
+// Postiz's own panels that still render here (API & MCP, approved apps) are
+// re-skinned by selector inside .tdw-settings-page so their files stay
+// untouched, the same approach as tadween.scss §3. `body` raises specificity
+// above Tailwind's utilities.
 
 @keyframes tdw-set-in {
   from { opacity: 0; transform: translateY(4px); }
 }
+@keyframes tdw-set-push {
+  from { opacity: 0.4; transform: translateX(28px); }
+}
+@keyframes tdw-set-push-rtl {
+  from { opacity: 0.4; transform: translateX(-28px); }
+}
 
 body {
   // ── Shell ─────────────────────────────────────────────────────────────────
+  // Fills the window from where the shell starts (--tdw-set-top, measured in
+  // settings.component.tsx; 93px = the page padding, the 80px top bar and its
+  // hairline) to the page's 12px bottom padding; nav and page scroll apart.
   .tdw-settings {
     flex: 1;
     min-width: 0;
     display: grid;
-    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-columns: 264px minmax(0, 1fr);
+    height: calc(100vh - var(--tdw-set-top, 93px) - 12px);
+    height: calc(100dvh - var(--tdw-set-top, 93px) - 12px);
+    min-height: 520px;
     background: var(--tdw-background);
     color: var(--tdw-foreground);
     border-radius: inherit;
@@ -27,60 +43,100 @@ body {
   .tdw-settings-nav {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding: 20px 12px 16px;
-    border-inline-end: 1px solid var(--tdw-border);
+    gap: 14px;
     min-width: 0;
+    min-height: 0;
+    padding: 16px 12px 12px;
+    border-inline-end: 1px solid var(--tdw-border);
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 20px;
+    scrollbar-width: thin;
   }
-  .tdw-settings-groups { display: flex; flex-direction: column; gap: 18px; flex: 1; }
-  .tdw-settings-group { display: grid; gap: 2px; }
+  .tdw-settings-search {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 9px;
+    background: var(--tdw-muted);
+    color: var(--tdw-muted-foreground);
+    transition: box-shadow 150ms ease, background-color 150ms ease;
+    &:focus-within { background: var(--tdw-card); box-shadow: 0 0 0 2px var(--tdw-ring); }
+    input {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      border: 0;
+      outline: 0 !important;
+      background: none;
+      font: inherit;
+      font-size: 14px;
+      color: var(--tdw-foreground);
+      &::placeholder { color: var(--tdw-muted-foreground); }
+      &::-webkit-search-cancel-button { display: none; }
+    }
+  }
+  .tdw-settings-groups { display: flex; flex-direction: column; gap: 16px; flex: 1; }
+  .tdw-settings-group, .tdw-settings-gitems { display: grid; gap: 2px; }
   .tdw-settings-glabel {
-    padding: 0 10px 4px;
+    padding: 0 12px 4px;
     font-size: 12px;
     line-height: 16px;
     font-weight: 600;
     color: var(--tdw-muted-foreground);
   }
+  // Same look as the app sidebar's items: muted until hovered, the current
+  // page a raised card with its icon in the brand colour
   .tdw-settings-item {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     width: 100%;
     height: 36px;
-    padding: 0 8px;
+    padding: 0 12px;
     border: 0;
     border-radius: 9px;
     background: none;
     font: inherit;
     font-size: 14px;
     font-weight: 500;
-    color: var(--tdw-foreground);
+    color: var(--tdw-muted-foreground);
     text-align: start;
+    text-decoration: none;
     cursor: pointer;
     white-space: nowrap;
-    &:hover { background: var(--tdw-accent); }
-    &.is-active { background: var(--tdw-card); box-shadow: var(--tdw-shadow-sm); }
+    transition: background-color 150ms ease, color 150ms ease;
+    &:hover { background: var(--tdw-accent); color: var(--tdw-foreground); }
+    &:focus-visible { outline: 2px solid var(--tdw-ring); outline-offset: -2px; }
     &:active { transform: none; }
+    &.is-active {
+      background: var(--tdw-card);
+      color: var(--tdw-foreground);
+      box-shadow: var(--tdw-shadow-sm);
+      .tdw-settings-ico { color: var(--tdw-primary); }
+    }
+    &.is-danger, &.is-danger:hover { color: var(--tdw-destructive); }
   }
-  .tdw-settings-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  .tdw-settings-ico {
-    flex: none;
+  .tdw-settings-ico { flex: none; display: grid; place-items: center; width: 18px; height: 18px; color: inherit; }
+  .tdw-settings-text { flex: 1; min-width: 0; display: grid; }
+  .tdw-settings-label, .tdw-settings-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .tdw-settings-sub { display: none; }
+  .tdw-settings-nav .tdw-flip, .tdw-settings-head .tdw-flip { display: inline-grid; }
+  .tdw-settings-chev { flex: none; display: grid; color: var(--tdw-muted-foreground); opacity: 0.7; }
+  .tdw-settings-nomatch {
     display: grid;
-    place-items: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 7px;
-    background: var(--tdw-muted);
+    justify-items: center;
+    gap: 6px;
+    padding: 24px 8px;
     color: var(--tdw-muted-foreground);
-    transition: background-color 180ms ease, color 180ms ease;
-  }
-  .tdw-settings-item.is-active .tdw-settings-ico {
-    background: var(--tdw-primary);
-    color: var(--tdw-on-primary);
+    text-align: center;
   }
 
   // Log out sits quietly under the nav (Postiz's LogoutComponent, unchanged).
-  .tdw-settings-foot { padding: 12px 10px 0; border-top: 1px solid var(--tdw-border); }
+  .tdw-settings-foot { padding: 12px 12px 0; border-top: 1px solid var(--tdw-border); }
   .tdw-settings-logout {
     font-size: 13px;
     line-height: 18px;
@@ -88,21 +144,49 @@ body {
     > div:hover .text-red-400 { color: var(--tdw-destructive); }
   }
 
+  // ── Page ──────────────────────────────────────────────────────────────────
   .tdw-settings-body {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    width: 100%;
-    max-width: 920px;
     min-width: 0;
-    padding: 28px 40px 48px;
-    box-sizing: border-box;
-    animation: tdw-set-in 220ms ease both;
+    min-height: 0;
+    overflow-y: auto;
   }
   .tdw-settings-head {
+    position: sticky;
+    top: 0;
+    z-index: 5;
     display: grid;
-    gap: 4px;
-    h2 { margin: 0; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em; }
+    gap: 6px;
+    padding: 22px 40px 16px;
+    background: color-mix(in srgb, var(--tdw-background) 88%, transparent);
+    backdrop-filter: saturate(1.8) blur(16px);
+    -webkit-backdrop-filter: saturate(1.8) blur(16px);
+    border-bottom: 1px solid var(--tdw-border);
+    font-size: 14px;
+    line-height: 20px;
+    h2 { margin: 0; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.015em; }
+  }
+  .tdw-settings-head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .tdw-settings-head-text { display: grid; gap: 4px; min-width: 0; }
+  .tdw-settings-back {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 32px;
+    margin-inline-start: -8px;
+    padding: 0 8px 0 2px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--tdw-primary);
+    cursor: pointer;
+    &:hover { background: var(--tdw-accent); }
+    &:focus-visible { outline: 2px solid var(--tdw-ring); outline-offset: 0; }
   }
   .tdw-set-desc { margin: 0; font-size: 13px; line-height: 18px; color: var(--tdw-muted-foreground); }
 
@@ -447,46 +531,275 @@ body {
   }
   .tdw-invite-foot { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
 
-  // ── Narrow screens: groups become one scrolling row above the page ─────────
-  @media (max-width: 760px) {
-    .tdw-settings { grid-template-columns: minmax(0, 1fr); }
-    .tdw-settings-nav {
-      flex-direction: row;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 12px;
-      overflow-x: auto;
-      border-inline-end: 0;
-      border-bottom: 1px solid var(--tdw-border);
-      scrollbar-width: none;
-      &::-webkit-scrollbar { display: none; }
+  // ── Page content: rows, lists, save state ─────────────────────────────────
+  .tdw-settings-page {
+    padding: 20px 40px 48px;
+    gap: 20px;
+    animation: tdw-set-in 220ms ease both;
+  }
+  .tdw-set-page { display: flex; flex-direction: column; gap: 20px; min-width: 0; font-size: 14px; line-height: 20px; }
+  .tdw-set-sec.is-danger { box-shadow: var(--tdw-shadow-sm), inset 0 0 0 1px color-mix(in srgb, var(--tdw-destructive) 30%, transparent); }
+
+  // One setting: label and help on the start side, control on the end side
+  .tdw-set-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 14px 0;
+    border-top: 1px solid var(--tdw-border);
+    &:first-child { border-top: 0; padding-top: 4px; }
+  }
+  .tdw-set-row-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .tdw-set-row-label { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--tdw-foreground); }
+  .tdw-set-row-desc { font-size: 13px; line-height: 18px; color: var(--tdw-muted-foreground); }
+  .tdw-set-row-control { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 12px; max-width: 60%; }
+  // URLs and emails read left to right in Arabic too (global.scss turns
+  // [dir='ltr'] into rtl, so this is a class)
+  .tdw-set-ltr { direction: ltr; unicode-bidi: isolate; }
+  .tdw-set-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: var(--tdw-muted-foreground); }
+  .tdw-set-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--tdw-border);
+  }
+  .tdw-set-loading { padding: 12px 0; color: var(--tdw-muted-foreground); }
+  // the empty state's dashed halo needs room above and below its icon
+  .tdw-set-page .pz-empty-sm .pz-empty-icon { margin-block: 12px; }
+  .tdw-set-skeleton { display: grid; gap: 10px; padding-top: 4px; }
+
+  // Inline save state next to a control
+  .tdw-save {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+    color: var(--tdw-muted-foreground);
+    white-space: nowrap;
+    &.is-idle { display: none; }
+    &.is-saved { color: var(--tdw-success); animation: tdw-set-in 200ms ease both; }
+    &.is-error { color: var(--tdw-destructive); animation: tdw-set-in 200ms ease both; }
+  }
+
+  // Saved items (webhooks, feeds, signatures, sets)
+  .tdw-set-list { list-style: none; margin: 0; padding: 0; display: grid; }
+  .tdw-set-li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-top: 1px solid var(--tdw-border);
+    animation: tdw-set-in 200ms ease both;
+    &:first-child { border-top: 0; }
+  }
+  .tdw-set-li-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-inline: -8px;
+    padding: 10px 8px;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: start;
+  }
+  button.tdw-set-li-main {
+    cursor: pointer;
+    transition: background-color 150ms ease;
+    &:hover { background: var(--tdw-accent); }
+    &:focus-visible { outline: 2px solid var(--tdw-ring); outline-offset: -2px; }
+  }
+  .tdw-set-li-ico {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--tdw-primary-soft);
+    color: var(--tdw-primary);
+  }
+  .tdw-set-li-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .tdw-set-li-title { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; line-height: 20px; font-weight: 500; }
+  .tdw-set-li-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tdw-set-li-meta {
+    display: flex;
+    gap: 2px 12px;
+    min-width: 0;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--tdw-muted-foreground);
+    > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    > * + * { flex: none; }
+  }
+  .tdw-set-li-actions { flex: none; display: flex; align-items: center; gap: 2px; }
+  .tdw-set-li-toggle { display: inline-flex; align-items: center; gap: 8px; margin-inline-end: 8px; }
+  .tdw-danger-icon:hover { color: var(--tdw-destructive); background: color-mix(in srgb, var(--tdw-destructive) 10%, transparent); }
+
+  // Profile: the photo beside the fields
+  .tdw-profile {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+    padding-top: 4px;
+  }
+  .tdw-profile-photo { display: grid; justify-items: start; gap: 12px; }
+  .tdw-profile-photo-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tdw-profile-fields { display: grid; gap: 16px; max-width: 720px; }
+
+  // Danger zone: Postiz's delete link as an outlined destructive button
+  .tdw-danger-btn > .text-red-400 {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tdw-destructive);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tdw-destructive) 40%, transparent);
+    white-space: nowrap;
+    transition: background-color 150ms ease;
+    &:hover { color: var(--tdw-destructive); background: color-mix(in srgb, var(--tdw-destructive) 10%, transparent); }
+  }
+
+  // ── API & MCP (Postiz's PublicComponent): its purple and grey blocks in the
+  // Tadween tokens; its own "Developers" title stays as the workspace caption
+  .tdw-settings-page > .flex.flex-col.gap-\[20px\]:has(> h3.text-\[20px\]) {
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+    > h3.text-\[20px\] { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--tdw-muted-foreground); }
+  }
+  .tdw-settings-page {
+    .bg-\[\#612BD3\] { background: var(--tdw-primary); color: var(--tdw-on-primary); }
+    .hover\:bg-\[\#5520CB\]:hover { background: color-mix(in srgb, var(--tdw-primary) 88%, var(--tdw-foreground)); }
+    .bg-btnSimple { background: var(--tdw-muted); color: var(--tdw-foreground); }
+    .hover\:bg-boxHover:hover { background: var(--tdw-accent); }
+    .bg-newBgColorInnerInner { background: var(--tdw-card); }
+    .bg-newBgColorInnerInner.border-newBorder { border: 0; box-shadow: var(--tdw-shadow-sm); }
+    .bg-newBgColorInnerInner > .bg-newBgColorInner { background: transparent; }
+    .border-newBorder { border-color: var(--tdw-border); }
+    pre.bg-newBgColorInner, .bg-newBgColorInner.border-newBorder { background: var(--tdw-muted); border-color: transparent; }
+    .rounded-\[12px\].overflow-hidden { border-radius: var(--tdw-radius-lg); }
+    // the card's header row stays on the card
+    .bg-newBgColorInnerInner > .bg-newBgColorInner.border-b { background: transparent; }
+  }
+
+  // ── Phones: the nav is a list screen; a page opens over it ────────────────
+  @media (max-width: 1025px) {
+    .tdw-settings {
+      display: block;
+      height: auto;
+      min-height: 0;
+      padding: 4px 4px 24px;
     }
-    .tdw-settings-groups { flex-direction: row; gap: 2px; flex: none; }
-    .tdw-settings-group { display: flex; gap: 2px; }
-    .tdw-settings-glabel { display: none; }
-    .tdw-settings-item { width: auto; padding-inline-end: 12px; }
-    .tdw-settings-foot { flex: none; padding: 0 4px; border-top: 0; white-space: nowrap; }
-    .tdw-settings-body { padding: 20px 16px 32px; gap: 16px; }
+    .tdw-settings-nav.is-list {
+      gap: 18px;
+      padding: 8px 0 16px;
+      border-inline-end: 0;
+      overflow: visible;
+      font-size: 15px;
+      .tdw-settings-search { height: 38px; border-radius: 10px; }
+      .tdw-settings-groups { gap: 22px; }
+      .tdw-settings-glabel { padding: 0 16px 6px; font-weight: 500; }
+      .tdw-settings-gitems {
+        gap: 0;
+        border-radius: 12px;
+        background: var(--tdw-card);
+        box-shadow: var(--tdw-shadow-sm);
+        overflow: hidden;
+      }
+      .tdw-settings-item {
+        position: relative;
+        height: auto;
+        min-height: 56px;
+        gap: 12px;
+        padding: 8px 14px;
+        border-radius: 0;
+        font-size: 15px;
+        color: var(--tdw-foreground);
+        // hairline from the text to the edge, as in iOS lists
+        & + .tdw-settings-item::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          inset-inline: 56px 0;
+          border-top: 1px solid var(--tdw-border);
+        }
+        &:hover { background: var(--tdw-accent); }
+        &.is-danger { color: var(--tdw-destructive); }
+      }
+      .tdw-settings-ico {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: var(--tdw-primary-soft);
+        color: var(--tdw-primary);
+      }
+      .tdw-settings-item.is-danger .tdw-settings-ico {
+        background: color-mix(in srgb, var(--tdw-destructive) 12%, transparent);
+        color: var(--tdw-destructive);
+      }
+      .tdw-settings-text { gap: 1px; }
+      .tdw-settings-sub { display: block; font-size: 12px; line-height: 16px; font-weight: 400; color: var(--tdw-muted-foreground); white-space: nowrap; }
+      .tdw-settings-foot { padding: 4px 16px 0; border-top: 0; }
+    }
+    .tdw-settings.is-page .tdw-settings-body {
+      overflow: visible;
+      animation: tdw-set-push 320ms var(--tdw-ease-spring) both;
+    }
+    .tdw-settings-head {
+      position: static;
+      gap: 4px;
+      padding: 0 0 14px;
+      background: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-bottom: 0;
+      h2 { font-size: 24px; line-height: 30px; }
+    }
+    .tdw-settings-page { padding: 0; gap: 16px; animation: none; }
+    .tdw-set-page { gap: 16px; }
     .tdw-set-sec-head { flex-wrap: wrap; padding: 14px 16px; }
     .tdw-set-sec-body { padding: 0 16px 16px; }
+    .tdw-set-row { flex-wrap: wrap; gap: 10px 16px; }
+    .tdw-set-row-control { max-width: 100%; margin-inline-start: auto; }
+    .tdw-profile { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .tdw-set-li-meta { flex-wrap: wrap; }
+    .tdw-set-li-toggle .tdw-save { display: none; }
     .tdw-settings-page .flex.flex-col:has(> h3.text-\[20px\]) { padding: 14px 16px 16px; }
     .tdw-settings-page .bg-sixth.border-fifth { padding-inline: 16px; }
-    .tdw-settings-page .bg-sixth.border-fifth > .flex.items-center.justify-between {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 10px;
-      > .w-\[200px\] { width: 100%; }
-      > button { align-self: flex-start; }
-    }
-    .tdw-settings-page .bg-sixth.border-fifth:has(> .mt-\[4px\]):not(:has(> .justify-between)) {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 10px;
-      padding-block: 14px;
-    }
     .tdw-member { grid-template-columns: auto minmax(0, 1fr) 32px; row-gap: 6px; }
     .tdw-member-role { grid-column: 2; grid-row: 2; justify-self: start; }
     .tdw-member-more { grid-column: 3; grid-row: 1; }
     .tdw-roles, .tdw-role-options { grid-template-columns: minmax(0, 1fr); }
     .tdw-team-search { min-width: 0; flex-basis: 100%; }
+  }
+}
+
+html[dir='rtl'] body {
+  .tdw-settings-nav .tdw-flip, .tdw-settings-head .tdw-flip { transform: scaleX(-1); }
+  @media (max-width: 1025px) {
+    .tdw-settings.is-page .tdw-settings-body { animation-name: tdw-set-push-rtl; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    .tdw-settings-page,
+    .tdw-settings.is-page .tdw-settings-body,
+    .tdw-set-li,
+    .tdw-member,
+    .tdw-save { animation: none !important; }
   }
 }

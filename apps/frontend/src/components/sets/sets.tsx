@@ -15,7 +15,7 @@ import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.m
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 
-const SaveSetModal: FC<{
+export const SaveSetModal: FC<{
   postData: any;
   initialValue?: string;
   onSave: (name: string) => void;

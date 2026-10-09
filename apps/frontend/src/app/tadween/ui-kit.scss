@@ -422,7 +422,7 @@
   &:focus-within { border-color: var(--tdw-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tdw-primary) 18%, transparent); }
   input,
   input:focus,
-  input:focus-visible { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; box-shadow: none; background: transparent; color: var(--tdw-foreground); font-size: 14px; }
+  input:focus-visible { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: none !important; box-shadow: none; background: transparent; color: var(--tdw-foreground); font-size: 14px; }
 }
 .tdw-lang-list {
   display: flex;

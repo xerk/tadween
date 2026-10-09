@@ -1,0 +1,186 @@
+// Tadween analytics (components/tadween/analytics). Loaded from global.scss.
+//
+// A channel list on the start side, the dashboard on the other: header with
+// the range picker, KPI tiles, chart cards, then published posts and the
+// per-network breakdown. Everything sits inside `.tdw-ui.tdw-an-scope`, so the
+// kit's token aliases (--primary, --card…) apply and nothing leaks out.
+
+@keyframes tdw-an-in {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+.tdw-ui.tdw-an-scope {
+  --an-ring: 0 0 0 1px color-mix(in srgb, var(--foreground) 6%, transparent);
+  --an-lift: var(--an-ring), 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 28px -16px rgba(0, 0, 0, 0.16);
+
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  background: var(--background);
+  color: var(--foreground);
+
+  &.is-empty { align-items: center; justify-content: center; padding: 24px; }
+  html[dir='rtl'] & .tdw-flip { transform: scaleX(-1); }
+
+  // ── Channel list ──────────────────────────────────────────────────────────
+  .tdw-an-side {
+    flex: none;
+    width: 264px;
+    padding: 20px 12px;
+    background: var(--card);
+    border-inline-end: 1px solid var(--border);
+    overflow-y: auto;
+  }
+  .tdw-an-channels { display: grid; gap: 2px; }
+  .tdw-an-ch {
+    display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 8px 10px;
+    border: 0; border-radius: 12px; background: none; color: var(--foreground);
+    font: inherit; text-align: start; cursor: pointer;
+    transition: background-color 160ms ease, box-shadow 160ms ease;
+    &:hover { background: var(--accent); }
+    &:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+    &.is-active { background: var(--primary-soft); }
+    &.is-active .tdw-an-ch-name { color: var(--foreground); font-weight: 600; }
+    &.is-muted .tdw-an-ch-av, &.is-muted .tdw-an-ch-name { opacity: 0.55; }
+  }
+  .tdw-an-ch-all {
+    display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 10px;
+    background: var(--primary-soft); color: var(--primary);
+  }
+  .is-active .tdw-an-ch-all { background: var(--card); }
+  .tdw-an-ch-copy { display: grid; min-width: 0; flex: 1; }
+  .tdw-an-ch-name { font-size: 14px; line-height: 20px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tdw-an-ch-sep { height: 1px; margin: 8px 10px; background: var(--border); }
+  .tdw-an-status {
+    display: inline-flex; align-items: center; gap: 4px; min-width: 0;
+    font-size: 12px; line-height: 16px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    &.is-bad { color: var(--destructive); }
+    &.is-warn { color: var(--warning); }
+  }
+
+  // ── Main column ───────────────────────────────────────────────────────────
+  .tdw-an-main {
+    flex: 1; min-width: 0; display: grid; align-content: start; gap: 20px;
+    padding: 32px 36px 56px; overflow-y: auto;
+    > * { min-width: 0; animation: tdw-an-in 480ms var(--ease-spring) both; }
+    > :nth-child(2) { animation-delay: 30ms; }
+    > :nth-child(3) { animation-delay: 60ms; }
+    > :nth-child(4) { animation-delay: 90ms; }
+    > :nth-child(5) { animation-delay: 120ms; }
+  }
+  .tdw-an-head { position: relative; z-index: 5; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
+  .tdw-an-head-copy { min-width: 0; }
+  .tdw-an-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; line-height: 18px; font-weight: 600; color: var(--primary);
+  }
+  .tdw-an-title {
+    margin: 6px 0 6px; font-size: 32px; line-height: 1.12; font-weight: 650; letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+  }
+  html[dir='rtl'] & .tdw-an-title { letter-spacing: 0; line-height: 1.3; }
+  .tdw-an-sub { margin: 0; font-size: 15px; line-height: 22px; color: var(--muted-foreground); }
+  .tdw-an-head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .tdw-an-range { display: inline-block; }
+  .tdw-an-custom { display: grid; gap: 10px; padding: 12px; }
+  .tdw-an-custom-label { font-size: 13px; font-weight: 600; }
+  .tdw-an-custom-row { display: flex; align-items: center; gap: 8px; }
+  .tdw-an-custom-input { width: 96px; font-variant-numeric: tabular-nums; }
+  .tdw-an-custom-unit { font-size: 14px; color: var(--muted-foreground); }
+  .tdw-an-custom-help { margin: 0; font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+
+  // ── Tiles ─────────────────────────────────────────────────────────────────
+  .tdw-an-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .tdw-an-tile { align-content: start; border-radius: 18px; box-shadow: var(--an-lift); }
+  .tdw-an-metric { font-size: 28px; line-height: 34px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .tdw-an-hint { margin-top: 2px; font-size: 12px; line-height: 16px; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tdw-an-net { display: inline-flex; align-items: center; gap: 8px; img { border-radius: 6px; } }
+
+  // ── Cards ─────────────────────────────────────────────────────────────────
+  .tdw-an-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .tdw-an-card {
+    position: relative; min-width: 0; padding: 20px; border-radius: 20px;
+    background: var(--card); box-shadow: var(--an-lift);
+    &.is-wide { grid-column: 1 / -1; }
+  }
+  .tdw-an-card-h { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .tdw-an-card-title { margin: 0; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--muted-foreground); }
+  .tdw-an-card-total { margin-top: 2px; font-size: 22px; line-height: 28px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .tdw-an-card-sub { margin-top: 2px; font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+  .tdw-an-canvas { position: relative; width: 100%; }
+  .tdw-an-state { padding: 8px; }
+  .tdw-an-link {
+    display: inline-flex; align-items: center; gap: 4px; flex: none;
+    font-size: 13px; font-weight: 600; color: var(--primary); text-decoration: none;
+    &:hover { text-decoration: underline; }
+  }
+  .tdw-an-muted { margin: 0; font-size: 14px; color: var(--muted-foreground); }
+
+  // ── Published posts + breakdown ───────────────────────────────────────────
+  .tdw-an-bottom { display: grid; gap: 14px; &.has-side { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); } }
+  .tdw-an-posts { display: grid; margin: 0; padding: 0; list-style: none; }
+  .tdw-an-post {
+    display: flex; align-items: flex-start; gap: 12px; padding: 12px 0;
+    & + & { border-top: 1px solid var(--border); }
+  }
+  .tdw-an-post-copy { flex: 1; min-width: 0; }
+  .tdw-an-post-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; }
+  .tdw-an-post-ch { font-weight: 600; color: var(--foreground); overflow: hidden; text-overflow: ellipsis; }
+  .tdw-an-post-text {
+    margin: 4px 0 0; font-size: 14px; line-height: 20px; color: var(--foreground);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line;
+  }
+  .tdw-an-post-open {
+    display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 10px;
+    color: var(--muted-foreground); transition: background-color 160ms ease, color 160ms ease;
+    &:hover { background: var(--accent); color: var(--primary); }
+    &:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+  }
+  .tdw-an-bars { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+  .tdw-an-bar { display: flex; align-items: center; gap: 12px; }
+  .tdw-an-bar-logo { flex: none; border-radius: 6px; }
+  .tdw-an-bar-body { flex: 1; min-width: 0; display: grid; gap: 6px; }
+  .tdw-an-bar-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 13px; }
+  .tdw-an-bar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted-foreground); }
+  .tdw-an-bar-n { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tdw-an-bar-track { display: block; height: 6px; border-radius: 3px; background: var(--muted); overflow: hidden; }
+  .tdw-an-bar-fill { display: block; height: 100%; border-radius: 3px; background: var(--primary); transform-origin: left; animation: tdw-an-grow 700ms var(--ease-spring) both; }
+  html[dir='rtl'] & .tdw-an-bar-fill { transform-origin: right; }
+
+  // ── Responsive ────────────────────────────────────────────────────────────
+  @media (max-width: 1280px) {
+    .tdw-an-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 1100px) {
+    .tdw-an-grid, .tdw-an-bottom.has-side { grid-template-columns: minmax(0, 1fr); }
+  }
+  // phones: the channel list becomes a scrolling row of chips above the dashboard
+  @media (max-width: 1025px) {
+    flex-direction: column;
+    .tdw-an-side { width: auto; padding: 10px 12px; border-inline-end: 0; border-bottom: 1px solid var(--border); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+    .tdw-an-channels { display: flex; gap: 6px; }
+    .tdw-an-ch { width: auto; flex: none; min-height: 44px; padding: 6px 12px 6px 8px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--border); }
+    .tdw-an-ch.is-active { box-shadow: inset 0 0 0 1px var(--primary); }
+    .tdw-an-ch-name { max-width: 150px; }
+    .tdw-an-ch-sep { display: none; }
+    .tdw-an-ch .tdw-an-status { display: none; }
+    .tdw-an-ch-all { width: 28px; height: 28px; border-radius: 50%; }
+    .tdw-an-main { padding: 20px 16px 40px; gap: 16px; overflow: visible; }
+    .tdw-an-title { font-size: 26px; }
+  }
+  @media (max-width: 560px) {
+    .tdw-an-tiles { gap: 10px; }
+    .tdw-an-tile { padding: 14px; }
+    .tdw-an-metric { font-size: 22px; line-height: 28px; }
+    .tdw-an-card { padding: 16px; border-radius: 18px; }
+    .tdw-an-head-actions { width: 100%; justify-content: space-between; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tdw-an-main > *, .tdw-an-bar-fill { animation: none; }
+  }
+}
+
+@keyframes tdw-an-grow {
+  from { transform: scaleX(0); }
+}

@@ -1,12 +1,9 @@
 import { Metadata } from 'next';
-import { Agent } from '@gitroom/frontend/components/agents/agent';
-import { AgentChat } from '@gitroom/frontend/components/agents/agent.chat';
+import { TadweenAgentChat } from '@gitroom/frontend/components/tadween/agent/agent.chat';
 export const metadata: Metadata = {
   title: 'Tadween - Agent',
   description: '',
 };
 export default async function Page() {
-  return (
-    <AgentChat />
-  );
+  return <TadweenAgentChat />;
 }

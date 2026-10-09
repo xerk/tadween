@@ -661,7 +661,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                         !!existingData.integration && 'mobile:hidden'
                       )}
                     >
-                      <div className="flex-1 mobile:min-w-0">
+                      <div className="flex-1 min-w-0">
                         {!existingData.integration && <SelectCurrent />}
                       </div>
                     </div>

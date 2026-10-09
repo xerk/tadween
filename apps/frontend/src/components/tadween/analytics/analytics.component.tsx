@@ -29,6 +29,7 @@ import {
   AnalyticsChannel,
   AnalyticsSeries,
   OWN_DATA_MAX_DAYS,
+  PublishedDate,
   PublishedPost,
   useAnalyticsChannels,
   useAnalyticsRanges,
@@ -44,6 +45,10 @@ import {
 type T = ReturnType<typeof useT>;
 
 const DEFAULT_PRESETS = [7, 30, 90];
+// stable empty lists, so memos don't rerun while data loads
+const NO_SERIES: AnalyticsSeries[] = [];
+const NO_POSTS: PublishedPost[] = [];
+const NO_DATES: PublishedDate[] = [];
 
 // Numbers and dates in the UI language, Latin digits (same as Today)
 const useFormatters = () => {
@@ -104,25 +109,30 @@ const summarise = (series: AnalyticsSeries) => {
   };
 };
 
-// Published posts per local day (or week, for long ranges), oldest first
-const bucketPosts = (posts: PublishedPost[], days: number) => {
-  const weekly = days > 45;
-  const start = dayjs().startOf('day').subtract(days - 1, 'day');
-  const keys: string[] = [];
-  for (
-    let d = weekly ? start.startOf('week') : start;
-    !d.isAfter(dayjs(), 'day');
-    d = d.add(weekly ? 7 : 1, 'day')
-  ) {
-    keys.push(d.format('YYYY-MM-DD'));
-  }
-  const counts = groupBy(posts, (p) => {
-    const local = dayjs(p.publishDate);
-    return (weekly ? local.startOf('week') : local.startOf('day')).format(
-      'YYYY-MM-DD'
+// The range the page shows: the last `days` local days, today included
+const localRange = (days: number) => {
+  const from = dayjs().startOf('day').subtract(days - 1, 'day');
+  return { from, to: dayjs().endOf('day') };
+};
+
+// Published posts per local day (or per 7 days from the range's start, for
+// long ranges), oldest first; same window the backend counted
+const bucketPosts = (published: PublishedDate[], days: number) => {
+  const step = days > 45 ? 7 : 1;
+  const { from } = localRange(days);
+  const buckets = Array.from({ length: Math.ceil(days / step) }, (_, i) => ({
+    key: from.add(i * step, 'day').format('YYYY-MM-DD'),
+    total: 0,
+  }));
+  published.forEach((p) => {
+    const index = Math.floor(
+      dayjs(p.publishDate).startOf('day').diff(from, 'day') / step
     );
+    if (buckets[index]) {
+      buckets[index].total++;
+    }
   });
-  return keys.map((key) => ({ key, total: counts[key]?.length || 0 }));
+  return buckets;
 };
 
 const percentChange = (now: number, before: number) =>
@@ -140,7 +150,7 @@ const downloadCsv = (name: string, rows: (string | number)[][]) => {
     )
     .join('\n');
   const url = URL.createObjectURL(
-    new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+    new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
   );
   const a = document.createElement('a');
   a.href = url;
@@ -217,11 +227,17 @@ export const TadweenAnalytics: FC = () => {
     networkData ? channel!.id : undefined,
     period
   );
-  const published = usePublishedPosts(channel?.id, period);
+  // ISO strings stay the same for the whole day, so SWR keeps one key per range
+  const range = useMemo(() => {
+    const { from, to } = localRange(period);
+    return { from: from.toISOString(), to: to.toISOString() };
+  }, [period]);
+  const published = usePublishedPosts(channel?.id, range.from, range.to);
 
-  const series = analytics.data || [];
-  const posts = published.data?.posts || [];
-  const buckets = useMemo(() => bucketPosts(posts, period), [posts, period]);
+  const series = analytics.data || NO_SERIES;
+  const posts = published.data?.posts || NO_POSTS;
+  const dates = published.data?.published || NO_DATES;
+  const buckets = useMemo(() => bucketPosts(dates, period), [dates, period]);
   const weekly = period > 45;
 
   const postPoints: ChartPoint[] = useMemo(
@@ -240,11 +256,11 @@ export const TadweenAnalytics: FC = () => {
   const formatPercent = useCallback((v: number) => fmt.percent(v), [fmt]);
 
   const exportCsv = useCallback(() => {
-    const dates = uniq([
+    const csvDates = uniq([
       ...series.flatMap((s) => s.data.map((p) => p.date)),
       ...(weekly ? [] : buckets.map((b) => b.key)),
     ]).sort();
-    const postsByDay = groupBy(posts, (p) =>
+    const postsByDay = groupBy(dates, (p) =>
       dayjs(p.publishDate).format('YYYY-MM-DD')
     );
     const header = [
@@ -252,7 +268,7 @@ export const TadweenAnalytics: FC = () => {
       ...series.map((s) => s.label),
       t('tdw_an_posts_published', 'Posts published'),
     ];
-    const rows = dates.map((date) => [
+    const rows = csvDates.map((date) => [
       date,
       ...series.map((s) => s.data.find((p) => p.date === date)?.total ?? ''),
       postsByDay[date]?.length || 0,
@@ -260,10 +276,10 @@ export const TadweenAnalytics: FC = () => {
     downloadCsv(
       `tadween-analytics-${(channel?.name || 'all-channels')
         .toLowerCase()
-        .replace(/[^a-z0-9؀-ۿ]+/gi, '-')}-${period}d.csv`,
+        .replace(/[^a-z0-9\u0600-\u06ff]+/gi, '-')}-${period}d.csv`,
       [header, ...rows]
     );
-  }, [series, buckets, posts, weekly, channel, period, t]);
+  }, [series, buckets, dates, weekly, channel, period, t]);
 
   // ── Tiles ───────────────────────────────────────────────────────────────
   const publishedTotal = published.data?.total ?? 0;
@@ -275,9 +291,9 @@ export const TadweenAnalytics: FC = () => {
   });
 
   const overviewTiles = useMemo(() => {
-    const byChannel = groupBy(posts, (p) => p.integration.id);
+    const byChannel = groupBy(dates, (p) => p.integration.id);
     const byNetwork = orderBy(
-      Object.entries(groupBy(posts, (p) => p.integration.providerIdentifier)),
+      Object.entries(groupBy(dates, (p) => p.integration.providerIdentifier)),
       ([, list]) => list.length,
       'desc'
     );
@@ -287,12 +303,12 @@ export const TadweenAnalytics: FC = () => {
       topNetwork: byNetwork[0],
       byNetwork,
     };
-  }, [posts, publishedTotal, period]);
+  }, [dates, publishedTotal, period]);
 
   const loadingPosts = published.isLoading;
   const loadingNetwork = networkData && analytics.isLoading;
   const hasExport =
-    (series.length > 0 || posts.length > 0) && !loadingPosts && !loadingNetwork;
+    (series.length > 0 || dates.length > 0) && !loadingPosts && !loadingNetwork;
 
   // ── Header ──────────────────────────────────────────────────────────────
   const title = channel ? channel.name : t('tdw_an_overview', 'Overview');
@@ -447,6 +463,20 @@ export const TadweenAnalytics: FC = () => {
               }
             />
           </section>
+        ) : null}
+
+        {published.error ? (
+          <Banner
+            tone="error"
+            title={t('tdw_an_posts_error_title', "Couldn't load your published posts")}
+            action={
+              <Button size="sm" icon="refresh-cw" onClick={() => published.mutate()}>
+                {t('tdw_an_try_again', 'Try again')}
+              </Button>
+            }
+          >
+            {t('tdw_an_posts_error_body', 'The counts below may be missing until it loads.')}
+          </Banner>
         ) : null}
 
         {/* KPI tiles */}

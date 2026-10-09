@@ -1112,5 +1112,7 @@
   "tdw_an_finish_setup": "Finish setup",
   "tdw_an_posts_only": "Posts only",
   "tdw_an_up_to_days": "Up to {{days}} days",
-  "tdw_an_published_from_tadween": "Published from Tadween"
+  "tdw_an_published_from_tadween": "Published from Tadween",
+  "tdw_an_posts_error_title": "Couldn't load your published posts",
+  "tdw_an_posts_error_body": "The counts below may be missing until it loads."
 }

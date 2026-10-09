@@ -409,6 +409,31 @@ export class PostsRepository {
     });
   }
 
+  // just when and where each post went out, for per-day and per-network counts
+  getPublishedPostDates(
+    orgId: string,
+    from: Date,
+    to: Date,
+    limit: number,
+    integrationId?: string
+  ) {
+    return this._post.model.post.findMany({
+      where: this.publishedWhere(orgId, from, to, integrationId),
+      orderBy: { publishDate: 'desc' },
+      take: limit,
+      select: {
+        publishDate: true,
+        integration: {
+          select: {
+            id: true,
+            name: true,
+            providerIdentifier: true,
+          },
+        },
+      },
+    });
+  }
+
   countPublishedPosts(
     orgId: string,
     from: Date,

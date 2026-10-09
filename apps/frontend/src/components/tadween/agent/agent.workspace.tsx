@@ -29,11 +29,12 @@ export const useStartNewChat = () => {
   const router = useRouter();
   const { newChat } = useAgentWorkspace();
   return useCallback(() => {
-    newChat();
-    if (pathname !== '/agents/new') {
+    if (pathname === '/agents/new') {
+      newChat();
+    } else {
       router.push('/agents/new');
     }
-  }, [pathname, newChat]);
+  }, [pathname, newChat, router]);
 };
 
 /* ChatThreadList: search, new chat and the saved chats */

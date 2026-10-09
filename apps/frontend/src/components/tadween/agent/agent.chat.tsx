@@ -123,9 +123,6 @@ const Thinking: FC = () => {
   const t = useT();
   return (
     <span className="tdw-ag-thinking" role="status">
-      <span className="tdw-ag-avatar" aria-hidden="true">
-        <Icon name="sparkles" size={14} />
-      </span>
       <span className="tdw-ag-dots" aria-hidden="true">
         <i />
         <i />

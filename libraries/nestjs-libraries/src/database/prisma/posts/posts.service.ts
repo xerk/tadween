@@ -58,8 +58,11 @@ import { postContentPlainText } from '@gitroom/helpers/utils/sanitize.post.conte
 import { CreatePublicCommentDto } from '@gitroom/nestjs-libraries/dtos/comments/add.comment.dto';
 import { countLength } from '@gitroom/helpers/utils/count.length';
 
-// most posts one analytics request returns (the counts are exact)
-const PUBLISHED_SUMMARY_LIMIT = 500;
+// Tadween analytics (getPublishedPostsSummary): the longest range, the most
+// dated rows and the newest posts with text one request returns
+const PUBLISHED_MAX_DAYS = 366;
+const PUBLISHED_DATES_LIMIT = 5000;
+const PUBLISHED_POSTS_LIMIT = 10;
 
 type PostWithConditionals = Post & {
   integration?: Integration;
@@ -444,44 +447,55 @@ export class PostsService {
     );
   }
 
-  // Tadween analytics: what the organisation published in the last `days` days
-  // (newest first, capped) and how many posts the period before had, so the
-  // page can show "posts published" with a delta even for networks whose API
-  // has no analytics.
+  // Tadween analytics: what the organisation published between `from` and
+  // `to` (the client's local day boundaries) and how many posts the same
+  // length of time before had, so the page can show "posts published" with a
+  // delta even for networks whose API has no analytics. `published` carries
+  // each post's date and channel for the per-day and per-network counts,
+  // `posts` the newest few with their text and live link.
   async getPublishedPostsSummary(orgId: string, query: GetPublishedPostsDto) {
-    const to = dayjs.utc().toDate();
-    const from = dayjs.utc().subtract(query.days, 'day').toDate();
-    const previousFrom = dayjs
-      .utc()
-      .subtract(query.days * 2, 'day')
-      .toDate();
+    const from = dayjs.utc(query.from);
+    const to = dayjs.utc(query.to);
+    if (!from.isBefore(to) || to.diff(from, 'day') > PUBLISHED_MAX_DAYS) {
+      throw new BadRequestException(
+        `from must be before to, at most ${PUBLISHED_MAX_DAYS} days apart`
+      );
+    }
+    const previousFrom = from.subtract(to.diff(from), 'millisecond');
 
-    const [posts, total, previous] = await Promise.all([
+    const [published, posts, total, previous] = await Promise.all([
+      this._postRepository.getPublishedPostDates(
+        orgId,
+        from.toDate(),
+        to.toDate(),
+        PUBLISHED_DATES_LIMIT,
+        query.integration
+      ),
       this._postRepository.getPublishedPosts(
         orgId,
-        from,
-        to,
-        PUBLISHED_SUMMARY_LIMIT,
+        from.toDate(),
+        to.toDate(),
+        PUBLISHED_POSTS_LIMIT,
         query.integration
       ),
       this._postRepository.countPublishedPosts(
         orgId,
-        from,
-        to,
+        from.toDate(),
+        to.toDate(),
         query.integration
       ),
       this._postRepository.countPublishedPosts(
         orgId,
-        previousFrom,
-        from,
+        previousFrom.toDate(),
+        from.toDate(),
         query.integration
       ),
     ]);
 
     return {
-      days: query.days,
       total,
       previous,
+      published,
       posts: posts.map(({ content, ...post }) => ({
         ...post,
         excerpt: postContentPlainText(content).trim().slice(0, 280),

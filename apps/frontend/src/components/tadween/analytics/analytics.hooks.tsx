@@ -45,15 +45,22 @@ export interface PublishedPost {
   };
 }
 
+// when and where a post went out (every post in the range)
+export interface PublishedDate {
+  publishDate: string;
+  integration: { id: string; name: string; providerIdentifier: string };
+}
+
 export interface PublishedSummary {
-  days: number;
   total: number;
   previous: number;
+  published: PublishedDate[];
   posts: PublishedPost[];
 }
 
-// Ranges each network's analytics API answers for (moved as-is from Postiz's
-// platform.analytics.tsx). A network missing here has no analytics API.
+// Ranges each network's analytics API answers for: the same lists as Postiz's
+// platform.analytics.tsx (kept there for upstream syncs; update both when a
+// network gains or loses analytics). A network missing here has no analytics API.
 const ANALYTICS_RANGES: Record<string, number[]> = {
   facebook: [7, 30, 90],
   instagram: [7, 30],
@@ -125,8 +132,12 @@ export const useChannelAnalytics = (channelId?: string, days?: number) => {
   );
 };
 
-// Posts published from Tadween in the last `days` days (all channels when no channel)
-export const usePublishedPosts = (channelId: string | undefined, days: number) => {
+// Posts published from Tadween between two ISO dates (all channels when no channel)
+export const usePublishedPosts = (
+  channelId: string | undefined,
+  from: string,
+  to: string
+) => {
   const fetch = useFetch();
   const load = useCallback(async (path: string) => {
     const res = await fetch(path);
@@ -136,7 +147,8 @@ export const usePublishedPosts = (channelId: string | undefined, days: number) =
     return (await res.json()) as PublishedSummary;
   }, []);
   const params = new URLSearchParams({
-    days: String(days),
+    from,
+    to,
     ...(channelId ? { integration: channelId } : {}),
   }).toString();
   return useSWR<PublishedSummary>(

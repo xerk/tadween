@@ -2,17 +2,13 @@
 @use './tadween.scss';
 @use './tadween/ui-kit.scss';
 @use './tadween/shell.scss';
-@use './tadween/notifications.scss';
 @use './tadween/editor.scss';
 @use './tadween/settings.scss';
 @use './tadween/home.scss';
 @use './tadween/workspace.scss';
-@use './tadween/media.scss';
 @use './tadween/composer-mobile.scss';
-@use './tadween/auth.scss';
 @use './tadween/billing.scss';
-@use './tadween/consistency.scss';
-@use './tadween/board.scss';
+@use './tadween/post-page.scss';
 @use './polonto.css';
 @use '@uppy/core/dist/style.css' as uppyCore;
 @use '@uppy/dashboard/dist/style.css' as uppyDashboard;
@@ -606,7 +602,7 @@ html[dir='rtl'] [dir='ltr'] {
 //
 
 .ProseMirror {
-  font-family: Arial, var(--font-arabic), sans-serif;
+  font-family: Arial;
 }
 
 .ProseMirror:focus {

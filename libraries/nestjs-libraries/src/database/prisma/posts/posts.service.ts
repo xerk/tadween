@@ -18,6 +18,7 @@ import {
 } from '@prisma/client';
 import { GetPostsDto } from '@gitroom/nestjs-libraries/dtos/posts/get.posts.dto';
 import { GetPostsListDto } from '@gitroom/nestjs-libraries/dtos/posts/get.posts.list.dto';
+import { GetPublishedPostsDto } from '@gitroom/nestjs-libraries/dtos/analytics/get.published.posts.dto';
 import { shuffle } from 'lodash';
 import { CreateGeneratedPostsDto } from '@gitroom/nestjs-libraries/dtos/generator/create.generated.posts.dto';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
@@ -56,6 +57,9 @@ import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validatio
 import { postContentPlainText } from '@gitroom/helpers/utils/sanitize.post.content';
 import { CreatePublicCommentDto } from '@gitroom/nestjs-libraries/dtos/comments/add.comment.dto';
 import { countLength } from '@gitroom/helpers/utils/count.length';
+
+// most posts one analytics request returns (the counts are exact)
+const PUBLISHED_SUMMARY_LIMIT = 500;
 
 type PostWithConditionals = Post & {
   integration?: Integration;
@@ -438,6 +442,51 @@ export class PostsService {
     return minifyPostsList(
       await this._postRepository.getPostsList(orgId, query)
     );
+  }
+
+  // Tadween analytics: what the organisation published in the last `days` days
+  // (newest first, capped) and how many posts the period before had, so the
+  // page can show "posts published" with a delta even for networks whose API
+  // has no analytics.
+  async getPublishedPostsSummary(orgId: string, query: GetPublishedPostsDto) {
+    const to = dayjs.utc().toDate();
+    const from = dayjs.utc().subtract(query.days, 'day').toDate();
+    const previousFrom = dayjs
+      .utc()
+      .subtract(query.days * 2, 'day')
+      .toDate();
+
+    const [posts, total, previous] = await Promise.all([
+      this._postRepository.getPublishedPosts(
+        orgId,
+        from,
+        to,
+        PUBLISHED_SUMMARY_LIMIT,
+        query.integration
+      ),
+      this._postRepository.countPublishedPosts(
+        orgId,
+        from,
+        to,
+        query.integration
+      ),
+      this._postRepository.countPublishedPosts(
+        orgId,
+        previousFrom,
+        from,
+        query.integration
+      ),
+    ]);
+
+    return {
+      days: query.days,
+      total,
+      previous,
+      posts: posts.map(({ content, ...post }) => ({
+        ...post,
+        excerpt: postContentPlainText(content).trim().slice(0, 280),
+      })),
+    };
   }
 
   async updateMedia(id: string, imagesList: any[], convertToJPEG = false) {

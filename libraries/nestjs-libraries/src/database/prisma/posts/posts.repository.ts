@@ -359,6 +359,67 @@ export class PostsRepository {
     };
   }
 
+  // Tadween analytics: top-level published posts of the organisation between
+  // two dates, optionally for one channel (same filters as getPostsList)
+  private publishedWhere(
+    orgId: string,
+    from: Date,
+    to: Date,
+    integrationId?: string
+  ) {
+    return {
+      organizationId: orgId,
+      state: State.PUBLISHED,
+      deletedAt: null as Date | null,
+      parentPostId: null as string | null,
+      publishDate: { gte: from, lt: to },
+      integration: {
+        deletedAt: null as Date | null,
+        organizationId: orgId,
+        ...(integrationId ? { id: integrationId } : {}),
+      },
+    };
+  }
+
+  getPublishedPosts(
+    orgId: string,
+    from: Date,
+    to: Date,
+    limit: number,
+    integrationId?: string
+  ) {
+    return this._post.model.post.findMany({
+      where: this.publishedWhere(orgId, from, to, integrationId),
+      orderBy: { publishDate: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        content: true,
+        publishDate: true,
+        releaseURL: true,
+        integration: {
+          select: {
+            id: true,
+            name: true,
+            picture: true,
+            providerIdentifier: true,
+          },
+        },
+      },
+    });
+  }
+
+  countPublishedPosts(
+    orgId: string,
+    from: Date,
+    to: Date,
+    integrationId?: string
+  ) {
+    return this._post.model.post.count({
+      where: this.publishedWhere(orgId, from, to, integrationId),
+    });
+  }
+
   async deletePost(orgId: string, group: string) {
     await this._post.model.post.updateMany({
       where: {

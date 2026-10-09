@@ -123,7 +123,7 @@ You can also use me as an MCP Server, check Settings >> Public API
   );
 };
 
-const LoadMessages: FC<{ id: string }> = ({ id }) => {
+export const LoadMessages: FC<{ id: string }> = ({ id }) => {
   const { messages, setMessages } = useCopilotMessagesContext();
   const fetch = useFetch();
   const currentId = useRef<string | null>(null);

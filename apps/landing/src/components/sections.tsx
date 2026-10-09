@@ -1,14 +1,20 @@
-import type { Dict } from '@/content/types';
+import type { ReactNode } from 'react';
+import type { Dict, Faq } from '@/content/types';
 import { ar } from '@/content/ar';
+import { CHANNELS, MORE_CHANNELS, channelBySlug } from '@/lib/channels';
 import { LICENSE_URL, SIGN_IN_URL, SIGN_UP_URL, SOURCE_URL } from '@/lib/config';
 import { TILE_KINDS } from '@/lib/heroGrid';
+import { PATHS, channelPath, localePath } from '@/lib/routes';
+import { Accordion } from './Accordion';
+import { FeedPreview } from './ChannelPreview';
+import { FeatureArt } from './FeatureArt';
 import { Icon, cx } from './Icon';
 import { LinkedInPreview, MediaArt } from './LinkedInPreview';
 import { Logo } from './Logo';
 
 /* Marketing sections, ported from the design system's LandingExperience
-   (components/src/pages.tsx). They render on the server; the motion engine
-   (lib/motion) finds them through the data-* hooks after hydration. */
+   (components/src/pages.tsx) and extended for the full site. They render on the server;
+   the motion engine (lib/motion) finds them through the data-* hooks after hydration. */
 
 /** English headlines rise word by word out of a mask, so each word gets its own span.
     Arabic is not split: the mask would clip its tall glyphs, so it fades up whole. */
@@ -90,10 +96,19 @@ export function Hero({ t }: { t: Dict }) {
   );
 }
 
+const FLOW_NETS = ['linkedin', 'x', 'threads'] as const;
+
+/** The product story, scrubbed by scroll: the post types itself, the per-network previews
+    take turns, the post drops onto the week, and the chip turns to Published. The stage
+    and network live in data-stage / data-net (set by the engine); CSS does the rest. The
+    server renders the finished state, which is also what reduced motion keeps. */
 export function Flow({ t }: { t: Dict }) {
   const f = t.flow;
+  const metrics = t.lang === 'ar' ? { reactions: '١٢٨', comments: '١٤', reposts: '٦' } : undefined;
+  const x = channelBySlug('x')!;
+  const threads = channelBySlug('threads')!;
   return (
-    <section className="pz-flow" id="flow" data-flow aria-labelledby="flow-title">
+    <section className="pz-flow" id="flow" data-flow data-stage="3" data-net="0" aria-labelledby="flow-title">
       <div className="pz-flow-copy">
         <h2 id="flow-title" className="title-1">
           {f.title}
@@ -115,31 +130,59 @@ export function Flow({ t }: { t: Dict }) {
           <span data-flow-bar />
         </span>
       </div>
-      <div className="pz-flow-stage">
-        <LinkedInPreview
-          className="pz-flow-card"
-          data-flow-card
-          author={f.author}
-          labels={t.linkedin}
-          dir={t.dir}
-          metrics={t.lang === 'ar' ? { reactions: '١٢٨', comments: '١٤', reposts: '٦' } : undefined}
-          textSlot={
-            <p className="pz-li-text pz-flow-text">
-              <span data-flow-type>{f.text}</span>
-              <span className="pz-flow-caret" aria-hidden="true" />
-            </p>
-          }
-          media={
-            <div className="pz-flow-media">
-              <MediaArt />
-            </div>
-          }
-        />
+      <div className="pz-flow-stage" aria-hidden="true">
+        <div className="pz-flow-nets">
+          {FLOW_NETS.map((slug, i) => {
+            const c = channelBySlug(slug)!;
+            return (
+              <span key={slug} className="pz-flow-net" data-i={i}>
+                <img src={c.icon} width={16} height={16} alt="" />
+                {c.name}
+              </span>
+            );
+          })}
+        </div>
+        <div className="pz-flow-cards">
+          <LinkedInPreview
+            className="pz-flow-card"
+            data-flow-card
+            author={f.author}
+            labels={t.linkedin}
+            dir={t.dir}
+            metrics={metrics}
+            textSlot={
+              <p className="pz-li-text pz-flow-text">
+                <span data-flow-type>{f.text}</span>
+                <span className="pz-flow-caret" />
+              </p>
+            }
+            media={
+              <div className="pz-flow-media">
+                <MediaArt />
+              </div>
+            }
+          />
+          <FeedPreview className="pz-flow-alt" data-i="1" author={f.author} text={f.xText} icon={x.icon} name={x.name} color={x.accent} media />
+          <FeedPreview className="pz-flow-alt" data-i="2" author={f.author} text={f.threadsText} icon={threads.icon} name={threads.name} color={threads.accent} />
+        </div>
+        <div className="pz-flow-week">
+          {f.week.map((d, i) => (
+            <span key={d} className={cx('pz-flow-day', i === 3 && 'is-target')}>
+              <span className="caption">{d}</span>
+              {i === 1 ? <i className="is-soft" /> : null}
+              {i === 3 ? <i className="is-post" /> : null}
+            </span>
+          ))}
+        </div>
         <div className="pz-flow-chip" data-flow-chip>
           <Icon name="calendar-days" size={16} />
-          <span>
+          <span className="pz-flow-chip-sched">
             <strong>{f.chipWhen}</strong>
             <span>{f.chipWhere}</span>
+          </span>
+          <span className="pz-flow-chip-done">
+            <strong>{f.published}</strong>
+            <span>{f.publishedWhere}</span>
           </span>
           <Icon name="circle-check" size={18} />
         </div>
@@ -148,6 +191,31 @@ export function Flow({ t }: { t: Dict }) {
   );
 }
 
+/** Placeholder social proof. Every slot says it's a placeholder until the owner adds real
+    customers; no invented logos or quotes. */
+export function Proof({ t }: { t: Dict }) {
+  return (
+    <section className="pz-proof" aria-labelledby="proof-title">
+      <div className="pz-proof-head">
+        <h2 id="proof-title" className="caption pz-muted">
+          {t.proof.title}
+        </h2>
+        <span className="pz-placeholder caption">{t.proof.placeholder}</span>
+      </div>
+      <ul className="pz-proof-logos">
+        {Array.from({ length: 5 }, (_, i) => (
+          <li key={i}>{t.proof.logo}</li>
+        ))}
+      </ul>
+      <figure className="pz-proof-quote">
+        <blockquote>{t.proof.quote}</blockquote>
+        <figcaption className="caption pz-muted">{t.proof.quoteBy}</figcaption>
+      </figure>
+    </section>
+  );
+}
+
+/** The feature grid: one card per section of /features, each with its illustration. */
 export function Features({ t }: { t: Dict }) {
   return (
     <section className="pz-lsec" id="features" aria-labelledby="features-title">
@@ -157,16 +225,122 @@ export function Features({ t }: { t: Dict }) {
         </h2>
         <p className="pz-lsec-sub">{t.features.sub}</p>
       </div>
-      <div className="pz-feat-grid" data-stagger>
-        {t.features.items.map((f) => (
-          <div key={f.title} className="pz-feat" data-tilt>
+      <div className="pz-bento" data-stagger>
+        {t.featuresPage.sections.map((f) => (
+          <a key={f.id} className={cx('pz-feat', 'pz-bento-card', `is-${f.id}`)} href={`${localePath(t.lang, PATHS.features)}#${f.id}`} data-tilt data-art>
+            <FeatureArt kind={f.art} />
             <span className={cx('pz-feat-icon', f.smart && 'is-smart')}>
               <Icon name={f.icon} size={18} />
             </span>
             <h3 className="headline">{f.title}</h3>
             <p>{f.body}</p>
-          </div>
+          </a>
         ))}
+      </div>
+      <a className="pz-more-link pz-center" href={localePath(t.lang, PATHS.features)}>
+        {t.features.more}
+        <Icon name="arrow-right" className="pz-flip-rtl" />
+      </a>
+    </section>
+  );
+}
+
+/** Network tiles linking to each channel page. */
+export function ChannelGrid({ t, compact }: { t: Dict; compact?: boolean }) {
+  return (
+    <ul className={cx('pz-chgrid', compact && 'is-compact')} data-stagger>
+      {CHANNELS.map((c) => (
+        <li key={c.slug}>
+          <a className="pz-chtile" href={localePath(t.lang, channelPath(c.slug))}>
+            <img src={c.icon} width={28} height={28} alt="" loading="lazy" />
+            <span>{c.name}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function ChannelsSection({ t }: { t: Dict }) {
+  const s = t.channelsSection;
+  return (
+    <section className="pz-lsec" id="channels" aria-labelledby="channels-title">
+      <div className="pz-lsec-head" data-reveal>
+        <h2 id="channels-title" className="title-1">
+          {s.title}
+        </h2>
+        <p className="pz-lsec-sub">{s.sub}</p>
+      </div>
+      <ChannelGrid t={t} compact />
+      <p className="pz-chmore">
+        <span className="pz-chmore-icons" aria-hidden="true">
+          {MORE_CHANNELS.slice(0, 6).map((m) => (
+            <img key={m.name} src={m.icon} width={20} height={20} alt="" loading="lazy" />
+          ))}
+        </span>
+        <span className="pz-muted">{s.more}</span>
+        <a className="pz-more-link" href={localePath(t.lang, PATHS.channels)}>
+          {s.all}
+          <Icon name="arrow-right" className="pz-flip-rtl" />
+        </a>
+      </p>
+    </section>
+  );
+}
+
+/** A prompt, the tool calls it turns into, and the result. The calls light up one by one
+    when the card scrolls in (CSS, keyed on .is-in from the engine). */
+export function AgentDemo({ t }: { t: Dict }) {
+  const a = t.agentTeaser;
+  return (
+    <div className="pz-agent" data-art>
+      <div className="pz-agent-prompt">
+        <span className="pz-avatar" aria-hidden="true">
+          {t.flow.author.initials}
+        </span>
+        <p>{a.prompt}</p>
+      </div>
+      <ol className="pz-agent-calls">
+        {a.calls.map((c, i) => (
+          <li key={c.tool} style={{ ['--d' as string]: `${300 + i * 450}ms` }}>
+            <Icon name="circle-check" size={16} />
+            <span>
+              <code dir="ltr">{c.tool}</code>
+              {c.label}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="pz-agent-done" style={{ ['--d' as string]: `${300 + a.calls.length * 450}ms` }}>
+        <Icon name="calendar-days" size={16} />
+        {a.done}
+      </p>
+    </div>
+  );
+}
+
+export function AgentTeaser({ t }: { t: Dict }) {
+  const a = t.agentTeaser;
+  return (
+    <section className="pz-lsec" id="agent" aria-labelledby="agent-title">
+      <div className="pz-split">
+        <div className="pz-split-copy" data-reveal>
+          <span className="pz-hero-eyebrow">
+            <Icon name="bot" size={14} />
+            {t.agentPage.eyebrow}
+          </span>
+          <h2 id="agent-title" className="title-1">
+            {a.title}
+          </h2>
+          <p className="pz-lsec-sub">{a.sub}</p>
+          <a className="pz-more-link" href={localePath(t.lang, PATHS.agent)}>
+            {a.link}
+            <Icon name="arrow-right" className="pz-flip-rtl" />
+          </a>
+        </div>
+        <div data-reveal>
+          <AgentDemo t={t} />
+        </div>
       </div>
     </section>
   );
@@ -207,14 +381,7 @@ export function ArabicSection({ t }: { t: Dict }) {
             {t.arabic.title}
           </h2>
           <p className="pz-lsec-sub">{t.arabic.sub}</p>
-          <ul className="pz-plan-list">
-            {t.arabic.bullets.map((b) => (
-              <li key={b}>
-                <Icon name="check" />
-                {b}
-              </li>
-            ))}
-          </ul>
+          <CheckList items={t.arabic.bullets} />
         </div>
         <div className="pz-lar-shot" data-flip>
           <LinkedInPreview
@@ -232,13 +399,72 @@ export function ArabicSection({ t }: { t: Dict }) {
   );
 }
 
-export function CTA({ t }: { t: Dict }) {
+/** A list with check marks, the plan-list look from the design system. */
+export function CheckList({ items }: { items: string[] }) {
+  return (
+    <ul className="pz-plan-list">
+      {items.map((it) => (
+        <li key={it}>
+          <Icon name="check" />
+          {it}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Questions and answers in the design system's accordion. */
+export function FaqSection({ id, title, items }: { id: string; title: string; items: Faq[] }) {
+  return (
+    <section className="pz-lsec" id={id} aria-labelledby={`${id}-title`}>
+      <div className="pz-faq" data-reveal>
+        <h2 id={`${id}-title`} className="title-2">
+          {title}
+        </h2>
+        <Accordion items={items} />
+      </div>
+    </section>
+  );
+}
+
+/** The header of an inner page: breadcrumb, then an optional badge or eyebrow, the H1, its
+    lead and anything after it (a CTA). The breadcrumb matches the page's BreadcrumbList. */
+export function PageHead({ t, title, sub, eyebrow, crumbs, badge, className, children }: { t: Dict; title: string; sub: string; eyebrow?: string; crumbs?: { name: string; href: string }[]; badge?: ReactNode; className?: string; children?: ReactNode }) {
+  return (
+    <header className={cx('pz-phead', className)}>
+      <div className="pz-lsec-head">
+        {crumbs ? (
+          <nav className="pz-crumbs" aria-label={t.nav.breadcrumb}>
+            <ol>
+              {crumbs.map((c, i) => (
+                <li key={c.href}>
+                  {i < crumbs.length - 1 ? <a href={c.href}>{c.name}</a> : <span aria-current="page">{c.name}</span>}
+                </li>
+              ))}
+            </ol>
+          </nav>
+        ) : null}
+        {badge}
+        {eyebrow ? <span className="pz-hero-eyebrow pz-center">{eyebrow}</span> : null}
+        <h1 className="display" data-hero-in>
+          {title}
+        </h1>
+        <p className="pz-lsec-sub" data-hero-in>
+          {sub}
+        </p>
+        {children}
+      </div>
+    </header>
+  );
+}
+
+export function CTA({ t, title, body }: { t: Dict; title?: string; body?: string }) {
   return (
     <section className="pz-lcta" data-cta aria-labelledby="cta-title">
       <h2 id="cta-title" className="title-1">
-        {t.cta.title}
+        {title ?? t.cta.title}
       </h2>
-      <p>{t.cta.body}</p>
+      <p>{body ?? t.cta.body}</p>
       <div className="pz-hero-cta">
         <a className="pz-btn pz-btn-primary pz-btn-lg" href={SIGN_UP_URL}>
           {t.cta.primary}
@@ -252,18 +478,22 @@ export function CTA({ t }: { t: Dict }) {
   );
 }
 
+const FOOTER_CHANNELS = ['linkedin', 'linkedin-page', 'x', 'instagram', 'facebook', 'tiktok'];
+
 export function Footer({ t }: { t: Dict }) {
+  const channelLinks = FOOTER_CHANNELS.map((slug) => ({ href: localePath(t.lang, channelPath(slug)), label: channelBySlug(slug)!.name }));
+  const columns = [t.footer.columns[0], { title: t.footer.channelsTitle, links: channelLinks }, ...t.footer.columns.slice(1)];
   return (
     <footer className="pz-lfoot">
       <div className="pz-lfoot-brand">
         <Logo size={28} href={t.base || '/'} label={t.nav.home} arabic={t.lang === 'ar'} />
         <p className="caption pz-muted">{t.footer.tagline}</p>
       </div>
-      {t.footer.columns.map((c) => (
+      {columns.map((c) => (
         <nav key={c.title} className="pz-lfoot-col" aria-label={c.title}>
           <span className="caption pz-muted">{c.title}</span>
           {c.links.map((l) => (
-            <a key={l.label} href={l.href} {...(l.external ? { rel: 'noopener', target: '_blank' } : {})}>
+            <a key={l.href} href={l.href} {...('external' in l && l.external ? { rel: 'noopener', target: '_blank' } : {})}>
               {l.label}
             </a>
           ))}

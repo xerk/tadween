@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import type { Dict } from '@/content/types';
 import { SIGN_UP_URL } from '@/lib/config';
-import type { PlanView } from '@/lib/plans';
+import { TIER_LIMITS, type PlanView } from '@/lib/plans';
+import type { CompareRow } from '@/content/types';
 import { Accordion } from './Accordion';
 import { Icon, cx } from './Icon';
 
@@ -55,6 +56,26 @@ export function PricingTable({
     const prices = c === 'EGP' ? plan.egp! : plan.usd;
     const perMonth = yearly ? prices.yearly / 12 : prices.monthly;
     return { cur: p.currencies[c], perMonth: fmt.format(Math.round(perMonth * 100) / 100), total: fmt.format(prices.yearly) };
+  };
+  // -1 means unlimited, 0 means not included; anything else is a number.
+  const count = (n: number) => (n < 0 ? p.unlimited : n === 0 ? false : fmt.format(n));
+  /** A compare cell: read from the plan for rows that name a field (so plans edited in the
+      app show here), from the row's own values otherwise. */
+  const cell = (r: CompareRow, plan: PlanView) => {
+    switch (r.field) {
+      case 'channels':
+        return fmt.format(plan.channels);
+      case 'teamMembers':
+        return count(plan.teamMembers);
+      case 'aiCredits':
+        return count(plan.aiCredits);
+      case 'webhooks':
+        return count(TIER_LIMITS[plan.tier].webhooks);
+      case 'autoPost':
+        return TIER_LIMITS[plan.tier].autoPost;
+      default:
+        return r.values?.[plan.key];
+    }
   };
   const copyOf = (plan: PlanView) => {
     const c = p.plans.find((x) => x.key === plan.key);
@@ -134,7 +155,7 @@ export function PricingTable({
                 </tr>
               </thead>
               <tbody>
-                {p.compare.map((r, ri) => (
+                {p.compare.map((r) => (
                   <tr key={r.label}>
                     <th scope="row">
                       <span className="pz-compare-label">
@@ -150,8 +171,7 @@ export function PricingTable({
                       </span>
                     </th>
                     {plans.map((plan) => {
-                      // The first row is the channel limit, which the API may have changed.
-                      const v = ri === 0 ? fmt.format(plan.channels) : r.values[plan.key];
+                      const v = cell(r, plan);
                       return (
                         <td key={plan.key} className={cx(plan.popular && 'is-popular')}>
                           {v === true ? (

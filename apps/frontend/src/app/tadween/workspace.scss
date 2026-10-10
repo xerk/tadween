@@ -583,7 +583,8 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
   .tdw-ws-hour {
     align-items: flex-start;
     justify-content: flex-end;
-    padding: 0 10px 0 0;
+    padding-block: 0;
+    padding-inline: 6px 12px; // the gap sits on the grid side in both directions
     font-size: 11px;
     line-height: 14px;
     color: var(--tdw-muted-foreground);

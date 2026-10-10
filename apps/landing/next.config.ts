@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
+import { retiredRedirects } from './src/lib/redirects';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -15,12 +16,9 @@ const nextConfig: NextConfig = {
   // Next's own @swc/helpers sits nested under next/ in the hoisted workspace, and file
   // tracing misses its ESM build; include it so the standalone server starts.
   outputFileTracingIncludes: { '/*': ['../../node_modules/next/node_modules/@swc/helpers/**/*'] },
-  // The developers page was retired; old links land on the features overview.
+  // Pages the site no longer has: permanent redirects to the page that replaced each one.
   async redirects() {
-    return [
-      { source: '/developers', destination: '/features', permanent: true },
-      { source: '/ar/developers', destination: '/ar/features', permanent: true },
-    ];
+    return retiredRedirects();
   },
   experimental: {
     // Two root layouts (English and Arabic) need one 404 for unmatched URLs.

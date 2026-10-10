@@ -35,8 +35,6 @@ export interface AiClientFacts {
   /** The product's own name, always shown as text in its own spelling. */
   name: string;
   kind: ClientKind;
-  /** The hero draws a terminal for command-line clients, a chat window for the rest. */
-  terminal?: boolean;
   /** The first method is the one the page leads with ("Connect in N steps"). */
   methods: ClientMethod[];
   /** The vendor's documentation for adding a remote MCP server. */
@@ -47,7 +45,6 @@ export interface AiClientFacts {
 const OAUTH_URL = '{api}/mcp-oauth-dynamic';
 const MCP_URL = '{api}/mcp';
 const KEY = '<your-api-key>';
-const BEARER = `Bearer ${KEY}`;
 
 const json = (value: object) => JSON.stringify(value, null, 2);
 /** Puts the key in an environment variable, in the shell profile, for clients that read it. */
@@ -70,7 +67,7 @@ export const AI_CLIENTS: AiClientFacts[] = [
       { label: 'OpenAI Help Center: developer mode and MCP apps', url: 'https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt' },
       { label: 'OpenAI: connect an MCP server to ChatGPT', url: 'https://developers.openai.com/plugins/deploy/connect-chatgpt' },
     ],
-    related: ['claude', 'codex', 'perplexity'],
+    related: ['claude', 'cursor'],
   },
   {
     slug: 'claude',
@@ -78,66 +75,7 @@ export const AI_CLIENTS: AiClientFacts[] = [
     kind: 'assistant',
     methods: [{ auth: 'oauth', steps: [null, { label: 'Remote MCP server URL', code: OAUTH_URL }, null, null, null] }],
     docs: CLAUDE_DOCS,
-    related: ['claude-cowork', 'claude-code', 'chatgpt'],
-  },
-  {
-    slug: 'claude-cowork',
-    name: 'Claude Cowork',
-    kind: 'assistant',
-    methods: [{ auth: 'oauth', steps: [null, { label: 'Remote MCP server URL', code: OAUTH_URL }, null, null, null] }],
-    docs: CLAUDE_DOCS,
-    related: ['claude', 'claude-code', 'chatgpt'],
-  },
-  {
-    slug: 'perplexity',
-    name: 'Perplexity',
-    kind: 'assistant',
-    methods: [{ auth: 'oauth', steps: [null, { label: 'MCP Server URL', code: OAUTH_URL }, null, null] }],
-    docs: [{ label: 'Perplexity Help Center: adding custom remote connectors', url: 'https://www.perplexity.ai/help-center/en/articles/13915507-adding-custom-remote-connectors' }],
-    related: ['chatgpt', 'claude', 'claude-cowork'],
-  },
-  {
-    slug: 'claude-code',
-    name: 'Claude Code',
-    kind: 'coding',
-    terminal: true,
-    methods: [
-      { auth: 'oauth', steps: [{ label: 'Terminal', code: `claude mcp add --transport http tadween ${OAUTH_URL}` }, null] },
-      {
-        auth: 'key',
-        steps: [
-          { label: 'Terminal', code: `claude mcp add --transport http tadween ${MCP_URL} --header "Authorization: ${BEARER}"` },
-          { label: 'Terminal', code: 'claude mcp list' },
-        ],
-      },
-    ],
-    docs: [{ label: 'Claude Code docs: connect to tools via MCP', url: 'https://code.claude.com/docs/en/mcp' }],
-    related: ['codex', 'cursor', 'claude'],
-  },
-  {
-    slug: 'codex',
-    name: 'Codex',
-    kind: 'coding',
-    terminal: true,
-    methods: [
-      {
-        auth: 'oauth',
-        steps: [
-          { label: 'Terminal', code: `codex mcp add tadween --url ${OAUTH_URL}` },
-          { label: 'Terminal', code: 'codex mcp login tadween' },
-        ],
-      },
-      {
-        auth: 'key',
-        steps: [
-          EXPORT_KEY,
-          { label: '~/.codex/config.toml', code: `[mcp_servers.tadween]\nurl = "${MCP_URL}"\nbearer_token_env_var = "TADWEEN_API_KEY"` },
-          { label: 'Terminal', code: 'codex mcp list' },
-        ],
-      },
-    ],
-    docs: [{ label: 'OpenAI: Model Context Protocol in Codex', url: 'https://learn.chatgpt.com/docs/extend/mcp' }],
-    related: ['claude-code', 'chatgpt', 'cursor'],
+    related: ['chatgpt', 'cursor'],
   },
   {
     slug: 'cursor',
@@ -151,55 +89,20 @@ export const AI_CLIENTS: AiClientFacts[] = [
       },
     ],
     docs: [{ label: 'Cursor docs: Model Context Protocol', url: 'https://cursor.com/docs/mcp' }],
-    related: ['vscode', 'claude-code', 'codex'],
+    related: ['claude', 'chatgpt'],
   },
-  {
-    slug: 'vscode',
-    name: 'VS Code',
-    kind: 'coding',
-    methods: [
-      { auth: 'oauth', steps: [{ label: '.vscode/mcp.json', code: json({ servers: { tadween: { type: 'http', url: OAUTH_URL } } }) }, null] },
-      {
-        auth: 'key',
-        steps: [
-          null,
-          {
-            label: '.vscode/mcp.json',
-            code: json({
-              inputs: [{ type: 'promptString', id: 'tadween-api-key', description: 'Tadween API key', password: true }],
-              servers: { tadween: { type: 'http', url: MCP_URL, headers: { Authorization: 'Bearer ${input:tadween-api-key}' } } },
-            }),
-          },
-          null,
-          null,
-        ],
-      },
-    ],
-    docs: [
-      { label: 'VS Code docs: MCP configuration reference', url: 'https://code.visualstudio.com/docs/copilot/reference/mcp-configuration' },
-      { label: 'GitHub docs: MCP server access in Copilot', url: 'https://docs.github.com/en/copilot/how-tos/administer-copilot/manage-mcp-usage/configure-mcp-server-access' },
-    ],
-    related: ['cursor', 'claude-code', 'codex'],
-  },
-  {
-    slug: 'grok-build',
-    name: 'Grok Build',
-    kind: 'coding',
-    terminal: true,
-    methods: [
-      { auth: 'oauth', steps: [{ label: 'Terminal', code: `grok mcp add --transport http tadween ${OAUTH_URL}` }, null] },
-      {
-        auth: 'key',
-        steps: [
-          EXPORT_KEY,
-          // Single quotes: the shell must not expand the variable, Grok Build does when it connects
-          { label: 'Terminal', code: `grok mcp add --transport http tadween ${MCP_URL} --header 'Authorization: Bearer \${TADWEEN_API_KEY}'` },
-        ],
-      },
-    ],
-    docs: [{ label: 'xAI docs: MCP servers in Grok Build', url: 'https://docs.x.ai/build/features/mcp-servers' }],
-    related: ['claude-code', 'codex', 'cursor'],
-  },
+];
+
+/** Clients that also connect (any remote MCP client does) but have no page of their own:
+    the AI agent page names them under "Also works with", and their old pages redirect there
+    (lib/redirects.ts). */
+export const MORE_AI_CLIENTS: { slug: string; name: string; kind: ClientKind }[] = [
+  { slug: 'claude-cowork', name: 'Claude Cowork', kind: 'assistant' },
+  { slug: 'perplexity', name: 'Perplexity', kind: 'assistant' },
+  { slug: 'claude-code', name: 'Claude Code', kind: 'coding' },
+  { slug: 'codex', name: 'Codex', kind: 'coding' },
+  { slug: 'vscode', name: 'VS Code', kind: 'coding' },
+  { slug: 'grok-build', name: 'Grok Build', kind: 'coding' },
 ];
 
 export const clientBySlug = (slug: string) => AI_CLIENTS.find((c) => c.slug === slug);

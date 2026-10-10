@@ -40,34 +40,21 @@ export interface Head {
   sub: string;
 }
 
-/** A menu or card entry for a feature page. */
+/** A card or link entry for a tool. */
 export interface FeatureNav {
   label: string;
   blurb: string;
 }
 
-/** One block of a feature page: copy beside a product screenshot. */
-export interface Benefit {
-  /** Anchor for links into this block (e.g. /features/composer#arabic). */
-  id?: string;
-  title: string;
-  body: string;
-  points?: string[];
-  shot: ShotId;
-}
-
-/** A tool page under /features. Its icon and related pages live in lib/features.ts. */
+/** A tool's section on /features (anchor #<slug>). Its icon and screenshot, if any, live in
+    lib/features.ts. */
 export interface FeatureCopy {
   nav: FeatureNav;
-  meta: PageMeta;
-  h1: string;
-  sub: string;
-  hero: ShotId;
-  /** Two short labels pinned to the hero screenshot. */
-  callouts?: [string, string];
-  benefits: Benefit[];
-  steps: { title: string; body: string }[];
-  faq: Faq[];
+  title: string;
+  body: string;
+  points: string[];
+  /** The tool's question for the page's FAQ. */
+  faq: Faq;
 }
 
 /** One conversation with the agent, the way the chat shows it. */
@@ -106,6 +93,8 @@ export interface ChannelsDict {
     groups: Record<ChannelGroup, string>;
     more: Head;
   };
+  /** Networks listed on the overview without a page (lib/channels.ts OTHER_CHANNELS). */
+  others: Record<string, { name?: string; note: string }>;
   page: {
     start: string;
     factsTitle: string;
@@ -211,7 +200,7 @@ export interface Dict {
     label: string;
     features: string;
     channels: string;
-    resources: string;
+    agent: string;
     pricing: string;
     signIn: string;
     startTrial: string;
@@ -221,13 +210,9 @@ export interface Dict {
     menu: string;
     close: string;
     breadcrumb: string;
-    allFeatures: string;
     allChannels: string;
-    /** The AI clients group in the Resources menu and the phone sheet. */
+    /** The AI tools column of the footer. */
     aiClients: string;
-    /** The featured card in the Features menu. */
-    spotlight: { title: string; body: string };
-    resourceLinks: { href: string; label: string; body: string; icon: IconName; external?: boolean }[];
   };
   /** Feed chrome and status chips of the hero showcase cards. */
   showcase: {
@@ -259,9 +244,6 @@ export interface Dict {
   };
   product: Head & { calloutA: string; calloutB: string };
   netstrip: { title: string; all: string };
-  tour: Head & {
-    rows: { href: string; kicker: string; icon: IconName; title: string; body: string; points: string[]; shot: ShotId; link: string }[];
-  };
   arabic: Head & { bullets: string[] };
   agentTeaser: Head & { link: string; eyebrow: string };
   allFeatures: Head & { more: string };
@@ -273,17 +255,22 @@ export interface Dict {
   featuresIndex: Head & { agentNav: FeatureNav };
   featurePage: {
     start: string;
-    tour: string;
-    howTitle: string;
-    relatedTitle: string;
     faqTitle: string;
+    /** The AI agent's section on /features links to its own page. */
+    agentLink: string;
   };
   features: Record<FeatureSlug, FeatureCopy>;
   agentPage: Head & {
     eyebrow: string;
     hero: ChatDemo;
     /** The "Works with" grid; the clients come from lib/aiClients.ts. */
-    works: Head & { note: string };
+    works: Head & {
+      note: string;
+      /** Clients without a page, named as text (lib/aiClients.ts MORE_AI_CLIENTS). */
+      also: string;
+      alsoNote: string;
+      alsoLink: string;
+    };
     /** Connect and ask: the address to copy, a first question, four short steps, then a
         card per client. "{api}" in code is replaced with the API address. */
     connect: Head & {
@@ -305,7 +292,6 @@ export interface Dict {
       guide: string;
       keyNote: string;
     };
-    examples: Head & { items: ChatDemo[] };
     can: Head & { items: { icon: IconName; title: string; body: string }[] };
     cannot: string;
     inApp: Head & { points: string[] };
@@ -322,7 +308,6 @@ export interface Dict {
     periodLabel: string;
     monthly: string;
     yearly: string;
-    currencyLabel: string;
     currencies: { EGP: string; SAR: string; USD: string };
     save: string;
     placeholder: string;
@@ -357,7 +342,6 @@ export interface Dict {
   footer: {
     tagline: string;
     channelsTitle: string;
-    toolsTitle: string;
     columns: { title: string; links: { href: string; label: string; external?: boolean }[] }[];
     copyright: string;
   };

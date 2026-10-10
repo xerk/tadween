@@ -11,7 +11,7 @@ export const channelsEn: ChannelsDict = {
   },
   index: {
     title: 'One calendar, every channel',
-    sub: 'LinkedIn comes first, and the rest are a click away. Each page lists what you can schedule there and the limits Tadween checks before it publishes.',
+    sub: 'LinkedIn comes first, and the rest are a click away. The main networks have a page each, with what you can schedule there and the limits Tadween checks before it publishes.',
     groups: {
       professional: 'LinkedIn',
       social: 'Social',
@@ -21,7 +21,7 @@ export const channelsEn: ChannelsDict = {
     },
     more: {
       title: 'Also supported',
-      sub: 'Tadween publishes to these too. Their pages are coming.',
+      sub: 'Tadween publishes to these too.',
     },
   },
   page: {
@@ -149,24 +149,6 @@ export const channelsEn: ChannelsDict = {
       ],
       sample: 'We’re hiring in Cairo. Two product designers, Arabic and English. Apply by the end of the month.',
     },
-    threads: {
-      title: 'Threads post scheduler | Tadween',
-      description:
-        'Schedule Threads posts and multi-post threads, 500 characters each, next to your LinkedIn and Instagram content, with an auto follow-up when a post takes off.',
-      h1: 'Schedule posts on Threads',
-      intro: 'Short, frequent and conversational. Draft a post or a chain of them and keep Threads on the same calendar as everything else.',
-      formats: ['Text posts', 'Multi-post threads', 'Pictures or video', 'An automatic follow-up post once a post passes the likes you set'],
-      media: 'Pictures and video can be attached. Text-only posts work too.',
-      features: [
-        { title: 'Threads in order', body: 'Add the next post below and Tadween publishes the chain in sequence.' },
-        { title: 'Counted correctly', body: 'Each post is checked against the 500-character limit before it is scheduled.' },
-        { title: 'From LinkedIn to Threads', body: 'Turn a LinkedIn post into a short thread without leaving the editor.' },
-      ],
-      faq: [
-        { title: 'Do I need an Instagram account?', content: 'Threads accounts are tied to Instagram. Connect the Threads profile and Tadween posts to it directly.' },
-      ],
-      sample: 'Three things that made our hiring work. 1/3',
-    },
     tiktok: {
       title: 'TikTok video and photo scheduler | Tadween',
       description:
@@ -186,233 +168,21 @@ export const channelsEn: ChannelsDict = {
       ],
       sample: 'A day at Studio Nile, hiring week edition.',
     },
-    youtube: {
-      title: 'YouTube video upload scheduler | Tadween',
-      description:
-        'Schedule YouTube uploads with a title, a description up to 5,000 characters, tags, a custom thumbnail, visibility and the made-for-kids setting.',
-      h1: 'Schedule YouTube videos',
-      intro: 'Upload the video, fill in what YouTube needs, and set the time. Tadween publishes it and keeps it on the calendar with the rest of your week.',
-      formats: ['One video per post', 'Title and description', 'Tags and a custom thumbnail', 'Public, unlisted or private', 'Made for kids, yes or no'],
-      media: 'Every YouTube post needs exactly one video.',
-      limitNote: 'The description can be up to 5,000 characters, and the title up to 100.',
-      features: [
-        { title: 'Everything in one form', body: 'Title, tags, thumbnail and audience settings sit beside the description.' },
-        { title: 'Shorts and long videos', body: 'Upload either. Tadween sends it to YouTube with the settings you chose.' },
-        { title: 'Announce it everywhere', body: 'Schedule the LinkedIn and X posts that point to the video for the same hour.' },
-      ],
-      faq: [
-        { title: 'Can I set a custom thumbnail?', content: 'Yes. Add a thumbnail image in the YouTube settings of the post.' },
-      ],
-      sample: 'How we hired 10 engineers in 90 days',
-    },
-    pinterest: {
-      title: 'Pinterest pin scheduler | Tadween',
-      description:
-        'Schedule Pinterest pins to any board with a title, a destination link and up to five pictures, or a video with its cover. 500-character descriptions.',
-      h1: 'Schedule pins on Pinterest',
-      intro: 'Pick the board, add the link and schedule. Pins sit on the same calendar as your social posts.',
-      formats: ['Image pins and multi-image pins', 'Video pins with a cover image', 'Board, title and destination link', 'Dominant colour'],
-      media: 'A pin needs at least one picture. Up to five pictures, or one video plus a cover picture.',
-      features: [
-        { title: 'Boards from your account', body: 'Tadween lists your boards, so you pick one instead of typing it.' },
-        { title: 'Traffic back to you', body: 'Every pin can carry a destination link to your site or article.' },
-        { title: 'Reuse what you made', body: 'Pin the images you already used on Instagram or your blog.' },
-      ],
-      faq: [
-        { title: 'Can I pin a video?', content: 'Yes. Attach the video and a cover picture. Pinterest needs both.' },
-      ],
-      sample: 'Studio Nile office tour: light, plants and long tables.',
-    },
-    bluesky: {
-      title: 'Bluesky post scheduler | Tadween',
-      description:
-        'Schedule Bluesky posts and threads, 300 characters each, with up to four pictures or one video, plus auto-repost and follow-ups when a post gets traction.',
-      h1: 'Schedule posts and threads on Bluesky',
-      intro: 'Short posts, threads and pictures, on the same calendar as X and LinkedIn.',
-      formats: ['Posts and threads', 'Up to four pictures or one video', 'Auto-repost or an auto follow-up once a post passes the likes you set'],
-      media: 'Up to four pictures or one video per post. Text-only posts work too.',
-      features: [
-        { title: 'Threads in order', body: 'Write the chain once and Tadween posts it in sequence.' },
-        { title: 'Tight limit, checked', body: 'Each post is counted against Bluesky’s 300 characters before it can be scheduled.' },
-        { title: 'Connect with an app password', body: 'Sign in with your handle and a password. Use an app password so your main one stays with you.' },
-      ],
-      faq: [
-        { title: 'How do I connect Bluesky?', content: 'Enter your server (bsky.social for most people), your handle and a password. We recommend an app password created in Bluesky’s settings.' },
-      ],
-      sample: 'Hiring in Cairo: what worked, in three posts.',
-    },
-    mastodon: {
-      title: 'Mastodon post scheduler | Tadween',
-      description: 'Schedule Mastodon posts and threads of up to 500 characters, with pictures, on the same calendar as your other channels.',
-      h1: 'Schedule posts on Mastodon',
-      intro: 'Post to the fediverse on a schedule, with threads and pictures, without opening another app.',
-      formats: ['Posts and threads', 'Pictures and video', 'Follow-up replies'],
-      media: 'Pictures and video can be attached. Text-only posts work too.',
-      features: [
-        { title: 'Threads in order', body: 'Chain posts as replies and Tadween publishes them in sequence.' },
-        { title: 'Checked before it goes', body: 'Posts are counted against 500 characters while you write.' },
-        { title: 'Cross-post with care', body: 'Adjust the wording for Mastodon while the rest of the post stays the same.' },
-      ],
-      faq: [
-        { title: 'Which server can I use?', content: 'Tadween connects to the Mastodon server configured for your workspace. Ask your admin if you use a different instance.' },
-      ],
-      sample: 'Hiring notes from Cairo, a short thread.',
-    },
-    reddit: {
-      title: 'Reddit post scheduler | Tadween',
-      description:
-        'Schedule Reddit posts to any subreddit: text, link or media posts with a title and flair, up to 10,000 characters, plus follow-up comments.',
-      h1: 'Schedule posts on Reddit',
-      intro: 'Pick the subreddit, the post type and the flair, and schedule it with the rest of your launch.',
-      formats: ['Text posts', 'Link posts', 'Image and video posts', 'Title and flair, when the subreddit needs one', 'Follow-up comments'],
-      media: 'Media posts take pictures or video. Link posts take a URL.',
-      features: [
-        { title: 'Subreddit search', body: 'Find the subreddit from the editor and see whether it needs a flair.' },
-        { title: 'Long posts fit', body: 'Up to 10,000 characters, enough for a write-up or an AMA intro.' },
-        { title: 'One launch, every channel', body: 'Schedule the Reddit post with the LinkedIn and X posts for the same day.' },
-      ],
-      faq: [
-        { title: 'Can I post to several subreddits?', content: 'Yes. Add the post once per subreddit and schedule them a little apart, as Reddit asks.' },
-      ],
-      sample: 'How we hired 10 engineers in Cairo in 90 days (what worked and what didn’t)',
-    },
-    telegram: {
-      title: 'Telegram channel post scheduler | Tadween',
-      description: 'Schedule posts to Telegram channels and groups with formatting, pictures and video, up to 4,096 characters per message.',
-      h1: 'Schedule posts to Telegram',
-      intro: 'Add the Tadween bot to your channel or group and schedule formatted messages with media, on the same calendar as your social posts.',
-      formats: ['Formatted messages (bold, italic, links)', 'Pictures and video', 'Follow-up messages'],
-      media: 'Pictures and video can be attached. Text-only messages work too.',
-      features: [
-        { title: 'Channels and groups', body: 'Post wherever the bot has been added.' },
-        { title: 'Formatting kept', body: 'Bold, italic and links are sent as Telegram formatting.' },
-        { title: 'Arabic first', body: 'Right-to-left text reads right, which matters for channels in Egypt and the Gulf.' },
-      ],
-      faq: [
-        { title: 'How do I connect Telegram?', content: 'Add the bot shown in Tadween to your channel or group as an admin, then follow the steps in the connect dialog.' },
-      ],
-      sample: 'Studio Nile is hiring. Two product designers in Cairo. Apply this month.',
-    },
-    discord: {
-      title: 'Discord announcement scheduler | Tadween',
-      description: 'Schedule Discord messages and announcements to any channel in your server, with Markdown, pictures and follow-ups, up to 1,980 characters.',
-      h1: 'Schedule announcements on Discord',
-      intro: 'Pick the channel and schedule announcements for your community, next to your public posts.',
-      formats: ['Messages in any channel', 'Markdown formatting', 'Pictures and video', 'Follow-up messages'],
-      media: 'Pictures and video can be attached. Text-only messages work too.',
-      features: [
-        { title: 'Pick the channel', body: 'Tadween lists your server’s channels so you choose one per post.' },
-        { title: 'Markdown editor', body: 'Write with headings, bold and lists the way Discord shows them.' },
-        { title: 'Launches in sync', body: 'Announce to the community at the same minute as the public post.' },
-      ],
-      faq: [
-        { title: 'Can I post to more than one channel?', content: 'Each post goes to one channel. Duplicate it for another channel in a click.' },
-      ],
-      sample: '**We’re hiring.** Two product designers in Cairo. Details in #jobs.',
-    },
-    slack: {
-      title: 'Slack message scheduler | Tadween',
-      description: 'Schedule messages to Slack channels with pictures and follow-ups, on the same calendar as your social posts. Useful for internal launches.',
-      h1: 'Schedule messages to Slack',
-      intro: 'Tell the team, then tell the world. Schedule the Slack message and the public posts together.',
-      formats: ['Messages in any channel the app can post to', 'Pictures', 'Follow-up messages in the thread'],
-      media: 'Pictures can be attached. Text-only messages work too.',
-      limitNote: 'Slack itself may shorten very long messages, so keep announcements to a few paragraphs.',
-      features: [
-        { title: 'Internal first', body: 'Give the team a heads-up minutes before the public post goes out.' },
-        { title: 'Channel picker', body: 'Choose the channel from a list instead of copying IDs.' },
-        { title: 'Plenty of room', body: 'Long updates, release notes and digests all fit.' },
-      ],
-      faq: [
-        { title: 'Can I post to private channels?', content: 'Yes, once the Tadween app has been added to that channel in Slack.' },
-      ],
-      sample: 'Heads-up: the hiring post goes live on LinkedIn at 08:45. Please share it.',
-    },
-    'google-business': {
-      title: 'Google Business Profile post scheduler | Tadween',
-      description: 'Schedule Google Business Profile updates, events and offers with a picture and a call-to-action button, up to 1,500 characters.',
-      h1: 'Schedule Google Business Profile posts',
-      intro: 'Keep your profile on Google Search and Maps fresh with updates, events and offers, planned with the rest of your content.',
-      formats: ['Updates', 'Events, with dates and times', 'Offers, with a coupon code, link and terms', 'Call-to-action buttons such as Book, Order, Learn more or Call'],
-      media: 'A post can have text and, optionally, one picture.',
-      features: [
-        { title: 'Events and offers', body: 'Fill in the dates, coupon and terms, and Google shows them on your profile.' },
-        { title: 'One button, one action', body: 'Add a call to action that points people where you want them.' },
-        { title: 'Every location', body: 'Pick the location to post to when you connect.' },
-      ],
-      faq: [
-        { title: 'Can I add a video?', content: 'No. Google Business Profile posts take text and, optionally, one picture.' },
-      ],
-      sample: 'Open day at Studio Nile this Thursday, 4–7 pm. Come meet the team.',
-    },
-    medium: {
-      title: 'Medium article scheduler | Tadween',
-      description: 'Schedule Medium articles in Markdown with a title, subtitle, tags, a canonical URL and an optional publication.',
-      h1: 'Schedule articles on Medium',
-      intro: 'Write the article in Markdown, set the canonical link, and publish it on Medium at the time you choose.',
-      formats: ['Articles in Markdown', 'Title and subtitle', 'Tags', 'Canonical URL', 'Publishing to one of your publications'],
-      media: 'Pictures go inside the article.',
-      features: [
-        { title: 'Canonical links', body: 'Point Medium to the original on your site, so search engines credit you.' },
-        { title: 'Publications', body: 'Publish to your profile or to a publication you write for.' },
-        { title: 'Announce it the same hour', body: 'Schedule the LinkedIn post that shares the article right after it goes live.' },
-      ],
-      faq: [
-        { title: 'Can I republish a blog post?', content: 'Yes. Paste it in and set the canonical URL to the original.' },
-      ],
-      sample: 'How we hired 10 engineers in Cairo in 90 days',
-    },
-    devto: {
-      title: 'Dev.to article scheduler | Tadween',
-      description: 'Schedule Dev.to articles in Markdown with a title, cover image, tags, a canonical URL and an optional organization.',
-      h1: 'Schedule articles on Dev.to',
-      intro: 'Write for developers in Markdown and schedule the article with its cover and tags.',
-      formats: ['Articles in Markdown', 'Title and cover image', 'Tags', 'Canonical URL', 'Publishing under an organization'],
-      media: 'Pictures go inside the article, and the cover is set separately.',
-      features: [
-        { title: 'Tags from Dev.to', body: 'Pick tags from Dev.to’s own list.' },
-        { title: 'Organizations', body: 'Publish under your company’s organization page.' },
-        { title: 'Cross-post safely', body: 'Set the canonical URL when the article first lives on your blog.' },
-      ],
-      faq: [
-        { title: 'Is the cover image required?', content: 'No. It’s optional, and Dev.to shows it at the top of the article when you add one.' },
-      ],
-      sample: 'Hiring engineers in Cairo: our 90-day playbook',
-    },
-    hashnode: {
-      title: 'Hashnode article scheduler | Tadween',
-      description: 'Schedule Hashnode articles in Markdown with a title, subtitle, cover, tags, canonical URL and publication.',
-      h1: 'Schedule articles on Hashnode',
-      intro: 'Plan your engineering blog on Hashnode next to the posts that promote it.',
-      formats: ['Articles in Markdown', 'Title, subtitle and cover', 'Tags', 'Canonical URL', 'Publication'],
-      media: 'Pictures go inside the article, and the cover is set separately.',
-      features: [
-        { title: 'Your publication', body: 'Pick which Hashnode publication the article goes to.' },
-        { title: 'Tags that exist', body: 'Choose from Hashnode’s tags so the article is found.' },
-        { title: 'Promote it the same day', body: 'Schedule LinkedIn and X posts that link to it.' },
-      ],
-      faq: [
-        { title: 'How long can an article be?', content: 'Tadween accepts up to 10,000 characters for a Hashnode article.' },
-      ],
-      sample: 'Hiring engineers in Cairo: our 90-day playbook',
-    },
-    wordpress: {
-      title: 'WordPress post scheduler | Tadween',
-      description: 'Schedule WordPress posts on your own site with a featured image, categories, tags and status (published, draft, pending or private).',
-      h1: 'Schedule posts on your WordPress site',
-      intro: 'Connect your own WordPress site with an application password and schedule articles alongside your social posts.',
-      formats: ['Posts with rich text', 'Featured image', 'Categories and tags from your site', 'Status: published, draft, pending review or private'],
-      media: 'Pictures go inside the article from your media library. The featured image is set separately.',
-      features: [
-        { title: 'Your site, your server', body: 'Tadween talks to your WordPress REST API with an application password.' },
-        { title: 'Categories and tags', body: 'Pick them from your site’s own lists.' },
-        { title: 'Blog plus social', body: 'Publish the article, then the LinkedIn post that shares it.' },
-      ],
-      faq: [
-        { title: 'Does it work with self-hosted WordPress?', content: 'Yes. Any WordPress site with the REST API on and an application password for your user.' },
-        { title: 'Can I send it as a draft?', content: 'Yes. Set the status to draft or pending and finish it in WordPress.' },
-      ],
-      sample: 'How we hired 10 engineers in Cairo in 90 days',
-    },
+  },
+  others: {
+    threads: { note: 'Schedule posts on Threads' },
+    youtube: { note: 'Schedule YouTube videos' },
+    pinterest: { note: 'Schedule pins on Pinterest' },
+    bluesky: { note: 'Schedule posts and threads on Bluesky' },
+    mastodon: { note: 'Schedule posts on Mastodon' },
+    reddit: { note: 'Schedule posts on Reddit' },
+    telegram: { note: 'Schedule posts to Telegram' },
+    discord: { note: 'Schedule announcements on Discord' },
+    slack: { note: 'Schedule messages to Slack' },
+    'google-business': { note: 'Schedule Google Business Profile posts' },
+    medium: { note: 'Schedule articles on Medium' },
+    devto: { note: 'Schedule articles on Dev.to' },
+    hashnode: { note: 'Schedule articles on Hashnode' },
+    wordpress: { note: 'Schedule posts on your WordPress site' },
   },
 };

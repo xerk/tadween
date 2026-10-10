@@ -1,24 +1,26 @@
 import type { IconName } from '@/components/icons';
 import { FEATURE_SLUGS, PATHS, featurePath, type FeatureSlug } from './routes';
+import type { ShotId } from './shots';
 
-// The facts about each tool page that don't change with the language: its icon and the
-// pages it links to under "Related". The words are in content/features.<lang>.ts.
+// The facts about each tool that don't change with the language: its icon, and the one
+// screenshot its section on /features shows (the smaller tools have none, only the icon).
+// The words are in content/features.<lang>.ts.
 
-/** A tool page, or the AI agent page, as the menus and related lists name it. */
+/** A tool, or the AI agent, as the cards name it. */
 export type FeatureRef = FeatureSlug | 'agent';
 
-export const FEATURES: Record<FeatureSlug, { icon: IconName; related: FeatureRef[] }> = {
-  calendar: { icon: 'calendar-days', related: ['board', 'composer', 'agent'] },
-  board: { icon: 'square-kanban', related: ['calendar', 'collaboration', 'composer'] },
-  composer: { icon: 'pencil', related: ['media-library', 'signatures-sets', 'calendar'] },
-  'media-library': { icon: 'folder-open', related: ['composer', 'agent', 'collaboration'] },
-  analytics: { icon: 'chart-column', related: ['calendar', 'board', 'agent'] },
-  collaboration: { icon: 'users', related: ['board', 'composer', 'calendar'] },
-  'auto-post': { icon: 'rss', related: ['calendar', 'agent', 'signatures-sets'] },
-  'signatures-sets': { icon: 'signature', related: ['composer', 'auto-post', 'collaboration'] },
+export const FEATURES: Record<FeatureSlug, { icon: IconName; shot?: ShotId }> = {
+  calendar: { icon: 'calendar-days', shot: 'calendar-month' },
+  board: { icon: 'square-kanban', shot: 'board' },
+  composer: { icon: 'pencil', shot: 'composer' },
+  'media-library': { icon: 'folder-open' },
+  analytics: { icon: 'chart-column', shot: 'analytics' },
+  collaboration: { icon: 'users' },
+  'auto-post': { icon: 'rss' },
+  'signatures-sets': { icon: 'signature' },
 };
 
-/** Every page the Features menu lists, in order: the tools, then the agent. */
+/** Every card the home page lists, in order: the tools, then the agent. */
 export const FEATURE_MENU: FeatureRef[] = [...FEATURE_SLUGS.slice(0, 3), 'agent', ...FEATURE_SLUGS.slice(3)];
 
 export const featureRefPath = (ref: FeatureRef) => (ref === 'agent' ? PATHS.agent : featurePath(ref));

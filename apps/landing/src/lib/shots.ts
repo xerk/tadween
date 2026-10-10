@@ -3,7 +3,7 @@
 // <id>-<en|ar>-<light|dark>.webp, captured at 2x and sized to the width below. Alt text is
 // per language, in content/en.ts and content/ar.ts (`shots`).
 
-export type ShotFrame = 'browser' | 'bare' | 'phone';
+export type ShotFrame = 'browser' | 'bare';
 
 export interface ShotSpec {
   /** Intrinsic size of the files, for width/height (no layout shift). */
@@ -15,31 +15,13 @@ export interface ShotSpec {
 }
 
 export const SHOTS = {
-  today: { w: 2400, h: 1500, frame: 'browser', path: '/today' },
   'calendar-week': { w: 2400, h: 1500, frame: 'browser', path: '/launches' },
   'calendar-month': { w: 2400, h: 1500, frame: 'browser', path: '/launches?display=month' },
   'calendar-preview': { w: 680, h: 568, frame: 'bare' },
-  'preview-failed': { w: 680, h: 440, frame: 'bare' },
-  'calendar-phone': { w: 780, h: 1688, frame: 'phone' },
   board: { w: 2400, h: 1500, frame: 'browser', path: '/launches?display=list' },
-  'board-channel': { w: 2400, h: 1500, frame: 'browser', path: '/launches?display=list' },
   composer: { w: 2400, h: 1500, frame: 'browser', path: '/launches' },
   'composer-arabic': { w: 2400, h: 1500, frame: 'browser', path: '/launches' },
-  'composer-phone': { w: 780, h: 1688, frame: 'phone' },
-  'post-page': { w: 2400, h: 1500, frame: 'browser', path: '/p/…' },
-  media: { w: 2400, h: 1500, frame: 'browser', path: '/media' },
-  'media-details': { w: 2400, h: 1500, frame: 'browser', path: '/media' },
-  'media-upload': { w: 2400, h: 1500, frame: 'browser', path: '/media' },
-  notifications: { w: 840, h: 1240, frame: 'bare' },
   analytics: { w: 2400, h: 1500, frame: 'browser', path: '/analytics' },
-  'analytics-channel': { w: 2400, h: 1500, frame: 'browser', path: '/analytics' },
-  agent: { w: 2400, h: 1500, frame: 'browser', path: '/agents' },
-  signatures: { w: 2400, h: 1500, frame: 'browser', path: '/settings?tab=signatures' },
-  sets: { w: 2400, h: 1500, frame: 'browser', path: '/settings?tab=sets' },
-  autopost: { w: 2400, h: 1500, frame: 'browser', path: '/settings?tab=autopost' },
-  plugs: { w: 2400, h: 1500, frame: 'browser', path: '/plugs' },
-  webhooks: { w: 2400, h: 1500, frame: 'browser', path: '/settings?tab=webhooks' },
-  team: { w: 2400, h: 1500, frame: 'browser', path: '/settings?tab=teams' },
 } as const satisfies Record<string, ShotSpec>;
 
 export type ShotId = keyof typeof SHOTS;

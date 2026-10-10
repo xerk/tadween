@@ -4,7 +4,6 @@ import { ImageResponse } from 'next/og';
 import { en } from '@/content/en';
 import { AI_CLIENTS, clientBySlug } from '@/lib/aiClients';
 import { CHANNELS, channelBySlug } from '@/lib/channels';
-import { FEATURE_SLUGS } from '@/lib/routes';
 
 // Open Graph cards, one per page, drawn at build time (1200×630 PNG at /og/<card>.png).
 // The text is English for both languages: the image renderer can't shape Arabic script,
@@ -18,7 +17,6 @@ const PAGES: Record<string, { eyebrow: string; title: string }> = {
   pricing: { eyebrow: 'Pricing', title: 'Four plans for people, brands and agencies. Seven days free.' },
   features: { eyebrow: 'Features', title: en.featuresIndex.title },
   'ai-agent': { eyebrow: 'AI agent', title: en.agentPage.title },
-  ...Object.fromEntries(FEATURE_SLUGS.map((s) => [`feature-${s}`, { eyebrow: en.features[s].nav.label, title: en.features[s].h1 }])),
   channels: { eyebrow: 'Channels', title: en.channels.index.title },
 };
 

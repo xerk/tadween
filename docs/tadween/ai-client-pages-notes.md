@@ -1,5 +1,7 @@
 # AI client pages: study notes and client decisions
 
+Update (landing trim): only ChatGPT, Claude and Cursor keep a page. The other clients below are named on `/ai-agent` under "Also works with" (`MORE_AI_CLIENTS` in `apps/landing/src/lib/aiClients.ts`), and their old URLs redirect (308) to `/ai-agent#clients` (`apps/landing/src/lib/redirects.ts`). Their doc checks stay here for when a page comes back.
+
 Study date: 2026-10-10. Patterns and information architecture only. No copy, images, illustrations, logos or brand assets from Postiz or any vendor are reused.
 
 Method: Firecrawl scrape (markdown and raw HTML for head tags and JSON-LD) of the Postiz pages below, and of each vendor's current documentation. The vendor docs that back a step are linked from that client's page.

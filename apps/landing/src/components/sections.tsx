@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import type { ChatDemo, Dict, Faq } from '@/content/types';
 import { AI_CLIENTS } from '@/lib/aiClients';
-import { channelBySlug } from '@/lib/channels';
+import { CHANNELS, channelBySlug, networkBySlug } from '@/lib/channels';
 import { LICENSE_URL, SIGN_IN_URL, SIGN_UP_URL, SOURCE_URL } from '@/lib/config';
 import { FEATURE_MENU, featureRefIcon, featureRefPath, type FeatureRef } from '@/lib/features';
-import { FEATURE_SLUGS, PATHS, channelPath, clientPath, featurePath, localePath } from '@/lib/routes';
+import { PATHS, channelPath, clientPath, localePath } from '@/lib/routes';
 import type { ShotId } from '@/lib/shots';
 import { Accordion } from './Accordion';
 import { Icon, cx } from './Icon';
@@ -107,7 +107,7 @@ export function Hero({ t }: { t: Dict }) {
           <p className="pz-hero-nets" data-hero-in>
             <span aria-hidden="true">
               {HERO_NETS.map((slug) => (
-                <img key={slug} src={channelBySlug(slug)!.icon} width={24} height={24} alt="" />
+                <img key={slug} src={networkBySlug(slug)!.icon} width={24} height={24} alt="" />
               ))}
             </span>
             {t.hero.nets}
@@ -158,7 +158,12 @@ export function ProductShot({ t }: { t: Dict }) {
   );
 }
 
-/** A row of network names and icons, linking to the channel pages. */
+/** A network's name as this language writes it (لينكدإن in Arabic, LinkedIn in English), for
+    networks with or without a page. */
+export const networkName = (t: Dict, slug: string) => t.channels.items[slug]?.name ?? t.channels.others[slug]?.name ?? networkBySlug(slug)!.name;
+
+/** A row of network names and icons, linking to each channel page, or to the network on the
+    channels overview when it has no page. */
 export function NetStrip({ t }: { t: Dict }) {
   const nets = ['linkedin', 'linkedin-page', 'x', 'instagram', 'facebook', 'threads', 'tiktok', 'youtube', 'pinterest', 'bluesky'];
   return (
@@ -167,12 +172,12 @@ export function NetStrip({ t }: { t: Dict }) {
         <p id="nets-title">{t.netstrip.title}</p>
         <ul>
           {nets.map((slug) => {
-            const c = channelBySlug(slug)!;
+            const href = channelBySlug(slug) ? channelPath(slug) : `${PATHS.channels}#${slug}`;
             return (
               <li key={slug}>
-                <a href={localePath(t.lang, channelPath(slug))}>
-                  <img src={c.icon} width={24} height={24} alt="" loading="lazy" />
-                  {t.channels.items[slug].name ?? c.name}
+                <a href={localePath(t.lang, href)}>
+                  <img src={networkBySlug(slug)!.icon} width={24} height={24} alt="" loading="lazy" />
+                  {networkName(t, slug)}
                 </a>
               </li>
             );
@@ -190,8 +195,7 @@ export function NetStrip({ t }: { t: Dict }) {
 }
 
 /** Copy beside a screenshot; `flip` puts the screenshot first (on the reading start). */
-export function FeatureRow({ t, id, kicker, icon, title, body, points, shot, link, href, flip, headingLevel = 3 }: { t: Dict; id?: string; kicker?: string; icon?: IconName; title: string; body: string; points?: string[]; shot: ShotId; link?: string; href?: string; flip?: boolean; headingLevel?: 2 | 3 }) {
-  const H = headingLevel === 2 ? 'h2' : 'h3';
+export function FeatureRow({ t, id, kicker, icon, title, body, points, shot, flip }: { t: Dict; id?: string; kicker?: string; icon?: IconName; title: string; body: string; points?: string[]; shot: ShotId; flip?: boolean }) {
   return (
     <div className={cx('pz-row', flip && 'is-flip')} id={id}>
       <div className="pz-row-copy" data-reveal>
@@ -201,36 +205,14 @@ export function FeatureRow({ t, id, kicker, icon, title, body, points, shot, lin
             {kicker}
           </span>
         ) : null}
-        <H className="t-h3">{title}</H>
+        <h2 className="t-h3">{title}</h2>
         <p className="t-body">{body}</p>
         {points?.length ? <CheckList items={points} /> : null}
-        {link && href ? (
-          <a className="pz-more-link" href={href}>
-            {link}
-            <Icon name="arrow-right" className="pz-flip-rtl" />
-          </a>
-        ) : null}
       </div>
       <div className="pz-row-media pz-zoomable" data-reveal data-parallax>
         <Shot t={t} id={shot} />
       </div>
     </div>
-  );
-}
-
-/** The home tour: four tools, each with a real screenshot. */
-export function Tour({ t }: { t: Dict }) {
-  return (
-    <section className="pz-sec" id="features" aria-labelledby="tour-title">
-      <div className="pz-container">
-        <SectionHead id="tour-title" title={t.tour.title} sub={t.tour.sub} />
-        <div className="pz-rows">
-          {t.tour.rows.map((r, i) => (
-            <FeatureRow key={r.href} t={t} {...r} flip={i % 2 === 1} />
-          ))}
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -262,13 +244,13 @@ export function ArabicSection({ t }: { t: Dict }) {
     the reply and a card of the posts it scheduled. Built from the app's chat; the calls
     play when the card scrolls in (CSS, keyed on .is-in from the motion engine). `frame` draws
     it inside another AI client instead: its name as text and a neutral glyph (never its
-    logo), a terminal for command-line clients, and the Tadween tool calls it makes. */
-export function AgentChat({ t, demo, compact, frame }: { t: Dict; demo: ChatDemo; compact?: boolean; frame?: { title: string; online: string; icon: IconName; input: string; terminal?: boolean } }) {
+    logo), and the Tadween tool calls it makes. */
+export function AgentChat({ t, demo, compact, frame }: { t: Dict; demo: ChatDemo; compact?: boolean; frame?: { title: string; online: string; icon: IconName; input: string } }) {
   const c = frame ?? { ...t.agentPage.chat, icon: 'bot' as IconName };
   const steps = demo.tools.length;
   const delay = (i: number) => ({ ['--d' as string]: `${250 + i * 500}ms` });
   return (
-    <div className={cx('pz-chat', frame && 'is-client', frame?.terminal && 'is-terminal')} data-art dir={demo.lang === 'ar' ? 'rtl' : 'ltr'} lang={demo.lang}>
+    <div className={cx('pz-chat', frame && 'is-client')} data-art dir={demo.lang === 'ar' ? 'rtl' : 'ltr'} lang={demo.lang}>
       {compact ? null : (
         <div className="pz-chat-top">
           <span className={cx('pz-tile-ic', !frame && 'is-smart')}>
@@ -296,7 +278,7 @@ export function AgentChat({ t, demo, compact, frame }: { t: Dict; demo: ChatDemo
       <div className="pz-chat-posts" data-step style={delay(steps + 1)}>
         {demo.posts.map((p, i) => (
           <div key={i} className="pz-chat-post">
-            <img src={channelBySlug(p.net)!.icon} width={22} height={22} alt="" />
+            <img src={networkBySlug(p.net)!.icon} width={22} height={22} alt="" />
             <span>
               <strong>{p.name}</strong>
               <span dir="auto">{p.text}</span>
@@ -343,15 +325,11 @@ export function AgentTeaser({ t }: { t: Dict }) {
   );
 }
 
-/** A card linking to a tool page, with a screenshot of it. */
+/** A card linking to a tool's section on /features, or to the AI agent's page. */
 export function FeatureCard({ t, refId }: { t: Dict; refId: FeatureRef }) {
   const nav = refId === 'agent' ? t.featuresIndex.agentNav : t.features[refId].nav;
-  const shot: ShotId = refId === 'agent' ? 'agent' : t.features[refId].hero;
   return (
     <a className="pz-card" href={localePath(t.lang, featureRefPath(refId))}>
-      <span className="pz-card-media" aria-hidden="true">
-        <Shot t={t} id={shot} frame="bare" />
-      </span>
       <span className="pz-card-body">
         <strong>
           <Icon name={featureRefIcon(refId)} size={18} />
@@ -494,14 +472,11 @@ export function CTA({ t, title, body }: { t: Dict; title?: string; body?: string
   );
 }
 
-const FOOTER_CHANNELS = ['linkedin', 'linkedin-page', 'x', 'instagram', 'facebook', 'tiktok', 'youtube'];
-
 export function Footer({ t }: { t: Dict }) {
   const lp = (path: string) => localePath(t.lang, path);
-  const tools = { title: t.footer.toolsTitle, links: [...FEATURE_SLUGS.map((s) => ({ href: lp(featurePath(s)), label: t.features[s].nav.label })), { href: lp(PATHS.agent), label: t.featuresIndex.agentNav.label }] };
-  const channels = { title: t.footer.channelsTitle, links: FOOTER_CHANNELS.map((slug) => ({ href: lp(channelPath(slug)), label: t.channels.items[slug].name ?? channelBySlug(slug)!.name })) };
+  const channels = { title: t.footer.channelsTitle, links: CHANNELS.map((c) => ({ href: lp(channelPath(c.slug)), label: networkName(t, c.slug) })) };
   const aiTools = { title: t.nav.aiClients, links: AI_CLIENTS.map((c) => ({ href: lp(clientPath(c.slug)), label: c.name })) };
-  const columns = [t.footer.columns[0], tools, channels, aiTools, ...t.footer.columns.slice(1)];
+  const columns = [t.footer.columns[0], channels, aiTools, ...t.footer.columns.slice(1)];
   return (
     <footer className="pz-foot">
       <div className="pz-container is-wide">

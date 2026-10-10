@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import type { Dict } from '@/content/types';
 import { SIGN_UP_URL } from '@/lib/config';
 import { TIER_LIMITS, type PlanView } from '@/lib/plans';
-import { detectCurrency, rememberCurrency, type Currency } from '@/lib/currency';
+import { detectCurrency, type Currency } from '@/lib/currency';
 import type { CompareRow } from '@/content/types';
 import { Accordion } from './Accordion';
 import { Icon, cx } from './Icon';
@@ -26,8 +26,8 @@ function Segmented<T extends string>({ label, value, options, onChange }: { labe
 }
 
 /** PricingTable from the design system: tiers with a Most popular flag, monthly or
-    yearly, EGP / SAR / USD (picked from the visitor's location, switchable), the compare
-    table and the FAQ. Every price is a placeholder. */
+    yearly, in one currency (EGP, SAR or USD, from the visitor's location, with no switch),
+    the compare table and the FAQ. Every price is a placeholder. */
 export function PricingTable({
   p,
   lang,
@@ -48,15 +48,12 @@ export function PricingTable({
   compareHref?: string;
 }) {
   const [period, setPeriod] = useState<Period>('monthly');
-  // The static page renders a guess from the language; the browser then picks the visitor's
-  // currency (their earlier choice, else their time zone / locale region).
-  const fallback: Currency = lang === 'ar' ? 'EGP' : 'USD';
-  const [currency, setCurrencyState] = useState<Currency>(fallback);
-  useEffect(() => setCurrencyState(detectCurrency(fallback)), [fallback]);
-  const setCurrency = (c: Currency) => {
-    setCurrencyState(c);
-    rememberCurrency(c);
-  };
+  // The static page can't know the visitor's currency, so the amounts stay hidden (in place,
+  // so nothing moves) until the browser has picked it from the time zone or locale region.
+  const [detected, setDetected] = useState<Currency | null>(null);
+  useEffect(() => setDetected(detectCurrency()), []);
+  const currency = detected ?? 'USD';
+  const pending = detected === null;
   const fmt = new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 2 });
   const yearly = period === 'yearly';
 
@@ -98,7 +95,6 @@ export function PricingTable({
     <div className="pz-pricing">
       <div className="pz-pricing-toggle">
         <Segmented label={p.periodLabel} value={period} onChange={setPeriod} options={[{ value: 'monthly', label: p.monthly }, { value: 'yearly', label: p.yearly }]} />
-        <Segmented label={p.currencyLabel} value={currency} onChange={setCurrency} options={[{ value: 'EGP', label: p.currencies.EGP }, { value: 'SAR', label: p.currencies.SAR }, { value: 'USD', label: p.currencies.USD }]} />
         <span className="pz-billtoggle-save caption">{p.save}</span>
         <span className="pz-placeholder caption">{p.placeholder}</span>
       </div>
@@ -118,14 +114,14 @@ export function PricingTable({
                 {c.name}
               </h3>
               <p className="pz-tier-for">{c.for}</p>
-              <div className="pz-tier-price">
+              <div className={cx('pz-tier-price', pending && 'is-pending')}>
                 <span className="pz-tier-cur caption">{price.cur}</span>
                 <span key={`${period}-${currency}`} className="metric pz-tier-amount">
                   {price.perMonth}
                 </span>
                 <span className="pz-tier-per">{p.perMonth}</span>
               </div>
-              <p className="caption pz-muted pz-tier-bill">{yearly ? p.billedYearly.replace('{amount}', `${price.cur} ${price.total}`) : p.billedMonthly}</p>
+              <p className={cx('caption pz-muted pz-tier-bill', pending && yearly && 'is-pending')}>{yearly ? p.billedYearly.replace('{amount}', `${price.cur} ${price.total}`) : p.billedMonthly}</p>
               <a className={cx('pz-btn pz-tier-cta', plan.popular ? 'pz-btn-primary' : 'pz-btn-secondary')} href={`${SIGN_UP_URL}?plan=${encodeURIComponent(plan.key)}`}>
                 {p.trial}
               </a>
@@ -155,7 +151,7 @@ export function PricingTable({
                     return (
                       <th key={plan.key} scope="col" className={cx(plan.popular && 'is-popular')}>
                         {copyOf(plan).name}
-                        <span className="caption pz-muted">
+                        <span className={cx('caption pz-muted', pending && 'is-pending')}>
                           {price.cur} {price.perMonth}
                           {p.perMonthShort}
                         </span>

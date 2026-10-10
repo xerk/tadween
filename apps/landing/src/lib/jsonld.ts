@@ -1,6 +1,5 @@
 import type { Dict, Faq } from '@/content/types';
 import { SITE_URL } from './config';
-import type { PlanView } from './plans';
 import { localePath } from './routes';
 
 // schema.org objects for <script type="application/ld+json">. Only facts the page itself
@@ -21,9 +20,9 @@ export function organization() {
   };
 }
 
-/** `plans` is null while prices are placeholders: no offer is published until they're real. */
-export function softwareApplication(t: Dict, plans: PlanView[] | null) {
-  const prices = plans?.map((p) => p.usd.monthly) ?? [];
+/** No offers: the site shows each visitor one price in their own currency, so structured
+    data carries no prices. */
+export function softwareApplication(t: Dict) {
   return {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -34,45 +33,6 @@ export function softwareApplication(t: Dict, plans: PlanView[] | null) {
     operatingSystem: 'Web',
     inLanguage: ['en', 'ar'],
     publisher: { '@id': ORG_ID },
-    ...(plans?.length
-      ? {
-          offers: {
-            '@type': 'AggregateOffer',
-            priceCurrency: 'USD',
-            lowPrice: Math.min(...prices),
-            highPrice: Math.max(...prices),
-            offerCount: plans.length,
-          },
-        }
-      : {}),
-  };
-}
-
-/** Each plan as an Offer at its monthly USD price. Only for prices set in the app. */
-export function product(t: Dict, plans: PlanView[]) {
-  const url = abs(localePath(t.lang, '/pricing'));
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: 'Tadween',
-    description: t.meta.pricingDescription,
-    brand: { '@type': 'Brand', name: 'Tadween' },
-    image: `${SITE_URL}/og/pricing.png`,
-    url,
-    offers: plans.map((p) => ({
-      '@type': 'Offer',
-      name: t.pricing.plans.find((c) => c.key === p.key)?.name ?? p.name ?? p.key,
-      price: p.usd.monthly,
-      priceCurrency: 'USD',
-      url,
-      availability: 'https://schema.org/InStock',
-      priceSpecification: {
-        '@type': 'UnitPriceSpecification',
-        price: p.usd.monthly,
-        priceCurrency: 'USD',
-        referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'MON' },
-      },
-    })),
   };
 }
 

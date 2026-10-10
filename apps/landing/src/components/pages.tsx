@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react';
 import type { ChannelCopy, Dict } from '@/content/types';
-import { AI_CLIENTS, KIND_ICON, clientBySlug, type AiClientFacts, type ClientKind } from '@/lib/aiClients';
-import { CHANNELS, MORE_CHANNELS, channelBySlug, type ChannelFacts, type ChannelGroup } from '@/lib/channels';
+import { AI_CLIENTS, KIND_ICON, MORE_AI_CLIENTS, clientBySlug, type AiClientFacts, type ClientKind } from '@/lib/aiClients';
+import { CHANNELS, MORE_CHANNELS, OTHER_CHANNELS, channelBySlug, type ChannelFacts, type ChannelGroup } from '@/lib/channels';
 import { DOCS_API_URL } from '@/lib/config';
-import { FEATURES, FEATURE_MENU } from '@/lib/features';
-import { breadcrumbs, faqPage, organization, product, softwareApplication } from '@/lib/jsonld';
+import { FEATURES } from '@/lib/features';
+import { breadcrumbs, faqPage, organization, softwareApplication } from '@/lib/jsonld';
 import { loadPlans } from '@/lib/plans';
-import { PATHS, channelPath, clientPath, featurePath, localePath, type FeatureSlug } from '@/lib/routes';
+import { FEATURE_SLUGS, PATHS, channelPath, clientPath, localePath } from '@/lib/routes';
 import { CHANNEL_SHOT, channelShotSrc } from '@/lib/shots';
 import { CopyButton } from './CopyButton';
 import { Icon, cx } from './Icon';
@@ -14,7 +14,7 @@ import { JsonLd } from './JsonLd';
 import { LandingMotion } from './LandingMotion';
 import { LandingNav } from './LandingNav';
 import { PricingTable } from './PricingTable';
-import { AgentChat, AgentTeaser, AllFeatures, ArabicSection, CheckList, CTA, Eyebrow, FaqSection, FeatureCard, FeatureRow, Footer, Hero, NetStrip, PageHead, ProductShot, SectionHead, Steps, Tour, TrialButtons } from './sections';
+import { AgentChat, AgentTeaser, AllFeatures, ArabicSection, CheckList, CTA, Eyebrow, FaqSection, FeatureRow, Footer, Hero, NetStrip, PageHead, ProductShot, SectionHead, Steps, TrialButtons, networkName } from './sections';
 import { Shot } from './Shot';
 
 /** Every page: skip link, nav (with the same page in the other language), main, footer
@@ -35,8 +35,7 @@ function Shell({ t, path, children, jsonLd }: { t: Dict; path: string; children:
   );
 }
 
-/** A network's name as this language writes it (لينكدإن in Arabic, LinkedIn in English). */
-const channelName = (t: Dict, c: ChannelFacts) => t.channels.items[c.slug].name ?? c.name;
+const channelName = (t: Dict, c: ChannelFacts) => networkName(t, c.slug);
 
 const crumbHome = (t: Dict) => ({ name: t.nav.home, href: localePath(t.lang, PATHS.home) });
 
@@ -77,11 +76,10 @@ function PricingSection({ t, children }: { t: Dict; children: ReactNode }) {
 export async function LandingPage({ t }: { t: Dict }) {
   const { plans, source } = await loadPlans();
   return (
-    <Shell t={t} path={PATHS.home} jsonLd={[organization(), softwareApplication(t, source === 'api' ? plans : null)]}>
+    <Shell t={t} path={PATHS.home} jsonLd={[organization(), softwareApplication(t)]}>
       <Hero t={t} />
       <ProductShot t={t} />
       <NetStrip t={t} />
-      <Tour t={t} />
       <ArabicSection t={t} />
       <AgentTeaser t={t} />
       <AllFeatures t={t} more />
@@ -99,8 +97,8 @@ export async function LandingPage({ t }: { t: Dict }) {
 export async function PricingPage({ t }: { t: Dict }) {
   const { plans, source } = await loadPlans();
   return (
-    // Offers are published only for prices set in the app, never for the placeholders.
-    <Shell t={t} path={PATHS.pricing} jsonLd={source === 'api' ? [product(t, plans), faqPage(t.pricing.faq)] : [faqPage(t.pricing.faq)]}>
+    // No offers in structured data: each visitor sees one price, in their own currency.
+    <Shell t={t} path={PATHS.pricing} jsonLd={[faqPage(t.pricing.faq)]}>
       <PageHead t={t} title={t.pricing.pageTitle} sub={t.pricing.pageSub} />
       <section className="pz-sec" aria-label={t.pricing.pageTitle}>
         <div className="pz-container">
@@ -112,106 +110,61 @@ export async function PricingPage({ t }: { t: Dict }) {
   );
 }
 
-/** /features: every tool as a card with its screenshot, then a quick tour. */
+/** /features: a section per tool (anchor #<slug>), the bigger ones beside one screenshot and
+    the rest as icon and words, then the AI agent, one question per tool (FAQPage data) and
+    the call to action. */
 export function FeaturesPage({ t }: { t: Dict }) {
   const f = t.featuresIndex;
   const crumbs = trail(t, { name: t.nav.features, href: localePath(t.lang, PATHS.features) });
+  const faq = FEATURE_SLUGS.map((slug) => t.features[slug].faq);
+  const withShot = FEATURE_SLUGS.filter((slug) => FEATURES[slug].shot);
+  const small = FEATURE_SLUGS.filter((slug) => !FEATURES[slug].shot);
   return (
-    <Shell t={t} path={PATHS.features} jsonLd={[trailLd(crumbs)]}>
+    <Shell t={t} path={PATHS.features} jsonLd={[faqPage(faq), trailLd(crumbs)]}>
       <PageHead t={t} crumbs={crumbs} title={f.title} sub={f.sub}>
         <TrialButtons t={t} primary={t.featurePage.start} />
       </PageHead>
       <section className="pz-sec" aria-label={f.title}>
-        <div className="pz-container">
-          <ul className="pz-cards" data-stagger>
-            {FEATURE_MENU.map((ref) => (
-              <li key={ref}>
-                <FeatureCard t={t} refId={ref} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-      <section className="pz-sec is-band" aria-labelledby="tour-title">
-        <div className="pz-container">
-          <SectionHead id="tour-title" title={t.tour.title} sub={t.tour.sub} />
-          <div className="pz-rows">
-            {t.tour.rows.map((r, i) => (
-              <FeatureRow key={r.href} t={t} {...r} flip={i % 2 === 1} />
-            ))}
-          </div>
-        </div>
-      </section>
-      <ArabicSection t={t} />
-      <CTA t={t} />
-    </Shell>
-  );
-}
-
-/** A tool page: hero with its screenshot, benefits beside screenshots, how it works,
-    related tools, questions (FAQPage data) and the call to action. */
-export function FeaturePage({ t, slug }: { t: Dict; slug: FeatureSlug }) {
-  const f = t.features[slug];
-  const meta = FEATURES[slug];
-  const path = featurePath(slug);
-  const crumbs = trail(t, { name: t.nav.features, href: localePath(t.lang, PATHS.features) }, { name: f.nav.label, href: localePath(t.lang, path) });
-  return (
-    <Shell t={t} path={path} jsonLd={[faqPage(f.faq), trailLd(crumbs)]}>
-      <PageHead t={t} crumbs={crumbs} title={f.h1} sub={f.sub} eyebrow={<Eyebrow icon={meta.icon}>{f.nav.label}</Eyebrow>}>
-        <TrialButtons t={t} primary={t.featurePage.start} secondaryHref="#tour" secondary={t.featurePage.tour} />
-      </PageHead>
-      <section className="pz-sec is-tight" aria-label={f.nav.label}>
-        <div className="pz-container is-wide">
-          <div className="pz-stage pz-showcase pz-zoomable" data-reveal data-parallax>
-            <Shot t={t} id={f.hero} priority />
-            {f.callouts ? (
-              <>
-                <span className="pz-callout is-a">
-                  <Icon name="sparkles" size={16} />
-                  {f.callouts[0]}
-                </span>
-                <span className="pz-callout is-b is-smart">
-                  <Icon name="check" size={16} />
-                  {f.callouts[1]}
-                </span>
-              </>
-            ) : null}
-          </div>
-        </div>
-      </section>
-      <section className="pz-sec" id="tour" aria-label={t.featurePage.tour}>
         <div className="pz-container pz-rows">
-          {f.benefits.map((b, i) => (
-            <FeatureRow key={b.title} t={t} id={b.id} title={b.title} body={b.body} points={b.points} shot={b.shot} flip={i % 2 === 1} headingLevel={2} />
-          ))}
+          {withShot.map((slug, i) => {
+            const c = t.features[slug];
+            return <FeatureRow key={slug} t={t} id={slug} kicker={c.nav.label} icon={FEATURES[slug].icon} title={c.title} body={c.body} points={c.points} shot={FEATURES[slug].shot!} flip={i % 2 === 1} />;
+          })}
         </div>
       </section>
-      <section className="pz-sec is-band" aria-labelledby="how-title">
+      <section className="pz-sec is-band">
         <div className="pz-container">
-          <SectionHead id="how-title" title={t.featurePage.howTitle} />
-          <ol className="pz-steps" data-stagger>
-            {f.steps.map((s) => (
-              <li key={s.title}>
-                <strong>{s.title}</strong>
-                <p>{s.body}</p>
-              </li>
-            ))}
-          </ol>
+          <div className="pz-pair" data-stagger>
+            {small.map((slug) => {
+              const c = t.features[slug];
+              return (
+                <div key={slug} id={slug} className="pz-panel">
+                  <span className="pz-kicker">
+                    <Icon name={FEATURES[slug].icon} size={16} />
+                    {c.nav.label}
+                  </span>
+                  <h2 className="t-h3">{c.title}</h2>
+                  <p className="t-body">{c.body}</p>
+                  <CheckList items={c.points} />
+                </div>
+              );
+            })}
+            <div id="agent" className="pz-panel">
+              <span className="pz-kicker is-smart">
+                <Icon name="bot" size={16} />
+                {f.agentNav.label}
+              </span>
+              <h2 className="t-h3">{t.agentTeaser.title}</h2>
+              <p className="t-body">{t.agentTeaser.sub}</p>
+              <a className="pz-more-link" href={localePath(t.lang, PATHS.agent)}>
+                {t.featurePage.agentLink}
+                <Icon name="arrow-right" className="pz-flip-rtl" />
+              </a>
+            </div>
+          </div>
         </div>
       </section>
-      <section className="pz-sec" aria-labelledby="related-title">
-        <div className="pz-container">
-          <SectionHead id="related-title" title={t.featurePage.relatedTitle} />
-          <ul className="pz-cards" data-stagger>
-            {meta.related.map((ref) => (
-              <li key={ref}>
-                <FeatureCard t={t} refId={ref} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-      <FaqSection id="faq" title={t.featurePage.faqTitle} items={f.faq} />
+      <FaqSection id="faq" title={t.featurePage.faqTitle} items={faq} />
       <CTA t={t} />
     </Shell>
   );
@@ -241,8 +194,7 @@ function Code({ t, label, code }: { t: Dict; label: string; code: string }) {
 }
 
 /** /ai-agent: a live-looking conversation, the AI tools it works with, how to connect,
-    example conversations that end in scheduled posts, what it can do, the in-app agent,
-    connectors to come and questions. */
+    the in-app agent, what it can do, connectors to come and questions. */
 export function AgentPage({ t }: { t: Dict }) {
   const a = t.agentPage;
   const crumbs = trail(t, { name: t.nav.features, href: localePath(t.lang, PATHS.features) }, { name: a.eyebrow, href: localePath(t.lang, PATHS.agent) });
@@ -282,6 +234,19 @@ export function AgentPage({ t }: { t: Dict }) {
         <div className="pz-container">
           <SectionHead id="works-title" title={a.works.title} sub={a.works.sub} />
           <ClientsGrid t={t} />
+          <div className="pz-also" data-reveal>
+            <h3 className="t-h3">{a.works.also}</h3>
+            <p lang="en" dir="ltr">
+              {MORE_AI_CLIENTS.map((c) => c.name).join(' · ')}
+            </p>
+            <p className="t-body">
+              {a.works.alsoNote}{' '}
+              <a className="pz-more-link" href="#connect">
+                {a.works.alsoLink}
+                <Icon name="arrow-right" className="pz-flip-rtl" />
+              </a>
+            </p>
+          </div>
           <p className="pz-fine pz-center-text">{a.works.note}</p>
         </div>
       </section>
@@ -332,17 +297,19 @@ export function AgentPage({ t }: { t: Dict }) {
                   ))}
                 </ol>
                 <Code t={t} label={c.codeLabel} code={c.code} />
-                <p className="pz-fine">
-                  {a.connect.guide}{' '}
-                  {c.guides.map((slug, i) => (
-                    <span key={slug}>
-                      {i ? ', ' : null}
-                      <a href={localePath(t.lang, clientPath(slug))} lang="en" dir="ltr">
-                        {clientBySlug(slug)!.name}
-                      </a>
-                    </span>
-                  ))}
-                </p>
+                {c.guides.length ? (
+                  <p className="pz-fine">
+                    {a.connect.guide}{' '}
+                    {c.guides.map((slug, i) => (
+                      <span key={slug}>
+                        {i ? ', ' : null}
+                        <a href={localePath(t.lang, clientPath(slug))} lang="en" dir="ltr">
+                          {clientBySlug(slug)!.name}
+                        </a>
+                      </span>
+                    ))}
+                  </p>
+                ) : null}
               </div>
             ))}
           </div>
@@ -355,9 +322,6 @@ export function AgentPage({ t }: { t: Dict }) {
       <section className="pz-sec" aria-labelledby="inapp-title">
         <div className="pz-container">
           <SectionHead id="inapp-title" title={a.inApp.title} sub={a.inApp.sub} />
-          <div className="pz-stage pz-zoomable" data-reveal data-parallax>
-            <Shot t={t} id="agent" />
-          </div>
           <ul className="pz-checks is-centered" data-stagger>
             {a.inApp.points.map((p) => (
               <li key={p}>
@@ -368,16 +332,6 @@ export function AgentPage({ t }: { t: Dict }) {
               </li>
             ))}
           </ul>
-        </div>
-      </section>
-      <section className="pz-sec is-band" aria-labelledby="examples-title">
-        <div className="pz-container">
-          <SectionHead id="examples-title" title={a.examples.title} sub={a.examples.sub} />
-          <div className="pz-convos" data-stagger>
-            {a.examples.items.map((demo, i) => (
-              <AgentChat key={i} t={t} demo={demo} compact />
-            ))}
-          </div>
         </div>
       </section>
       <section className="pz-sec" aria-labelledby="can-title">
@@ -444,6 +398,17 @@ export function ChannelsIndexPage({ t }: { t: Dict }) {
                 {CHANNELS.filter((ch) => ch.group === g).map((ch) => (
                   <li key={ch.slug}>
                     <ChannelCard t={t} c={ch} />
+                  </li>
+                ))}
+                {OTHER_CHANNELS.filter((ch) => ch.group === g).map((ch) => (
+                  <li key={ch.slug} id={ch.slug}>
+                    <span className="pz-chcard is-static">
+                      <img src={ch.icon} width={40} height={40} alt="" loading="lazy" />
+                      <span>
+                        <strong>{networkName(t, ch.slug)}</strong>
+                        <span>{c.others[ch.slug].note}</span>
+                      </span>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -699,7 +664,7 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
             </div>
           </div>
           <div data-hero-in>
-            <AgentChat t={t} demo={copy.demo} frame={{ title: facts.name, online: fill(p.frameOnline), icon: KIND_ICON[facts.kind], input: fill(p.frameInput), terminal: facts.terminal }} />
+            <AgentChat t={t} demo={copy.demo} frame={{ title: facts.name, online: fill(p.frameOnline), icon: KIND_ICON[facts.kind], input: fill(p.frameInput) }} />
           </div>
         </div>
       </section>

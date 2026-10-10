@@ -2,7 +2,7 @@ import type { Dict } from '@/content/types';
 import { SHOTS, shotSrc, type ShotFrame, type ShotId } from '@/lib/shots';
 import { cx } from './Icon';
 
-/** A real screenshot of the app in a browser frame, a phone frame or bare. Both themes are
+/** A real screenshot of the app in a browser frame or bare. Both themes are
     in the HTML and CSS shows the one that matches the page. Lazy images that are hidden are
     never fetched; a `priority` shot (the first one on a page) loads eagerly in both themes
     so it is never late. The language picks the English or Arabic capture. */

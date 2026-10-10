@@ -3,13 +3,17 @@ import path from 'node:path';
 import { aiClientsAr } from '@/content/aiClients.ar';
 import { aiClientsEn } from '@/content/aiClients.en';
 import { AI_CLIENTS } from './aiClients';
+import { retiredRedirects } from './redirects';
 
 // Build-time checks for the top-level [client] routes. Server only: it reads the app and
 // public folders, so keep it out of anything a client component imports.
 
-/** First path segments the folder scan below can't see: generated files, the redirect in
-    next.config.ts, and paths Next or a proxy may answer. */
-const RESERVED_SEGMENTS = ['sitemap.xml', 'robots.txt', 'developers', 'ar', 'en', 'api', '_next'];
+/** First path segments the folder scan below can't see: generated files and paths Next or a
+    proxy may answer. */
+const RESERVED_SEGMENTS = ['sitemap.xml', 'robots.txt', 'ar', 'en', 'api', '_next'];
+
+/** First path segments the redirects in lib/redirects.ts answer (a redirect would hide a page). */
+const redirectSegments = () => retiredRedirects().map((r) => r.source.split('/')[1]);
 
 /** Every top-level name the app and public/ serve, in both languages. */
 const takenSegments = () => {
@@ -21,7 +25,7 @@ const takenSegments = () => {
     over another route, when two clients share a slug, or when a language's copy doesn't have
     one line per step for every method in lib/aiClients.ts. */
 export function clientStaticParams() {
-  const reserved = new Set([...RESERVED_SEGMENTS, ...takenSegments()]);
+  const reserved = new Set([...RESERVED_SEGMENTS, ...redirectSegments(), ...takenSegments()]);
   const seen = new Set<string>();
   for (const { slug, methods } of AI_CLIENTS) {
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error(`AI client slug "${slug}" must be lowercase words joined by hyphens.`);

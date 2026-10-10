@@ -2,8 +2,6 @@
     USD everywhere else. */
 export type Currency = 'EGP' | 'SAR' | 'USD';
 
-const STORAGE_KEY = 'tdw-currency';
-
 // Time zone first (it follows where the device actually is), then the browser's locale region.
 const ZONE_CURRENCY: Record<string, Currency> = {
   'Africa/Cairo': 'EGP',
@@ -11,15 +9,10 @@ const ZONE_CURRENCY: Record<string, Currency> = {
 };
 const REGION_CURRENCY: Record<string, Currency> = { EG: 'EGP', SA: 'SAR' };
 
-/** The visitor's currency: their own earlier pick, else their location, else USD.
-    Runs in the browser only; the static page renders `fallback` first. */
-export function detectCurrency(fallback: Currency): Currency {
-  try {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (saved === 'EGP' || saved === 'SAR' || saved === 'USD') return saved;
-  } catch {
-    // storage blocked (private mode): fall through to detection
-  }
+/** The visitor's currency, from their location, else USD. There is no switch: each visitor
+    sees one currency. Runs in the browser only; the static page holds the prices hidden until
+    this has run. */
+export function detectCurrency(): Currency {
   try {
     const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (ZONE_CURRENCY[zone]) return ZONE_CURRENCY[zone];
@@ -30,14 +23,5 @@ export function detectCurrency(fallback: Currency): Currency {
     const region = tag.split('-')[1]?.toUpperCase();
     if (region && REGION_CURRENCY[region]) return REGION_CURRENCY[region];
   }
-  return fallback;
-}
-
-/** Remember a currency the visitor picked by hand. */
-export function rememberCurrency(currency: Currency) {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, currency);
-  } catch {
-    // storage blocked: the choice lasts for this page view only
-  }
+  return 'USD';
 }

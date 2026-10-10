@@ -4,7 +4,7 @@ import { clientStaticParams } from '@/lib/clientRoutes';
 import { clientPath } from '@/lib/routes';
 import { pageMetadata } from '@/lib/seo';
 
-// One page per AI client in lib/aiClients.ts, at the top level (/chatgpt, /claude-code).
+// One page per AI client in lib/aiClients.ts, at the top level (/chatgpt, /claude, /cursor).
 // Anything else is a 404, and a slug that matches another route fails the build.
 export const dynamicParams = false;
 export const generateStaticParams = clientStaticParams;

@@ -169,22 +169,10 @@ Other:
   - `lib/aiClients.ts` holds the facts: methods, snippets with `{api}`, vendor docs and related clients.
   - `content/aiClients.en.ts` and `content/aiClients.ar.ts` hold the words.
   - The API address comes from `NEXT_PUBLIC_API_URL`, or a placeholder. The key is always `<your-api-key>`, in a header or an environment variable, never in a URL.
-- **Page sections:**
-  1. Hero: a breadcrumb (Home › AI agent › Client), then the H1 "Schedule LinkedIn and social posts with {Client}", and a drawn client window. The window shows the client's name as text and a neutral glyph; command-line clients get a terminal. No logos or screenshots of the client.
-  2. "Connect {Client} in N steps", with copyable snippets and a recommended method.
-  3. Plan notes and the vendor doc links.
-  4. "What you can ask": 4 English and 2 Egyptian Arabic prompts, or the reverse on the Arabic page.
-  5. What it can do: the agent page's list, which matches the backend `toolList`.
-  6. The channel grid, linking to `/channels/*`.
-  7. Security: OAuth approval, keys kept out of URLs, revoke under Settings → Approved apps, rotate under Settings → API & MCP.
-  8. FAQ: 4 shared questions and 3 per client, in FAQPage JSON-LD.
-  9. Related clients, then the CTA.
+- **Page sections (v2):** the pages follow the reference layout section by section; the list, the differences from the first version and the Postiz → Tadween mapping are in `docs/tadween/ai-pages-postiz-breakdown.md` (§1 and §4). The FAQ has 10 questions per client (4 of its own, 6 shared) and is mirrored in FAQPage JSON-LD. The hero small print and the related line carry the date the steps were last checked.
+- **Cursor notes and troubleshooting:** "an Enterprise admin may limit which MCP servers Cursor can use" and "Output panel → MCP Logs" both come from https://cursor.com/docs/mcp (checked 2026-10-10: "Enterprise admins can control which MCP servers users may run from the Cursor dashboard"; "Open the Output panel … Select 'MCP Logs' from the dropdown").
 - **Linking and metadata:**
-  - The AI agent page's "Works with" section is now a grid of links to every client page (`/ai-agent#clients`).
-  - The Resources mega-menu and the phone sheet list every client.
+  - The AI agent page's "Works with" section is a grid of links to every client page (`/ai-agent#clients`).
   - The sitemap lists both languages with hreflang and x-default.
   - Each client has its own Open Graph card (`/og/client-<slug>.png`).
-- **Not copied from Postiz:**
-  - No "official app" claims and no $0 offer in the JSON-LD.
-  - No per-channel matrix pages, since they would be thin and near-duplicate for us.
-  - No "Last updated" stamp.
+- **Not copied from Postiz:** no copy text, images or logos; no "official app" claims; no $0 offer in the JSON-LD; no per-channel matrix pages.

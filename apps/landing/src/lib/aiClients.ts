@@ -54,8 +54,9 @@ const EXPORT_KEY = { label: 'Terminal', code: `export TADWEEN_API_KEY="${KEY}"` 
 export const KIND_ICON: Record<ClientKind, IconName> = { assistant: 'message-circle', coding: 'terminal' };
 
 /** The MCP tools a client sees on {api}/mcp-oauth-dynamic and {api}/mcp, as the backend names
-    them (libraries/nestjs-libraries/src/chat/tools). Clipping is left out: it depends on the
-    server's configuration. What each one does is in the copy (page.mcpTools). */
+    them (libraries/nestjs-libraries/src/chat/tools): the ones a reader needs to know, not the
+    full set. Helper tools (video status and options, upload widgets) and clipping, which depends
+    on the server's configuration, are left out. What each one does is in the copy (page.mcpTools). */
 export const MCP_TOOLS = [
   'integrationList',
   'groupList',
@@ -68,6 +69,7 @@ export const MCP_TOOLS = [
   'generateImageTool',
   'generateVideoTool',
 ] as const;
+export type McpTool = (typeof MCP_TOOLS)[number];
 
 /** The addresses the code window lists: sign-in for every client, a key in a header for
     clients that take one. */

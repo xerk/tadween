@@ -1,5 +1,5 @@
 import type { IconName } from '@/components/icons';
-import type { ClientAuth, ClientKind } from '@/lib/aiClients';
+import type { ClientAuth, ClientKind, McpTool } from '@/lib/aiClients';
 import type { ChannelGroup } from '@/lib/channels';
 import type { FeatureSlug } from '@/lib/routes';
 import type { ShotId } from '@/lib/shots';
@@ -197,7 +197,7 @@ export interface AiClientsDict {
     mcpPoints: string[];
     mcpCodeLabel: string;
     /** What each MCP tool does, by tool name (lib/aiClients.ts MCP_TOOLS), for the code window. */
-    mcpTools: Record<string, string>;
+    mcpTools: Record<McpTool, string>;
     promptsTitle: string;
     promptsSub: string;
     channelsTitle: string;

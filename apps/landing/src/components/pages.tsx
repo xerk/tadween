@@ -627,9 +627,10 @@ function ClientsGrid({ t }: { t: Dict }) {
 /** Where a network's tile links: its page, or its place on the channels overview. */
 const netHref = (t: Dict, slug: string) => localePath(t.lang, channelBySlug(slug) ? channelPath(slug) : `${PATHS.channels}#${slug}`);
 
-/** A network's icon, alt-less: its name is always written next to it or in a label. */
-function NetIcon({ slug, size = 20 }: { slug: string; size?: number }) {
-  return <img src={networkBySlug(slug)!.icon} width={size} height={size} alt="" loading="lazy" />;
+/** A network's icon. Without `alt` it is decorative (its name is written next to it or in a
+    label); pass the name where the icon alone says which channel it is. */
+function NetIcon({ slug, size = 20, alt = '' }: { slug: string; size?: number; alt?: string }) {
+  return <img src={networkBySlug(slug)!.icon} width={size} height={size} alt={alt} loading="lazy" />;
 }
 
 /** The channels floating around the chat in an AI client's hero. */
@@ -683,7 +684,7 @@ const CompareCell = ({ text }: { text: string }) =>
 
 /** One AI client's page, in the same order as the reference layout studied in
     docs/tadween/ai-pages-postiz-breakdown.md: a hero with the client chatting to Tadween, the
-    Connect and Ask cards with the numbered steps, a comparison table, the channel orbit, what it
+    Connect and Ask cards with the numbered steps, the channel orbit, a comparison table, what it
     can do, the MCP server, example requests, every channel, the client beside its siblings,
     pricing, security and troubleshooting, questions (FAQPage data), related pages and the call
     to action. Client names are text with a neutral glyph; no client logo is drawn. */
@@ -731,7 +732,7 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
                 <TrialButtons t={t} primary={p.start} secondaryHref="#connect" secondary={fill(p.stepsLink)} />
               </div>
               <p className="pz-aismall" data-hero-in>
-                {fill(p.smallPrint)} <a href={agentHref}>{p.smallPrintLink}</a>.
+                {fill(p.smallPrint).replace('{updated}', p.updated)} <a href={agentHref}>{p.smallPrintLink}</a>.
               </p>
             </div>
             <div className="pz-aihero-art" data-hero-in>
@@ -796,7 +797,7 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
                       <span className="pz-via">
                         {p.via}
                         {copy.ask.nets.map((n) => (
-                          <NetIcon key={n} slug={n} size={16} />
+                          <NetIcon key={n} slug={n} size={16} alt={networkName(t, n)} />
                         ))}
                       </span>
                     </div>
@@ -822,7 +823,25 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
           </div>
         </section>
 
-        <section className="pz-sec is-ruled" aria-labelledby="compare-title">
+        <section className="pz-orbit-band" aria-labelledby="orbit-title">
+          <div className="pz-container">
+            <div className="pz-sec-head" data-reveal>
+              <h2 id="orbit-title" className="t-h2">
+                {p.orbitTitle}
+              </h2>
+              <p className="t-lead">{fill(p.orbitSub)}</p>
+            </div>
+            <div className="pz-orbit" data-reveal>
+              <span className="pz-orbit-core">
+                <img src="/logo.svg" width={64} height={64} alt="Tadween" />
+              </span>
+              <OrbitRing t={t} slugs={ORBIT_INNER} ring="inner" />
+              <OrbitRing t={t} slugs={ORBIT_OUTER} ring="outer" />
+            </div>
+          </div>
+        </section>
+
+        <section className="pz-sec" aria-labelledby="compare-title">
           <div className="pz-container">
             <SectionHead id="compare-title" start title={copy.compare.title} sub={copy.compare.sub} />
             <div className="pz-compare-scroll" data-reveal>
@@ -876,25 +895,7 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
           </div>
         </section>
 
-        <section className="pz-orbit-band" aria-labelledby="orbit-title">
-          <div className="pz-container">
-            <div className="pz-sec-head" data-reveal>
-              <h2 id="orbit-title" className="t-h2">
-                {p.orbitTitle}
-              </h2>
-              <p className="t-lead">{fill(p.orbitSub)}</p>
-            </div>
-            <div className="pz-orbit" data-reveal>
-              <span className="pz-orbit-core">
-                <img src="/logo.svg" width={64} height={64} alt="Tadween" />
-              </span>
-              <OrbitRing t={t} slugs={ORBIT_INNER} ring="inner" />
-              <OrbitRing t={t} slugs={ORBIT_OUTER} ring="outer" />
-            </div>
-          </div>
-        </section>
-
-        <section className="pz-sec" aria-labelledby="can-title">
+        <section className="pz-sec is-ruled" aria-labelledby="can-title">
           <div className="pz-container">
             <SectionHead id="can-title" start title={fill(p.canTitle)} sub={p.canSub} />
             <ul className="pz-fcards" data-stagger>
@@ -903,7 +904,7 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
                   <span className="pz-tile-ic">
                     <Icon name={c.icon} size={20} />
                   </span>
-                  <strong>{c.title}</strong>
+                  <h3>{c.title}</h3>
                   <p>{c.body}</p>
                 </li>
               ))}
@@ -962,7 +963,7 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
                     <span className="pz-kicker">{pr.tag}</span>
                     <span className="pz-pcard-nets">
                       {pr.nets.map((n) => (
-                        <NetIcon key={n} slug={n} size={18} />
+                        <NetIcon key={n} slug={n} size={18} alt={networkName(t, n)} />
                       ))}
                     </span>
                   </div>
@@ -1012,9 +1013,9 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
                 return (
                   <li key={v.name} className={cx(!href && 'is-current')}>
                     {href ? null : <span className="pz-vtag">{p.thisPage}</span>}
-                    <strong lang="en" dir="ltr">
-                      {href ? <a href={href}>{v.name}</a> : v.name}
-                    </strong>
+                    <h3>
+                      <bdi lang="en">{href ? <a href={href}>{v.name}</a> : v.name}</bdi>
+                    </h3>
                     <p>{v.body}</p>
                   </li>
                 );
@@ -1067,8 +1068,8 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
             </p>
           </div>
         </section>
+        <CTA t={t} title={fill(p.ctaTitle)} body={fill(p.ctaBody)} visual={<Shot t={t} id="calendar-preview" />} />
       </div>
-      <CTA t={t} title={fill(p.ctaTitle)} body={fill(p.ctaBody)} visual={<Shot t={t} id="calendar-preview" />} />
     </Shell>
   );
 }

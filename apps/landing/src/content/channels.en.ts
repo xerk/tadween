@@ -129,7 +129,7 @@ export const channelsEn: ChannelsDict = {
     threads: {
       title: 'Threads post scheduler | Tadween',
       description:
-        'Schedule Threads posts and multi-post threads: 500 characters per post, text, pictures, video or carousels, with replies published under the first post.',
+        'Schedule Threads posts and multi-post threads: 500 characters per post, text, pictures, video or carousels, with each reply published under the part before it.',
       h1: 'Schedule posts and threads on Threads',
       intro: 'Write a single post or a whole thread, keep each part under 500 characters, and schedule it next to your LinkedIn and Instagram week.',
       formats: ['Text posts', 'One picture or one video', 'Carousels of two or more pictures or videos', 'Replies under the post, published in order as a thread', 'Auto plug: a reply added once a post passes the likes you set'],

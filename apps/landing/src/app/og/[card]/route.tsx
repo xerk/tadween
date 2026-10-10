@@ -14,7 +14,7 @@ export const dynamicParams = false;
 
 const PAGES: Record<string, { eyebrow: string; title: string }> = {
   home: { eyebrow: 'LinkedIn-first scheduling', title: en.hero.title },
-  pricing: { eyebrow: 'Pricing', title: 'Four plans for people, brands and agencies. Seven days free.' },
+  pricing: { eyebrow: 'Pricing', title: 'Plans for people, brands and agencies. Seven days free.' },
   features: { eyebrow: 'Features', title: en.featuresIndex.title },
   'ai-agent': { eyebrow: 'AI agent', title: en.agentPage.title },
   channels: { eyebrow: 'Channels', title: en.channels.index.title },

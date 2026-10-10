@@ -18,7 +18,7 @@ export const en: Dict = {
       'Plan LinkedIn posts for your profile and pages, preview them as LinkedIn will show them and publish on time. In English and Arabic, with Instagram, Facebook, Threads and YouTube in the same calendar.',
     pricingTitle: 'Pricing — Tadween',
     pricingDescription:
-      'Four plans for people, brands and agencies on LinkedIn. Every plan starts with seven days free, priced in US dollars.',
+      'Plans for people, brands and agencies on LinkedIn. Every plan starts with seven days free, priced in US dollars.',
     ogLocale: 'en_US',
     features: {
       title: 'Features: calendar, board, composer and AI agent | Tadween',
@@ -272,7 +272,7 @@ export const en: Dict = {
     sectionTitle: 'Simple pricing',
     sectionSub: 'Every plan starts with seven days free.',
     pageTitle: 'Pricing',
-    pageSub: 'Four plans for people, brands and agencies on LinkedIn. Every plan starts with seven days free.',
+    pageSub: 'Plans for people, brands and agencies on LinkedIn. Every plan starts with seven days free.',
     periodLabel: 'Billing period',
     monthly: 'Monthly',
     yearly: 'Yearly',

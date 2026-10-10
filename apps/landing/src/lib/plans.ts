@@ -75,7 +75,8 @@ function fromApi(p: ApiPlan): PlanView {
     teamMembers: p.teamMembers ?? fallback?.teamMembers ?? 0,
     aiCredits: p.aiCredits ?? fallback?.aiCredits ?? 0,
     tier: isTier(p.tier) ? p.tier : fallback?.tier ?? 'STANDARD',
-    usd: { monthly: p.monthlyPriceUsd, yearly: p.yearlyPriceUsd ?? p.monthlyPriceUsd * 12 },
+    // A yearly price of 0 means none was set (the column defaults to 0): bill twelve months.
+    usd: { monthly: p.monthlyPriceUsd, yearly: p.yearlyPriceUsd > 0 ? p.yearlyPriceUsd : p.monthlyPriceUsd * 12 },
   };
 }
 

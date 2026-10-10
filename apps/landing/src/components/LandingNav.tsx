@@ -51,7 +51,7 @@ export function LandingNav({ t, altHref, current }: { t: Dict; altHref: string; 
         </button>
       </div>
 
-      <nav className="pz-sheet" id="site-sheet" aria-label={t.nav.label} data-sheet hidden>
+      <div className="pz-sheet" id="site-sheet" data-sheet hidden>
         {links.map((l) => (
           <a key={l.href} href={l.href} aria-current={here(l.href)}>
             {l.label}
@@ -65,7 +65,7 @@ export function LandingNav({ t, altHref, current }: { t: Dict; altHref: string; 
             {t.nav.signIn}
           </a>
         </div>
-      </nav>
+      </div>
       <NavController />
     </header>
   );

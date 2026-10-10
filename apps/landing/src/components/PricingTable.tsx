@@ -93,6 +93,10 @@ export function PricingTable({
 
   return (
     <div className="pz-pricing">
+      {/* Without JavaScript there is no currency detection: show the USD amounts. */}
+      <noscript>
+        <style>{'.pz-pricing .is-pending { visibility: visible; }'}</style>
+      </noscript>
       <div className="pz-pricing-toggle">
         <Segmented label={p.periodLabel} value={period} onChange={setPeriod} options={[{ value: 'monthly', label: p.monthly }, { value: 'yearly', label: p.yearly }]} />
         <span className="pz-billtoggle-save caption">{p.save}</span>

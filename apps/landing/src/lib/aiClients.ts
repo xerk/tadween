@@ -96,13 +96,13 @@ export const AI_CLIENTS: AiClientFacts[] = [
 /** Clients that also connect (any remote MCP client does) but have no page of their own:
     the AI agent page names them under "Also works with", and their old pages redirect there
     (lib/redirects.ts). */
-export const MORE_AI_CLIENTS: { slug: string; name: string; kind: ClientKind }[] = [
-  { slug: 'claude-cowork', name: 'Claude Cowork', kind: 'assistant' },
-  { slug: 'perplexity', name: 'Perplexity', kind: 'assistant' },
-  { slug: 'claude-code', name: 'Claude Code', kind: 'coding' },
-  { slug: 'codex', name: 'Codex', kind: 'coding' },
-  { slug: 'vscode', name: 'VS Code', kind: 'coding' },
-  { slug: 'grok-build', name: 'Grok Build', kind: 'coding' },
+export const MORE_AI_CLIENTS: { slug: string; name: string }[] = [
+  { slug: 'claude-cowork', name: 'Claude Cowork' },
+  { slug: 'perplexity', name: 'Perplexity' },
+  { slug: 'claude-code', name: 'Claude Code' },
+  { slug: 'codex', name: 'Codex' },
+  { slug: 'vscode', name: 'VS Code' },
+  { slug: 'grok-build', name: 'Grok Build' },
 ];
 
 export const clientBySlug = (slug: string) => AI_CLIENTS.find((c) => c.slug === slug);

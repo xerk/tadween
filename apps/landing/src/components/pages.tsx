@@ -35,8 +35,6 @@ function Shell({ t, path, children, jsonLd }: { t: Dict; path: string; children:
   );
 }
 
-const channelName = (t: Dict, c: ChannelFacts) => networkName(t, c.slug);
-
 const crumbHome = (t: Dict) => ({ name: t.nav.home, href: localePath(t.lang, PATHS.home) });
 
 /** Breadcrumb trail from home to `page`, as the page shows it and as BreadcrumbList data. */
@@ -45,7 +43,7 @@ const trailLd = (crumbs: { name: string; href: string }[]) => breadcrumbs(crumbs
 
 /** Fills {name} and {limit} in a channel page template. */
 const fillChannel = (t: Dict, facts: ChannelFacts) => (s: string) =>
-  s.replaceAll('{name}', channelName(t, facts)).replaceAll('{limit}', new Intl.NumberFormat(t.numberLocale).format(facts.limit));
+  s.replaceAll('{name}', networkName(t, facts.slug)).replaceAll('{limit}', new Intl.NumberFormat(t.numberLocale).format(facts.limit));
 
 /** A link card to a channel page, used on the index and under related channels. */
 function ChannelCard({ t, c }: { t: Dict; c: ChannelFacts }) {
@@ -53,7 +51,7 @@ function ChannelCard({ t, c }: { t: Dict; c: ChannelFacts }) {
     <a className="pz-chcard" href={localePath(t.lang, channelPath(c.slug))}>
       <img src={c.icon} width={40} height={40} alt="" loading="lazy" />
       <span>
-        <strong>{channelName(t, c)}</strong>
+        <strong>{networkName(t, c.slug)}</strong>
         <span>{t.channels.items[c.slug].h1}</span>
       </span>
       <Icon name="chevron-right" className="pz-flip-rtl pz-muted" />
@@ -454,7 +452,7 @@ export function ChannelPage({ t, slug }: { t: Dict; slug: string }) {
   const copy = t.channels.items[slug];
   const p = t.channels.page;
   const fmt = new Intl.NumberFormat(t.numberLocale);
-  const crumbs = trail(t, { name: t.footer.channelsTitle, href: localePath(t.lang, PATHS.channels) }, { name: channelName(t, facts), href: localePath(t.lang, channelPath(slug)) });
+  const crumbs = trail(t, { name: t.footer.channelsTitle, href: localePath(t.lang, PATHS.channels) }, { name: networkName(t, facts.slug), href: localePath(t.lang, channelPath(slug)) });
   const faq = channelFaq(t, facts, copy);
   const comments = facts.comments === true ? p.commentsValue.yes : facts.comments === 'text-only' ? p.commentsValue.text : p.commentsValue.no;
   const fill = fillChannel(t, facts);
@@ -760,7 +758,7 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
               <li key={c.slug}>
                 <a className="pz-chtile is-link" href={localePath(t.lang, channelPath(c.slug))}>
                   <img src={c.icon} width={28} height={28} alt="" loading="lazy" />
-                  <span>{channelName(t, c)}</span>
+                  <span>{networkName(t, c.slug)}</span>
                 </a>
               </li>
             ))}

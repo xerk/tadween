@@ -239,7 +239,7 @@ export const ar: Dict = {
     },
     works: {
       title: 'يعمل مع أدوات الذكاء الاصطناعي التي تستخدمها',
-      sub: 'كل أداة تدعم MCP يمكنها قراءة تقويمك وجدولة المنشورات بإذنك، ولكلٍّ منها صفحة خطوة بخطوة.',
+      sub: 'لكلٍّ من هذه الأدوات صفحة خطوة بخطوة. وتعمل أيضًا أي أداة أخرى تستطيع إضافة خادم MCP بعيد عبر HTTP.',
       note: 'الأسماء علامات تجارية لأصحابها، وتدوين غير تابع لها.',
     },
     connect: {
@@ -269,9 +269,11 @@ export const ar: Dict = {
       ],
       clientsTitle: 'خطوة بخطوة، لأداتك',
       clientsSub: 'الأدوات نفسها في كلٍّ منها. وتعرض صفحة API وMCP في إعدادات تدوين هذه الخطوات لمساحة عملك أيضًا.',
+      guide: 'الخطوات كاملة:',
       clients: [
         {
           name: 'Claude وChatGPT',
+          guides: ['claude', 'chatgpt'],
           how: 'موصِّل مخصّص، بتسجيل الدخول عبر OAuth',
           steps: ['افتح الموصِّلات وأضف موصِّلًا مخصّصًا', 'الصق عنوان MCP الخاص بتدوين', 'سجّل الدخول إلى تدوين ووافق'],
           codeLabel: 'عنوان الموصِّل',
@@ -279,15 +281,17 @@ export const ar: Dict = {
         },
         {
           name: 'Claude Code',
+          guides: ['claude-code'],
           how: 'أمر واحد في الطرفية',
-          steps: ['شغّل الأمر التالي', 'سجّل الدخول إلى تدوين في نافذة المتصفح التي تُفتح'],
+          steps: ['شغّل الأمر التالي', 'شغّل Claude Code واكتب ‎/mcp، واختر tadween ثم Authenticate'],
           codeLabel: 'الطرفية',
           code: 'claude mcp add --transport http tadween "{api}/mcp-oauth-dynamic"',
         },
         {
           name: 'Cursor',
-          how: 'خادم MCP بعيد في إعدادات الأداة',
-          steps: ['أضف الخادم إلى إعدادات MCP', 'سجّل الدخول إلى تدوين حين تطلب الأداة'],
+          guides: ['cursor'],
+          how: 'خادم MCP بعيد في mcp.json',
+          steps: ['أضف الخادم إلى mcp.json', 'سجّل الدخول إلى تدوين حين يطلب Cursor'],
           codeLabel: '.cursor/mcp.json',
           code: '{\n  "mcpServers": {\n    "tadween": {\n      "url": "{api}/mcp-oauth-dynamic"\n    }\n  }\n}',
         },

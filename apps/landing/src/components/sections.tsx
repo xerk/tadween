@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
 import type { ChatDemo, Dict, Faq } from '@/content/types';
+import { AI_CLIENTS } from '@/lib/aiClients';
 import { channelBySlug } from '@/lib/channels';
 import { LICENSE_URL, SIGN_IN_URL, SIGN_UP_URL, SOURCE_URL } from '@/lib/config';
 import { FEATURE_MENU, featureRefIcon, featureRefPath, type FeatureRef } from '@/lib/features';
-import { FEATURE_SLUGS, PATHS, channelPath, featurePath, localePath } from '@/lib/routes';
+import { FEATURE_SLUGS, PATHS, channelPath, clientPath, featurePath, localePath } from '@/lib/routes';
 import type { ShotId } from '@/lib/shots';
 import { Accordion } from './Accordion';
 import { Icon, cx } from './Icon';
@@ -259,10 +260,9 @@ export function ArabicSection({ t }: { t: Dict }) {
 
 /** One conversation with the agent: the request, the tool calls lighting up one by one,
     the reply and a card of the posts it scheduled. Built from the app's chat; the calls
-    play when the card scrolls in (CSS, keyed on .is-in from the motion engine). */
-/** A conversation with the agent. `frame` draws it inside another AI client instead of
-    Tadween's own chat: that client's name as text and a neutral glyph (never its logo), a
-    terminal for command-line clients, and the Tadween tool calls it makes. */
+    play when the card scrolls in (CSS, keyed on .is-in from the motion engine). `frame` draws
+    it inside another AI client instead: its name as text and a neutral glyph (never its
+    logo), a terminal for command-line clients, and the Tadween tool calls it makes. */
 export function AgentChat({ t, demo, compact, frame }: { t: Dict; demo: ChatDemo; compact?: boolean; frame?: { title: string; online: string; icon: IconName; input: string; terminal?: boolean } }) {
   const c = frame ?? { ...t.agentPage.chat, icon: 'bot' as IconName };
   const steps = demo.tools.length;
@@ -500,7 +500,8 @@ export function Footer({ t }: { t: Dict }) {
   const lp = (path: string) => localePath(t.lang, path);
   const tools = { title: t.footer.toolsTitle, links: [...FEATURE_SLUGS.map((s) => ({ href: lp(featurePath(s)), label: t.features[s].nav.label })), { href: lp(PATHS.agent), label: t.featuresIndex.agentNav.label }] };
   const channels = { title: t.footer.channelsTitle, links: FOOTER_CHANNELS.map((slug) => ({ href: lp(channelPath(slug)), label: t.channels.items[slug].name ?? channelBySlug(slug)!.name })) };
-  const columns = [t.footer.columns[0], tools, channels, ...t.footer.columns.slice(1)];
+  const aiTools = { title: t.nav.aiClients, links: AI_CLIENTS.map((c) => ({ href: lp(clientPath(c.slug)), label: c.name })) };
+  const columns = [t.footer.columns[0], tools, channels, aiTools, ...t.footer.columns.slice(1)];
   return (
     <footer className="pz-foot">
       <div className="pz-container is-wide">

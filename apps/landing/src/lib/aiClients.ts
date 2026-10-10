@@ -2,16 +2,17 @@ import type { IconName } from '@/components/icons';
 
 // The AI clients that can connect to Tadween's MCP server, as facts that don't change with
 // the language: how each one connects, the exact snippets, and the vendor's own docs that
-// back every step. The steps are the ones Settings → API & MCP shows in the app
-// (apps/frontend/src/components/tadween/settings/api.settings.tsx); the words for each step
-// live in content/aiClients.en.ts and content/aiClients.ar.ts, in the same order.
+// back every step. Steps follow the vendor's current docs (checked 2026-10-10) and the same
+// snippets as Settings → API & MCP in the app; where the app's wording is older, the notes
+// file lists the differences. The words for each step live in content/aiClients.en.ts and
+// content/aiClients.ar.ts, in the same order.
 //
 // A client is listed only when its vendor documents adding your own remote MCP server
 // (OAuth sign-in or a URL with a header). Tadween has no app in any vendor's directory, so
 // clients that only take listed apps are left out. docs/tadween/ai-client-pages-notes.md
 // has the doc checks and the clients that were skipped, with the reasons.
 //
-// In code, {api} is the API address (NEXT_PUBLIC_API_URL, or a placeholder) and the key is
+// In code, {api} is the MCP base (NEXT_PUBLIC_MCP_URL or NEXT_PUBLIC_API_URL, else a placeholder) and the key is
 // always a placeholder in a header or an environment variable, never in a URL.
 
 export type ClientKind = 'assistant' | 'coding';
@@ -33,7 +34,6 @@ export interface AiClientFacts {
   slug: string;
   /** The product's own name, always shown as text in its own spelling. */
   name: string;
-  vendor: string;
   kind: ClientKind;
   /** The hero draws a terminal for command-line clients, a chat window for the rest. */
   terminal?: boolean;
@@ -44,16 +44,17 @@ export interface AiClientFacts {
   related: string[];
 }
 
-export const OAUTH_URL = '{api}/mcp-oauth-dynamic';
-export const MCP_URL = '{api}/mcp';
-export const KEY = '<your-api-key>';
+const OAUTH_URL = '{api}/mcp-oauth-dynamic';
+const MCP_URL = '{api}/mcp';
+const KEY = '<your-api-key>';
 const BEARER = `Bearer ${KEY}`;
 
 const json = (value: object) => JSON.stringify(value, null, 2);
+/** Puts the key in an environment variable, in the shell profile, for clients that read it. */
+const EXPORT_KEY = { label: 'Terminal', code: `export TADWEEN_API_KEY="${KEY}"` };
 
 /** A neutral glyph per kind of client; product logos are never drawn. */
 export const KIND_ICON: Record<ClientKind, IconName> = { assistant: 'message-circle', coding: 'terminal' };
-
 
 const CLAUDE_DOCS = [
   { label: 'Claude Help Center: custom connectors using remote MCP', url: 'https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp' },
@@ -63,7 +64,6 @@ export const AI_CLIENTS: AiClientFacts[] = [
   {
     slug: 'chatgpt',
     name: 'ChatGPT',
-    vendor: 'OpenAI',
     kind: 'assistant',
     methods: [{ auth: 'oauth', steps: [null, { label: 'MCP server URL', code: OAUTH_URL }, null, null] }],
     docs: [
@@ -75,25 +75,22 @@ export const AI_CLIENTS: AiClientFacts[] = [
   {
     slug: 'claude',
     name: 'Claude',
-    vendor: 'Anthropic',
     kind: 'assistant',
-    methods: [{ auth: 'oauth', steps: [null, { label: 'Remote MCP server URL', code: OAUTH_URL }, null, null] }],
+    methods: [{ auth: 'oauth', steps: [null, { label: 'Remote MCP server URL', code: OAUTH_URL }, null, null, null] }],
     docs: CLAUDE_DOCS,
     related: ['claude-cowork', 'claude-code', 'chatgpt'],
   },
   {
     slug: 'claude-cowork',
     name: 'Claude Cowork',
-    vendor: 'Anthropic',
     kind: 'assistant',
-    methods: [{ auth: 'oauth', steps: [null, { label: 'Remote MCP server URL', code: OAUTH_URL }, null, null] }],
+    methods: [{ auth: 'oauth', steps: [null, { label: 'Remote MCP server URL', code: OAUTH_URL }, null, null, null] }],
     docs: CLAUDE_DOCS,
     related: ['claude', 'claude-code', 'chatgpt'],
   },
   {
     slug: 'perplexity',
     name: 'Perplexity',
-    vendor: 'Perplexity',
     kind: 'assistant',
     methods: [{ auth: 'oauth', steps: [null, { label: 'MCP Server URL', code: OAUTH_URL }, null, null] }],
     docs: [{ label: 'Perplexity Help Center: adding custom remote connectors', url: 'https://www.perplexity.ai/help-center/en/articles/13915507-adding-custom-remote-connectors' }],
@@ -102,7 +99,6 @@ export const AI_CLIENTS: AiClientFacts[] = [
   {
     slug: 'claude-code',
     name: 'Claude Code',
-    vendor: 'Anthropic',
     kind: 'coding',
     terminal: true,
     methods: [
@@ -121,7 +117,6 @@ export const AI_CLIENTS: AiClientFacts[] = [
   {
     slug: 'codex',
     name: 'Codex',
-    vendor: 'OpenAI',
     kind: 'coding',
     terminal: true,
     methods: [
@@ -135,7 +130,7 @@ export const AI_CLIENTS: AiClientFacts[] = [
       {
         auth: 'key',
         steps: [
-          { label: 'Terminal', code: `export TADWEEN_API_KEY="${KEY}"` },
+          EXPORT_KEY,
           { label: '~/.codex/config.toml', code: `[mcp_servers.tadween]\nurl = "${MCP_URL}"\nbearer_token_env_var = "TADWEEN_API_KEY"` },
           { label: 'Terminal', code: 'codex mcp list' },
         ],
@@ -147,19 +142,20 @@ export const AI_CLIENTS: AiClientFacts[] = [
   {
     slug: 'cursor',
     name: 'Cursor',
-    vendor: 'Anysphere',
     kind: 'coding',
     methods: [
       { auth: 'oauth', steps: [{ label: '~/.cursor/mcp.json', code: json({ mcpServers: { tadween: { url: OAUTH_URL } } }) }, null] },
-      { auth: 'key', steps: [null, { label: '~/.cursor/mcp.json', code: json({ mcpServers: { tadween: { url: MCP_URL, headers: { Authorization: BEARER } } } }) }, null] },
+      {
+        auth: 'key',
+        steps: [EXPORT_KEY, { label: '~/.cursor/mcp.json', code: json({ mcpServers: { tadween: { url: MCP_URL, headers: { Authorization: 'Bearer ${env:TADWEEN_API_KEY}' } } } }) }, null],
+      },
     ],
-    docs: [{ label: 'Cursor docs: Model Context Protocol', url: 'https://cursor.com/docs/context/mcp' }],
+    docs: [{ label: 'Cursor docs: Model Context Protocol', url: 'https://cursor.com/docs/mcp' }],
     related: ['vscode', 'claude-code', 'codex'],
   },
   {
     slug: 'vscode',
     name: 'VS Code',
-    vendor: 'Microsoft',
     kind: 'coding',
     methods: [
       { auth: 'oauth', steps: [{ label: '.vscode/mcp.json', code: json({ servers: { tadween: { type: 'http', url: OAUTH_URL } } }) }, null] },
@@ -188,7 +184,6 @@ export const AI_CLIENTS: AiClientFacts[] = [
   {
     slug: 'grok-build',
     name: 'Grok Build',
-    vendor: 'xAI',
     kind: 'coding',
     terminal: true,
     methods: [
@@ -196,8 +191,9 @@ export const AI_CLIENTS: AiClientFacts[] = [
       {
         auth: 'key',
         steps: [
-          { label: 'Terminal', code: `export TADWEEN_API_KEY="${KEY}"` },
-          { label: 'Terminal', code: `grok mcp add --transport http tadween ${MCP_URL} --header "Authorization: Bearer \${TADWEEN_API_KEY}"` },
+          EXPORT_KEY,
+          // Single quotes: the shell must not expand the variable, Grok Build does when it connects
+          { label: 'Terminal', code: `grok mcp add --transport http tadween ${MCP_URL} --header 'Authorization: Bearer \${TADWEEN_API_KEY}'` },
         ],
       },
     ],

@@ -19,7 +19,7 @@ export const aiClientsEn: AiClientsDict = {
     promptsTitle: 'What you can ask {name}',
     promptsSub: 'Plain requests, in English or Egyptian Arabic. Start by listing your channels to check the connection.',
     canTitle: 'What {name} can do in Tadween',
-    canSub: 'The same tools the agent inside Tadween uses. Nothing more.',
+    canSub: 'The same tools the agent inside Tadween uses.',
     channelsTitle: 'LinkedIn first, and every channel you connect',
     channelsSub: '{name} schedules to the channels connected in your Tadween workspace, each with its own limits and settings.',
     securityTitle: 'Your workspace stays yours',
@@ -55,7 +55,7 @@ export const aiClientsEn: AiClientsDict = {
   kinds: { assistant: 'Chat assistants', coding: 'Coding agents and editors' },
   items: {
     chatgpt: {
-      title: 'Schedule LinkedIn posts with ChatGPT — custom MCP connector | Tadween',
+      title: 'ChatGPT MCP: schedule LinkedIn posts from ChatGPT | Tadween',
       description: 'Add Tadween to ChatGPT as a custom MCP app, sign in, and ask ChatGPT to write and schedule your LinkedIn posts. Steps, plans and example prompts.',
       h1: 'Schedule LinkedIn and social posts with ChatGPT',
       intro: 'Add Tadween to ChatGPT as a custom MCP app and sign in once. Then ask ChatGPT to draft a LinkedIn post, check your week, or schedule a post to your page.',
@@ -65,7 +65,7 @@ export const aiClientsEn: AiClientsDict = {
           label: 'Sign in (OAuth)',
           how: 'A custom app in ChatGPT on the web',
           steps: [
-            'In ChatGPT on the web, open Settings → Apps → Advanced settings and turn on Developer mode. On Business, Enterprise and Edu workspaces an admin has to allow it first.',
+            'In ChatGPT on the web, open Settings → Apps → Advanced settings and turn on Developer mode. On Business only an admin or owner can do this; on Enterprise and Edu an admin can give you access.',
             'In Settings → Apps click Create. Name it Tadween, choose OAuth for authentication and paste this MCP server URL:',
             'Click Scan Tools, sign in to Tadween in the window that opens and approve, then click Create.',
             'In a new chat, pick Tadween from the tools menu, or mention it with @.',
@@ -91,7 +91,7 @@ export const aiClientsEn: AiClientsDict = {
         { lang: 'ar', text: 'إيه المنشورات اللي متجدولة الأسبوع ده؟' },
       ],
       notes: [
-        'Scheduling is a write action. OpenAI’s help center says full MCP support, including write actions, is in beta on ChatGPT Business, Enterprise and Edu. On Pro, custom MCP apps can only read for now: ChatGPT can list your channels and posts but not schedule.',
+        'Scheduling is a write action. OpenAI’s help center says full MCP support, including write actions, is in beta on ChatGPT Business, Enterprise and Edu. On Pro, custom MCP apps can only read for now: ChatGPT can list your channels and posts but not schedule. Other plans aren’t listed for custom MCP apps.',
         'Custom MCP apps work in ChatGPT on the web, not in the mobile apps. ChatGPT may ask you to confirm before it schedules.',
       ],
       faq: [
@@ -101,7 +101,7 @@ export const aiClientsEn: AiClientsDict = {
         },
         {
           title: 'Do I need an API key for ChatGPT?',
-          content: 'No. ChatGPT connects with OAuth: you sign in to Tadween in a window and approve it. ChatGPT doesn’t accept API keys for custom MCP apps.',
+          content: 'No. Tadween’s ChatGPT setup signs in with OAuth: you sign in to Tadween in a window and approve it. There is no key to paste.',
         },
         {
           title: 'Is ChatGPT the same as Codex?',
@@ -110,7 +110,7 @@ export const aiClientsEn: AiClientsDict = {
       ],
     },
     claude: {
-      title: 'Schedule LinkedIn posts with Claude — custom connector over MCP | Tadween',
+      title: 'Claude MCP connector: schedule LinkedIn posts | Tadween',
       description: 'Add Tadween to Claude as a custom connector on the web or desktop, sign in, and ask Claude to write and schedule LinkedIn posts. Steps and example prompts.',
       h1: 'Schedule LinkedIn and social posts with Claude',
       intro: 'Add Tadween to Claude as a custom connector, on claude.ai or Claude Desktop, and sign in once. Then ask Claude to plan your LinkedIn week, write a post in Arabic or schedule one to your page.',
@@ -122,6 +122,7 @@ export const aiClientsEn: AiClientsDict = {
           steps: [
             'In Claude, open Customize → Connectors. On Team and Enterprise plans an owner adds it once under Organization settings → Connectors, and each member then clicks Connect.',
             'Click + Add, then Add custom connector. Name it Tadween, paste this URL and click Continue:',
+            'Review the authentication settings Claude detected and click Continue.',
             'Keep Sign in now, choose Register automatically as the OAuth client and click Add. Sign in to Tadween in the window that opens and approve your workspace.',
             'In a chat, click + → Connectors and turn Tadween on.',
           ],
@@ -138,6 +139,7 @@ export const aiClientsEn: AiClientsDict = {
         posts: [
           { net: 'linkedin-page', name: 'Cairo Coffee Co.', text: 'New single origin from Sidamo…', when: 'Mon 08:30' },
           { net: 'linkedin-page', name: 'Cairo Coffee Co.', text: 'جلسة تذوق يوم الخميس الساعة ٦…', when: 'Wed 08:30' },
+          { net: 'linkedin-page', name: 'Cairo Coffee Co.', text: 'Meet the team behind our new roastery…', when: 'Fri 08:30' },
         ],
       },
       prompts: [
@@ -168,7 +170,7 @@ export const aiClientsEn: AiClientsDict = {
       ],
     },
     'claude-cowork': {
-      title: 'Schedule LinkedIn posts with Claude Cowork — Tadween connector | Tadween',
+      title: 'Claude Cowork MCP: schedule LinkedIn posts | Tadween',
       description: 'Connect Tadween once in Claude and use it in Cowork: turn the files on your desktop into LinkedIn posts and schedule them. No terminal, no API key.',
       h1: 'Schedule LinkedIn and social posts with Claude Cowork',
       intro: 'Cowork uses the connectors on your Claude account. Add Tadween once, then let Cowork turn a folder of notes, a report or a deck into LinkedIn posts on your calendar.',
@@ -180,8 +182,9 @@ export const aiClientsEn: AiClientsDict = {
           steps: [
             'In Claude Desktop, open Customize → Connectors. On Team and Enterprise plans an owner adds it under Organization settings → Connectors first.',
             'Click + Add, then Add custom connector. Name it Tadween, paste this URL and click Continue:',
+            'Review the authentication settings Claude detected and click Continue.',
             'Keep Sign in now, choose Register automatically as the OAuth client and click Add. Sign in to Tadween and approve your workspace.',
-            'Start a Cowork task and turn Tadween on in its connectors.',
+            'Custom connectors on your Claude account work in Cowork too. Start a task and ask it to list your Tadween channels.',
           ],
         },
       },
@@ -201,7 +204,7 @@ export const aiClientsEn: AiClientsDict = {
       prompts: [
         { lang: 'en', text: 'List my Tadween channels.' },
         { lang: 'en', text: 'Turn the report in this folder into three LinkedIn posts and save them as drafts.' },
-        { lang: 'en', text: 'Import the image at this link into my media library and attach it to Monday’s post.' },
+        { lang: 'en', text: 'Import the image at this link into my media library and use it in a new LinkedIn post for Monday.' },
         { lang: 'en', text: 'What goes out on LinkedIn this week? Summarise it in a table.' },
         { lang: 'ar', text: 'اقرا الملاحظات اللي في الفولدر ده واكتب منها بوستين لينكدإن مسودة.' },
         { lang: 'ar', text: 'جدول بوست عن الإطلاق يوم التلات الساعة ٩ الصبح.' },
@@ -226,7 +229,7 @@ export const aiClientsEn: AiClientsDict = {
       ],
     },
     perplexity: {
-      title: 'Schedule LinkedIn posts with Perplexity — custom remote connector | Tadween',
+      title: 'Perplexity MCP connector: schedule LinkedIn posts | Tadween',
       description: 'Add Tadween to Perplexity as a custom remote connector with OAuth, then research a topic and schedule the LinkedIn post in the same thread.',
       h1: 'Schedule LinkedIn and social posts with Perplexity',
       intro: 'Add Tadween to Perplexity as a custom remote connector and sign in. Research a topic, then ask Perplexity to turn what it found into a LinkedIn post and schedule it.',
@@ -262,7 +265,7 @@ export const aiClientsEn: AiClientsDict = {
         { lang: 'ar', text: 'جدول البوست ده لصفحة الشركة بكرة الساعة ٩.' },
       ],
       notes: [
-        'Custom connectors depend on your Perplexity plan. On Enterprise, members can add their own only if an admin allows it; it is off by default.',
+        'Perplexity files custom connectors under its Enterprise features; check its help center, linked below, for your plan. On Enterprise, members can add their own only if an admin allows it; it is off by default.',
       ],
       faq: [
         {
@@ -280,7 +283,7 @@ export const aiClientsEn: AiClientsDict = {
       ],
     },
     'claude-code': {
-      title: 'Schedule LinkedIn posts with Claude Code — one MCP command | Tadween',
+      title: 'Claude Code MCP: schedule LinkedIn posts | Tadween',
       description: 'Connect Tadween to Claude Code with one command, sign in or use an API key, and schedule LinkedIn posts from your terminal: changelogs, launches, release notes.',
       h1: 'Schedule LinkedIn and social posts with Claude Code',
       intro: 'One command adds Tadween to Claude Code. Then turn a changelog, a README or a release into LinkedIn posts without leaving the terminal.',
@@ -338,7 +341,7 @@ export const aiClientsEn: AiClientsDict = {
       ],
     },
     codex: {
-      title: 'Schedule LinkedIn posts with Codex — MCP server setup | Tadween',
+      title: 'Codex MCP: schedule LinkedIn posts from Codex | Tadween',
       description: 'Add Tadween to OpenAI Codex in the CLI or IDE extension, sign in or use an API key from an environment variable, and schedule LinkedIn posts from your code.',
       h1: 'Schedule LinkedIn and social posts with Codex',
       intro: 'Add Tadween to Codex once and it works in the Codex CLI, the IDE extension and the ChatGPT desktop app, which share one configuration. Then post about what you ship.',
@@ -389,32 +392,32 @@ export const aiClientsEn: AiClientsDict = {
         },
         {
           title: 'Is Codex the same as ChatGPT?',
-          content: 'No. Codex is OpenAI’s coding agent; ChatGPT is the chat assistant. Codex can use an API key, while ChatGPT connects only with sign-in. Both can schedule to Tadween.',
+          content: 'No. Codex is OpenAI’s coding agent; ChatGPT is the chat assistant. Codex can sign in or use an API key; Tadween’s ChatGPT setup signs in. Both can schedule to Tadween, ChatGPT on the plans OpenAI lists for write actions.',
         },
       ],
     },
     cursor: {
-      title: 'Schedule LinkedIn posts from Cursor — MCP server in mcp.json | Tadween',
-      description: 'Add Tadween to Cursor’s mcp.json, sign in or use an API key header, and ask Cursor’s agent to schedule LinkedIn posts about what you build.',
+      title: 'Cursor MCP: schedule LinkedIn posts from Cursor | Tadween',
+      description: 'Add Tadween to Cursor’s mcp.json, sign in or read an API key from your environment, and ask Cursor’s agent to schedule LinkedIn posts about what you build.',
       h1: 'Schedule LinkedIn and social posts from Cursor',
-      intro: 'Paste one block into Cursor’s MCP settings and sign in. Then ask Cursor’s agent to announce a feature on LinkedIn while the code is still open.',
+      intro: 'Add one block to Cursor’s mcp.json and sign in. Then ask Cursor’s agent to announce a feature on LinkedIn while the code is still open.',
       blurb: 'A few lines in mcp.json',
       methods: {
         oauth: {
           label: 'Sign in (OAuth)',
           how: 'Add the server, then log in',
           steps: [
-            'Open Cursor Settings → MCP and click New MCP server. It opens ~/.cursor/mcp.json (for one project only, use .cursor/mcp.json). Paste this and save:',
-            'Click Login next to tadween, sign in to Tadween in the browser and approve.',
+            'Add this to ~/.cursor/mcp.json (or to .cursor/mcp.json in one project) and save:',
+            'Open Customize in Cursor’s sidebar and check that tadween is on. When Cursor asks you to sign in, sign in to Tadween in the browser and approve.',
           ],
         },
         key: {
           label: 'API key',
-          how: 'Add the server with your key',
+          how: 'A key read from your environment',
           steps: [
-            'Open Cursor Settings → MCP and click New MCP server. It opens ~/.cursor/mcp.json.',
-            'Paste this with your key from Tadween (Settings, API & MCP) and save:',
-            'Back in Settings → MCP, tadween turns green with its tools listed.',
+            'Copy your key from Tadween (Settings, API & MCP) and put it in an environment variable, in your shell profile:',
+            'Add this to ~/.cursor/mcp.json and save. Cursor reads the key from the variable, so it is never written in the file:',
+            'Restart Cursor, then open Customize in the sidebar and check that tadween is on.',
           ],
         },
       },
@@ -440,20 +443,20 @@ export const aiClientsEn: AiClientsDict = {
       faq: [
         {
           title: 'Global or per-project config?',
-          content: '~/.cursor/mcp.json makes Tadween available in every project. .cursor/mcp.json in a project limits it to that project; don’t commit a key in that file.',
+          content: '~/.cursor/mcp.json makes Tadween available in every project. .cursor/mcp.json in a project limits it to that project.',
         },
         {
           title: 'Can I keep the key out of mcp.json?',
-          content: 'Use the sign-in method: there is no key in the file at all. Cursor stores the sign-in for you.',
+          content: 'Yes. The key method above uses ${env:TADWEEN_API_KEY}, so only the variable name is in the file. With sign-in there is no key at all.',
         },
         {
-          title: 'The server stays red. What should I check?',
-          content: 'Check that the address is exact, the key has no extra spaces and wasn’t rotated, then reload the MCP servers or restart Cursor.',
+          title: 'The tools don’t show up. What should I check?',
+          content: 'Open the Output panel and pick MCP Logs. Check that the address is exact, that TADWEEN_API_KEY is set where Cursor starts, and that the key wasn’t rotated. Then restart Cursor.',
         },
       ],
     },
     vscode: {
-      title: 'Schedule LinkedIn posts from VS Code — Copilot agent mode + MCP | Tadween',
+      title: 'VS Code MCP: schedule LinkedIn posts with Copilot | Tadween',
       description: 'Add Tadween to VS Code’s mcp.json and schedule LinkedIn posts from GitHub Copilot agent mode. Sign in, or keep your key in VS Code’s secret storage.',
       h1: 'Schedule LinkedIn and social posts from VS Code',
       intro: 'Add Tadween to VS Code and GitHub Copilot’s agent mode can schedule posts for you. Sign in, or let VS Code ask for your key once and keep it in its secret storage.',
@@ -513,7 +516,7 @@ export const aiClientsEn: AiClientsDict = {
       ],
     },
     'grok-build': {
-      title: 'Schedule LinkedIn posts with Grok Build — remote MCP server | Tadween',
+      title: 'Grok Build MCP: schedule LinkedIn posts | Tadween',
       description: 'Connect Tadween to xAI’s Grok Build with one grok mcp add command, sign in or use an API key header, and schedule LinkedIn posts from your terminal.',
       h1: 'Schedule LinkedIn and social posts with Grok Build',
       intro: 'One command adds Tadween to Grok Build, xAI’s coding agent. Sign in in the browser the first time, then post about your work from the terminal.',
@@ -528,8 +531,8 @@ export const aiClientsEn: AiClientsDict = {
           label: 'API key',
           how: 'A header read from your environment',
           steps: [
-            'Copy your key from Tadween (Settings, API & MCP) and put it in an environment variable:',
-            'Add the server. Grok Build expands ${TADWEEN_API_KEY} itself, so the key stays in your environment:',
+            'Copy your key from Tadween (Settings, API & MCP) and put it in an environment variable, in your shell profile:',
+            'Add the server. The single quotes keep the shell from filling in the key; Grok Build reads ${TADWEEN_API_KEY} itself when it connects:',
           ],
         },
       },
@@ -563,7 +566,7 @@ export const aiClientsEn: AiClientsDict = {
         },
         {
           title: 'How do I keep the key out of my config?',
-          content: 'Grok Build expands ${VAR} in headers, so the command above reads the key from TADWEEN_API_KEY when it connects. Only the variable name is saved.',
+          content: 'Grok Build expands ${VAR} in headers when it connects. Keep the single quotes in the command above, so the shell passes the variable name and not the key, and only the name is saved.',
         },
       ],
     },

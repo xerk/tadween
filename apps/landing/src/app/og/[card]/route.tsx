@@ -36,7 +36,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ card: s
   const page = channel
     ? { eyebrow: channel.name, title: en.channels.items[channel.slug].h1 }
     : client
-      ? { eyebrow: `Tadween in ${client.name}`, title: en.aiClients.items[client.slug].h1 }
+      ? { eyebrow: en.aiClients.page.eyebrow.replaceAll('{name}', client.name), title: en.aiClients.items[client.slug].h1 }
       : PAGES[card];
   const logo = await asset('logo.svg', 'image/svg+xml');
   const icon = channel ? await asset(channel.icon.replace(/^\//, ''), 'image/png') : null;

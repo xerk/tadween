@@ -332,6 +332,17 @@ export function AgentPage({ t }: { t: Dict }) {
                   ))}
                 </ol>
                 <Code t={t} label={c.codeLabel} code={c.code} />
+                <p className="pz-fine">
+                  {a.connect.guide}{' '}
+                  {c.guides.map((slug, i) => (
+                    <span key={slug}>
+                      {i ? ', ' : null}
+                      <a href={localePath(t.lang, clientPath(slug))} lang="en" dir="ltr">
+                        {clientBySlug(slug)!.name}
+                      </a>
+                    </span>
+                  ))}
+                </p>
               </div>
             ))}
           </div>
@@ -606,10 +617,9 @@ export function ChannelPage({ t, slug }: { t: Dict; slug: string }) {
   );
 }
 
-
 /** A link card to an AI client's page: a neutral glyph (never the product's logo), the
     client's name as text and what it is. */
-export function ClientCard({ t, c }: { t: Dict; c: AiClientFacts }) {
+function ClientCard({ t, c }: { t: Dict; c: AiClientFacts }) {
   return (
     <a className="pz-chcard" href={localePath(t.lang, clientPath(c.slug))}>
       <span className="pz-tile-ic">
@@ -661,10 +671,6 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
   const path = clientPath(slug);
   const crumbs = trail(t, { name: t.agentPage.eyebrow, href: localePath(t.lang, PATHS.agent) }, { name: facts.name, href: localePath(t.lang, path) });
   const faq = [...p.sharedFaq.map((f) => ({ title: fill(f.title), content: withApi(fill(f.content)) })), ...copy.faq];
-  // The words and the snippets live in two files; a step without its words fails the build.
-  for (const m of facts.methods) {
-    if (copy.methods[m.auth]?.steps.length !== m.steps.length) throw new Error(`${t.lang} copy for ${slug} (${m.auth}) needs ${m.steps.length} steps.`);
-  }
   return (
     <Shell t={t} path={path} jsonLd={[faqPage(faq), trailLd(crumbs)]}>
       <section className="pz-hero" aria-labelledby="client-title">

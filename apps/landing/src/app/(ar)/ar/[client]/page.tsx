@@ -1,6 +1,7 @@
 import { AiClientPage } from '@/components/pages';
 import { ar } from '@/content/ar';
-import { clientPath, clientStaticParams } from '@/lib/routes';
+import { clientStaticParams } from '@/lib/clientRoutes';
+import { clientPath } from '@/lib/routes';
 import { pageMetadata } from '@/lib/seo';
 
 // One page per AI client in lib/aiClients.ts (/ar/chatgpt, /ar/claude-code); anything else

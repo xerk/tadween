@@ -102,9 +102,9 @@ Tadween has no listed app in any vendor's store. So a client gets a page only if
 | `/perplexity` | OAuth (custom remote connector, Streamable HTTP) | https://www.perplexity.ai/help-center/en/articles/13915507-adding-custom-remote-connectors |
 | `/claude-code` | OAuth or key (`--header`) | https://code.claude.com/docs/en/mcp |
 | `/codex` | OAuth (`codex mcp add --url`, `codex mcp login`) or key (`bearer_token_env_var`) | https://learn.chatgpt.com/docs/extend/mcp |
-| `/cursor` | OAuth or key (`headers` in mcp.json) | https://cursor.com/docs/context/mcp |
+| `/cursor` | OAuth or key (`${env:TADWEEN_API_KEY}` in `headers` in mcp.json) | https://cursor.com/docs/mcp |
 | `/vscode` | OAuth or key (`inputs` + `headers`, kept in secret storage) | https://code.visualstudio.com/docs/copilot/reference/mcp-configuration, https://docs.github.com/en/copilot/how-tos/administer-copilot/manage-mcp-usage/configure-mcp-server-access |
-| `/grok-build` | OAuth (browser flow on first use) or key (`--header` with `${VAR}`) | https://docs.x.ai/build/features/mcp-servers |
+| `/grok-build` | OAuth (browser flow on first use) or key (`--header` in single quotes, so Grok Build expands `${TADWEEN_API_KEY}`, not the shell) | https://docs.x.ai/build/features/mcp-servers |
 
 **Plan caveats shown on the pages:**
 - **ChatGPT:** OpenAI's help center (updated 2026-10-08) says full MCP support, including write actions, is a beta on Business, Enterprise and Edu. On Pro, custom MCP apps are read/fetch only, so ChatGPT can't schedule there. Custom MCP apps are web only.
@@ -132,25 +132,37 @@ Tadween has no listed app in any vendor's store. So a client gets a page only if
 
 ### Differences from PR #38 (Settings → API & MCP) to fix there
 
-The pages follow the vendors' current docs where the in-app guide is out of date:
+The pages follow the vendors' current docs where the in-app guide (`api.settings.tsx` on `feat/tadween-api-connect`) is out of date. This PR doesn't edit the app; align these strings in PR #38:
 
-- **ChatGPT:**
-  - The menu is now **Settings → Apps** (not "Apps & Connectors"), and the user clicks **Scan Tools** before **Create**.
-  - Full MCP with write actions is limited to Business, Enterprise and Edu, so the guide should say so.
-- **Claude:**
-  - Individual plans now start at **Customize → Connectors → + Add → Add custom connector**.
-  - The OAuth client choice should be **Register automatically** (Tadween has DCR, not CIMD).
-  - Connectors are turned on in a chat from **+ → Connectors**.
-- **Windsurf:** now Devin Desktop, with a new config path (see above).
-- **n8n:** the official node docs only list an SSE endpoint.
-- **Backend:** ChatGPT asks MCP servers to advertise `offline_access` and issue refresh tokens. `/mcp-oauth-dynamic` advertises only `mcp:read` and `mcp:write`, so ChatGPT users may need to sign in again when the token expires. This is worth checking separately; it is not part of this PR.
+| Key in the app | App says now | Landing page says (vendor doc) |
+|---|---|---|
+| `tdw_api_gpt_s1` | "Settings → Apps & Connectors → Advanced settings … turn on Developer mode. It needs a plan that allows custom connectors." | "Settings → Apps → Advanced settings … turn on Developer mode. On Business only an admin or owner can do this; on Enterprise and Edu an admin can give you access." Add: full MCP with write actions is a beta on Business, Enterprise and Edu; Pro is read-only. |
+| `tdw_api_gpt_s2` | "Back in Apps & Connectors click Create …" | "In Settings → Apps click Create …" |
+| `tdw_api_gpt_s3` | "Confirm you trust it and click Create. Sign in …" | "Click Scan Tools, sign in to Tadween in the window that opens and approve, then click Create." |
+| `tdw_api_gpt_s4` | "open the + menu and add {{name}} to the conversation" | "pick Tadween from the tools menu, or mention it with @" |
+| `tdw_api_claude_s1` | "open Settings → Connectors" | "open Customize → Connectors" (Team and Enterprise: an owner adds it under Organization settings → Connectors, then members click Connect) |
+| `tdw_api_claude_s2` | "Click Add custom connector …" | "Click + Add, then Add custom connector … click Continue" |
+| (missing) | — | "Review the authentication settings Claude detected and click Continue." |
+| `tdw_api_claude_s3` | "Click Add, then Connect. A {{name}} window opens …" | "Keep Sign in now, choose Register automatically as the OAuth client and click Add. Sign in …" (Tadween has DCR, not CIMD, so "Use Claude's published identity" won't work) |
+| `tdw_api_claude_s4` | "open the Search and tools menu and make sure {{name}} is on" | "click + → Connectors and turn Tadween on" |
+| `tdw_api_cursor_s1`, `tdw_api_cursor_o1` | "Open Cursor Settings → MCP and click New MCP server" | Cursor's docs manage servers from **Customize** in the sidebar or in `mcp.json`: "Add this to ~/.cursor/mcp.json (or .cursor/mcp.json in one project)" |
+| `tdw_api_cursor_s3` | "Back in Settings → MCP, {{name}} turns green with its tools listed." | "Restart Cursor, then open Customize in the sidebar and check that tadween is on." |
+| `tdw_api_cursor_o2` | "Click Login next to {{name}} …" | "Open Customize … When Cursor asks you to sign in, sign in to Tadween …" |
+| Cursor key snippet | `"Authorization": "Bearer <key>"` written in mcp.json | `"Authorization": "Bearer ${env:TADWEEN_API_KEY}"` plus `export TADWEEN_API_KEY=…` (Cursor resolves `${env:NAME}` in `headers`) |
+| Windsurf guide | `~/.codeium/windsurf/mcp_config.json`, Settings → Cascade → MCP servers | Windsurf is now Devin Desktop: `~/.config/devin/mcp_config.json` (Windows `%APPDATA%\devin\mcp_config.json`), Cascade panel `…` → Open MCP config file |
+| n8n guide | "Server Transport to HTTP Streamable" | n8n's official node page documents only an "SSE Endpoint"; the option is described by third parties only |
+
+Other:
+
+- **Refresh tokens:** ChatGPT asks servers to advertise `offline_access`. `/mcp-oauth-dynamic` advertises only `mcp:read` and `mcp:write`. Tadween's OAuth tokens don't expire, so this doesn't break anything today; revisit it if tokens ever get an expiry.
+- **MCP host:** the app builds MCP addresses from `MCP_URL`, falling back to the backend URL. The landing now does the same with `NEXT_PUBLIC_MCP_URL`, falling back to `NEXT_PUBLIC_API_URL`. Set both to the same host in production.
 
 ---
 
 ## 3. What the Tadween pages do
 
 - **Routes:** each client lives at the top level, like Postiz: `/chatgpt` and `/ar/chatgpt`. The pages come from one `[client]` route per language with `generateStaticParams` and `dynamicParams = false`, so an unknown slug returns 404.
-- **Slug guard:** a slug that matches a reserved route (`RESERVED_SEGMENTS` in `lib/routes.ts`) or any top-level folder or file in `src/app` or `public` fails the build. A copy file whose step count doesn't match the snippets in `lib/aiClients.ts` also fails the build.
+- **Slug guard:** `lib/clientRoutes.ts` (imported only by the two `[client]` routes) fails the build when a slug matches any top-level folder or file in `src/app` or `public`, or a name in its `RESERVED_SEGMENTS` (sitemap, robots, the `/developers` redirect, `api`, `_next`), and when a copy file's step count doesn't match the snippets in `lib/aiClients.ts`.
 - **Data:**
   - `lib/aiClients.ts` holds the facts: methods, snippets with `{api}`, vendor docs and related clients.
   - `content/aiClients.en.ts` and `content/aiClients.ar.ts` hold the words.

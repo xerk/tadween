@@ -239,7 +239,7 @@ export const en: Dict = {
     },
     works: {
       title: 'Works with the AI tools you already use',
-      sub: 'Anything that speaks MCP can read your calendar and schedule posts with your permission. Each one has a step-by-step page.',
+      sub: 'These have a step-by-step page each. Any other client that can add a remote MCP server over HTTP works too.',
       note: 'Names are trademarks of their owners. Tadween isn’t affiliated with them.',
     },
     connect: {
@@ -269,9 +269,11 @@ export const en: Dict = {
       ],
       clientsTitle: 'Step by step, for your tool',
       clientsSub: 'The same tools in each. Settings, API & MCP in Tadween shows these for your workspace too.',
+      guide: 'Full steps:',
       clients: [
         {
           name: 'Claude and ChatGPT',
+          guides: ['claude', 'chatgpt'],
           how: 'A custom connector, signed in with OAuth',
           steps: ['Open your connectors and add a custom one', 'Paste the Tadween MCP address', 'Sign in to Tadween and approve it'],
           codeLabel: 'Connector address',
@@ -279,15 +281,17 @@ export const en: Dict = {
         },
         {
           name: 'Claude Code',
+          guides: ['claude-code'],
           how: 'One command in your terminal',
-          steps: ['Run the command below', 'Sign in to Tadween in the browser tab that opens'],
+          steps: ['Run the command below', 'Start Claude Code, type /mcp, pick tadween and choose Authenticate'],
           codeLabel: 'Terminal',
           code: 'claude mcp add --transport http tadween "{api}/mcp-oauth-dynamic"',
         },
         {
           name: 'Cursor',
-          how: 'A remote MCP server in the client’s settings',
-          steps: ['Add the server to your MCP settings', 'Sign in to Tadween when the client asks'],
+          guides: ['cursor'],
+          how: 'A remote MCP server in mcp.json',
+          steps: ['Add the server to mcp.json', 'Sign in to Tadween when Cursor asks'],
           codeLabel: '.cursor/mcp.json',
           code: '{\n  "mcpServers": {\n    "tadween": {\n      "url": "{api}/mcp-oauth-dynamic"\n    }\n  }\n}',
         },

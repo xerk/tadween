@@ -17,7 +17,7 @@ export const aiClientsAr: AiClientsDict = {
     promptsTitle: 'ماذا تطلب من {name}',
     promptsSub: 'طلبات بسيطة بالعربية أو الإنجليزية. ابدأ بعرض قنواتك لتتأكد من الاتصال.',
     canTitle: 'ما يستطيع {name} فعله في تدوين',
-    canSub: 'الأدوات نفسها التي يستخدمها الوكيل داخل تدوين، لا أكثر.',
+    canSub: 'الأدوات نفسها التي يستخدمها الوكيل داخل تدوين.',
     channelsTitle: 'لينكدإن أولًا، وكل قناة تربطها',
     channelsSub: 'يجدول {name} على القنوات المربوطة في مساحة عملك في تدوين، ولكلٍّ منها حدودها وإعداداتها.',
     securityTitle: 'مساحة عملك تبقى تحت يدك',
@@ -53,7 +53,7 @@ export const aiClientsAr: AiClientsDict = {
   kinds: { assistant: 'مساعدات المحادثة', coding: 'وكلاء البرمجة والمحررات' },
   items: {
     chatgpt: {
-      title: 'جدولة منشورات لينكدإن مع ChatGPT — تطبيق MCP مخصّص | تدوين',
+      title: 'ChatGPT MCP: جدولة منشورات لينكدإن من ChatGPT | تدوين',
       description: 'أضف تدوين إلى ChatGPT كتطبيق MCP مخصّص، وسجّل الدخول، واطلب من ChatGPT كتابة منشورات لينكدإن وجدولتها. الخطوات والخطط وأمثلة الطلبات.',
       h1: 'جدولة منشورات لينكدإن والشبكات الاجتماعية مع ChatGPT',
       intro: 'أضف تدوين إلى ChatGPT كتطبيق MCP مخصّص وسجّل الدخول مرة واحدة. ثم اطلب من ChatGPT مسودة منشور على لينكدإن، أو مراجعة أسبوعك، أو جدولة منشور على صفحتك.',
@@ -63,7 +63,7 @@ export const aiClientsAr: AiClientsDict = {
           label: 'تسجيل الدخول (OAuth)',
           how: 'تطبيق مخصّص في ChatGPT على الويب',
           steps: [
-            'في ChatGPT على الويب افتح Settings → Apps → Advanced settings وفعّل Developer mode. في مساحات Business وEnterprise وEdu يجب أن يسمح به المسؤول أولًا.',
+            'في ChatGPT على الويب افتح Settings → Apps → Advanced settings وفعّل Developer mode. في Business يستطيع ذلك المسؤول أو المالك فقط، وفي Enterprise وEdu يمكن للمسؤول أن يمنحك الصلاحية.',
             'من Settings → Apps اضغط Create. سمّه Tadween، واختر OAuth للمصادقة، والصق عنوان خادم MCP هذا:',
             'اضغط Scan Tools، وسجّل الدخول إلى تدوين في النافذة التي تُفتح ووافق، ثم اضغط Create.',
             'في محادثة جديدة اختر Tadween من قائمة الأدوات، أو اذكره بعلامة @.',
@@ -89,7 +89,7 @@ export const aiClientsAr: AiClientsDict = {
         { lang: 'en', text: 'What is scheduled on LinkedIn this week?' },
       ],
       notes: [
-        'الجدولة إجراء كتابة. يذكر مركز مساعدة OpenAI أن دعم MCP الكامل، بما فيه إجراءات الكتابة، تجريبي على خطط ChatGPT Business وEnterprise وEdu. أما على Pro فتطبيقات MCP المخصّصة للقراءة فقط حاليًا: يعرض ChatGPT قنواتك ومنشوراتك لكنه لا يجدول.',
+        'الجدولة إجراء كتابة. يذكر مركز مساعدة OpenAI أن دعم MCP الكامل، بما فيه إجراءات الكتابة، تجريبي على خطط ChatGPT Business وEnterprise وEdu. أما على Pro فتطبيقات MCP المخصّصة للقراءة فقط حاليًا: يعرض ChatGPT قنواتك ومنشوراتك لكنه لا يجدول. ولا تذكر OpenAI خططًا أخرى لتطبيقات MCP المخصّصة.',
         'تطبيقات MCP المخصّصة تعمل في ChatGPT على الويب، لا في تطبيقات الجوال. وقد يطلب ChatGPT تأكيدك قبل الجدولة.',
       ],
       faq: [
@@ -99,7 +99,7 @@ export const aiClientsAr: AiClientsDict = {
         },
         {
           title: 'هل أحتاج مفتاحًا برمجيًا مع ChatGPT؟',
-          content: 'لا. يتصل ChatGPT عبر OAuth: تسجّل الدخول إلى تدوين في نافذة وتوافق. ولا يقبل ChatGPT المفاتيح البرمجية لتطبيقات MCP المخصّصة.',
+          content: 'لا. إعداد تدوين في ChatGPT يسجّل الدخول عبر OAuth: تسجّل الدخول إلى تدوين في نافذة وتوافق، ولا مفتاح تلصقه.',
         },
         {
           title: 'هل ChatGPT هو نفسه Codex؟',
@@ -108,7 +108,7 @@ export const aiClientsAr: AiClientsDict = {
       ],
     },
     claude: {
-      title: 'جدولة منشورات لينكدإن مع Claude — موصِّل مخصّص عبر MCP | تدوين',
+      title: 'موصِّل Claude MCP: جدولة منشورات لينكدإن | تدوين',
       description: 'أضف تدوين إلى Claude كموصِّل مخصّص على الويب أو سطح المكتب، وسجّل الدخول، واطلب من Claude كتابة منشورات لينكدإن وجدولتها. الخطوات وأمثلة الطلبات.',
       h1: 'جدولة منشورات لينكدإن والشبكات الاجتماعية مع Claude',
       intro: 'أضف تدوين إلى Claude كموصِّل مخصّص، على claude.ai أو Claude Desktop، وسجّل الدخول مرة واحدة. ثم اطلب من Claude أن يخطط أسبوعك على لينكدإن، أو يكتب منشورًا بالعربية، أو يجدول منشورًا على صفحتك.',
@@ -120,6 +120,7 @@ export const aiClientsAr: AiClientsDict = {
           steps: [
             'في Claude افتح Customize → Connectors. في خطط Team وEnterprise يضيفه المالك مرة واحدة من Organization settings → Connectors، ثم يضغط كل عضو Connect.',
             'اضغط ‎+ Add ثم Add custom connector. سمّه Tadween، والصق هذا العنوان واضغط Continue:',
+            'راجع إعدادات المصادقة التي اكتشفها Claude واضغط Continue.',
             'اترك Sign in now، واختر Register automatically كعميل OAuth، واضغط Add. سجّل الدخول إلى تدوين في النافذة التي تُفتح ووافق على مساحة عملك.',
             'في المحادثة اضغط + → Connectors وفعّل Tadween.',
           ],
@@ -136,6 +137,7 @@ export const aiClientsAr: AiClientsDict = {
         posts: [
           { net: 'linkedin-page', name: 'Cairo Coffee Co.', text: 'بن جديد من سيدامو وصل…', when: 'الاثنين ٠٨:٣٠' },
           { net: 'linkedin-page', name: 'Cairo Coffee Co.', text: 'Cupping session this Thursday at 18:00…', when: 'الأربعاء ٠٨:٣٠' },
+          { net: 'linkedin-page', name: 'Cairo Coffee Co.', text: 'تعرّف على الفريق اللي ورا المحمصة الجديدة…', when: 'الجمعة ٠٨:٣٠' },
         ],
       },
       prompts: [
@@ -166,7 +168,7 @@ export const aiClientsAr: AiClientsDict = {
       ],
     },
     'claude-cowork': {
-      title: 'جدولة منشورات لينكدإن مع Claude Cowork — موصِّل تدوين | تدوين',
+      title: 'Claude Cowork MCP: جدولة منشورات لينكدإن | تدوين',
       description: 'اربط تدوين مرة واحدة في Claude واستخدمه في Cowork: حوّل الملفات على جهازك إلى منشورات لينكدإن وجدولها. بلا طرفية وبلا مفتاح برمجي.',
       h1: 'جدولة منشورات لينكدإن والشبكات الاجتماعية مع Claude Cowork',
       intro: 'يستخدم Cowork الموصِّلات المربوطة بحسابك في Claude. أضف تدوين مرة واحدة، ثم دع Cowork يحوّل مجلد ملاحظات أو تقريرًا أو عرضًا تقديميًا إلى منشورات لينكدإن على تقويمك.',
@@ -178,8 +180,9 @@ export const aiClientsAr: AiClientsDict = {
           steps: [
             'في Claude Desktop افتح Customize → Connectors. في خطط Team وEnterprise يضيفه المالك أولًا من Organization settings → Connectors.',
             'اضغط ‎+ Add ثم Add custom connector. سمّه Tadween، والصق هذا العنوان واضغط Continue:',
+            'راجع إعدادات المصادقة التي اكتشفها Claude واضغط Continue.',
             'اترك Sign in now، واختر Register automatically كعميل OAuth، واضغط Add. سجّل الدخول إلى تدوين ووافق على مساحة عملك.',
-            'ابدأ مهمة في Cowork وفعّل Tadween من موصِّلاتها.',
+            'الموصِّلات المخصّصة على حسابك في Claude تعمل في Cowork أيضًا. ابدأ مهمة واطلب منها عرض قنواتك في تدوين.',
           ],
         },
       },
@@ -200,7 +203,7 @@ export const aiClientsAr: AiClientsDict = {
         { lang: 'ar', text: 'اعرض قنواتي في تدوين.' },
         { lang: 'ar', text: 'اقرا الملاحظات اللي في الفولدر ده واكتب منها بوستين لينكدإن مسودة.' },
         { lang: 'ar', text: 'جدول بوست عن الإطلاق يوم التلات الساعة ٩ الصبح.' },
-        { lang: 'ar', text: 'ضيف الصورة اللي على اللينك ده لمكتبة الوسائط وحطها في بوست الاتنين.' },
+        { lang: 'ar', text: 'ضيف الصورة اللي على اللينك ده لمكتبة الوسائط واستخدمها في بوست لينكدإن جديد يوم الاتنين.' },
         { lang: 'en', text: 'Turn the report in this folder into three LinkedIn posts and save them as drafts.' },
         { lang: 'en', text: 'What goes out on LinkedIn this week? Summarise it in a table.' },
       ],
@@ -224,8 +227,8 @@ export const aiClientsAr: AiClientsDict = {
       ],
     },
     perplexity: {
-      title: 'جدولة منشورات لينكدإن مع Perplexity — موصِّل بعيد مخصّص | تدوين',
-      description: 'أضف تدوين إلى Perplexity كموصِّل بعيد مخصّص عبر OAuth، ثم ابحث في موضوع وجدول منشور لينكدإن عنه في المحادثة نفسها.',
+      title: 'موصِّل Perplexity MCP: جدولة منشورات لينكدإن | تدوين',
+      description: 'أضف تدوين إلى Perplexity كموصِّل بعيد مخصّص عبر OAuth، ثم ابحث في موضوع واطلب كتابة منشور لينكدإن عنه وجدولته في المحادثة نفسها، بالعربية أو الإنجليزية.',
       h1: 'جدولة منشورات لينكدإن والشبكات الاجتماعية مع Perplexity',
       intro: 'أضف تدوين إلى Perplexity كموصِّل بعيد مخصّص وسجّل الدخول. ابحث في موضوع، ثم اطلب من Perplexity أن يحوّل ما وجده إلى منشور لينكدإن ويجدوله.',
       blurb: 'موصِّل بعيد مخصّص، بتسجيل الدخول',
@@ -259,7 +262,7 @@ export const aiClientsAr: AiClientsDict = {
         { lang: 'en', text: 'Research what changed in LinkedIn’s algorithm this month and draft a post for my profile.' },
         { lang: 'en', text: 'Turn your last answer into a LinkedIn post and schedule it for tomorrow at 9:00.' },
       ],
-      notes: ['الموصِّلات المخصّصة تعتمد على خطتك في Perplexity. وفي Enterprise لا يضيف الأعضاء موصِّلاتهم إلا إذا سمح المسؤول، وهذا معطّل افتراضيًا.'],
+      notes: ['يضع Perplexity الموصِّلات المخصّصة ضمن مزايا Enterprise؛ راجع مركز مساعدته المرتبط أدناه لمعرفة خطتك. وفي Enterprise لا يضيف الأعضاء موصِّلاتهم إلا إذا سمح المسؤول، وهذا معطّل افتراضيًا.'],
       faq: [
         {
           title: 'هل أحتاج مفتاحًا برمجيًا مع Perplexity؟',
@@ -276,7 +279,7 @@ export const aiClientsAr: AiClientsDict = {
       ],
     },
     'claude-code': {
-      title: 'جدولة منشورات لينكدإن مع Claude Code — أمر MCP واحد | تدوين',
+      title: 'Claude Code MCP: جدولة منشورات لينكدإن | تدوين',
       description: 'اربط تدوين بـClaude Code بأمر واحد، بتسجيل الدخول أو بمفتاح برمجي، وجدول منشورات لينكدإن من الطرفية: سجل التغييرات والإطلاقات وملاحظات الإصدار.',
       h1: 'جدولة منشورات لينكدإن والشبكات الاجتماعية مع Claude Code',
       intro: 'أمر واحد يضيف تدوين إلى Claude Code. ثم حوّل سجل التغييرات أو ملف README أو إصدارًا جديدًا إلى منشورات لينكدإن دون أن تغادر الطرفية.',
@@ -294,7 +297,7 @@ export const aiClientsAr: AiClientsDict = {
           label: 'مفتاح برمجي',
           how: 'أضف الخادم بمفتاحك',
           steps: [
-            'انسخ مفتاحك من تدوين (الإعدادات، API وMCP) وشغّل هذا، مع وضع المفتاح مكان ‎<your-api-key>:',
+            'انسخ مفتاحك من صفحة API وMCP في إعدادات تدوين وشغّل هذا، مع وضع المفتاح مكان ‎<your-api-key>:',
             'تحقّق: يجب أن يظهر tadween بحالة Connected.',
           ],
         },
@@ -334,7 +337,7 @@ export const aiClientsAr: AiClientsDict = {
       ],
     },
     codex: {
-      title: 'جدولة منشورات لينكدإن مع Codex — إعداد خادم MCP | تدوين',
+      title: 'Codex MCP: جدولة منشورات لينكدإن من Codex | تدوين',
       description: 'أضف تدوين إلى Codex من OpenAI في الطرفية أو إضافة المحرر، بتسجيل الدخول أو بمفتاح من متغيّر بيئة، وجدول منشورات لينكدإن من كودك.',
       h1: 'جدولة منشورات لينكدإن والشبكات الاجتماعية مع Codex',
       intro: 'أضف تدوين إلى Codex مرة واحدة فيعمل في Codex CLI وإضافة المحرر وتطبيق ChatGPT لسطح المكتب، لأنها تتشارك الإعدادات نفسها. ثم انشر عمّا تطلقه.',
@@ -349,7 +352,7 @@ export const aiClientsAr: AiClientsDict = {
           label: 'مفتاح برمجي',
           how: 'رمز Bearer من متغيّر بيئة',
           steps: [
-            'انسخ مفتاحك من تدوين (الإعدادات، API وMCP) وضعه في متغيّر بيئة، في ملف إعدادات الطرفية:',
+            'انسخ مفتاحك من صفحة API وMCP في إعدادات تدوين وضعه في متغيّر بيئة، في ملف إعدادات الطرفية:',
             'أضف الخادم إلى ‎~/.codex/config.toml. يقرأ Codex المفتاح من المتغيّر، فلا يُكتب في الملف أبدًا:',
             'تحقّق: يجب أن يظهر tadween في القائمة.',
           ],
@@ -385,32 +388,32 @@ export const aiClientsAr: AiClientsDict = {
         },
         {
           title: 'هل Codex هو نفسه ChatGPT؟',
-          content: 'لا. Codex وكيل البرمجة من OpenAI، وChatGPT مساعد المحادثة. يستطيع Codex استخدام مفتاح برمجي، بينما يتصل ChatGPT بتسجيل الدخول فقط. وكلاهما يجدول في تدوين.',
+          content: 'لا. Codex وكيل البرمجة من OpenAI، وChatGPT مساعد المحادثة. يتصل Codex بتسجيل الدخول أو بمفتاح برمجي، وإعداد تدوين في ChatGPT يسجّل الدخول. وكلاهما يجدول في تدوين، وChatGPT على الخطط التي تذكرها OpenAI لإجراءات الكتابة.',
         },
       ],
     },
     cursor: {
-      title: 'جدولة منشورات لينكدإن من Cursor — خادم MCP في mcp.json | تدوين',
-      description: 'أضف تدوين إلى ملف mcp.json في Cursor، بتسجيل الدخول أو بترويسة مفتاح برمجي، واطلب من وكيل Cursor جدولة منشورات لينكدإن عمّا تبنيه.',
+      title: 'Cursor MCP: جدولة منشورات لينكدإن من Cursor | تدوين',
+      description: 'أضف تدوين إلى ملف mcp.json في Cursor، بتسجيل الدخول أو بمفتاح برمجي يُقرأ من بيئتك، واطلب من وكيل Cursor جدولة منشورات لينكدإن عمّا تبنيه.',
       h1: 'جدولة منشورات لينكدإن والشبكات الاجتماعية من Cursor',
-      intro: 'الصق كتلة واحدة في إعدادات MCP في Cursor وسجّل الدخول. ثم اطلب من وكيل Cursor أن يعلن عن ميزة على لينكدإن والكود ما زال مفتوحًا.',
+      intro: 'أضف كتلة واحدة إلى ملف mcp.json في Cursor وسجّل الدخول. ثم اطلب من وكيل Cursor أن يعلن عن ميزة على لينكدإن والكود ما زال مفتوحًا.',
       blurb: 'بضعة أسطر في mcp.json',
       methods: {
         oauth: {
           label: 'تسجيل الدخول (OAuth)',
           how: 'أضف الخادم ثم سجّل الدخول',
           steps: [
-            'افتح Cursor Settings → MCP واضغط New MCP server. يفتح ‎~/.cursor/mcp.json (ولمشروع واحد فقط استخدم ‎.cursor/mcp.json). الصق هذا واحفظ:',
-            'اضغط Login بجانب tadween، وسجّل الدخول إلى تدوين في المتصفح ووافق.',
+            'أضف هذا إلى الملف ‎~/.cursor/mcp.json، أو إلى ‎.cursor/mcp.json داخل مشروع واحد، واحفظ:',
+            'افتح Customize في الشريط الجانبي لـCursor وتأكد أن tadween مفعّل. وحين يطلب Cursor تسجيل الدخول، سجّل الدخول إلى تدوين في المتصفح ووافق.',
           ],
         },
         key: {
           label: 'مفتاح برمجي',
-          how: 'أضف الخادم بمفتاحك',
+          how: 'مفتاح يُقرأ من بيئتك',
           steps: [
-            'افتح Cursor Settings → MCP واضغط New MCP server. يفتح ‎~/.cursor/mcp.json.',
-            'الصق هذا مع مفتاحك من تدوين (الإعدادات، API وMCP) واحفظ:',
-            'في Settings → MCP يصبح tadween أخضر وتظهر أدواته.',
+            'انسخ مفتاحك من صفحة API وMCP في إعدادات تدوين وضعه في متغيّر بيئة، في ملف إعدادات الطرفية:',
+            'أضف هذا إلى ‎~/.cursor/mcp.json واحفظ. يقرأ Cursor المفتاح من المتغيّر، فلا يُكتب في الملف أبدًا:',
+            'أعد تشغيل Cursor، ثم افتح Customize في الشريط الجانبي وتأكد أن tadween مفعّل.',
           ],
         },
       },
@@ -436,20 +439,20 @@ export const aiClientsAr: AiClientsDict = {
       faq: [
         {
           title: 'إعداد عام أم لكل مشروع؟',
-          content: 'يجعل ‎~/.cursor/mcp.json تدوين متاحًا في كل مشروع. أما ‎.cursor/mcp.json داخل مشروع فيحصره فيه؛ لا ترفع مفتاحًا في هذا الملف إلى المستودع.',
+          content: 'يجعل ‎~/.cursor/mcp.json تدوين متاحًا في كل مشروع. أما ‎.cursor/mcp.json داخل مشروع فيحصره فيه.',
         },
         {
           title: 'هل أستطيع إبقاء المفتاح خارج mcp.json؟',
-          content: 'استخدم طريقة تسجيل الدخول: لا مفتاح في الملف إطلاقًا، ويحفظ Cursor تسجيل الدخول بنفسه.',
+          content: 'نعم. طريقة المفتاح أعلاه تستخدم ‎${env:TADWEEN_API_KEY}، فلا يوجد في الملف سوى اسم المتغيّر. ومع تسجيل الدخول لا مفتاح إطلاقًا.',
         },
         {
-          title: 'يبقى الخادم أحمر. ماذا أراجع؟',
-          content: 'تأكد من العنوان، وأن المفتاح بلا مسافات زائدة ولم يُجدَّد، ثم أعد تحميل خوادم MCP أو أعد تشغيل Cursor.',
+          title: 'الأدوات لا تظهر. ماذا أراجع؟',
+          content: 'افتح لوحة Output واختر MCP Logs. تأكد من العنوان، وأن TADWEEN_API_KEY مضبوط حيث يبدأ Cursor، وأن المفتاح لم يُجدَّد. ثم أعد تشغيل Cursor.',
         },
       ],
     },
     vscode: {
-      title: 'جدولة منشورات لينكدإن من VS Code — وضع وكيل Copilot مع MCP | تدوين',
+      title: 'VS Code MCP: جدولة منشورات لينكدإن مع Copilot | تدوين',
       description: 'أضف تدوين إلى ملف mcp.json في VS Code وجدول منشورات لينكدإن من وضع الوكيل في GitHub Copilot. سجّل الدخول، أو احفظ مفتاحك في مخزن أسرار VS Code.',
       h1: 'جدولة منشورات لينكدإن والشبكات الاجتماعية من VS Code',
       intro: 'أضف تدوين إلى VS Code فيستطيع وضع الوكيل في GitHub Copilot جدولة المنشورات لك. سجّل الدخول، أو دع VS Code يطلب مفتاحك مرة واحدة ويحفظه في مخزن أسراره.',
@@ -469,7 +472,7 @@ export const aiClientsAr: AiClientsDict = {
           steps: [
             'أنشئ ‎.vscode/mcp.json في مشروعك، أو شغّل MCP: Open User Configuration من لوحة الأوامر.',
             'الصق هذا واحفظ. المفتاح لا يُكتب في الملف:',
-            'اضغط Start فوق الخادم، والصق مفتاحك من تدوين (الإعدادات، API وMCP) حين يطلبه VS Code.',
+            'اضغط Start فوق الخادم، والصق مفتاحك من صفحة API وMCP في إعدادات تدوين حين يطلبه VS Code.',
             'افتح Copilot Chat، وانتقل إلى وضع Agent، وتأكد أن tadween مفعّل في قائمة الأدوات.',
           ],
         },
@@ -509,7 +512,7 @@ export const aiClientsAr: AiClientsDict = {
       ],
     },
     'grok-build': {
-      title: 'جدولة منشورات لينكدإن مع Grok Build — خادم MCP بعيد | تدوين',
+      title: 'Grok Build MCP: جدولة منشورات لينكدإن | تدوين',
       description: 'اربط تدوين بـGrok Build من xAI بأمر grok mcp add واحد، بتسجيل الدخول أو بترويسة مفتاح برمجي، وجدول منشورات لينكدإن من الطرفية.',
       h1: 'جدولة منشورات لينكدإن والشبكات الاجتماعية مع Grok Build',
       intro: 'أمر واحد يضيف تدوين إلى Grok Build، وكيل البرمجة من xAI. سجّل الدخول في المتصفح أول مرة، ثم انشر عن عملك من الطرفية.',
@@ -524,8 +527,8 @@ export const aiClientsAr: AiClientsDict = {
           label: 'مفتاح برمجي',
           how: 'ترويسة تُقرأ من بيئتك',
           steps: [
-            'انسخ مفتاحك من تدوين (الإعدادات، API وMCP) وضعه في متغيّر بيئة:',
-            'أضف الخادم. يوسّع Grok Build المتغيّر ‎${TADWEEN_API_KEY} بنفسه، فيبقى المفتاح في بيئتك:',
+            'انسخ مفتاحك من صفحة API وMCP في إعدادات تدوين وضعه في متغيّر بيئة، في ملف إعدادات الطرفية:',
+            'أضف الخادم. علامات الاقتباس المفردة تمنع الطرفية من وضع المفتاح، ويقرأ Grok Build المتغيّر ‎${TADWEEN_API_KEY} بنفسه عند الاتصال:',
           ],
         },
       },
@@ -559,7 +562,7 @@ export const aiClientsAr: AiClientsDict = {
         },
         {
           title: 'كيف أبقي المفتاح خارج الإعدادات؟',
-          content: 'يوسّع Grok Build ‎${VAR} في الترويسات، فيقرأ الأمر أعلاه المفتاح من TADWEEN_API_KEY عند الاتصال. ويُحفظ اسم المتغيّر فقط.',
+          content: 'يوسّع Grok Build ‎${VAR} في الترويسات عند الاتصال. أبقِ علامات الاقتباس المفردة في الأمر أعلاه، فتمرّر الطرفية اسم المتغيّر لا المفتاح، ولا يُحفظ إلا الاسم.',
         },
       ],
     },

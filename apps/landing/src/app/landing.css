@@ -444,17 +444,12 @@ a.pz-card:hover .pz-card-media .pz-shot img { transform: scale(1.03); }
 .pz-chat [data-step] { transition: opacity var(--duration-base) ease, transform var(--duration-spring) var(--ease-spring); transition-delay: var(--d, 0ms); }
 .motion-ready .pz-chat:not(.is-in) [data-step] { opacity: 0; transform: translateY(8px); }
 
-/* "Works with" row: plain names, no third-party logos */
-.pz-works { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.pz-works li { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: var(--radius-full); background: var(--card); box-shadow: var(--shadow-sm); font-size: 15px; font-weight: 500; }
-.pz-works li::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
-
 /* ── AI client pages ─────────────────────────────────── */
 /* The client's own window, drawn generically: its name as text, a neutral glyph, and a
    terminal for command-line clients. Never the client's logo or a screenshot of it. */
 .pz-chat.is-client .pz-chat-top .pz-tile-ic { background: var(--muted); color: var(--foreground); }
 .pz-chat.is-terminal { background: #111214; color: #e9e9ee; font-family: var(--font-mono); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 60px -30px rgba(0, 0, 0, 0.5); }
-.pz-chat.is-terminal .pz-chat-top { border-color: rgba(255, 255, 255, 0.1); }
+.pz-chat.is-terminal .pz-chat-top { border-color: rgba(255, 255, 255, 0.1); font-family: var(--font-sans); }
 .pz-chat.is-terminal .pz-chat-top .pz-tile-ic { background: rgba(255, 255, 255, 0.08); color: #e9e9ee; }
 .pz-chat.is-terminal .pz-chat-top span:last-child { color: #a0a0a7; }
 .pz-chat.is-terminal .pz-chat-msg { justify-self: stretch; max-width: none; padding: 0; border-radius: 0; background: none; color: #e9e9ee; font-size: 14px; line-height: 22px; }
@@ -464,7 +459,7 @@ a.pz-card:hover .pz-card-media .pz-shot img { transform: scale(1.03); }
 .pz-chat.is-terminal .pz-chat-tool { background: rgba(255, 255, 255, 0.05); color: #e9e9ee; }
 .pz-chat.is-terminal .pz-chat-tool code { color: #a0a0a7; }
 .pz-chat.is-terminal .pz-chat-tool .pz-icon { color: #5bd47f; }
-.pz-chat.is-terminal .pz-chat-posts { border-color: rgba(255, 255, 255, 0.1); font-family: var(--font-sans, inherit); }
+.pz-chat.is-terminal .pz-chat-posts { border-color: rgba(255, 255, 255, 0.1); font-family: var(--font-sans); }
 .pz-chat.is-terminal .pz-chat-post > span > span { color: #a0a0a7; }
 .pz-chat.is-terminal .pz-chat-post time { color: #3fcfb4; }
 .pz-chat.is-terminal .pz-chat-input { background: rgba(255, 255, 255, 0.05); color: #a0a0a7; }
@@ -486,7 +481,6 @@ a.pz-card:hover .pz-card-media .pz-shot img { transform: scale(1.03); }
 .pz-chtile.is-link { text-decoration: none; transition: box-shadow var(--duration-base) ease; }
 .pz-chtile.is-link:hover { box-shadow: var(--shadow-md); }
 .pz-chcard > .pz-tile-ic { flex: none; width: 40px; height: 40px; border-radius: 10px; color: var(--primary); }
-.pz-chat.is-terminal .pz-chat-top { font-family: var(--font-sans); }
 .pz-chat.is-terminal:lang(ar) .pz-chat-top span:last-child, .pz-chat.is-terminal :is(.pz-chat-tool, .pz-chat-input):lang(ar) { font-family: var(--font-arabic); }
 .pz-mega-group.is-clients { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .pz-mega-group.is-clients > span { grid-column: 1 / -1; }
@@ -561,7 +555,7 @@ a.pz-card:hover .pz-card-media .pz-shot img { transform: scale(1.03); }
 .pz-cta .pz-btn-ghost { color: var(--primary-foreground); }
 .pz-cta .pz-btn-ghost:hover { background: color-mix(in oklab, var(--primary-foreground) 12%, transparent); }
 .pz-foot { padding-block: 72px 40px; border-top: 1px solid var(--border); }
-.pz-foot-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(4, minmax(0, 1fr)); gap: 32px; }
+.pz-foot-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(5, minmax(0, 1fr)); gap: 32px; }
 .pz-foot-brand { display: grid; gap: 14px; align-content: start; justify-items: start; }
 .pz-foot-brand p { margin: 0; max-width: 300px; color: var(--muted-foreground); font-size: 14px; line-height: 21px; }
 .pz-foot-col { display: grid; gap: 10px; align-content: start; }
@@ -611,7 +605,7 @@ a.pz-card:hover .pz-card-media .pz-shot img { transform: scale(1.03); }
 
   .pz-mega-grid { grid-template-columns: minmax(0, 1fr); }
   .pz-mega-feature { display: none; }
-  .pz-foot-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .pz-foot-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .pz-foot-brand { grid-column: 1 / -1; }
   .pz-nav-link { padding: 0 9px; }
   .pz-showcase .pz-callout.is-a { inset-inline-start: 12px; }

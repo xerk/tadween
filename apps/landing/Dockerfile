@@ -15,6 +15,7 @@ RUN pnpm install --frozen-lockfile --filter tadween-landing --ignore-scripts
 COPY apps/landing apps/landing
 ARG NEXT_PUBLIC_APP_URL
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_MCP_URL
 ARG NEXT_PUBLIC_SITE_URL
 ENV NEXT_TELEMETRY_DISABLED=1 BUILD_STANDALONE=1
 RUN pnpm --filter tadween-landing build

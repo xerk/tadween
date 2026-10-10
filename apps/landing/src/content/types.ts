@@ -300,7 +300,9 @@ export interface Dict {
       steps: { title: string; body: string }[];
       clientsTitle: string;
       clientsSub: string;
-      clients: { name: string; how: string; steps: string[]; codeLabel: string; code: string }[];
+      /** `guides` are the slugs in lib/aiClients.ts whose pages have the full steps. */
+      clients: { name: string; how: string; steps: string[]; codeLabel: string; code: string; guides: string[] }[];
+      guide: string;
       keyNote: string;
     };
     examples: Head & { items: ChatDemo[] };

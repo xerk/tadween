@@ -258,9 +258,8 @@ a { color: var(--primary); text-underline-offset: 3px; }
 .pz-hero-copy { display: grid; gap: 28px; justify-items: start; }
 .pz-hero-copy .t-lead { max-width: 560px; }
 .pz-hero-nets { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--muted-foreground); font-size: 14px; }
-.pz-hero-nets span { display: inline-flex; }
-.pz-hero-nets img { border-radius: 6px; box-shadow: 0 0 0 2px var(--background); }
-.pz-hero-nets img + img { margin-inline-start: -6px; }
+.pz-hero-nets span { display: inline-flex; gap: 4px; }
+.pz-hero-nets img { border-radius: 6px; }
 .lw { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.1em; margin-bottom: -0.1em; }
 .lw-i { display: inline-block; will-change: transform; }
 
@@ -361,8 +360,8 @@ a { color: var(--primary); text-underline-offset: 3px; }
 
 /* A big shot under a section head */
 .pz-showcase { position: relative; }
-.pz-showcase .pz-callout.is-a { top: 14%; inset-inline-start: -18px; }
-.pz-showcase .pz-callout.is-b { bottom: 12%; inset-inline-end: -18px; }
+.pz-showcase .pz-callout.is-a { top: -18px; inset-inline-start: 6%; }
+.pz-showcase .pz-callout.is-b { bottom: -18px; inset-inline-end: 6%; }
 
 /* Cards: the feature overview, related features */
 .pz-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin: 0; padding: 0; list-style: none; }
@@ -470,7 +469,7 @@ a.pz-card:hover .pz-card-media .pz-shot img { transform: scale(1.03); }
 .pz-mock-chip img { width: 1.3em; height: 1.3em; border-radius: 4px; }
 .pz-mock-cursor { position: absolute; z-index: 3; color: var(--foreground); filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3)); }
 .pz-mock-cursor .pz-icon { fill: var(--card); }
-.pz-mock-pop { position: absolute; z-index: 2; width: 34%; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px var(--border), 0 24px 48px -16px rgba(0, 0, 0, 0.35); }
+.pz-mock-pop { position: absolute; z-index: 2; width: 26%; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px var(--border), 0 24px 48px -16px rgba(0, 0, 0, 0.35); }
 .pz-mock-pop .pz-shot { border-radius: 0; box-shadow: none; }
 .motion-ready .pz-mock.is-in .pz-mock-chip, .motion-ready .pz-mock.is-in .pz-mock-cursor.is-drag { animation: pz-drag 6s var(--ease-out) infinite; }
 .motion-ready .pz-mock.is-in .pz-mock-pop { animation: pz-pop 6s var(--ease-out) infinite; transform-origin: top left; }

@@ -1,0 +1,61 @@
+// Side drawer for the modal manager (`drawer: true` in openModal, see
+// components/layout/new-modal.tsx). Above the phone breakpoint the panel
+// slides in from the inline-end edge over a light scrim, and the page behind
+// stays sharp so the calendar slot that was clicked is still readable. The
+// width belongs to the content (the composer sets its own, editor.scss).
+// Phones get a full-screen page that scrolls, like `fullScreen` modals.
+
+@keyframes tdw-drawer-in {
+  from { transform: translateX(100%); }
+}
+@keyframes tdw-drawer-in-rtl {
+  from { transform: translateX(-100%); }
+}
+@keyframes tdw-drawer-scrim {
+  from { opacity: 0; }
+}
+
+body {
+  .tdw-drawer {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: flex-end;
+    overflow: hidden;
+  }
+  .tdw-drawer-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(12, 12, 16, 0.28);
+    animation: tdw-drawer-scrim 240ms ease both;
+  }
+  .tdw-drawer-panel {
+    position: relative;
+    display: flex;
+    height: 100%;
+    max-width: 100%;
+    outline: none;
+    animation: tdw-drawer-in 460ms var(--tdw-ease-spring) backwards;
+  }
+  html[dir='rtl'] & .tdw-drawer-panel { animation-name: tdw-drawer-in-rtl; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tdw-drawer-panel { animation: tdw-drawer-scrim 160ms ease both; }
+    .tdw-drawer-scrim { animation: none; }
+  }
+
+  @media (max-width: 1025px) {
+    .tdw-drawer {
+      display: block;
+      overflow-y: auto;
+      background: var(--new-bgColorInner);
+    }
+    .tdw-drawer-scrim { display: none; }
+    .tdw-drawer-panel {
+      width: 100%;
+      height: auto;
+      min-height: 100%;
+      animation: tdw-drawer-scrim 200ms ease both;
+    }
+  }
+}

@@ -898,6 +898,7 @@
   "tdw_all_channels": "كل الحسابات",
   "tdw_editing": "التحرير",
   "tdw_remove_channel": "إزالة الحساب",
+  "tdw_remove_channel_name": "إزالة {{name}}",
   "tdw_use_the_shared_post": "استخدم المنشور المشترك",
   "tdw_only_channel_gets_this_version": "هذه النسخة لـ {{name}} فقط.",
   "tdw_channel_uses_the_shared_post": "{{name}} يستخدم المنشور المشترك",
@@ -1035,8 +1036,19 @@
   "tdw_cm_edit_post": "تعديل المنشور",
   "tdw_cm_publish_options": "خيارات النشر",
   "tdw_cm_write": "كتابة",
+  "tdw_cm_assistant": "المساعد",
+  "tdw_ai_not_configured": "الذكاء الاصطناعي غير مُعدّ",
+  "tdw_ai_not_configured_description": "يحتاج الوكيل إلى مزوّد ذكاء اصطناعي على هذا الخادم. اطلب من المسؤول إعداده.",
   "tdw_cm_when_to_post": "موعد النشر",
   "tdw_cm_none": "لا شيء",
   "tdw_cm_repeat_on": "مفعّل",
-  "tdw_cm_repeat_never": "أبدًا"
+  "tdw_cm_repeat_never": "أبدًا",
+  "tdw_cm_show_preview": "إظهار المعاينة",
+  "tdw_cm_hide_preview": "إخفاء المعاينة",
+  "tdw_cm_full_screen": "ملء الشاشة",
+  "tdw_cm_side_panel": "لوحة جانبية",
+  "tdw_cm_preview_size": "حجم المعاينة",
+  "tdw_cm_desktop": "سطح المكتب",
+  "tdw_cm_mobile": "الجوال",
+  "tdw_choose_a_channel": "اختر قناة"
 }

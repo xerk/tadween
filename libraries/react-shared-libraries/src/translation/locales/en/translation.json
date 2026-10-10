@@ -856,6 +856,7 @@
   "tdw_all_channels": "All channels",
   "tdw_editing": "Editing",
   "tdw_remove_channel": "Remove channel",
+  "tdw_remove_channel_name": "Remove {{name}}",
   "tdw_use_the_shared_post": "Use the shared post",
   "tdw_only_channel_gets_this_version": "Only {{name}} gets this version.",
   "tdw_channel_uses_the_shared_post": "{{name}} uses the shared post",
@@ -993,8 +994,19 @@
   "tdw_cm_edit_post": "Edit post",
   "tdw_cm_publish_options": "Publish options",
   "tdw_cm_write": "Write",
+  "tdw_cm_assistant": "Assistant",
+  "tdw_ai_not_configured": "AI isn't configured",
+  "tdw_ai_not_configured_description": "The agent needs an AI provider on this server. Ask your administrator to set it up.",
   "tdw_cm_when_to_post": "When to post",
   "tdw_cm_none": "None",
   "tdw_cm_repeat_on": "On",
-  "tdw_cm_repeat_never": "Never"
+  "tdw_cm_repeat_never": "Never",
+  "tdw_cm_show_preview": "Show preview",
+  "tdw_cm_hide_preview": "Hide preview",
+  "tdw_cm_full_screen": "Full screen",
+  "tdw_cm_side_panel": "Side panel",
+  "tdw_cm_preview_size": "Preview size",
+  "tdw_cm_desktop": "Desktop",
+  "tdw_cm_mobile": "Mobile",
+  "tdw_choose_a_channel": "Choose a channel"
 }

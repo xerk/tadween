@@ -9,7 +9,10 @@ import {
 import { AccountMenu } from '@gitroom/frontend/components/tadween/shell/account.menu';
 
 import clsx from 'clsx';
-import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import {
+  useCopilotConnection,
+  useFetch,
+} from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { usePathname, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
@@ -24,7 +27,7 @@ import { NewSubscription } from '@gitroom/frontend/components/layout/new.subscri
 import { Support } from '@gitroom/frontend/components/layout/support';
 import { ContinueProvider } from '@gitroom/frontend/components/layout/continue.provider';
 import { ContextWrapper } from '@gitroom/frontend/components/layout/user.context';
-import { CopilotKit } from '@copilotkit/react-core';
+import { AiProvider } from '@gitroom/frontend/components/tadween/instance/ai.guard';
 import { MantineWrapper } from '@gitroom/react/helpers/mantine.wrapper';
 import { Impersonate } from '@gitroom/frontend/components/layout/impersonate';
 import { AnnouncementBanner } from '@gitroom/frontend/components/layout/announcement.banner';
@@ -43,6 +46,7 @@ import { setSentryUser } from '@gitroom/react/sentry/initialize.sentry.client';
 
 export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   const fetch = useFetch();
+  const copilotConnection = useCopilotConnection();
 
   const { backendUrl, billingEnabled, isGeneral } = useVariables();
 
@@ -75,11 +79,12 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
 
   return (
     <ContextWrapper user={user}>
-      <CopilotKit
-        credentials="include"
+      <AiProvider
+        {...copilotConnection}
         runtimeUrl={backendUrl + '/copilot/chat'}
         useSingleEndpoint={true}
         showDevConsole={false}
+        enableInspector={false}
       >
         <MantineWrapper>
           <ToolTip />
@@ -187,7 +192,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             </div>
           </CheckPayment>
         </MantineWrapper>
-      </CopilotKit>
+      </AiProvider>
     </ContextWrapper>
   );
 };

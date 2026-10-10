@@ -9,7 +9,9 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
+  useRef,
 } from 'react';
 import { Button } from '@gitroom/react/form/button';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -21,11 +23,16 @@ interface OpenModalInterface {
   closeOnClickOutside?: boolean;
   removeLayout?: boolean;
   fullScreen?: boolean;
+  // with removeLayout: a sheet on the inline-end side, the page stays visible
+  // (not blurred) behind a light scrim that closes it (through askClose)
+  // unless closeOnClickOutside is false; phones get the full screen
+  drawer?: boolean;
   top?: string | number;
   closeOnEscape?: boolean;
   withCloseButton?: boolean;
   destructive?: boolean;
-  askClose?: boolean;
+  // a function decides on every close, e.g. ask only when there are unsaved changes
+  askClose?: boolean | (() => boolean);
   onClose?: () => void;
   children: ReactNode | ((close: () => void) => ReactNode);
   classNames?: {
@@ -69,6 +76,146 @@ const useModalStore = create<State>((set) => ({
 
 const CurrentModalContext = createContext({ id: '' });
 
+// what a drawer tells its content: it is in a drawer, whether it is the top
+// layer (a dialog opened above it gets the keyboard), and the id its title
+// should carry so the dialog is named by it
+const ModalDrawerContext = createContext<{
+  isLast: boolean;
+  titleId: string;
+} | null>(null);
+export const useModalDrawer = () => useContext(ModalDrawerContext);
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
+
+// A side sheet: role="dialog" + aria-modal, focus moves in on open and back
+// on close, Tab cycles inside it, the scrim closes it (through askClose), and
+// Escape in a text field first leaves the field so the next Escape closes.
+// Styles: app/tadween/drawer.scss.
+const ModalDrawer: FC<{
+  zIndex: number;
+  isLast: boolean;
+  onClose?: () => void;
+  children: ReactNode;
+}> = ({ zIndex, isLast, onClose, children }) => {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    if (!panelRef.current?.contains(document.activeElement)) {
+      panelRef.current?.focus({ preventScroll: true });
+    }
+    return () => {
+      if (previous && document.contains(previous)) {
+        previous.focus({ preventScroll: true });
+      }
+    };
+  }, []);
+
+  // back on top (a dialog above it closed): focus comes back in, and Tab
+  // from outside the panel (the page behind) lands on its first control
+  useEffect(() => {
+    if (!isLast) {
+      return;
+    }
+
+    const panel = panelRef.current;
+    if (panel && !panel.contains(document.activeElement)) {
+      panel.focus({ preventScroll: true });
+    }
+
+    const onTab = (e: KeyboardEvent) => {
+      // a sheet or popup of its own (portalled to <body>) keeps its focus
+      if (
+        e.key !== 'Tab' ||
+        !panelRef.current ||
+        panelRef.current.contains(document.activeElement) ||
+        document.activeElement?.closest('[role="dialog"]')
+      ) {
+        return;
+      }
+      e.preventDefault();
+      panelRef.current.focus({ preventScroll: true });
+    };
+    document.addEventListener('keydown', onTab);
+    return () => document.removeEventListener('keydown', onTab);
+  }, [isLast]);
+
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const panel = panelRef.current;
+      if (!isLast || !panel) {
+        return;
+      }
+
+      // ProseMirror marks every Escape as handled (it selects the parent
+      // node), so a rich-text editor is left whatever it did with the key
+      const target = e.target as HTMLElement;
+      if (
+        e.key === 'Escape' &&
+        (target.isContentEditable ||
+          (!e.defaultPrevented && target.matches('input, textarea, select')))
+      ) {
+        target.blur();
+        panel.focus({ preventScroll: true });
+        return;
+      }
+
+      // a sheet inside the panel (phones) keeps Tab in itself
+      if (
+        e.key !== 'Tab' ||
+        e.defaultPrevented ||
+        target.closest('[role="dialog"]') !== panel
+      ) {
+        return;
+      }
+
+      const items = Array.from(
+        panel.querySelectorAll<HTMLElement>(FOCUSABLE)
+      ).filter((p) => p.offsetParent !== null);
+      if (!items.length) {
+        return;
+      }
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (
+        e.shiftKey &&
+        (document.activeElement === first || document.activeElement === panel)
+      ) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    },
+    [isLast]
+  );
+
+  const context = useMemo(() => ({ isLast, titleId }), [isLast, titleId]);
+
+  return (
+    <div style={{ zIndex }} className="tdw-drawer text-newTextColor">
+      <div className="tdw-drawer-scrim" aria-hidden="true" onClick={onClose} />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        onKeyDown={onKeyDown}
+        className="tdw-drawer-panel"
+      >
+        <ModalDrawerContext.Provider value={context}>
+          {children}
+        </ModalDrawerContext.Provider>
+      </div>
+    </div>
+  );
+};
+
 interface ModalManagerInterface extends ModalManagerStoreInterface {
   closeCurrent(): void;
 }
@@ -104,7 +251,9 @@ export const Component: FC<{
 }> = memo(({ isLast, modal, closeModal, zIndex }) => {
   const decision = useDecisionModal();
   const closeModalFunction = useCallback(async () => {
-    if (modal.askClose) {
+    if (
+      typeof modal.askClose === 'function' ? modal.askClose() : modal.askClose
+    ) {
       const open = await decision.open();
       if (!open) {
         return;
@@ -129,6 +278,22 @@ export const Component: FC<{
     },
     [isLast, closeModalFunction]
   );
+
+  if (modal.removeLayout && modal.drawer) {
+    return (
+      <ModalDrawer
+        zIndex={zIndex}
+        isLast={isLast}
+        onClose={
+          modal.closeOnClickOutside === false ? undefined : closeModalFunction
+        }
+      >
+        {typeof modal.children === 'function'
+          ? modal.children(closeModalFunction)
+          : modal.children}
+      </ModalDrawer>
+    );
+  }
 
   if (modal.removeLayout) {
     return (
@@ -275,17 +440,18 @@ export const ModalManagerInner: FC = () => {
   );
 
   useEffect(() => {
+    // a drawer keeps the page readable behind it, only the scrim dims it
+    const blur = modalManager.some((p) => !p.drawer);
     if (modalManager.length > 0) {
       document.querySelector('body')?.classList.add('overflow-hidden');
-      Array.from(document.querySelectorAll('.blurMe') || []).map((p) =>
-        p.classList.add('blur-xs', 'pointer-events-none')
-      );
     } else {
       document.querySelector('body')?.classList.remove('overflow-hidden');
-      Array.from(document.querySelectorAll('.blurMe') || []).map((p) =>
-        p.classList.remove('blur-xs', 'pointer-events-none')
-      );
     }
+    Array.from(document.querySelectorAll('.blurMe') || []).map((p) =>
+      blur
+        ? p.classList.add('blur-xs', 'pointer-events-none')
+        : p.classList.remove('blur-xs', 'pointer-events-none')
+    );
   }, [modalManager]);
 
   if (modalManager.length === 0) {

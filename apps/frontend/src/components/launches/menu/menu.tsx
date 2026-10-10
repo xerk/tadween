@@ -28,6 +28,7 @@ import { useRouter } from 'next/navigation';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.modal';
+import { hasUnsavedPostChanges } from '@gitroom/frontend/components/new-launch/store';
 import dayjs from 'dayjs';
 import { ModalWrapperComponent } from '@gitroom/frontend/components/new-launch/modal.wrapper.component';
 import copy from 'copy-to-clipboard';
@@ -265,11 +266,12 @@ export const Menu: FC<{
 
       modal.openModal({
         id: 'add-edit-modal',
-        closeOnClickOutside: false,
+        closeOnClickOutside: true,
         removeLayout: true,
+        drawer: true,
         closeOnEscape: false,
         withCloseButton: false,
-        askClose: true,
+        askClose: hasUnsavedPostChanges,
         fullScreen: true,
         classNames: {
           modal: 'w-[100%] max-w-[1400px] text-textColor',

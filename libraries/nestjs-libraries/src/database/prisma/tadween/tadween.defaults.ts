@@ -60,7 +60,7 @@ export const FEATURES: FeatureDefinition[] = [
   { key: 'plugs', group: 'Publishing', label: 'Plugs', description: 'Auto repost and auto plug when a post reaches a like threshold.', hides: 'Plugs in the sidebar', applied: true },
   { key: 'analytics', group: 'Workspace', label: 'Analytics', description: 'Channel and post analytics.', hides: 'Analytics in the sidebar', applied: true },
   { key: 'media', group: 'Workspace', label: 'Media library', description: 'The standalone media page. Uploading from the editor stays on.', hides: 'Media in the sidebar', applied: true },
-  { key: 'thirdParty', group: 'Workspace', label: 'Integrations', description: 'Third-party tools such as HeyGen.', hides: 'Integrations in the sidebar', applied: true },
+  { key: 'thirdParty', group: 'Workspace', label: 'Integrations', description: 'Third-party tools such as HeyGen. Off unless you switch it on.', hides: 'Integrations in the sidebar', applied: true },
   { key: 'signatures', group: 'Workspace', label: 'Signatures', description: 'Saved sign-offs added to posts.', hides: 'Settings → Signatures', applied: true },
   { key: 'sets', group: 'Workspace', label: 'Sets', description: 'Saved channel groups with a message template.', hides: 'Settings → Sets', applied: true },
   { key: 'shortLinks', group: 'Workspace', label: 'Short links', description: 'Shorten and track links in posts.', hides: 'Settings → Short links preference', applied: true },
@@ -84,7 +84,8 @@ export const featureDefaultsFromEnv = (): Record<FeatureKey, boolean> => {
     .split(',')
     .map((p) => p.trim())
     .filter(Boolean);
-  const offByDefault: FeatureKey[] = ['ugc'];
+  // off until the admin switches them on: UGC (a Postiz partner deal) and Integrations (hidden for now)
+  const offByDefault: FeatureKey[] = ['ugc', 'thirdParty'];
   return FEATURE_KEYS.reduce(
     (all, key) => ({
       ...all,
@@ -303,7 +304,7 @@ export const DEFAULT_PLANS: DefaultPlan[] = [
     trialDays: 7,
     mostPopular: false,
     ...limitsOf('STANDARD'),
-    features: ['5 channels', 'Unlimited scheduled posts', 'First comments and repeats', 'Best-time hints', 'Analytics'],
+    features: ['5 channels', 'Unlimited scheduled posts', 'First comments and repeats', 'Calendar and post previews', 'Analytics'],
     position: 0,
   },
   {
@@ -318,7 +319,7 @@ export const DEFAULT_PLANS: DefaultPlan[] = [
     trialDays: 7,
     mostPopular: false,
     ...limitsOf('TEAM'),
-    features: ['10 channels', 'Unlimited team members', 'Everything in Creator', 'Hook rewrites in Arabic and English', 'PDF carousel builder', 'Sets and signatures'],
+    features: ['10 channels', 'Unlimited team members', 'Everything in Creator', 'RSS auto-post', 'Sets and signatures'],
     position: 1,
   },
   {
@@ -348,7 +349,7 @@ export const DEFAULT_PLANS: DefaultPlan[] = [
     trialDays: 7,
     mostPopular: false,
     ...limitsOf('ULTIMATE'),
-    features: ['100 channels', 'Customer groups', 'Client-ready reports', 'Priority support in Arabic', 'Invoices in EGP or USD'],
+    features: ['100 channels', 'Everything in Team', 'Customer groups', 'Unlimited webhooks'],
     position: 3,
   },
 ];

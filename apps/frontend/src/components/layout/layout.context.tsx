@@ -112,7 +112,8 @@ function LayoutContextInner(params: { children: ReactNode }) {
           .json()
           .catch(() => ({}));
         openPaywall({ section: body.section, message: body.message });
-        return false;
+        // Let the caller receive the 402 so its loading state ends
+        return true;
       }
       return true;
     },

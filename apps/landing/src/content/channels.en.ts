@@ -5,23 +5,20 @@ import type { ChannelsDict } from './types';
 // @Rules in plain words. Nothing here promises more than the provider code does.
 export const channelsEn: ChannelsDict = {
   meta: {
-    title: 'Channels — schedule posts to LinkedIn and 30+ networks | Tadween',
+    title: 'Channels — schedule LinkedIn, Instagram, Facebook, Threads and YouTube | Tadween',
     description:
-      'Every network Tadween publishes to, with the real limits: characters per post, media rules and post types. LinkedIn first, and 30+ channels in one calendar.',
+      'The networks Tadween is built around, with the real limits: LinkedIn profiles and pages, Instagram, Facebook, Threads and YouTube. Characters per post, media rules and post types, plus 25+ more channels in the same calendar.',
   },
   index: {
-    title: 'One calendar, every channel',
-    sub: 'LinkedIn comes first, and the rest are a click away. The main networks have a page each, with what you can schedule there and the limits Tadween checks before it publishes.',
-    groups: {
-      professional: 'LinkedIn',
-      social: 'Social',
-      video: 'Video',
-      community: 'Communities and chat',
-      blog: 'Blogs and articles',
+    title: 'One calendar for the networks that matter',
+    sub: 'Tadween is built around five networks, LinkedIn first. Each has a page with what you can schedule there and the limits Tadween checks before it publishes.',
+    focus: {
+      title: 'Focus networks',
+      sub: 'LinkedIn profiles and company pages, Instagram, Facebook, Threads and YouTube.',
     },
     more: {
       title: 'Also supported',
-      sub: 'Tadween publishes to these too.',
+      sub: 'Tadween publishes to these too, from the same calendar.',
     },
   },
   page: {
@@ -91,26 +88,6 @@ export const channelsEn: ChannelsDict = {
       ],
       sample: 'Studio Nile is hiring two product designers in Cairo.\n\nRemote-friendly, Arabic and English. Details in the first comment.',
     },
-    x: {
-      title: 'X (Twitter) post and thread scheduler | Tadween',
-      description:
-        'Schedule posts, threads and long-form articles on X. 280 characters, or 4,000 with Premium, up to four images or one video, reply controls and Communities.',
-      h1: 'Schedule posts and threads on X',
-      intro: 'Draft a single post or a whole thread, check the count the way X counts it, and schedule it beside your LinkedIn week.',
-      formats: ['Posts and threads', 'Long-form articles, as a draft or published, with a cover', 'Who can reply: everyone, people you follow, people you mention, subscribers or verified accounts', 'Posting to a Community', '“Made with AI” and paid partnership labels'],
-      media: 'Up to four pictures or one video per post. A post can also be text only. In an article, pictures go inside the text.',
-      limitNote: '280 characters per post, 4,000 when the account is marked as Premium, and long-form for articles.',
-      features: [
-        { title: 'Threads from one draft', body: 'Add the next post under the first and Tadween publishes them in order as one thread.' },
-        { title: 'Counted the way X counts', body: 'Links count as 23 characters and some characters count double, so what fits in Tadween fits on X.' },
-        { title: 'Plugs for reach', body: 'Repost from another account or add a follow-up once a post passes the likes you set.' },
-      ],
-      faq: [
-        { title: 'Does it support X Premium’s longer posts?', content: 'Yes. Mark the channel as Premium in its settings and the limit goes up to 4,000 characters.' },
-        { title: 'Can I schedule an X article?', content: 'Yes. Set the post type to article, add a title and an optional cover, and choose whether it goes out as a draft or published.' },
-      ],
-      sample: 'Hiring in Cairo, 90 days, 10 engineers.\n\nWhat worked, in one thread ↓',
-    },
     instagram: {
       title: 'Instagram post, reel and story scheduler | Tadween',
       description:
@@ -149,40 +126,44 @@ export const channelsEn: ChannelsDict = {
       ],
       sample: 'We’re hiring in Cairo. Two product designers, Arabic and English. Apply by the end of the month.',
     },
-    tiktok: {
-      title: 'TikTok video and photo scheduler | Tadween',
+    threads: {
+      title: 'Threads post scheduler | Tadween',
       description:
-        'Schedule TikTok videos and photo posts with captions up to 2,000 characters, privacy, duet, stitch and comment settings, or send them to your TikTok inbox as drafts.',
-      h1: 'Schedule TikTok videos and photo posts',
-      intro: 'Upload the video once, set who can watch and how people can respond, and let Tadween post it, or send it to your TikTok app to finish there.',
-      formats: ['One video', 'Photo posts with several pictures', 'Who can watch, duets, stitches and comments', 'Branded or promotional content labels', 'Publish directly, or upload as a draft to your TikTok inbox'],
-      media: 'A TikTok post needs one video, or one or more pictures. It can’t be text only.',
-      limitNote: '2,000 characters for personal accounts and 2,200 for TikTok Business captions.',
+        'Schedule Threads posts and multi-post threads: 500 characters per post, text, pictures, video or carousels, with replies published under the first post.',
+      h1: 'Schedule posts and threads on Threads',
+      intro: 'Write a single post or a whole thread, keep each part under 500 characters, and schedule it next to your LinkedIn and Instagram week.',
+      formats: ['Text posts', 'One picture or one video', 'Carousels of two or more pictures or videos', 'Replies under the post, published in order as a thread', 'Auto plug: a reply added once a post passes the likes you set'],
+      media: 'A Threads post can be text only, carry one picture or one MP4 video, or several of them as a carousel.',
       features: [
-        { title: 'Post or send as a draft', body: 'Direct post publishes for you. Upload sends it to the TikTok app, where you add sounds and post.' },
-        { title: 'All the settings TikTok asks for', body: 'Privacy, duet, stitch and comment choices are part of the post, so nothing gets stuck.' },
-        { title: 'Business accounts too', body: 'Connect a TikTok Business account and schedule from the same calendar.' },
+        { title: 'A thread from one draft', body: 'Add the next part under the first and Tadween publishes each one as a reply to the one before.' },
+        { title: '500 characters, counted', body: 'Tadween counts every part as you type, so nothing gets cut off when it goes out.' },
+        { title: 'Same media, other networks', body: 'Reuse the pictures for Instagram, Facebook or LinkedIn and adjust the text for each.' },
       ],
       faq: [
-        { title: 'Why did my post go to the TikTok inbox?', content: 'The post was set to upload instead of direct post. Uploads arrive as drafts in the TikTok app, and you publish them there.' },
+        { title: 'Can I schedule a thread of several posts?', content: 'Yes. Write the first post, then add the next parts under it. Tadween posts the first one and publishes each part as a reply in order.' },
+        { title: 'What is the auto plug?', content: 'A small automation on the Threads channel. When a post passes the number of likes you choose, Tadween adds the reply you wrote under it, so your followers see it again.' },
       ],
-      sample: 'A day at Studio Nile, hiring week edition.',
+    },
+    youtube: {
+      title: 'YouTube video scheduler | Tadween',
+      description:
+        'Schedule YouTube videos with a title, a description up to 5,000 characters, tags, a custom thumbnail and public, private or unlisted visibility.',
+      h1: 'Schedule YouTube videos',
+      intro: 'Upload the video once, give it a title, tags and a thumbnail, choose who can see it, and Tadween publishes it at the hour you pick, on the same calendar as your LinkedIn posts.',
+      formats: ['One video per post', 'A title, up to 100 characters', 'Public, private or unlisted', 'Tags, up to 500 characters in total', 'A custom thumbnail (JPEG or PNG)', 'Made for kids: yes or no'],
+      media: 'Every YouTube post is exactly one MP4 video. Text-only posts and pictures can’t be posted to YouTube.',
+      limitNote: 'The 5,000 characters are the video description. The title is set separately and can be up to 100 characters.',
+      features: [
+        { title: 'Everything YouTube asks for', body: 'Title, visibility, tags, thumbnail and the made-for-kids choice are part of the post, so the upload doesn’t stop halfway.' },
+        { title: 'Uploads that don’t double', body: 'If an upload is interrupted, Tadween asks YouTube how far it got before trying again, so the same video isn’t uploaded twice.' },
+        { title: 'One idea, every channel', body: 'Schedule the video on YouTube and a LinkedIn or Instagram post about it in the same go.' },
+      ],
+      faq: [
+        { title: 'Why wasn’t my thumbnail set?', content: 'YouTube only allows custom thumbnails on verified accounts, in JPEG or PNG. If yours isn’t verified, the video is still uploaded and Tadween tells you the thumbnail couldn’t be set.' },
+        { title: 'Can I upload a video as private or unlisted?', content: 'Yes. Choose public, private or unlisted in the YouTube settings of the post before you schedule it.' },
+      ],
     },
   },
-  others: {
-    threads: { note: 'Schedule posts on Threads' },
-    youtube: { note: 'Schedule YouTube videos' },
-    pinterest: { note: 'Schedule pins on Pinterest' },
-    bluesky: { note: 'Schedule posts and threads on Bluesky' },
-    mastodon: { note: 'Schedule posts on Mastodon' },
-    reddit: { note: 'Schedule posts on Reddit' },
-    telegram: { note: 'Schedule posts to Telegram' },
-    discord: { note: 'Schedule announcements on Discord' },
-    slack: { note: 'Schedule messages to Slack' },
-    'google-business': { note: 'Schedule Google Business Profile posts' },
-    medium: { note: 'Schedule articles on Medium' },
-    devto: { note: 'Schedule articles on Dev.to' },
-    hashnode: { note: 'Schedule articles on Hashnode' },
-    wordpress: { note: 'Schedule posts on your WordPress site' },
-  },
+  // Networks without a page use their brand name in English, so there is nothing to add here.
+  others: {},
 };

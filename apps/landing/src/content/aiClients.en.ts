@@ -28,7 +28,7 @@ export const aiClientsEn: AiClientsDict = {
     docs: '{name}’s own documentation for these steps:',
     otherMethod: 'With an API key instead',
     orbitTitle: 'Connect once, reach all your channels',
-    orbitSub: 'Your LinkedIn, X, Instagram and other accounts live in Tadween. {name} uses the ones you name, and Tadween sends each post at its time.',
+    orbitSub: 'Your LinkedIn, Instagram, Facebook, Threads and YouTube accounts live in Tadween. {name} uses the ones you name, and Tadween sends each post at its time.',
     canTitle: '{name}’s tools in Tadween',
     canSub: 'The same tools the agent inside Tadween uses, on the channels you connected.',
     mcpTitle: 'The Tadween MCP server, in short',
@@ -58,7 +58,7 @@ export const aiClientsEn: AiClientsDict = {
     promptsTitle: 'Example requests for {name}',
     promptsSub: 'Write them in plain English or Egyptian Arabic, with the channel, the day and the tone. Four to start with:',
     channelsTitle: 'Channels {name} can reach through Tadween',
-    channelsSub: 'Every network Tadween publishes to. Once an account is connected in Tadween, {name} can use it.',
+    channelsSub: 'LinkedIn, Instagram, Facebook, Threads and YouTube first, then every other network Tadween publishes to. Once an account is connected in Tadween, {name} can use it.',
     channelsNote: 'LinkedIn profiles and pages come first in Tadween. Each network keeps its own limits and settings, and {name} reads them before it posts.',
     thisPage: 'This page',
     helpTitle: 'Cost, safety and fixes',
@@ -254,7 +254,7 @@ export const aiClientsEn: AiClientsDict = {
       prompts: [
         { tag: 'Plan a week', nets: ['linkedin', 'linkedin-page'], title: 'Plan your LinkedIn week', text: 'Plan three LinkedIn posts for next week from these notes and schedule them Monday, Wednesday and Friday at 8:30.', lang: 'en' },
         { tag: 'From notes', nets: ['linkedin'], title: 'Turn notes into a post', text: 'Write a LinkedIn post from these meeting notes and save it as a draft for Monday.', lang: 'en' },
-        { tag: 'Check the calendar', nets: ['linkedin', 'x'], title: 'See what is going out', text: 'Show every post scheduled for next week, by day.', lang: 'en' },
+        { tag: 'Check the calendar', nets: ['linkedin', 'instagram'], title: 'See what is going out', text: 'Show every post scheduled for next week, by day.', lang: 'en' },
         { tag: 'In Arabic', nets: ['linkedin-page'], title: 'Write in Egyptian Arabic', text: 'اكتب بوست عن العرض الجديد وحطه مسودة يوم الخميس.', lang: 'ar' },
       ],
       versus: {
@@ -339,7 +339,7 @@ export const aiClientsEn: AiClientsDict = {
         reply: 'Saved as a draft for Wednesday on your LinkedIn profile. It’s on your Tadween calendar to review.',
         nets: ['linkedin'],
       },
-      alsoTry: ['List my Tadween channels', 'What goes out tomorrow?', 'Post this release to X too'],
+      alsoTry: ['List my Tadween channels', 'What goes out tomorrow?', 'Post this release to Threads too'],
       compare: {
         title: 'Sign in or API key: which should I pick?',
         sub: 'Both reach the same Tadween tools. Sign-in keeps every secret out of your files; a key is read from your environment.',
@@ -354,7 +354,7 @@ export const aiClientsEn: AiClientsDict = {
       },
       prompts: [
         { tag: 'Ship it', nets: ['linkedin'], title: 'Announce what you built', text: 'Write a LinkedIn post about the feature in this branch and save it as a draft.', lang: 'en' },
-        { tag: 'Release notes', nets: ['linkedin', 'x'], title: 'One release, two channels', text: 'Schedule a thread on X and a LinkedIn post about this release for Monday at 9:00.', lang: 'en' },
+        { tag: 'Release notes', nets: ['linkedin', 'threads'], title: 'One release, two channels', text: 'Schedule a thread on Threads and a LinkedIn post about this release for Monday at 9:00.', lang: 'en' },
         { tag: 'Check tomorrow', nets: ['linkedin'], title: 'See what goes out', text: 'What’s going out on LinkedIn tomorrow?', lang: 'en' },
         { tag: 'In Arabic', nets: ['linkedin'], title: 'Write in Egyptian Arabic', text: 'اكتب بوست لينكدإن عن الميزة اللي في البرانش ده بالعربي.', lang: 'ar' },
       ],

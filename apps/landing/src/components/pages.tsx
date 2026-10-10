@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react';
 import type { ChannelCopy, Dict } from '@/content/types';
 import { AI_CLIENTS, KIND_ICON, MCP_ENDPOINTS, MCP_TOOLS, MORE_AI_CLIENTS, clientBySlug, type AiClientFacts, type ClientKind } from '@/lib/aiClients';
-import { CHANNELS, MORE_CHANNELS, OTHER_CHANNELS, channelBySlug, networkBySlug, type ChannelFacts, type ChannelGroup } from '@/lib/channels';
+import { CHANNELS, MORE_CHANNELS, OTHER_CHANNELS, channelBySlug, networkBySlug, type ChannelFacts } from '@/lib/channels';
 import { DOCS_API_URL } from '@/lib/config';
 import { FEATURES } from '@/lib/features';
 import { breadcrumbs, faqPage, organization, softwareApplication } from '@/lib/jsonld';
 import { loadPlans } from '@/lib/plans';
 import { FEATURE_SLUGS, PATHS, channelPath, clientPath, localePath } from '@/lib/routes';
-import { CHANNEL_SHOT, channelShotSrc } from '@/lib/shots';
+import { CHANNEL_SHOT, CHANNEL_SHOT_SLUGS, channelShotSrc } from '@/lib/shots';
 import { CopyButton } from './CopyButton';
 import { Icon, cx } from './Icon';
 import { JsonLd } from './JsonLd';
@@ -377,8 +377,6 @@ export function AgentPage({ t }: { t: Dict }) {
   );
 }
 
-const GROUPS: ChannelGroup[] = ['professional', 'social', 'video', 'community', 'blog'];
-
 export function ChannelsIndexPage({ t }: { t: Dict }) {
   const c = t.channels;
   const crumbs = trail(t, { name: t.footer.channelsTitle, href: localePath(t.lang, PATHS.channels) });
@@ -387,42 +385,41 @@ export function ChannelsIndexPage({ t }: { t: Dict }) {
       <PageHead t={t} crumbs={crumbs} title={c.index.title} sub={c.index.sub} />
       <section className="pz-sec" aria-label={c.index.title}>
         <div className="pz-container pz-chgroups">
-          {GROUPS.map((g) => (
-            <div key={g}>
-              <h2 id={`g-${g}`} className="t-h3 pz-group-title">
-                {c.index.groups[g]}
-              </h2>
-              <ul className="pz-chcards" data-stagger aria-labelledby={`g-${g}`}>
-                {CHANNELS.filter((ch) => ch.group === g).map((ch) => (
-                  <li key={ch.slug}>
-                    <ChannelCard t={t} c={ch} />
-                  </li>
-                ))}
-                {OTHER_CHANNELS.filter((ch) => ch.group === g).map((ch) => (
-                  <li key={ch.slug} id={ch.slug}>
-                    <span className="pz-chcard is-static">
-                      <img src={ch.icon} width={40} height={40} alt="" loading="lazy" />
-                      <span>
-                        <strong>{networkName(t, ch.slug)}</strong>
-                        <span>{c.others[ch.slug].note}</span>
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div>
+            <h2 id="g-focus" className="t-h3 pz-group-title">
+              {c.index.focus.title}
+            </h2>
+            <p className="t-body pz-group-sub">{c.index.focus.sub}</p>
+            <ul className="pz-chcards" data-stagger aria-labelledby="g-focus">
+              {CHANNELS.map((ch) => (
+                <li key={ch.slug}>
+                  <ChannelCard t={t} c={ch} />
+                </li>
+              ))}
+            </ul>
+          </div>
           <div>
             <h2 id="g-more" className="t-h3 pz-group-title">
               {c.index.more.title}
             </h2>
             <p className="t-body pz-group-sub">{c.index.more.sub}</p>
             <ul className="pz-chgrid" aria-labelledby="g-more">
+              {/* The networks with a slug keep it as the tile's id: their old pages redirect here. */}
+              {OTHER_CHANNELS.map((ch) => (
+                <li key={ch.slug} id={ch.slug}>
+                  <span className="pz-chtile">
+                    <img src={ch.icon} width={28} height={28} alt="" loading="lazy" />
+                    <span>{networkName(t, ch.slug)}</span>
+                  </span>
+                </li>
+              ))}
               {MORE_CHANNELS.map((m) => (
                 <li key={m.name}>
                   <span className="pz-chtile">
                     <img src={m.icon} width={28} height={28} alt="" loading="lazy" />
-                    <span>{m.name}</span>
+                    <span lang="en" dir="ltr">
+                      {m.name}
+                    </span>
                   </span>
                 </li>
               ))}
@@ -471,34 +468,36 @@ export function ChannelPage({ t, slug }: { t: Dict; slug: string }) {
       >
         <TrialButtons t={t} primary={p.start} />
       </PageHead>
-      <section className="pz-sec is-tight" aria-labelledby="preview-title">
-        <div className="pz-container is-wide">
-          <div className="pz-stage pz-zoomable" data-reveal data-parallax>
-            <figure className="pz-shot is-browser">
-              <div className="pz-shot-bar" aria-hidden="true">
-                <span className="pz-shot-dots">
+      {CHANNEL_SHOT_SLUGS.has(slug) ? (
+        <section className="pz-sec is-tight" aria-labelledby="preview-title">
+          <div className="pz-container is-wide">
+            <div className="pz-stage pz-zoomable" data-reveal data-parallax>
+              <figure className="pz-shot is-browser">
+                <div className="pz-shot-bar" aria-hidden="true">
+                  <span className="pz-shot-dots">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <span className="pz-shot-url">{`${t.shotUrl}/launches`}</span>
                   <i />
-                  <i />
-                  <i />
-                </span>
-                <span className="pz-shot-url">{`${t.shotUrl}/launches`}</span>
-                <i />
-              </div>
-              <div className="pz-shot-zoom">
-                {(['light', 'dark'] as const).map((theme) => (
-                  <img key={theme} className={`is-${theme}`} src={channelShotSrc(slug, t.lang, theme)} width={CHANNEL_SHOT.w} height={CHANNEL_SHOT.h} alt={fill(p.previewTitle)} loading="lazy" decoding="async" />
-                ))}
-              </div>
-            </figure>
+                </div>
+                <div className="pz-shot-zoom">
+                  {(['light', 'dark'] as const).map((theme) => (
+                    <img key={theme} className={`is-${theme}`} src={channelShotSrc(slug, t.lang, theme)} width={CHANNEL_SHOT.w} height={CHANNEL_SHOT.h} alt={fill(p.previewTitle)} loading="lazy" decoding="async" />
+                  ))}
+                </div>
+              </figure>
+            </div>
+            <div className="pz-sec-head pz-caption-head" data-reveal>
+              <h2 id="preview-title" className="t-h3">
+                {fill(p.previewTitle)}
+              </h2>
+              <p className="t-body">{fill(p.previewSub)}</p>
+            </div>
           </div>
-          <div className="pz-sec-head pz-caption-head" data-reveal>
-            <h2 id="preview-title" className="t-h3">
-              {fill(p.previewTitle)}
-            </h2>
-            <p className="t-body">{fill(p.previewSub)}</p>
-          </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
       <section className="pz-sec" aria-labelledby="facts-title">
         <div className="pz-container">
           <SectionHead id="facts-title" title={p.factsTitle} />
@@ -633,11 +632,11 @@ function NetIcon({ slug, size = 20, alt = '' }: { slug: string; size?: number; a
 }
 
 /** The channels floating around the chat in an AI client's hero. */
-const HERO_FLOAT = ['linkedin', 'linkedin-page', 'x', 'instagram', 'facebook', 'tiktok'];
+const HERO_FLOAT = ['linkedin', 'linkedin-page', 'instagram', 'facebook', 'threads', 'youtube'];
 
-/** The orbit: the channels with a page and the main others close in, the rest further out. */
-const ORBIT_INNER = ['linkedin', 'linkedin-page', 'x', 'instagram', 'facebook', 'tiktok', 'threads', 'youtube'];
-const ORBIT_OUTER = OTHER_CHANNELS.map((c) => c.slug).filter((s) => !ORBIT_INNER.includes(s));
+/** The orbit: the focus networks (the ones with a page) close in, the rest further out. */
+const ORBIT_INNER = CHANNELS.map((c) => c.slug);
+const ORBIT_OUTER = OTHER_CHANNELS.map((c) => c.slug);
 
 /** Every network with an icon, linked ones first, for the channels grid. */
 const ALL_NETS = [...CHANNELS.map((c) => c.slug), ...OTHER_CHANNELS.map((c) => c.slug)];

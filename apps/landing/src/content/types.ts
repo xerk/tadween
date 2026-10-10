@@ -1,6 +1,5 @@
 import type { IconName } from '@/components/icons';
 import type { ClientAuth, ClientKind, McpTool } from '@/lib/aiClients';
-import type { ChannelGroup } from '@/lib/channels';
 import type { FeatureSlug } from '@/lib/routes';
 import type { ShotId } from '@/lib/shots';
 
@@ -83,18 +82,22 @@ export interface ChannelCopy {
   limitNote?: string;
   features: { title: string; body: string }[];
   faq: Faq[];
-  /** The sample post typed into the composer for this network's screenshot (see docs/tadween/demo-data.md). */
-  sample: string;
+  /** The sample post typed into the composer for this network's screenshot (see
+      docs/tadween/demo-data.md); only networks with a screenshot have one. */
+  sample?: string;
 }
 
 export interface ChannelsDict {
   meta: PageMeta;
   index: Head & {
-    groups: Record<ChannelGroup, string>;
+    /** The networks with a page (lib/channels.ts CHANNELS). */
+    focus: Head;
+    /** Everything else, as a compact list (OTHER_CHANNELS and MORE_CHANNELS). */
     more: Head;
   };
-  /** Networks listed on the overview without a page (lib/channels.ts OTHER_CHANNELS). */
-  others: Record<string, { name?: string; note: string }>;
+  /** Local spellings of networks without a page (lib/channels.ts OTHER_CHANNELS), where this
+      language doesn't use the brand name. */
+  others: Record<string, { name: string }>;
   page: {
     start: string;
     factsTitle: string;
@@ -273,7 +276,8 @@ export interface Dict {
     now: string;
     yesterday: string;
     location: string;
-    sound: string;
+    /** Under a YouTube video; "{n}" is the count. */
+    views: string;
     commentsShares: string;
     status: Record<string, string>;
   };

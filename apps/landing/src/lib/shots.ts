@@ -29,6 +29,8 @@ export type ShotId = keyof typeof SHOTS;
 export const shotSrc = (id: string, lang: 'en' | 'ar', theme: 'light' | 'dark') => `/product/${id}-${lang}-${theme}.webp`;
 
 /** The composer with one network's preview, for that network's page:
-    channel-<slug>-<en|ar>-<light|dark>.webp. */
+    channel-<slug>-<en|ar>-<light|dark>.webp. Only the networks below have one; the other
+    channel pages skip the preview section rather than show another network's preview. */
 export const CHANNEL_SHOT = { w: 2400, h: 1500 } as const;
+export const CHANNEL_SHOT_SLUGS: ReadonlySet<string> = new Set(['linkedin', 'linkedin-page', 'instagram', 'facebook']);
 export const channelShotSrc = (slug: string, lang: 'en' | 'ar', theme: 'light' | 'dark') => `/product/channel-${slug}-${lang}-${theme}.webp`;

@@ -9,7 +9,7 @@
 /** How the page's mini preview draws a post on this network. */
 export type PreviewKind = 'linkedin' | 'feed' | 'photo' | 'video' | 'short' | 'chat' | 'article';
 
-export type ChannelGroup = 'professional' | 'social' | 'video' | 'community' | 'blog';
+export type ChannelGroup = 'professional' | 'social' | 'video';
 
 export interface ChannelFacts {
   slug: string;
@@ -33,33 +33,36 @@ export interface ChannelFacts {
 
 const P = (slug: string) => `/channels/${slug}.png`;
 
-/** The networks with their own page under /channels. */
+/** The networks with their own page under /channels: the five Tadween focuses on, LinkedIn
+    first (profile and company pages are two pages). Every `related` slug must be one of these
+    (lib/redirects.ts checks). */
 export const CHANNELS: ChannelFacts[] = [
-  { slug: 'linkedin', providers: ['linkedin'], name: 'LinkedIn', icon: P('linkedin'), group: 'professional', limit: 3000, editor: 'normal', comments: true, preview: 'linkedin', accent: '#0a66c2', related: ['linkedin-page', 'x', 'instagram'] },
-  { slug: 'linkedin-page', providers: ['linkedin-page'], name: 'LinkedIn Page', icon: P('linkedin-page'), group: 'professional', limit: 3000, editor: 'normal', comments: true, preview: 'linkedin', accent: '#0a66c2', related: ['linkedin', 'facebook', 'x'] },
-  { slug: 'x', providers: ['x'], name: 'X', icon: P('x'), group: 'social', limit: 280, editor: 'html', comments: true, preview: 'feed', accent: '#1d9bf0', related: ['linkedin', 'instagram', 'facebook'] },
-  { slug: 'instagram', providers: ['instagram', 'instagram-standalone'], name: 'Instagram', icon: P('instagram'), group: 'social', limit: 2200, editor: 'normal', comments: 'text-only', preview: 'photo', accent: '#d62976', related: ['facebook', 'tiktok', 'x'] },
-  { slug: 'facebook', providers: ['facebook'], name: 'Facebook', icon: P('facebook'), group: 'social', limit: 63206, editor: 'normal', comments: true, preview: 'feed', accent: '#0866ff', related: ['instagram', 'linkedin-page', 'tiktok'] },
-  { slug: 'tiktok', providers: ['tiktok', 'tiktok-business'], name: 'TikTok', icon: P('tiktok'), group: 'video', limit: 2000, editor: 'normal', comments: false, preview: 'short', accent: '#fe2c55', related: ['instagram', 'facebook', 'x'] },
+  { slug: 'linkedin', providers: ['linkedin'], name: 'LinkedIn', icon: P('linkedin'), group: 'professional', limit: 3000, editor: 'normal', comments: true, preview: 'linkedin', accent: '#0a66c2', related: ['linkedin-page', 'instagram', 'youtube'] },
+  { slug: 'linkedin-page', providers: ['linkedin-page'], name: 'LinkedIn Page', icon: P('linkedin-page'), group: 'professional', limit: 3000, editor: 'normal', comments: true, preview: 'linkedin', accent: '#0a66c2', related: ['linkedin', 'facebook', 'youtube'] },
+  { slug: 'instagram', providers: ['instagram', 'instagram-standalone'], name: 'Instagram', icon: P('instagram'), group: 'social', limit: 2200, editor: 'normal', comments: 'text-only', preview: 'photo', accent: '#d62976', related: ['facebook', 'threads', 'linkedin'] },
+  { slug: 'facebook', providers: ['facebook'], name: 'Facebook', icon: P('facebook'), group: 'social', limit: 63206, editor: 'normal', comments: true, preview: 'feed', accent: '#0866ff', related: ['instagram', 'linkedin-page', 'threads'] },
+  { slug: 'threads', providers: ['threads'], name: 'Threads', icon: P('threads'), group: 'social', limit: 500, editor: 'normal', comments: true, preview: 'feed', accent: '#000000', related: ['instagram', 'linkedin', 'facebook'] },
+  { slug: 'youtube', providers: ['youtube'], name: 'YouTube', icon: P('youtube'), group: 'video', limit: 5000, editor: 'normal', comments: false, preview: 'video', accent: '#ff0000', related: ['linkedin', 'instagram', 'facebook'] },
 ];
 
-/** Networks the overview lists by group, with a one-line note (content/channels.<lang>.ts,
-    `others`) but no page of their own. Their old pages redirect to /channels (lib/redirects.ts). */
-export const OTHER_CHANNELS: { slug: string; name: string; icon: string; group: ChannelGroup }[] = [
-  { slug: 'threads', name: 'Threads', icon: P('threads'), group: 'social' },
-  { slug: 'youtube', name: 'YouTube', icon: P('youtube'), group: 'video' },
-  { slug: 'pinterest', name: 'Pinterest', icon: P('pinterest'), group: 'social' },
-  { slug: 'bluesky', name: 'Bluesky', icon: P('bluesky'), group: 'social' },
-  { slug: 'mastodon', name: 'Mastodon', icon: P('mastodon'), group: 'social' },
-  { slug: 'reddit', name: 'Reddit', icon: P('reddit'), group: 'community' },
-  { slug: 'telegram', name: 'Telegram', icon: P('telegram'), group: 'community' },
-  { slug: 'discord', name: 'Discord', icon: P('discord'), group: 'community' },
-  { slug: 'slack', name: 'Slack', icon: P('slack'), group: 'community' },
-  { slug: 'google-business', name: 'Google Business Profile', icon: P('gmb'), group: 'social' },
-  { slug: 'medium', name: 'Medium', icon: P('medium'), group: 'blog' },
-  { slug: 'devto', name: 'Dev.to', icon: P('devto'), group: 'blog' },
-  { slug: 'hashnode', name: 'Hashnode', icon: P('hashnode'), group: 'blog' },
-  { slug: 'wordpress', name: 'WordPress', icon: P('wordpress'), group: 'blog' },
+/** Networks the overview lists under "Also supported", with no page of their own. Their old
+    pages redirect to their tile on /channels (lib/redirects.ts). `name` is the brand spelling;
+    content/channels.<lang>.ts `others` gives a local spelling where there is one. */
+export const OTHER_CHANNELS: { slug: string; name: string; icon: string }[] = [
+  { slug: 'x', name: 'X', icon: P('x') },
+  { slug: 'tiktok', name: 'TikTok', icon: P('tiktok') },
+  { slug: 'pinterest', name: 'Pinterest', icon: P('pinterest') },
+  { slug: 'bluesky', name: 'Bluesky', icon: P('bluesky') },
+  { slug: 'mastodon', name: 'Mastodon', icon: P('mastodon') },
+  { slug: 'reddit', name: 'Reddit', icon: P('reddit') },
+  { slug: 'telegram', name: 'Telegram', icon: P('telegram') },
+  { slug: 'discord', name: 'Discord', icon: P('discord') },
+  { slug: 'slack', name: 'Slack', icon: P('slack') },
+  { slug: 'google-business', name: 'Google Business Profile', icon: P('gmb') },
+  { slug: 'medium', name: 'Medium', icon: P('medium') },
+  { slug: 'devto', name: 'Dev.to', icon: P('devto') },
+  { slug: 'hashnode', name: 'Hashnode', icon: P('hashnode') },
+  { slug: 'wordpress', name: 'WordPress', icon: P('wordpress') },
 ];
 
 /** More networks the app publishes to, listed by name on the overview. */

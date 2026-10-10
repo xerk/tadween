@@ -9,9 +9,10 @@ import type { IconName } from './icons';
 // the app tell the same story. The brands are made up and the photos are Unsplash
 // (public/showcase/README.md). Post bodies stay in their own language; only the feed
 // chrome and the status chips follow the page. Motion is CSS and stops under
-// prefers-reduced-motion.
+// prefers-reduced-motion. The site shows only Tadween's focus networks here (LinkedIn,
+// Instagram, Facebook, Threads, YouTube), so it no longer matches the sign-in page card for card.
 
-type Network = 'x' | 'linkedin' | 'instagram' | 'facebook' | 'threads' | 'tiktok';
+type Network = 'linkedin' | 'instagram' | 'facebook' | 'threads' | 'youtube';
 
 interface ShowcasePost {
   id: string;
@@ -24,20 +25,22 @@ interface ShowcasePost {
   text: string;
   image: { src: string; width: number; height: number };
   status: 'scheduled' | 'published';
-  stats?: { a: string; b: string; c: string; d?: string };
+  stats?: { a: string; b?: string; c?: string };
+  /** A video's length, for the YouTube card. */
+  duration?: string;
 }
 
 const img = (name: string, width: number, height: number) => ({ src: `/showcase/${name}.webp`, width, height });
 
 const POSTS: ShowcasePost[][] = [
   [
-    { id: 'rakeeza', network: 'x', brand: 'Rakeeza', handle: '@rakeeza_dev', initials: 'R', color: '#1f2937', lang: 'en', text: 'Arabic-first invoices are live: right-to-left PDFs, Hijri dates and EGP formatting out of the box. Rolling out to every workspace this week.', image: img('desk', 800, 450), status: 'published', stats: { a: '48', b: '212', c: '1.4K', d: '38K' } },
+    { id: 'rakeeza', network: 'youtube', brand: 'Rakeeza', handle: '@rakeeza_dev', initials: 'R', color: '#1f2937', lang: 'en', text: 'Arabic-first invoices in Rakeeza: right-to-left PDFs and Hijri dates in 3 minutes', image: img('desk', 800, 450), status: 'published', stats: { a: '38K' }, duration: '3:12' },
     { id: 'qolla', network: 'instagram', brand: 'Qolla Ceramics', handle: 'qolla.ceramics', initials: 'Q', color: '#b45309', lang: 'ar', text: 'تشكيلة الجليز الجديدة: أخضر النيل ولون الرمل 🌿 الحجز يبدأ الخميس من الموقع.', image: img('ceramics', 720, 720), status: 'scheduled' },
     { id: 'sett', network: 'facebook', brand: 'مطبخ ستّ الحُسن', handle: '', initials: 'س', color: '#be123c', lang: 'ar', text: 'كشري الجمعة رجع 🍋 التوصيل متاح من ١٢ الظهر لحد ١٢ بالليل في مدينة نصر والتجمع.', image: img('koshary', 800, 640), status: 'published', stats: { a: '2.3K', b: '184', c: '96' } },
   ],
   [
     { id: 'maadi', network: 'linkedin', brand: 'Maadi Lane Homes', handle: '', initials: 'ML', color: '#0b7062', lang: 'ar', text: 'بدأنا النهاردة تسليم المرحلة الأولى في المعادي 🔑 ٤٨ شقة بتشطيب كامل وإطلالة على الحديقة. شكرًا لكل عميل وثق فينا.', image: img('living-room', 800, 560), status: 'scheduled' },
-    { id: 'felucca', network: 'tiktok', brand: 'Felucca Hours', handle: '@feluccahours', initials: 'FH', color: '#0e7490', lang: 'en', text: 'Sunset sail from Garden City, tea on board 🌅 #Cairo #Nile', image: img('nile-felucca', 540, 960), status: 'published', stats: { a: '48.2K', b: '1,032', c: '3,410', d: '912' } },
+    { id: 'felucca', network: 'instagram', brand: 'Felucca Hours', handle: 'feluccahours', initials: 'FH', color: '#0e7490', lang: 'en', text: 'Sunset sail from Garden City, tea on board 🌅 #Cairo #Nile', image: img('nile-felucca', 540, 960), status: 'published' },
     { id: 'bunn', network: 'threads', brand: 'Bunn Café', handle: 'bunn.cafe', initials: 'B', color: '#7c2d12', lang: 'en', text: 'Quiet tables, loud flavour. A new single origin from Harar is on the bar in Zamalek this week ☕', image: img('latte', 640, 800), status: 'scheduled' },
   ],
 ];
@@ -58,8 +61,9 @@ const Avatar = ({ post, size, square }: { post: ShowcasePost; size: number; squa
   </span>
 );
 
+/** Feeds crop tall pictures to 4:5; `is-portrait` does the same. */
 const Photo = ({ post, className }: { post: ShowcasePost; className?: string }) => (
-  <img className={cx('sc-photo', className)} src={post.image.src} alt="" width={post.image.width} height={post.image.height} loading="lazy" decoding="async" />
+  <img className={cx('sc-photo', post.image.height > post.image.width * 1.25 && 'is-portrait', className)} src={post.image.src} alt="" width={post.image.width} height={post.image.height} loading="lazy" decoding="async" />
 );
 
 const Body = ({ post, className, children }: { post: ShowcasePost; className?: string; children?: ReactNode }) => (
@@ -74,31 +78,6 @@ function Card({ post, t }: { post: ShowcasePost; t: Dict }) {
   const s = post.stats;
   let content: ReactNode;
   switch (post.network) {
-    case 'x':
-      content = (
-        <div className="sc-x">
-          <Avatar post={post} size={40} />
-          <div className="sc-main">
-            <div className="sc-who">
-              <b>{post.brand}</b>
-              <span className="sc-verified">
-                <Icon name="badge-check" size={16} />
-              </span>
-              <small>{post.handle} · 2h</small>
-            </div>
-            <Body post={post} />
-            <Photo post={post} className="is-rounded" />
-            <div className="sc-stats is-spread">
-              <Stat icon="message-circle" value={s?.a} />
-              <Stat icon="repeat-2" value={s?.b} />
-              <Stat icon="heart" value={s?.c} />
-              <Stat icon="chart-column" value={s?.d} />
-              <Stat icon="share" />
-            </div>
-          </div>
-        </div>
-      );
-      break;
     case 'linkedin':
       content = (
         <>
@@ -194,7 +173,7 @@ function Card({ post, t }: { post: ShowcasePost; t: Dict }) {
               <small>{c.now}</small>
             </div>
             <Body post={post} />
-            <Photo post={post} className="is-rounded is-tall" />
+            <Photo post={post} className="is-rounded" />
             <div className="sc-stats">
               <Stat icon="heart" />
               <Stat icon="message-circle" />
@@ -205,25 +184,23 @@ function Card({ post, t }: { post: ShowcasePost; t: Dict }) {
         </div>
       );
       break;
-    case 'tiktok':
+    case 'youtube':
       content = (
-        <div className="sc-tt">
-          <Photo post={post} />
-          <div className="sc-tt-rail">
+        <>
+          <div className="sc-yt-thumb">
+            <Photo post={post} />
+            <span className="sc-yt-time">{post.duration}</span>
+          </div>
+          <div className="sc-head sc-yt-meta">
             <Avatar post={post} size={36} />
-            <Stat icon="heart" value={s?.a} />
-            <Stat icon="message-circle" value={s?.b} />
-            <Stat icon="bookmark" value={s?.c} />
-            <Stat icon="share" value={s?.d} />
+            <div className="sc-who is-stacked">
+              <b className="sc-yt-title">{post.text}</b>
+              <small>
+                {post.brand} · {c.views.replace('{n}', s?.a ?? '')}
+              </small>
+            </div>
           </div>
-          <div className="sc-tt-caption" lang="en" dir="ltr">
-            <b>{post.handle}</b>
-            <span>{post.text}</span>
-            <small>
-              <Icon name="music" size={12} /> {post.brand} · {c.sound}
-            </small>
-          </div>
-        </div>
+        </>
       );
       break;
   }

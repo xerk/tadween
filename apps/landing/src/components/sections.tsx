@@ -73,7 +73,7 @@ export function TrialButtons({ t, primary, secondaryHref, secondary }: { t: Dict
   );
 }
 
-const HERO_NETS = ['linkedin', 'x', 'instagram', 'facebook', 'threads', 'tiktok', 'youtube'];
+const HERO_NETS = ['linkedin', 'instagram', 'facebook', 'threads', 'youtube'];
 
 export function Hero({ t }: { t: Dict }) {
   const rtl = t.dir === 'rtl';
@@ -162,26 +162,21 @@ export function ProductShot({ t }: { t: Dict }) {
     networks with or without a page. */
 export const networkName = (t: Dict, slug: string) => t.channels.items[slug]?.name ?? t.channels.others[slug]?.name ?? networkBySlug(slug)!.name;
 
-/** A row of network names and icons, linking to each channel page, or to the network on the
-    channels overview when it has no page. */
+/** The focus networks by name and icon, each linking to its channel page, then the overview. */
 export function NetStrip({ t }: { t: Dict }) {
-  const nets = ['linkedin', 'linkedin-page', 'x', 'instagram', 'facebook', 'threads', 'tiktok', 'youtube', 'pinterest', 'bluesky'];
   return (
     <section className="pz-sec is-tight" aria-labelledby="nets-title">
       <div className="pz-container pz-netstrip">
         <p id="nets-title">{t.netstrip.title}</p>
         <ul>
-          {nets.map((slug) => {
-            const href = channelBySlug(slug) ? channelPath(slug) : `${PATHS.channels}#${slug}`;
-            return (
-              <li key={slug}>
-                <a href={localePath(t.lang, href)}>
-                  <img src={networkBySlug(slug)!.icon} width={24} height={24} alt="" loading="lazy" />
-                  {networkName(t, slug)}
-                </a>
-              </li>
-            );
-          })}
+          {CHANNELS.map((c) => (
+            <li key={c.slug}>
+              <a href={localePath(t.lang, channelPath(c.slug))}>
+                <img src={c.icon} width={24} height={24} alt="" loading="lazy" />
+                {networkName(t, c.slug)}
+              </a>
+            </li>
+          ))}
           <li>
             <a href={localePath(t.lang, PATHS.channels)}>
               {t.netstrip.all}

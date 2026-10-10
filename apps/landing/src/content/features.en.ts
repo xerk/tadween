@@ -38,7 +38,7 @@ export const featuresEn: Record<FeatureSlug, FeatureCopy> = {
       'Comments that follow the post',
       'A link anyone can comment on',
     ],
-    faq: { title: 'Which networks have their own preview?', content: 'LinkedIn, Facebook, Instagram, YouTube, Pinterest and TikTok have previews drawn like their feeds. Every other network shows a general preview of the text and media.' },
+    faq: { title: 'Which networks have their own preview?', content: 'LinkedIn, Instagram, Facebook and YouTube have previews drawn like their feeds, and so do Pinterest and TikTok. Every other network, Threads included, shows a general preview of the text and media.' },
   },
   'media-library': {
     nav: { label: 'Media library', blurb: 'Folders, an upload dock and alt text' },

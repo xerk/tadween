@@ -13,6 +13,11 @@ for (const [pages, others] of [[CHANNELS, OTHER_CHANNELS], [AI_CLIENTS, MORE_AI_
   const both = others.find((o) => pages.some((p) => p.slug === o.slug));
   if (both) throw new Error(`"${both.slug}" has a page and a redirect; remove it from the list of those without a page.`);
 }
+// A related channel without a page would link to a redirect.
+for (const c of CHANNELS) {
+  const missing = c.related.find((r) => !CHANNELS.some((p) => p.slug === r));
+  if (missing) throw new Error(`"${c.slug}" lists "${missing}" as related, but "${missing}" has no page.`);
+}
 
 const RETIRED: { source: string; destination: string }[] = [
   // The developers page was retired before; old links land on the features overview.

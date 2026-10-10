@@ -51,6 +51,7 @@ import { MissingReleaseModal } from '@gitroom/frontend/components/launches/missi
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import i18next from 'i18next';
 import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.modal';
+import { hasUnsavedPostChanges } from '@gitroom/frontend/components/new-launch/store';
 import { CreationMethodBadge } from '@gitroom/frontend/components/launches/creation.method.badge';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
@@ -136,7 +137,7 @@ export const usePostActions = (onMutate?: () => void) => {
         removeLayout: true,
         closeOnEscape: false,
         withCloseButton: false,
-        askClose: true,
+        askClose: hasUnsavedPostChanges,
         fullScreen: true,
         classNames: {
           modal: 'w-[100%] max-w-[1400px] text-textColor',
@@ -867,7 +868,7 @@ export const CalendarColumn: FC<{
       removeLayout: true,
       closeOnEscape: false,
       withCloseButton: false,
-      askClose: true,
+      askClose: hasUnsavedPostChanges,
       fullScreen: true,
       classNames: {
         modal: 'w-[100%] max-w-[1400px] text-textColor',

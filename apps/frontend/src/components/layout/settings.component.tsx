@@ -6,102 +6,94 @@ import React, {
   Ref,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
-  useState,
+  useRef,
 } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
-import { showMediaBox } from '@gitroom/frontend/components/media/media.component';
-import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
-import { classValidatorResolver } from '@hookform/resolvers/class-validator';
-import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
-import { useToaster } from '@gitroom/react/toaster/toaster';
-import { useSWRConfig } from 'swr';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
-import { PublicComponent } from '@gitroom/frontend/components/public-api/public.component';
 import Link from 'next/link';
-import { Webhooks } from '@gitroom/frontend/components/webhooks/webhooks';
-import { Sets } from '@gitroom/frontend/components/sets/sets';
-import { SignaturesComponent } from '@gitroom/frontend/components/settings/signatures.component';
-import { Autopost } from '@gitroom/frontend/components/autopost/autopost';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { GlobalSettings } from '@gitroom/frontend/components/settings/global.settings';
-import { ApprovedAppsComponent } from '@gitroom/frontend/components/approved-apps/approved-apps.component';
+import {
+  ApiSettings,
+  ApprovedAppsSettings,
+  OAuthAppsSettings,
+} from '@gitroom/frontend/components/tadween/settings/api.settings';
 import { useFeatures } from '@gitroom/frontend/components/tadween/instance/instance.settings';
-import EmailNotificationsComponent from '@gitroom/frontend/components/settings/email-notifications.component';
 import { TeamSettings } from '@gitroom/frontend/components/tadween/settings/team.settings';
 import {
   SettingsNav,
   SettingsNavItem,
   SettingsPageHeader,
 } from '@gitroom/frontend/components/tadween/settings/settings.nav';
+import {
+  DangerSettings,
+  NotificationSettings,
+  PreferencesSettings,
+  ProfileSettings,
+} from '@gitroom/frontend/components/tadween/settings/account.settings';
+import {
+  AutopostSettings,
+  GeneralSettings,
+  SetsSettings,
+  SignaturesSettings,
+  WebhooksSettings,
+} from '@gitroom/frontend/components/tadween/settings/workspace.settings';
+import { usePhoneLayout } from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
+
+// Pages that moved: the old "General" tab is now Preferences
+const legacyTabs: Record<string, string> = {
+  global_settings: 'preferences',
+};
+
 export const SettingsPopup: FC<{
   getRef?: Ref<any>;
 }> = (props) => {
-  const { isGeneral } = useVariables();
+  const { isGeneral, billingEnabled } = useVariables();
   const { getRef } = props;
-  const fetch = useFetch();
-  const toast = useToaster();
-  const swr = useSWRConfig();
   const user = useUser();
-  const resolver = useMemo(() => {
-    return classValidatorResolver(UserDetailDto);
-  }, []);
-  const form = useForm({
-    resolver,
-  });
-  const picture = form.watch('picture');
-  const modal = useModals();
-  const close = useCallback(() => {
-    return modal.closeAll();
-  }, []);
   const url = useSearchParams();
+  const pathname = usePathname();
+  const phone = usePhoneLayout();
   const showLogout = !url.get('onboarding') || user?.tier?.current === 'FREE';
-  const loadProfile = useCallback(async () => {
-    const personal = await (await fetch('/user/personal')).json();
-    form.setValue('fullname', personal.name || '');
-    form.setValue('bio', personal.bio || '');
-    form.setValue('picture', personal.picture);
-  }, []);
-  const openMedia = useCallback(() => {
-    showMediaBox((values) => {
-      form.setValue('picture', values);
-    });
-  }, []);
-  const remove = useCallback(() => {
-    form.setValue('picture', null);
-  }, []);
-
-  const submit = useCallback(async (val: any) => {
-    await fetch('/user/personal', {
-      method: 'POST',
-      body: JSON.stringify(val),
-    });
-    if (getRef) {
-      return;
-    }
-    toast.show(t('profile_updated', 'Profile updated'));
-    close();
-  }, []);
-
-  const [tab, setTab] = useState('global_settings');
-
   const t = useT();
   // Tadween: tabs for features the super admin switched off are hidden
   const isOn = useFeatures();
   const list = useMemo(() => {
     const arr: SettingsNavItem[] = [];
     arr.push({
-      tab: 'global_settings',
+      tab: 'profile',
       group: 'account',
-      icon: 'settings',
-      label: t('tdw_set_general', 'General'),
+      icon: 'user',
+      label: t('tdw_set_profile', 'Profile'),
       description: t(
-        'tdw_set_general_desc',
-        'Time format, how links are handled, and your account.'
+        'tdw_set_profile_desc',
+        'Your name, photo and how you sign in.'
       ),
+      keywords: [
+        t('tdw_profile_name', 'Full name'),
+        t('tdw_profile_bio', 'Bio'),
+        t('tdw_profile_email', 'Email'),
+        t('authentication', 'Authentication'),
+      ],
+    });
+    arr.push({
+      tab: 'preferences',
+      group: 'account',
+      icon: 'languages',
+      label: t('tdw_set_preferences', 'Language and time'),
+      description: t(
+        'tdw_set_preferences_desc',
+        'The app language and how times are written.'
+      ),
+      keywords: [
+        t('tdw_pref_language', 'Language'),
+        t('tdw_pref_time_format', 'Time format'),
+        'Arabic',
+        'العربية',
+      ],
     });
     arr.push({
       tab: 'notifications',
@@ -112,6 +104,25 @@ export const SettingsPopup: FC<{
         'tdw_set_notifications_desc',
         'Which emails Tadween sends you.'
       ),
+      keywords: [
+        t('success_emails', 'Success Emails'),
+        t('failure_emails', 'Failure Emails'),
+        t('streak_emails', 'Streak Reminder Emails'),
+      ],
+    });
+    arr.push({
+      tab: 'general',
+      group: 'workspace',
+      icon: 'building-2',
+      label: t('tdw_set_general', 'General'),
+      description: t(
+        'tdw_set_workspace_general_desc',
+        'This workspace and how links in posts are handled.'
+      ),
+      keywords: [
+        t('shortlink_settings', 'Shortlink Settings'),
+        t('tdw_general_role', 'Your role'),
+      ],
     });
     // Populate tabs based on user permissions
     // Tadween: Members (USER) can't list or invite the team (the API refuses them), so hide the page.
@@ -125,6 +136,7 @@ export const SettingsPopup: FC<{
           'tdw_set_team_desc',
           'People who can write, schedule and manage this workspace.'
         ),
+        keywords: [t('tdw_invite_people', 'Invite people')],
       });
     }
     if (user?.tier.current !== 'FREE' && isOn('signatures')) {
@@ -154,19 +166,20 @@ export const SettingsPopup: FC<{
     if (user?.tier?.autoPost && isOn('autopost')) {
       arr.push({
         tab: 'autopost',
-        group: 'automation',
+        group: 'workspace',
         icon: 'rss',
         label: t('tdw_set_autopost', 'Auto post'),
         description: t(
           'tdw_set_autopost_desc',
           'Turn new items in an RSS feed into posts or drafts.'
         ),
+        keywords: ['RSS'],
       });
     }
     if (user?.tier?.webhooks && isOn('webhooks')) {
       arr.push({
         tab: 'webhooks',
-        group: 'automation',
+        group: 'workspace',
         icon: 'webhook',
         label: t('webhooks_1', 'Webhooks'),
         description: t(
@@ -179,115 +192,189 @@ export const SettingsPopup: FC<{
       arr.push({
         tab: 'api',
         group: 'developers',
-        icon: 'key',
+        icon: 'key-round',
         label: t('tdw_set_api', 'API & MCP'),
         description: t(
           'tdw_set_api_desc',
           'Use Tadween from your code, the CLI or an AI agent.'
         ),
+        keywords: [
+          'API key',
+          'MCP',
+          'CLI',
+          'OAuth',
+          'Claude',
+          'ChatGPT',
+          'Cursor',
+          'VS Code',
+          'Windsurf',
+          'n8n',
+          'Make',
+          'Zapier',
+          'Grok',
+        ],
+      });
+    }
+    if (user?.tier?.public_api && isGeneral && showLogout && isOn('publicApi')) {
+      arr.push({
+        tab: 'oauth_apps',
+        group: 'developers',
+        icon: 'code',
+        label: t('tdw_set_oauth_apps', 'OAuth apps'),
+        description: t(
+          'tdw_set_oauth_apps_desc',
+          'Build an app that other people connect with their own account.'
+        ),
+        keywords: ['OAuth', 'pos_', 'client id', 'client secret', 'redirect URI'],
       });
     }
     arr.push({
       tab: 'approved_apps',
       group: 'developers',
-      icon: 'shield',
+      icon: 'shield-check',
       label: t('tdw_set_approved_apps', 'Approved apps'),
       description: t(
         'tdw_set_approved_apps_desc',
         'Apps and agents you have allowed into this workspace.'
       ),
     });
+    // Same rule as the account menu's Billing link
+    if (
+      billingEnabled &&
+      ['ADMIN', 'SUPERADMIN'].includes(user?.role!) &&
+      !user?.isLifetime
+    ) {
+      arr.push({
+        tab: 'billing',
+        group: 'billing',
+        icon: 'credit-card',
+        href: '/billing',
+        label: t('billing', 'Billing'),
+        description: t('tdw_set_billing_desc', 'Your plan, usage and invoices.'),
+        keywords: [t('tdw_plan', 'Plan')],
+      });
+    }
+    arr.push({
+      tab: 'danger',
+      group: 'danger',
+      icon: 'triangle-alert',
+      label: t('delete_account', 'Delete Account'),
+      description: t(
+        'tdw_set_danger_desc',
+        'Remove your account and everything in it.'
+      ),
+    });
 
     return arr;
-  }, [user, isGeneral, showLogout, t, isOn]);
-  const current = list.find((p) => p.tab === tab) || list[0];
+  }, [user, isGeneral, billingEnabled, showLogout, t, isOn]);
 
+  // The page lives in the URL (?tab=team), so back, refresh and links work.
+  // A tab that is hidden for this person falls back to the first page; on
+  // phones no tab means the list screen.
+  const requested = url.get('tab') || '';
+  const pages = list.filter((p) => !p.href);
+  const current =
+    pages.find((p) => p.tab === (legacyTabs[requested] || requested)) ||
+    (phone ? undefined : pages[0]);
+
+  // phones: whether the open page was pushed from the list in this visit, so
+  // the back button can pop it instead of adding another history entry
+  const fromList = useRef(false);
+  const setTab = useCallback(
+    (tab: string) => {
+      const params = new URLSearchParams(url.toString());
+      params.set('tab', tab);
+      fromList.current = phone;
+      window.history.pushState(null, '', `${pathname}?${params.toString()}`);
+    },
+    [url, pathname, phone]
+  );
+  const backToList = useCallback(() => {
+    if (fromList.current) {
+      fromList.current = false;
+      window.history.back();
+      return;
+    }
+    const params = new URLSearchParams(url.toString());
+    params.delete('tab');
+    const query = params.toString();
+    window.history.replaceState(null, '', query ? `${pathname}?${query}` : pathname);
+  }, [url, pathname]);
+
+  const body = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    loadProfile();
-  }, []);
+    body.current?.scrollTo?.({ top: 0 });
+  }, [current?.tab]);
 
+  // Desktop: the shell fills the window below the top bar (and the admin or
+  // announcement bars above it), so the nav and the page scroll on their own
+  const shell = useRef<HTMLDivElement>(null);
+  const hasPage = !!current;
+  useLayoutEffect(() => {
+    const el = shell.current;
+    if (!el || phone) {
+      return;
+    }
+    const measure = () =>
+      el.style.setProperty(
+        '--tdw-set-top',
+        `${Math.round(el.getBoundingClientRect().top + window.scrollY)}px`
+      );
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(document.body);
+    return () => observer.disconnect();
+  }, [phone, hasPage]);
+
+  const logout = showLogout ? (
+    <div className="tdw-settings-logout">
+      <LogoutComponent />
+    </div>
+  ) : null;
+
+  if (!current) {
+    return (
+      <div className="tdw-settings is-list">
+        <SettingsNav items={list} onChange={setTab} asList={true} footer={logout} />
+      </div>
+    );
+  }
+
+  const tab = current.tab;
   return (
-    <div className="tdw-settings">
-      <SettingsNav
-        items={list}
-        current={tab}
-        onChange={setTab}
-        footer={
-          showLogout ? (
-            <div className="tdw-settings-logout">
-              <LogoutComponent />
-            </div>
-          ) : null
-        }
-      />
-      <div className="tdw-settings-body" key={tab}>
+    <div
+      ref={shell}
+      className={phone ? 'tdw-settings is-page' : 'tdw-settings'}
+    >
+      {!phone ? (
+        <SettingsNav
+          items={list}
+          current={tab}
+          onChange={setTab}
+          footer={logout}
+        />
+      ) : null}
+      <div className="tdw-settings-body" ref={body}>
         <SettingsPageHeader
           title={current.label}
           description={current.description}
+          onBack={phone ? backToList : undefined}
         />
-        <FormProvider {...form}>
-          <form onSubmit={form.handleSubmit(submit)}>
-            {!!getRef && (
-              <button type="submit" className="hidden" ref={getRef}></button>
-            )}
-            <div className="tdw-settings-page">
-              {tab === 'global_settings' && (
-                <div>
-                  <GlobalSettings />
-                </div>
-              )}
-              {tab === 'notifications' && (
-                <div>
-                  <EmailNotificationsComponent />
-                </div>
-              )}
-              {tab === 'teams' && !!user?.tier?.team_members && isGeneral && user?.role !== 'USER' && (
-                <div>
-                  <TeamSettings />
-                </div>
-              )}
-
-              {tab === 'webhooks' && !!user?.tier?.webhooks && (
-                <div>
-                  <Webhooks />
-                </div>
-              )}
-
-              {tab === 'autopost' && !!user?.tier?.autoPost && (
-                <div>
-                  <Autopost />
-                </div>
-              )}
-
-              {tab === 'sets' && user?.tier.current !== 'FREE' && (
-                <div>
-                  <Sets />
-                </div>
-              )}
-
-              {tab === 'signatures' && user?.tier.current !== 'FREE' && (
-                <div>
-                  <SignaturesComponent />
-                </div>
-              )}
-
-              {tab === 'api' &&
-                !!user?.tier?.public_api &&
-                isGeneral &&
-                showLogout && (
-                  <div>
-                    <PublicComponent />
-                  </div>
-                )}
-
-              {tab === 'approved_apps' && (
-                <div>
-                  <ApprovedAppsComponent />
-                </div>
-              )}
-            </div>
-          </form>
-        </FormProvider>
+        <div className="tdw-settings-page" key={tab}>
+          {tab === 'profile' && <ProfileSettings getRef={getRef} />}
+          {tab === 'preferences' && <PreferencesSettings />}
+          {tab === 'notifications' && <NotificationSettings />}
+          {tab === 'general' && <GeneralSettings />}
+          {tab === 'teams' && <TeamSettings />}
+          {tab === 'signatures' && <SignaturesSettings />}
+          {tab === 'sets' && <SetsSettings />}
+          {tab === 'autopost' && <AutopostSettings />}
+          {tab === 'webhooks' && <WebhooksSettings />}
+          {tab === 'api' && <ApiSettings />}
+          {tab === 'oauth_apps' && <OAuthAppsSettings />}
+          {tab === 'approved_apps' && <ApprovedAppsSettings />}
+          {tab === 'danger' && <DangerSettings />}
+        </div>
       </div>
     </div>
   );

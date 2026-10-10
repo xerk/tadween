@@ -20,6 +20,14 @@ export interface Internal {
   integrationValue: Values[];
 }
 
+// what `/posts/valid` rejected on the last save, per channel, until the
+// content changes or the next save checks again
+export interface ServerCheck {
+  id: string;
+  message: string;
+  settings: boolean;
+}
+
 export interface SelectedIntegrations {
   settings: any;
   integration: Integrations;
@@ -138,6 +146,8 @@ interface StoreState {
   setComments: (comments: boolean | 'no-media') => void;
   baseline?: string;
   setBaseline: () => void;
+  serverChecks: ServerCheck[];
+  setServerChecks: (serverChecks: ServerCheck[]) => void;
 }
 
 const initialState = {
@@ -162,6 +172,7 @@ const initialState = {
   internal: [] as Internal[],
   chars: {},
   baseline: undefined as undefined | string,
+  serverChecks: [] as ServerCheck[],
 };
 
 // everything the user can change in the composer, to tell if closing it loses work
@@ -687,6 +698,10 @@ export const useLaunchStore = create<StoreState>()((set) => ({
   setComments: (comments: boolean | 'no-media') =>
     set((state) => ({
       comments,
+    })),
+  setServerChecks: (serverChecks: ServerCheck[]) =>
+    set(() => ({
+      serverChecks,
     })),
   setGlobalDelay: (index: number, minutes: number) =>
     set((state) => ({

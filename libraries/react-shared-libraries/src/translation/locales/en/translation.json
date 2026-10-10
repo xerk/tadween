@@ -1000,5 +1000,13 @@
   "tdw_cm_when_to_post": "When to post",
   "tdw_cm_none": "None",
   "tdw_cm_repeat_on": "On",
-  "tdw_cm_repeat_never": "Never"
+  "tdw_cm_repeat_never": "Never",
+  "tdw_cm_show_preview": "Show preview",
+  "tdw_cm_hide_preview": "Hide preview",
+  "tdw_cm_full_screen": "Full screen",
+  "tdw_cm_side_panel": "Side panel",
+  "tdw_cm_preview_size": "Preview size",
+  "tdw_cm_desktop": "Desktop",
+  "tdw_cm_mobile": "Mobile",
+  "tdw_choose_a_channel": "Choose a channel"
 }

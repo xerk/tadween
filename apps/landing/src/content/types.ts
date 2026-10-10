@@ -260,7 +260,7 @@ export interface Dict {
     monthly: string;
     yearly: string;
     currencyLabel: string;
-    currencies: { EGP: string; USD: string };
+    currencies: { EGP: string; SAR: string; USD: string };
     save: string;
     placeholder: string;
     mostPopular: string;

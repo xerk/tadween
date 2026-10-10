@@ -111,7 +111,7 @@ export const en: Dict = {
     sub: 'Plan posts for your profile and company pages, see them the way LinkedIn will, and publish at the hour you choose. Then reach 30+ other channels from the same calendar.',
     primary: 'Start 7-day trial',
     secondary: 'See the product',
-    fine: 'Seven days free · Cancel any time · Prices in EGP or USD',
+    fine: 'Seven days free · Cancel any time · Prices in EGP, SAR or USD',
     nets: 'LinkedIn, X, Instagram, Facebook, Threads, TikTok and 25 more',
   },
   product: {
@@ -369,7 +369,7 @@ export const en: Dict = {
     ],
   },
   pricing: {
-    sectionTitle: 'Simple pricing, in pounds or dollars',
+    sectionTitle: 'Simple pricing, in pounds, riyals or dollars',
     sectionSub: 'Every plan starts with seven days free.',
     pageTitle: 'Pricing',
     pageSub: 'Four plans for people, brands and agencies on LinkedIn. Every plan starts with seven days free.',
@@ -377,7 +377,7 @@ export const en: Dict = {
     monthly: 'Monthly',
     yearly: 'Yearly',
     currencyLabel: 'Currency',
-    currencies: { EGP: 'EGP', USD: 'USD' },
+    currencies: { EGP: 'EGP', SAR: 'SAR', USD: 'USD' },
     save: 'Save 20% yearly',
     placeholder: 'Placeholder prices',
     mostPopular: 'Most popular',

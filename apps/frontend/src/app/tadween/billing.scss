@@ -185,3 +185,133 @@
 
 @keyframes pz-step-in { from { opacity: 0; transform: translateX(calc(32px * var(--travel, 1))); } }
 @keyframes pz-step-in-rtl { from { opacity: 0; transform: translateX(calc(-32px * var(--travel, 1))); } }
+
+// ── Billing page and paywall (two plans, Stripe Embedded Checkout) ─────────
+// A calm, centred page: headline, period control, plan cards that compare row
+// by row, what every plan includes, and true statements about paying.
+.tdw-ui {
+  &.tdw-billing-page, .tdw-billing-page { display: grid; gap: var(--space-12); width: 100%; max-width: 1040px; margin: 0 auto; padding: var(--space-8) 0 64px; box-sizing: border-box; }
+  &.tdw-billing-page > *, .tdw-billing-page > * { min-width: 0; }
+  .tdw-paywall .tdw-billing-page { padding-inline: var(--space-6); }
+
+  .tdw-plans { display: grid; gap: var(--space-8); }
+  .tdw-plans-head { display: grid; justify-items: center; gap: var(--space-3); text-align: center; }
+  .tdw-plans-title { margin: 0; max-width: 720px; font-size: 40px; line-height: 46px; font-weight: 600; letter-spacing: -0.03em; text-wrap: balance; }
+  .tdw-plans-lead { margin: 0 0 var(--space-3); max-width: 560px; font-size: 16px; line-height: 24px; color: var(--muted-foreground); text-wrap: pretty; }
+
+  .tdw-plans-grid { display: grid; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); gap: var(--space-5); align-items: stretch; }
+  .tdw-plans-grid[data-count='1'] { --cols: 1; max-width: 480px; width: 100%; margin: 0 auto; }
+  .tdw-plans-grid[data-count='3'] { --cols: 3; }
+  .tdw-plans-grid[data-count='4'] { --cols: 4; }
+
+  .tdw-plan { position: relative; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-8); border-radius: var(--radius-xl); background: var(--card); box-shadow: 0 0 0 1px var(--border), var(--shadow-sm); transition: box-shadow var(--duration-base) ease, transform var(--duration-base) var(--ease-spring); animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
+  .tdw-plan:hover { box-shadow: 0 0 0 1px var(--input), var(--shadow-md); }
+  .tdw-plan.is-featured { background: linear-gradient(180deg, color-mix(in oklab, var(--primary-soft) 70%, var(--card)) 0%, var(--card) 42%); box-shadow: 0 0 0 1.5px var(--primary), 0 18px 48px -24px color-mix(in oklab, var(--primary) 55%, transparent), var(--shadow-md); }
+  .tdw-plan.is-current { box-shadow: 0 0 0 1.5px var(--input), var(--shadow-sm); }
+  .tdw-plan + .tdw-plan { animation-delay: 60ms; }
+  .tdw-plan-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .tdw-plan-name { margin: 0; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.02em; }
+  .tdw-plan-flag { padding: 4px 10px; border-radius: var(--radius-full); background: var(--primary); color: var(--primary-foreground); font-size: 12px; line-height: 16px; font-weight: 600; white-space: nowrap; }
+  .tdw-plan-flag.is-current { background: var(--muted); color: var(--foreground); }
+  .tdw-plan-for { margin: 0; min-height: 20px; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+  .tdw-plan-price { display: flex; align-items: baseline; gap: 6px; margin-top: var(--space-4); }
+  .tdw-plan-amount { font-family: var(--font-mono); font-size: 48px; line-height: 52px; font-weight: 500; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
+  .tdw-plan-per { font-size: 15px; color: var(--muted-foreground); }
+  .tdw-plan-bill { margin: 0 0 var(--space-4); min-height: 20px; font-size: 13px; line-height: 20px; color: var(--muted-foreground); }
+  .tdw-plan-cta { display: grid; }
+  .tdw-plan-cta .pz-btn { height: 48px; font-size: 15px; }
+  .tdw-plan-note { display: inline-flex; align-items: center; gap: 6px; min-height: 20px; font-size: 13px; color: var(--muted-foreground); }
+  .tdw-plan-features { list-style: none; margin: var(--space-4) 0 0; padding: var(--space-5) 0 0; border-top: 1px solid var(--border); display: grid; gap: var(--space-3); font-size: 14px; line-height: 20px; }
+  .tdw-plan-features li { display: flex; gap: 10px; align-items: flex-start; }
+  .tdw-plan-features .pz-icon { flex: none; margin-top: 2px; color: var(--primary); }
+  .tdw-plan-features li.is-off { color: var(--muted-foreground); }
+  .tdw-plan-features li.is-off .pz-icon { color: var(--muted-foreground); opacity: 0.6; }
+
+  .tdw-included { display: grid; justify-items: center; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-xl); background: var(--muted); text-align: center; }
+  .tdw-included-title { margin: 0; font-size: 13px; line-height: 18px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+  .tdw-included ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2) var(--space-6); font-size: 14px; }
+  .tdw-included li { display: inline-flex; align-items: center; gap: 8px; }
+  .tdw-included .pz-icon { color: var(--primary); }
+
+  .tdw-trust { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3) var(--space-8); font-size: 13px; color: var(--muted-foreground); }
+  .tdw-trust li { display: inline-flex; align-items: center; gap: 8px; }
+
+  .tdw-section-title { margin: 0 0 var(--space-4); font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.02em; text-align: center; }
+  .tdw-billing-faq { width: 100%; max-width: 720px; margin: 0 auto; }
+
+  // Current plan (subscribed workspaces)
+  .tdw-current { display: grid; gap: var(--space-6); padding: var(--space-8); border-radius: var(--radius-xl); background: var(--card); box-shadow: 0 0 0 1px var(--border), var(--shadow-sm); }
+  .tdw-current-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+  .tdw-current-label { font-size: 13px; color: var(--muted-foreground); }
+  .tdw-current-name { margin: 2px 0 0; font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.02em; }
+  .tdw-current-price { margin: 4px 0 0; font-size: 14px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .tdw-current-usage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); }
+  .tdw-current-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding-top: var(--space-5); border-top: 1px solid var(--border); }
+  .tdw-current-actions .grow { flex: 1; }
+
+  // Checkout drawer: order summary above Stripe Embedded Checkout
+  .tdw-checkout { display: grid; gap: var(--space-5); }
+  .tdw-checkout-stripe { min-height: 420px; border-radius: var(--radius-lg); overflow: hidden; background: #ffffff; box-shadow: 0 0 0 1px var(--border); }
+  .tdw-order { display: grid; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius-lg); background: var(--card); box-shadow: 0 0 0 1px var(--border); }
+  .tdw-order-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+  .tdw-order-name { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.02em; }
+  .tdw-order-desc { margin: 2px 0 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+  .tdw-order-price { display: flex; align-items: baseline; gap: 4px; flex: none; }
+  .tdw-order-amount { font-family: var(--font-mono); font-size: 28px; line-height: 32px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .tdw-order-per { font-size: 13px; color: var(--muted-foreground); }
+  .tdw-order-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: 13px; color: var(--muted-foreground); }
+  .tdw-order-save { padding: 2px 8px; border-radius: var(--radius-full); background: var(--success-soft); color: var(--success); font-weight: 600; }
+  .tdw-order-trial { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--primary-soft); font-size: 14px; line-height: 20px; }
+  .tdw-order-trial .pz-icon { flex: none; margin-top: 2px; color: var(--primary); }
+  .tdw-order-included h4 { margin: 0 0 var(--space-2); font-size: 13px; font-weight: 600; color: var(--muted-foreground); }
+  .tdw-order-included .tdw-plan-features { margin: 0; padding: 0; border: 0; gap: var(--space-2); }
+  .tdw-order-more { margin-top: var(--space-2); padding: 0; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 500; color: var(--primary); cursor: pointer; }
+  .tdw-order-note { margin: 0; font-size: 13px; color: var(--muted-foreground); }
+  .tdw-checkout-state { display: grid; justify-items: center; gap: var(--space-3); padding: var(--space-12) var(--space-6); text-align: center; animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
+  .tdw-checkout-state h3 { margin: 0; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.02em; }
+  .tdw-checkout-state p { margin: 0 0 var(--space-3); max-width: 420px; color: var(--muted-foreground); }
+  .tdw-checkout-mark { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--primary-soft); color: var(--primary); }
+  .tdw-checkout-state.is-error .tdw-checkout-mark { background: var(--destructive-soft); color: var(--destructive); }
+
+  @media (max-width: 1024px) {
+    &.tdw-billing-page, .tdw-billing-page { gap: var(--space-8); padding: var(--space-4) 0 var(--space-12); }
+    .tdw-paywall .tdw-billing-page { padding-inline: var(--space-4); }
+    .tdw-plans-title { font-size: 30px; line-height: 36px; }
+    .tdw-current-usage { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+  }
+  @media (max-width: 720px) {
+    .tdw-plans-grid { --cols: 1 !important; }
+    .tdw-plan { padding: var(--space-6); }
+    .tdw-plan-amount { font-size: 40px; line-height: 44px; }
+    .tdw-current { padding: var(--space-5); }
+    .tdw-current-head { flex-wrap: wrap; }
+    // The featured plan's button stays reachable while reading the list
+    .tdw-plan.is-featured .tdw-plan-cta { position: sticky; bottom: var(--space-3); z-index: 2; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tdw-plan, .tdw-plan-amount, .tdw-checkout-state { animation: pz-fade 150ms ease both !important; }
+    .tdw-plan { transition: none; }
+  }
+  @media (prefers-contrast: more) {
+    .tdw-plan, .tdw-current, .tdw-order { box-shadow: 0 0 0 1px var(--input); }
+  }
+}
+
+// Trial line above the app (TrialBanner)
+.tdw-ui .tdw-trial-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin: 0 0 8px; padding: 8px 16px; border-radius: var(--radius-lg); background: var(--primary-soft); color: var(--foreground); font-size: 13px; line-height: 18px; }
+.tdw-ui .tdw-trial-bar .pz-icon { color: var(--primary); }
+.tdw-ui .tdw-trial-sep { color: var(--muted-foreground); }
+.tdw-ui .tdw-trial-link { color: var(--primary); font-weight: 600; text-decoration: none; }
+.tdw-ui .tdw-trial-link:hover { text-decoration: underline; }
+.tdw-ui .tdw-skip { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin-top: calc(-1 * var(--space-4)); font-size: 14px; color: var(--muted-foreground); text-align: center; }
+
+// Upgrade paywall (PaywallModal)
+.tdw-ui .tdw-paywall-modal { display: grid; gap: var(--space-4); }
+.tdw-ui .tdw-paywall-usage { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.tdw-ui .tdw-paywall-compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-3); }
+.tdw-ui .tdw-paywall-plan { display: grid; gap: 4px; padding: var(--space-4); border-radius: var(--radius-lg); background: var(--card); box-shadow: 0 0 0 1px var(--border); }
+.tdw-ui .tdw-paywall-plan.is-unlock { background: color-mix(in oklab, var(--primary-soft) 70%, var(--card)); box-shadow: 0 0 0 1.5px var(--primary); }
+.tdw-ui .tdw-paywall-plan-name { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 600; }
+.tdw-ui .tdw-paywall-plan-row { font-size: 15px; }
+.tdw-ui .tdw-paywall-plan.is-unlock .tdw-paywall-plan-row { font-weight: 600; color: var(--primary); }
+.tdw-ui .tdw-paywall-plan-price { font-size: 13px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }

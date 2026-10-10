@@ -11,7 +11,7 @@ import { AccountMenu } from '@gitroom/frontend/components/tadween/shell/account.
 import clsx from 'clsx';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { CheckPayment } from '@gitroom/frontend/components/layout/check.payment';
 import { ToolTip } from '@gitroom/frontend/components/layout/top.tip';
@@ -28,6 +28,8 @@ import { CopilotKit } from '@copilotkit/react-core';
 import { MantineWrapper } from '@gitroom/react/helpers/mantine.wrapper';
 import { Impersonate } from '@gitroom/frontend/components/layout/impersonate';
 import { AnnouncementBanner } from '@gitroom/frontend/components/layout/announcement.banner';
+import { TrialBanner } from '@gitroom/frontend/components/tadween/billing/trial.banner';
+import { PaywallModal } from '@gitroom/frontend/components/tadween/billing/paywall.modal';
 import { Title } from '@gitroom/frontend/components/layout/title';
 import { TopMenu } from '@gitroom/frontend/components/layout/top.menu';
 import { ChromeExtensionComponent } from '@gitroom/frontend/components/layout/chrome.extension.component';
@@ -49,6 +51,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   // Feedback icon component attaches Sentry feedback to a top-bar icon when DSN is present
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const sidebar = useSidebarCollapsed();
   useEffect(() => {
@@ -71,6 +74,20 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     );
   }, [user]);
 
+  // A workspace without a plan lives on /billing (full screen, no app chrome),
+  // like Postiz's first-billing screen; super admins are never held there
+  const needsPlan =
+    !!user &&
+    user.tier === 'FREE' &&
+    isGeneral &&
+    billingEnabled &&
+    !user.billingExempt;
+  useEffect(() => {
+    if (needsPlan && pathname !== '/billing') {
+      router.replace('/billing');
+    }
+  }, [needsPlan, pathname]);
+
   if (!user) return null;
 
   return (
@@ -92,6 +109,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             <ShowPostSelector />
             <PreConditionComponent />
             <NewSubscription />
+            <PaywallModal />
             <ContinueProvider />
             <div
               className={clsx(
@@ -100,11 +118,12 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
               )}
             >
               <div>{user?.admin ? <Impersonate /> : <div />}</div>
-              {user.tier === 'FREE' && isGeneral && billingEnabled ? (
+              {needsPlan ? (
                 <FirstBillingComponent />
               ) : (
                 <>
                   <AnnouncementBanner />
+                  {billingEnabled && <TrialBanner />}
                   <div className="flex-1 flex gap-[8px] mobile:gap-0">
                     <Support />
                     {menuOpen && (

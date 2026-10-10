@@ -20,6 +20,8 @@ export const UserContext = createContext<
       allowTrial: boolean;
       isTrailing: boolean;
       streakSince: string | null;
+      // Super admin acting as themselves: no paywall or plan gates
+      billingExempt?: boolean;
     })
 >(undefined);
 export const ContextWrapper: FC<{
@@ -29,15 +31,20 @@ export const ContextWrapper: FC<{
     role: 'USER' | 'ADMIN' | 'SUPERADMIN';
     publicApi: string;
     totalChannels: number;
+    billingExempt?: boolean;
   };
   children: ReactNode;
 }> = ({ user, children }) => {
   // Tadween: plan limits set in /admin overlay the static pricing map
   const { pricing: plans } = useTadweenPricing();
+  // A super admin on a workspace without a plan gets the top tier's gates
+  // (the real tier still drives /billing, which reads the subscription)
+  const tier =
+    user?.billingExempt && user.tier === 'FREE' ? 'ULTIMATE' : user?.tier;
   const values = user
     ? {
         ...user,
-        tier: plans[user.tier] || pricing[user.tier],
+        tier: plans[tier] || pricing[tier],
       }
     : ({} as any);
   return <UserContext.Provider value={values}>{children}</UserContext.Provider>;

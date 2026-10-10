@@ -12,8 +12,6 @@ const toData = (body: PlanDto) => ({
   tier: body.tier,
   monthlyPriceUsd: body.monthlyPriceUsd,
   yearlyPriceUsd: body.yearlyPriceUsd,
-  monthlyPriceEgp: body.monthlyPriceEgp,
-  yearlyPriceEgp: body.yearlyPriceEgp,
   trialDays: body.trialDays,
   mostPopular: body.mostPopular,
   channels: body.channels,
@@ -88,6 +86,35 @@ export class PlansRepository {
       },
       select: { id: true },
     });
+  }
+
+  setYearlyPrice(id: string, yearlyPriceUsd: number) {
+    return this._plans.model.plan.update({
+      where: { id },
+      data: { yearlyPriceUsd },
+      select: { id: true },
+    });
+  }
+
+  setActive(id: string, active: boolean) {
+    return this._plans.model.plan.update({
+      where: { id },
+      data: { active },
+      select: { id: true },
+    });
+  }
+
+  // Live subscriptions per tier, for the admin's plan list.
+  async countSubscriptionsByTier() {
+    const rows = await this._subscriptions.model.subscription.groupBy({
+      by: ['subscriptionTier'],
+      where: { deletedAt: null },
+      _count: { _all: true },
+    });
+    return rows.reduce(
+      (all, row) => ({ ...all, [row.subscriptionTier]: row._count._all }),
+      {} as Record<string, number>
+    );
   }
 
   clearMostPopular(exceptId: string) {

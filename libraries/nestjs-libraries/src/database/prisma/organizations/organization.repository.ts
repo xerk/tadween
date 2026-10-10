@@ -405,6 +405,33 @@ export class OrganizationRepository {
     });
   }
 
+  // The org's tier and how many members it has besides its owners.
+  async getTeamSeats(orgId: string) {
+    const org = await this._organization.model.organization.findFirst({
+      where: { id: orgId },
+      select: {
+        subscription: { select: { subscriptionTier: true, deletedAt: true } },
+        _count: {
+          select: {
+            users: {
+              where: {
+                role: { not: 'SUPERADMIN' },
+                disabled: false,
+                user: { deletedAt: null },
+              },
+            },
+          },
+        },
+      },
+    });
+    return {
+      tier: org?.subscription?.deletedAt
+        ? undefined
+        : org?.subscription?.subscriptionTier,
+      members: org?._count.users || 0,
+    };
+  }
+
   async addUserToOrg(
     userId: string,
     id: string,

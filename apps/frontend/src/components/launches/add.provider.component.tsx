@@ -12,6 +12,8 @@ import { useRouter } from 'next/navigation';
 import { TopTitle } from '@gitroom/frontend/components/launches/helpers/top.title.component';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import { useUser } from '@gitroom/frontend/components/layout/user.context';
+import { openPaywall } from '@gitroom/frontend/components/tadween/billing/paywall.modal';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { object, string } from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -25,7 +27,23 @@ const resolver = classValidatorResolver(ApiKeyDto);
 export const useAddProvider = (update?: () => void, invite?: boolean) => {
   const modal = useModals();
   const fetch = useFetch();
+  const user = useUser();
+  const { billingEnabled } = useVariables();
   return useCallback(async () => {
+    // Tadween: at the plan's channel limit, show the upgrade paywall first
+    // (the server refuses the connection anyway)
+    if (billingEnabled && !invite && user && !user.billingExempt) {
+      const { integrations = [] } = await (
+        await fetch('/integrations/list')
+      ).json();
+      if (
+        integrations.filter((i: { disabled?: boolean }) => !i.disabled)
+          .length >= user.totalChannels
+      ) {
+        openPaywall({ section: 'channel' });
+        return;
+      }
+    }
     const data = await (await fetch('/integrations')).json();
     modal.openModal({
       title: 'Add Channel',
@@ -34,7 +52,7 @@ export const useAddProvider = (update?: () => void, invite?: boolean) => {
         <AddProviderComponent invite={!!invite} update={update} {...data} />
       ),
     });
-  }, []);
+  }, [user, billingEnabled]);
 };
 export const AddProviderButton: FC<{
   update?: () => void;

@@ -5,6 +5,8 @@ export interface PricingInnerInterface {
   channel?: number;
   posts_per_month: number;
   team_members: boolean;
+  // Tadween: how many members besides the owner (-1 or unset = unlimited)
+  team_members_count?: number;
   community_features: boolean;
   featured_by_gitroom: boolean;
   ai: boolean;

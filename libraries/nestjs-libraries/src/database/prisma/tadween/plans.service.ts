@@ -7,10 +7,21 @@ import {
   PricingInnerInterface,
   PricingInterface,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
-import { DEFAULT_PLANS } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
+import {
+  DEFAULT_PLANS,
+  FeatureKey,
+} from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
+import { PlatformSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/platform-settings.service';
 
 const TTL_MS = 15_000;
 const UNLIMITED = 1000000;
+
+// One generated line of a plan's feature list. `key` is translated by the app
+// (tdw_plan_feature_<key>); `value` is the number it shows (-1 = unlimited).
+export interface PlanFeatureItem {
+  key: string;
+  value?: number;
+}
 
 // A plan as the pricing page and billing see it (no provider price ids).
 export interface PublicPlan {
@@ -26,8 +37,80 @@ export interface PublicPlan {
   teamMembers: number;
   postsPerMonth: number;
   aiCredits: number;
+  // Generated from the plan's limits, in a fixed order so plans compare line
+  // by line; `features` is the same list in English plus the admin's extras.
+  featureItems: PlanFeatureItem[];
+  extraFeatures: string[];
   features: string[];
+  yearlyDiscountPercent: number;
 }
+
+// Yearly price = 12 months minus the discount, in whole dollars.
+export const yearlyPriceFrom = (monthly: number, discountPercent: number) =>
+  Math.round(monthly * 12 * (1 - discountPercent / 100));
+
+const featureText = (item: PlanFeatureItem) => {
+  const n = item.value ?? 0;
+  const count = (one: string, many: string) =>
+    n < 0 ? `Unlimited ${many}` : `${n} ${n === 1 ? one : many}`;
+  switch (item.key) {
+    case 'channels':
+      return count('channel', 'channels');
+    case 'posts':
+      return `${count('post', 'posts')} per month`;
+    case 'team':
+      return count('team member', 'team members');
+    case 'ai_writing':
+      return 'AI auto-complete and copilots';
+    case 'ai_images':
+      return `${count('AI image', 'AI images')} per month`;
+    case 'picture_editor':
+      return 'Advanced picture editor';
+    case 'autopost':
+      return 'RSS auto-post';
+    case 'public_api':
+      return 'Public API, MCP and AI agents';
+    case 'webhooks':
+      return count('webhook', 'webhooks');
+    default:
+      return item.key;
+  }
+};
+
+// The list a plan's card shows: only what the app enforces for the plan (its
+// overlaid tier values) and what the instance has switched on in /admin.
+const featureItemsFor = (
+  plan: Plan,
+  values: PricingInnerInterface,
+  on: Record<FeatureKey, boolean>
+): PlanFeatureItem[] => {
+  const items: PlanFeatureItem[] = [
+    { key: 'channels', value: plan.channels },
+    { key: 'posts', value: plan.postsPerMonth },
+  ];
+  if (plan.teamMembers !== 0) {
+    items.push({ key: 'team', value: plan.teamMembers });
+  }
+  if (values.ai && on.ai) {
+    items.push({ key: 'ai_writing' });
+    if (values.image_generator) {
+      items.push({ key: 'ai_images', value: plan.aiCredits });
+    }
+  }
+  if (on.media) {
+    items.push({ key: 'picture_editor' });
+  }
+  if (values.autoPost && on.autopost) {
+    items.push({ key: 'autopost' });
+  }
+  if (values.public_api && on.publicApi) {
+    items.push({ key: 'public_api' });
+  }
+  if (values.webhooks && on.webhooks) {
+    items.push({ key: 'webhooks', value: values.webhooks >= 10000 ? -1 : values.webhooks });
+  }
+  return items;
+};
 
 type PlanLimits = Pick<
   Plan,
@@ -45,11 +128,20 @@ const overlay = (
   year_price: plan.yearlyPriceUsd,
   channel: plan.channels,
   team_members: plan.teamMembers !== 0,
+  team_members_count: plan.teamMembers,
   posts_per_month: plan.postsPerMonth < 0 ? UNLIMITED : plan.postsPerMonth,
   ai: plan.aiCredits !== 0,
   image_generation_count:
     plan.aiCredits < 0 ? UNLIMITED : plan.aiCredits,
 });
+
+// Members besides the owner a tier allows (Infinity = unlimited).
+export const teamSeats = (v: PricingInnerInterface) =>
+  !v.team_members
+    ? 0
+    : v.team_members_count === undefined || v.team_members_count < 0
+    ? Infinity
+    : v.team_members_count;
 
 // The entitlements a plan overlays, and how to tell that one is lower.
 const LIMITS: Array<{
@@ -57,7 +149,10 @@ const LIMITS: Array<{
   lower: (next: PricingInnerInterface, now: PricingInnerInterface) => boolean;
 }> = [
   { label: 'channels', lower: (n, c) => (n.channel ?? 0) < (c.channel ?? 0) },
-  { label: 'team members', lower: (n, c) => c.team_members && !n.team_members },
+  {
+    label: 'team members',
+    lower: (n, c) => teamSeats(n) < teamSeats(c),
+  },
   { label: 'posts per month', lower: (n, c) => n.posts_per_month < c.posts_per_month },
   { label: 'AI', lower: (n, c) => c.ai && !n.ai },
   {
@@ -70,7 +165,10 @@ const LIMITS: Array<{
 export class PlansService {
   private _cache: { at: number; plans: Plan[] } | null = null;
 
-  constructor(private _repository: PlansRepository) {}
+  constructor(
+    private _repository: PlansRepository,
+    private _settings: PlatformSettingsService
+  ) {}
 
   private async activePlans(): Promise<Plan[]> {
     if (this._cache && Date.now() - this._cache.at < TTL_MS) {
@@ -104,25 +202,90 @@ export class PlansService {
   }
 
   async getPublicPlans(): Promise<PublicPlan[]> {
-    return (await this.activePlans()).map((p) => ({
-      key: p.key,
-      name: p.name,
-      description: p.description,
-      tier: p.tier,
-      monthlyPriceUsd: p.monthlyPriceUsd,
-      yearlyPriceUsd: p.yearlyPriceUsd,
-      trialDays: p.trialDays,
-      mostPopular: p.mostPopular,
-      channels: p.channels,
-      teamMembers: p.teamMembers,
-      postsPerMonth: p.postsPerMonth,
-      aiCredits: p.aiCredits,
-      features: Array.isArray(p.features) ? (p.features as string[]) : [],
-    }));
+    const [plans, pricingMap, on, yearlyDiscountPercent] = await Promise.all([
+      this.activePlans(),
+      this.getPricing(),
+      this._settings.getFeatures(),
+      this._settings.getYearlyDiscountPercent(),
+    ]);
+    return plans.map((p) => {
+      const featureItems = featureItemsFor(p, pricingMap[p.tier], on);
+      const extraFeatures = Array.isArray(p.features)
+        ? (p.features as string[])
+        : [];
+      return {
+        key: p.key,
+        name: p.name,
+        description: p.description,
+        tier: p.tier,
+        monthlyPriceUsd: p.monthlyPriceUsd,
+        yearlyPriceUsd: p.yearlyPriceUsd,
+        trialDays: p.trialDays,
+        mostPopular: p.mostPopular,
+        channels: p.channels,
+        teamMembers: p.teamMembers,
+        postsPerMonth: p.postsPerMonth,
+        aiCredits: p.aiCredits,
+        featureItems,
+        extraFeatures,
+        features: [...featureItems.map(featureText), ...extraFeatures],
+        yearlyDiscountPercent,
+      };
+    });
   }
 
-  listForAdmin() {
-    return this._repository.list(false);
+  // What customers see for a tier (Stripe product name): the plan's name
+  async getPlanName(tier: string) {
+    const plan = (await this.activePlans()).find((p) => p.tier === tier);
+    return plan?.name || tier.charAt(0) + tier.slice(1).toLowerCase();
+  }
+
+  // The active plan selling a tier (none: the tier is not for sale)
+  async getActivePlan(tier: string) {
+    return (await this.activePlans()).find((p) => p.tier === tier);
+  }
+
+  // Free trial length for a tier's checkout: the plan's, else Postiz's 7 days.
+  async getTrialDays(tier: string) {
+    const plan = (await this.activePlans()).find((p) => p.tier === tier);
+    return plan ? plan.trialDays : 7;
+  }
+
+  async listForAdmin() {
+    return {
+      plans: await this._repository.list(false),
+      yearlyDiscountPercent: await this._settings.getYearlyDiscountPercent(),
+      subscribers: await this._repository.countSubscriptionsByTier(),
+    };
+  }
+
+  // The yearly price is never typed: it follows the monthly price and the
+  // instance's yearly discount.
+  private async withYearlyPrice(
+    body: PlanDto
+  ): Promise<PlanDto & { yearlyPriceUsd: number }> {
+    return {
+      ...body,
+      yearlyPriceUsd: yearlyPriceFrom(
+        body.monthlyPriceUsd,
+        await this._settings.getYearlyDiscountPercent()
+      ),
+    };
+  }
+
+  // Saving the discount reprices every plan's yearly price. Stripe Prices are
+  // matched by amount at checkout, so new checkouts get a new Price and
+  // existing subscriptions keep the one they pay.
+  async setYearlyDiscount(percent: number, userId: string) {
+    await this._settings.setYearlyDiscountPercent(percent, userId);
+    for (const plan of await this._repository.list(false)) {
+      await this._repository.setYearlyPrice(
+        plan.id,
+        yearlyPriceFrom(plan.monthlyPriceUsd, percent)
+      );
+    }
+    this.invalidate();
+    return this.listForAdmin();
   }
 
   // Paying workspaces must never lose limits because of a plan change: their
@@ -176,7 +339,8 @@ export class PlansService {
     }
   }
 
-  async create(body: PlanDto) {
+  async create(input: PlanDto) {
+    const body = await this.withYearlyPrice(input);
     await this.assertKeyFree(body.key);
     await this.assertTierFree(body);
     if (body.active) {
@@ -190,7 +354,8 @@ export class PlansService {
     return plan;
   }
 
-  async update(id: string, body: PlanDto) {
+  async update(id: string, input: PlanDto) {
+    const body = await this.withYearlyPrice(input);
     const existing = await this._repository.getById(id);
     if (!existing) {
       throw new HttpException('Plan not found', 404);
@@ -226,23 +391,54 @@ export class PlansService {
     return { id };
   }
 
-  // Creates the four Tadween plans (placeholder prices) when there are none.
-  // Their limits equal Postiz's for each tier, so this never lowers what paying
-  // workspaces have; the check below keeps it that way if the defaults change.
+  // Loads the default plans. Plans with a default key are created or updated
+  // to the defaults; other active plans are hidden, except on tiers with
+  // subscribers (they stay, with a warning). The lower-limits guard applies to
+  // every change, so paying workspaces never lose anything.
   async seedDefaults() {
-    if ((await this._repository.list(false)).length) {
-      throw new HttpException(
-        'Plans already exist. Edit them instead of loading the defaults.',
-        400
-      );
+    const warnings: string[] = [];
+    const discount = await this._settings.getYearlyDiscountPercent();
+    const defaultKeys = DEFAULT_PLANS.map((p) => p.key);
+    const existing = await this._repository.list(false);
+
+    for (const plan of existing.filter(
+      (p) => p.active && !defaultKeys.includes(p.key)
+    )) {
+      const paying = await this._repository.countSubscriptions(plan.tier);
+      if (paying) {
+        warnings.push(
+          `${plan.name} stays visible: ${paying} workspace${
+            paying === 1 ? ' is' : 's are'
+          } subscribed to its ${plan.tier} tier.`
+        );
+        continue;
+      }
+      await this._repository.setActive(plan.id, false);
+      this.invalidate();
     }
+
     for (const plan of DEFAULT_PLANS) {
-      await this.assertNoLowerLimits(plan.tier, overlay(pricing[plan.tier], plan));
-    }
-    for (const plan of DEFAULT_PLANS) {
-      await this._repository.create({ ...plan, active: true });
+      const body: PlanDto = {
+        ...plan,
+        yearlyPriceUsd: yearlyPriceFrom(plan.monthlyPriceUsd, discount),
+        active: true,
+      };
+      const current = existing.find((p) => p.key === plan.key);
+      try {
+        if (current) {
+          await this.update(current.id, body);
+        } else {
+          await this.create(body);
+        }
+      } catch (e) {
+        warnings.push(
+          `${plan.name} was not ${current ? 'updated' : 'added'}: ${
+            e instanceof HttpException ? e.message : 'unexpected error'
+          }`
+        );
+      }
     }
     this.invalidate();
-    return this.listForAdmin();
+    return { ...(await this.listForAdmin()), warnings };
   }
 }

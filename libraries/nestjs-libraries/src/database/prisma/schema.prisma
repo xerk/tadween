@@ -1881,6 +1881,8 @@ model Plan {
   tier                   SubscriptionTier
   monthlyPriceUsd        Int              @default(0)
   yearlyPriceUsd         Int              @default(0)
+  /// Deprecated, unused: Tadween sells in USD only. Kept so existing rows and
+  /// deployments are untouched; drop in a later migration.
   monthlyPriceEgp        Int              @default(0)
   yearlyPriceEgp         Int              @default(0)
   trialDays              Int              @default(7)

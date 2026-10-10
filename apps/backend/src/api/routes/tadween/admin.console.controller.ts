@@ -27,6 +27,7 @@ import {
   BrandingSettingsDto,
   FeatureSettingsDto,
   PlanDto,
+  YearlyDiscountDto,
   ProviderCredentialsDto,
   ProviderSettingsDto,
   RegistrationSettingsDto,
@@ -159,7 +160,7 @@ export class AdminConsoleController {
   @Get('/plans')
   async plans() {
     return {
-      plans: await this._plans.listForAdmin(),
+      ...(await this._plans.listForAdmin()),
       // What Stripe charges per tier today when no plan overrides it.
       postizPricing: pricing,
     };
@@ -168,6 +169,18 @@ export class AdminConsoleController {
   @Post('/plans')
   createPlan(@Body() body: PlanDto) {
     return this._plans.create(body);
+  }
+
+  @Put('/plans/yearly-discount')
+  setYearlyDiscount(
+    @GetUserFromRequest() user: User,
+    @Req() req: Request,
+    @Body() body: YearlyDiscountDto
+  ) {
+    return this._plans.setYearlyDiscount(
+      body.yearlyDiscountPercent,
+      this.adminId(req, user)
+    );
   }
 
   @Post('/plans/defaults')

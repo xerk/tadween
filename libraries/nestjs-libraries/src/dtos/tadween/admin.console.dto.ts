@@ -11,6 +11,7 @@ import {
   IsOptional,
   IsString,
   Matches,
+  Max,
   MaxLength,
   Min,
   MinLength,
@@ -148,20 +149,12 @@ export class PlanDto {
   @Min(0)
   monthlyPriceUsd: number;
 
-  // Whole units: Stripe prices are created from price * 100
+  // Ignored on save: the server derives it from the monthly price and the
+  // yearly discount (PlansService.withYearlyPrice).
+  @IsOptional()
   @IsInt()
   @Min(0)
-  yearlyPriceUsd: number;
-
-  // Whole units: Stripe prices are created from price * 100
-  @IsInt()
-  @Min(0)
-  monthlyPriceEgp: number;
-
-  // Whole units: Stripe prices are created from price * 100
-  @IsInt()
-  @Min(0)
-  yearlyPriceEgp: number;
+  yearlyPriceUsd?: number;
 
   @IsInt()
   @Min(0)
@@ -222,4 +215,12 @@ export class AdminUserActivationDto {
 export class AdminOrgTierDto {
   @IsIn(['FREE', 'STANDARD', 'PRO', 'TEAM', 'ULTIMATE'])
   tier: 'FREE' | 'STANDARD' | 'PRO' | 'TEAM' | 'ULTIMATE';
+}
+
+export class YearlyDiscountDto {
+  // Percent off 12 monthly payments for yearly billing
+  @IsInt()
+  @Min(0)
+  @Max(90)
+  yearlyDiscountPercent: number;
 }

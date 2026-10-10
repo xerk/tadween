@@ -16,8 +16,22 @@ export class PaymentService {
     headers: Record<string, string | string[] | undefined>
   ) {
     const paymentProvider = this._paymentProviderManager.getProvider(provider);
+    // A bad signature is rejected (the request is not from the provider)
     const event = await paymentProvider.validateWebhook(rawBody, headers);
-    return paymentProvider.processWebhook(event);
+    // A failure while applying a genuine event must not throw back to the
+    // provider: log it and answer 2xx so billing state is never half-applied
+    // by a retry storm. Inspect the logs (`payment_webhook_failed`) to replay.
+    try {
+      return await paymentProvider.processWebhook(event);
+    } catch (err) {
+      console.error('payment_webhook_failed', {
+        provider,
+        event_type: event?.type,
+        event_id: event?.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return { ok: false };
+    }
   }
 
   syncSubscription(provider: string, organizationId: string) {

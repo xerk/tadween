@@ -20,6 +20,8 @@ export class SubscriptionExceptionFilter implements ExceptionFilter {
     response.status(status).json({
       statusCode: status,
       message,
+      // Which limit refused the action, so the app can open the right paywall
+      section: error.section,
       url: process.env.FRONTEND_URL + '/billing',
     });
   }
@@ -50,6 +52,12 @@ const getErrorMessage = (error: {
         default:
           return 'You have reached the maximum number of generated videos for your subscription. Please upgrade your subscription to generate more videos.';
       }
+    case Sections.TEAM_MEMBERS:
+      return 'Your subscription does not include more team members. Please upgrade your subscription to invite more people.';
+    case Sections.AI:
+      return 'Your subscription does not include AI features. Please upgrade your subscription to use them.';
+    case Sections.IMPORT_FROM_CHANNELS:
+      return 'Your subscription does not include importing from channels. Please upgrade your subscription to use it.';
     case Sections.CLIPPING_MINUTES:
       switch (error.action) {
         default:

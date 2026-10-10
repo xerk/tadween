@@ -7,7 +7,6 @@ import {
   Banner,
   Button,
   ConfirmDialog,
-  cx,
   Dialog,
   EmptyState,
   Icon,
@@ -21,7 +20,12 @@ import {
   DataTable,
   Textarea,
 } from '@gitroom/frontend/components/tadween/ui';
-import { INSTANCE_SETTINGS_KEY } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import {
+  INSTANCE_SETTINGS_KEY,
+  useTadweenPricing,
+} from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import { PlanCard } from '@gitroom/frontend/components/tadween/billing/plans.view';
+import { formatUsd } from '@gitroom/frontend/components/tadween/billing/pricing';
 import { AdminPage } from './admin.shell';
 import {
   AdminPlan,
@@ -33,6 +37,10 @@ import {
 
 const TIERS: Tier[] = ['STANDARD', 'TEAM', 'PRO', 'ULTIMATE'];
 
+// Same rule as the server (PlansService yearlyPriceFrom)
+const yearlyFrom = (monthly: number, discount: number) =>
+  Math.round(monthly * 12 * (1 - discount / 100));
+
 const limit = (v: number, unit: string) =>
   v < 0 ? `Unlimited ${unit}` : `${v.toLocaleString('en-US')} ${unit}`;
 
@@ -43,9 +51,6 @@ type FormState = {
   description: string;
   tier: Tier;
   monthlyPriceUsd: string;
-  yearlyPriceUsd: string;
-  monthlyPriceEgp: string;
-  yearlyPriceEgp: string;
   trialDays: string;
   mostPopular: boolean;
   channels: string;
@@ -65,9 +70,6 @@ const toForm = (p?: AdminPlan, position = 0): FormState => ({
   description: p?.description || '',
   tier: p?.tier || 'STANDARD',
   monthlyPriceUsd: String(p?.monthlyPriceUsd ?? 0),
-  yearlyPriceUsd: String(p?.yearlyPriceUsd ?? 0),
-  monthlyPriceEgp: String(p?.monthlyPriceEgp ?? 0),
-  yearlyPriceEgp: String(p?.yearlyPriceEgp ?? 0),
   trialDays: String(p?.trialDays ?? 7),
   mostPopular: !!p?.mostPopular,
   channels: String(p?.channels ?? 5),
@@ -87,7 +89,7 @@ const validate = (f: FormState) => {
   const errors: Partial<Record<keyof FormState, string>> = {};
   if (!/^[a-z0-9-]{2,32}$/.test(f.key)) errors.key = 'Lowercase letters, numbers and dashes, 2 to 32 characters.';
   if (!f.name.trim()) errors.name = 'Give the plan a name.';
-  (['monthlyPriceUsd', 'yearlyPriceUsd', 'monthlyPriceEgp', 'yearlyPriceEgp', 'trialDays', 'channels', 'position'] as const).forEach((k) => {
+  (['monthlyPriceUsd', 'trialDays', 'channels', 'position'] as const).forEach((k) => {
     const n = int(f[k]);
     if (!Number.isInteger(n) || n < 0) errors[k] = 'A whole number, 0 or more.';
   });
@@ -104,9 +106,6 @@ const toBody = (f: FormState) => ({
   description: f.description.trim() || undefined,
   tier: f.tier,
   monthlyPriceUsd: int(f.monthlyPriceUsd),
-  yearlyPriceUsd: int(f.yearlyPriceUsd),
-  monthlyPriceEgp: int(f.monthlyPriceEgp),
-  yearlyPriceEgp: int(f.yearlyPriceEgp),
   trialDays: int(f.trialDays),
   mostPopular: f.mostPopular,
   channels: int(f.channels),
@@ -124,10 +123,11 @@ const PlanDialog: FC<{
   open: boolean;
   plan?: AdminPlan;
   nextPosition: number;
+  discount: number;
   stripePrice: (tier: Tier) => { month: number; year: number } | undefined;
   onClose: () => void;
   onSaved: () => void;
-}> = ({ open, plan, nextPosition, stripePrice, onClose, onSaved }) => {
+}> = ({ open, plan, nextPosition, discount, stripePrice, onClose, onSaved }) => {
   const [form, setForm] = useState<FormState>(toForm(plan, nextPosition));
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -142,6 +142,8 @@ const PlanDialog: FC<{
     error: shownErrors[k],
   });
   const postiz = stripePrice(form.tier);
+  const monthly = int(form.monthlyPriceUsd);
+  const yearly = Number.isInteger(monthly) ? yearlyFrom(monthly, discount) : NaN;
 
   const submit = async () => {
     setSubmitted(true);
@@ -165,7 +167,7 @@ const PlanDialog: FC<{
       onClose={onClose}
       size="lg"
       title={plan ? `Edit ${plan.name}` : 'Add plan'}
-      description="Prices are whole numbers. Checkout charges the USD price through Stripe."
+      description="Prices are whole US dollars. Checkout charges them through Stripe; the yearly price follows the yearly discount."
       footer={
         <>
           <span className="flex-1" />
@@ -200,17 +202,24 @@ const PlanDialog: FC<{
 
         <div className="grid gap-[8px]">
           <span className="pz-label">Prices</span>
-          <div className="grid grid-cols-4 gap-[12px] mobile:grid-cols-2">
+          <div className="grid grid-cols-2 gap-[12px] mobile:grid-cols-1">
             <Input label="USD / month" inputMode="numeric" icon="credit-card" {...text('monthlyPriceUsd')} />
-            <Input label="USD / year" inputMode="numeric" {...text('yearlyPriceUsd')} />
-            <Input label="EGP / month" inputMode="numeric" {...text('monthlyPriceEgp')} />
-            <Input label="EGP / year" inputMode="numeric" {...text('yearlyPriceEgp')} />
+            <Input
+              label="USD / year"
+              value={Number.isNaN(yearly) ? '' : String(yearly)}
+              readOnly
+              hint={
+                Number.isNaN(yearly)
+                  ? `${discount}% off 12 months`
+                  : `= ${formatUsd(yearly)}/yr, save ${formatUsd(monthly * 12 - yearly)} (${discount}% off)`
+              }
+            />
           </div>
           <p className="pz-note">
             {postiz
-              ? `Without this plan, Stripe charges $${postiz.month}/month or $${postiz.year}/year for ${TIER_LABEL[form.tier]}. New checkouts use the USD prices above; existing subscribers keep their price.`
-              : null}{' '}
-            EGP prices are stored for the pricing page; charging in EGP needs a local payment provider (later phase).
+              ? `Without this plan, Stripe charges $${postiz.month}/month or $${postiz.year}/year for the ${TIER_LABEL[form.tier]} tier. `
+              : null}
+            New checkouts use these prices; people already subscribed keep what they pay.
           </p>
         </div>
 
@@ -222,8 +231,8 @@ const PlanDialog: FC<{
         </div>
 
         <Textarea
-          label="Feature bullets"
-          hint="One per line, shown on the pricing page. Leave empty to list the limits automatically."
+          label="Extra feature bullets"
+          hint="One per line. Billing and the website list the plan's limits and features automatically; these lines come after them."
           rows={5}
           {...text('features')}
         />
@@ -247,68 +256,90 @@ const PlanDialog: FC<{
   );
 };
 
-// ── Preview (design system PricingTable) ────────────────────────────────────
-const PricingPreview: FC<{ plans: AdminPlan[] }> = ({ plans }) => {
-  const [period, setPeriod] = useState<'monthly' | 'yearly'>('monthly');
-  const [currency, setCurrency] = useState<'USD' | 'EGP'>('USD');
-  const yearly = period === 'yearly';
-  const onSale = plans.filter((p) => p.active);
-  if (!onSale.length) return null;
-  const price = (p: AdminPlan) => {
-    const m = currency === 'USD' ? p.monthlyPriceUsd : p.monthlyPriceEgp;
-    const y = currency === 'USD' ? p.yearlyPriceUsd : p.yearlyPriceEgp;
-    return yearly ? Math.round(y / 12) : m;
-  };
+// ── Preview: the cards customers see (Billing and the paywall) ─────────────
+const PricingPreview: FC = () => {
+  const { plans } = useTadweenPricing();
+  const [period, setPeriod] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
+  if (!plans.length) return null;
+  const rows = plans.reduce<string[]>((all, p) => {
+    p.featureItems
+      .filter((i) => i.value !== undefined)
+      .forEach((i) => !all.includes(i.key) && all.push(i.key));
+    return all;
+  }, []);
   return (
     <Section
       title="Preview"
-      description="How the plans read on the pricing page."
+      description="The plan cards as Billing shows them, with the feature lists generated from each plan's limits."
       action={
-        <div className="flex gap-[8px]">
-          <SegmentedControl size="sm" label="Currency" value={currency} onChange={setCurrency} options={[{ value: 'USD', label: 'USD' }, { value: 'EGP', label: 'EGP' }]} />
-          <SegmentedControl size="sm" label="Billing period" value={period} onChange={setPeriod} options={[{ value: 'monthly', label: 'Monthly' }, { value: 'yearly', label: 'Yearly' }]} />
-        </div>
+        <SegmentedControl size="sm" label="Billing period" value={period} onChange={setPeriod} options={[{ value: 'MONTHLY', label: 'Monthly' }, { value: 'YEARLY', label: 'Yearly' }]} />
       }
     >
-      <div className="pz-tiers pt-[14px]" style={{ gridTemplateColumns: `repeat(${Math.min(onSale.length, 4)}, minmax(0, 1fr))` }}>
-        {onSale.map((p) => (
-          <section key={p.id} className={cx('pz-tier', p.mostPopular && 'is-popular')}>
-            {p.mostPopular ? (
-              <span className="pz-tier-flag">
-                <Icon name="star" size={12} />
-                Most popular
-              </span>
-            ) : null}
-            <h3 className="title-2 pz-tier-name">{p.name}</h3>
-            <p className="pz-tier-for">{p.description}</p>
-            <div className="pz-tier-price">
-              <span className="pz-tier-cur caption">{currency}</span>
-              <span key={period + currency} className="metric pz-tier-amount">
-                {price(p).toLocaleString('en-US')}
-              </span>
-              <span className="pz-tier-per">/ month</span>
-            </div>
-            <p className="caption pz-muted pz-tier-bill">
-              {yearly
-                ? `Billed ${currency} ${(currency === 'USD' ? p.yearlyPriceUsd : p.yearlyPriceEgp).toLocaleString('en-US')} yearly`
-                : 'Billed monthly'}
-            </p>
-            <Button variant={p.mostPopular ? 'primary' : 'secondary'} className="pz-tier-cta" tabIndex={-1}>
-              {p.trialDays ? `Start ${p.trialDays}-day trial` : 'Choose plan'}
-            </Button>
-            <ul className="pz-plan-list list-none p-0 m-0 grid gap-[8px] text-[14px]">
-              {(p.features.length
-                ? p.features
-                : [limit(p.channels, 'channels'), limit(p.postsPerMonth, 'posts a month'), p.teamMembers ? limit(p.teamMembers, 'team members') : 'Just you']
-              ).map((f) => (
-                <li key={f} className="flex gap-[8px] items-start">
-                  <Icon name="check" className="text-[var(--tdw-primary)] mt-[2px]" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-          </section>
+      <div className="tdw-plans-grid pt-[14px]" data-count={plans.length}>
+        {plans.map((p) => (
+          <PlanCard
+            key={p.key}
+            plan={p}
+            period={period}
+            rows={rows}
+            cta={
+              <Button variant={p.mostPopular ? 'primary' : 'secondary'} size="lg" className="w-full" tabIndex={-1}>
+                {p.trialDays ? `Start ${p.trialDays}-day trial` : `Choose ${p.name}`}
+              </Button>
+            }
+          />
         ))}
+      </div>
+    </Section>
+  );
+};
+
+// The one discount every plan's yearly price follows
+const YearlyDiscount: FC<{ value: number; onSaved: () => void }> = ({
+  value,
+  onSaved,
+}) => {
+  const save = useAdminMutation();
+  const toast = useToaster();
+  const [draft, setDraft] = useState(String(value));
+  const [saving, setSaving] = useState(false);
+  const n = Number(draft);
+  const valid = draft.trim() !== '' && Number.isInteger(n) && n >= 0 && n <= 90;
+  return (
+    <Section
+      title="Yearly discount"
+      description="Yearly price = 12 × the monthly price, minus this discount. Saving reprices every plan; existing subscriptions keep what they pay."
+      action={
+        <Button
+          variant="primary"
+          size="sm"
+          loading={saving}
+          disabled={!valid || n === value}
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await save('/admin/console/plans/yearly-discount', 'PUT', { yearlyDiscountPercent: n });
+              onSaved();
+              toast.show('Yearly prices updated');
+            } catch (e) {
+              toast.show((e as Error).message, 'warning');
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          Save
+        </Button>
+      }
+    >
+      <div className="max-w-[220px] pt-[8px]">
+        <Input
+          label="Discount (%)"
+          inputMode="numeric"
+          value={draft}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
+          error={valid ? undefined : 'A whole number from 0 to 90.'}
+        />
       </div>
     </Section>
   );
@@ -323,7 +354,10 @@ export const AdminPlansPage = () => {
   const [editing, setEditing] = useState<AdminPlan | 'new' | null>(null);
   const [removing, setRemoving] = useState<AdminPlan | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [confirmSeed, setConfirmSeed] = useState(false);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const plans = data?.plans || [];
+  const discount = data?.yearlyDiscountPercent ?? 20;
 
   const refresh = async () => {
     await mutate();
@@ -341,9 +375,10 @@ export const AdminPlansPage = () => {
   const seed = async () => {
     setSeeding(true);
     try {
-      await save('/admin/console/plans/defaults', 'POST');
+      const result = await save<{ warnings?: string[] }>('/admin/console/plans/defaults', 'POST');
       await refresh();
-      toast.show('Added Creator, Pro, Team and Agency with placeholder prices');
+      setWarnings(result?.warnings || []);
+      toast.show(result?.warnings?.length ? 'Default plans loaded, with warnings' : 'Default plans loaded: Pro and Business');
     } catch (e) {
       toast.show((e as Error).message, 'warning');
     } finally {
@@ -357,9 +392,14 @@ export const AdminPlansPage = () => {
       description="What workspaces can buy. Billing and the pricing page read these plans; without any, Postiz’s built-in pricing is used."
       action={
         plans.length ? (
-          <Button variant="primary" icon="plus" onClick={() => setEditing('new')}>
-            Add plan
-          </Button>
+          <div className="flex gap-[8px]">
+            <Button variant="ghost" loading={seeding} onClick={() => setConfirmSeed(true)}>
+              Load default plans
+            </Button>
+            <Button variant="primary" icon="plus" onClick={() => setEditing('new')}>
+              Add plan
+            </Button>
+          </div>
         ) : null
       }
     >
@@ -374,10 +414,10 @@ export const AdminPlansPage = () => {
           <EmptyState
             icon="credit-card"
             title="Billing uses Postiz’s built-in pricing"
-            body="Load the four Tadween plans with placeholder prices, then set your real EGP and USD prices before you sell. Their limits match today’s, so nobody already subscribed loses anything."
+            body="Load the two Tadween plans, Pro and Business. They have every feature and differ only in limits. Prices are in US dollars; yearly is the monthly price with the yearly discount."
             action={
               <Button variant="primary" loading={seeding} loadingLabel="Adding…" onClick={seed}>
-                Add the Tadween plans
+                Add Pro and Business
               </Button>
             }
             secondary={
@@ -389,11 +429,20 @@ export const AdminPlansPage = () => {
         </Section>
       ) : (
         <>
-          <Banner tone="warning" title="Check prices before you sell.">
-            The Tadween defaults are placeholders. New Stripe checkouts charge the USD price of the plan for its tier;
-            people already subscribed keep what they pay. Limits apply to everyone on the tier, so they can’t go below
-            today’s while a workspace is subscribed to it.
+          {warnings.length ? (
+            <Banner tone="warning" title="Some plans were left as they are.">
+              <ul className="list-disc ps-[18px]">
+                {warnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            </Banner>
+          ) : null}
+          <Banner tone="info" title="How prices and limits apply.">
+            New Stripe checkouts charge the plan’s USD price for its tier; people already subscribed keep what they
+            pay. Limits apply to everyone on the tier, so they can’t go below today’s while a workspace is subscribed to it.
           </Banner>
+          <YearlyDiscount key={discount} value={discount} onSaved={refresh} />
           <DataTable
             id="admin-plans"
             loading={isLoading}
@@ -428,12 +477,10 @@ export const AdminPlansPage = () => {
                 ),
               },
               {
-                key: 'egp',
-                label: 'EGP',
+                key: 'subscribers',
+                label: 'Subscribed',
                 render: (p) => (
-                  <span className="time">
-                    {p.monthlyPriceEgp.toLocaleString('en-US')}/mo · {p.yearlyPriceEgp.toLocaleString('en-US')}/yr
-                  </span>
+                  <span className="time">{data?.subscribers?.[p.tier] || 0}</span>
                 ),
               },
               {
@@ -475,7 +522,7 @@ export const AdminPlansPage = () => {
               },
             ]}
           />
-          <PricingPreview plans={plans} />
+          <PricingPreview />
         </>
       )}
 
@@ -485,6 +532,7 @@ export const AdminPlansPage = () => {
           open={!!editing}
           plan={editing === 'new' ? undefined : editing}
           nextPosition={plans.length}
+          discount={discount}
           stripePrice={stripePrice}
           onClose={() => setEditing(null)}
           onSaved={() => {
@@ -493,6 +541,18 @@ export const AdminPlansPage = () => {
           }}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={confirmSeed}
+        onClose={() => setConfirmSeed(false)}
+        title="Load the default plans?"
+        description="Pro and Business are added, or reset to their defaults if they exist. Other plans are hidden, except on tiers with subscribers, which stay on sale. Nobody already subscribed loses a limit."
+        confirmLabel="Load defaults"
+        onConfirm={() => {
+          setConfirmSeed(false);
+          seed();
+        }}
+      />
 
       <ConfirmDialog
         open={!!removing}

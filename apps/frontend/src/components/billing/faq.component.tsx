@@ -20,7 +20,7 @@ const useFaqList = () => {
             title: t('tdw_faq_trial', 'Is there a free trial?'),
             description: t(
               'tdw_faq_trial_desc',
-              'Every plan starts with a 7-day free trial. To confirm your card we hold $2 and release it right away. Cancel any time from Billing without talking to anyone.'
+              'Every plan starts with a 7-day free trial. To confirm your card we place a $1 hold and release it right away. Cancel any time from Billing without talking to anyone.'
             ),
           },
         ]

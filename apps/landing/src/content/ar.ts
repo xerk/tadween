@@ -355,5 +355,6 @@ export const ar: Dict = {
       },
     ],
     copyright: '© ٢٠٢٦ تدوين.',
+    trademarks: '‏Claude علامة تجارية لشركة Anthropic، وChatGPT لشركة OpenAI، وCursor لشركة Anysphere. تدوين ليست تابعة لها ولا معتمدة منها.',
   },
 };

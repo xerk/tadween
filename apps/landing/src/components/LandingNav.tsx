@@ -1,12 +1,14 @@
 import type { Dict } from '@/content/types';
 import { SIGN_IN_URL, SIGN_UP_URL } from '@/lib/config';
-import { PATHS, localePath } from '@/lib/routes';
+import { PATHS, clientPath, localePath } from '@/lib/routes';
+import { AI_CLIENTS } from '@/lib/aiClients';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { NavController } from './NavController';
 import { ThemeToggle } from './ThemeToggle';
 
-/** The site bar: logo, the four main pages, the language switch, theme, sign in and trial.
+/** The site bar: logo, the four main pages (AI agent opens a small menu of the AI tool
+    pages, with their marks), the language switch, theme, sign in and trial.
     Below 960px the links move into a sheet that the menu button opens (NavController).
     `altHref` is the same page in the other language; `current` is this page's path. */
 export function LandingNav({ t, altHref, current }: { t: Dict; altHref: string; current: string }) {
@@ -18,6 +20,7 @@ export function LandingNav({ t, altHref, current }: { t: Dict; altHref: string; 
     { href: lp(PATHS.agent), label: t.nav.agent },
     { href: lp(PATHS.pricing), label: t.nav.pricing },
   ];
+  const clients = AI_CLIENTS.map((c) => ({ href: lp(clientPath(c.slug)), name: c.name, logo: c.logo }));
 
   return (
     <header className="pz-nav" data-nav>
@@ -25,13 +28,42 @@ export function LandingNav({ t, altHref, current }: { t: Dict; altHref: string; 
         <Logo href={t.base || '/'} label={t.nav.home} />
         <nav aria-label={t.nav.label}>
           <ul className="pz-nav-links">
-            {links.map((l) => (
-              <li key={l.href}>
-                <a className="pz-nav-link" href={l.href} aria-current={here(l.href)}>
-                  {l.label}
-                </a>
-              </li>
-            ))}
+            {links.map((l) =>
+              l.href === lp(PATHS.agent) ? (
+                <li key={l.href} className="pz-nav-dd">
+                  <a className="pz-nav-link" href={l.href} aria-current={here(l.href) ?? (clients.some((c) => current === c.href) ? 'true' : undefined)} aria-haspopup="true">
+                    {l.label}
+                    <Icon name="chevron-down" size={14} />
+                  </a>
+                  <ul className="pz-nav-menu">
+                    <li>
+                      <a href={l.href} aria-current={here(l.href)}>
+                        <span className="pz-nav-menu-ic">
+                          <Icon name="sparkles" size={16} />
+                        </span>
+                        {l.label}
+                      </a>
+                    </li>
+                    {clients.map((c) => (
+                      <li key={c.href}>
+                        <a href={c.href} aria-current={here(c.href)}>
+                          <span className="pz-nav-menu-ic">
+                            <img src={c.logo} width={16} height={16} alt="" />
+                          </span>
+                          <span lang="en" dir="ltr">{c.name}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ) : (
+                <li key={l.href}>
+                  <a className="pz-nav-link" href={l.href} aria-current={here(l.href)}>
+                    {l.label}
+                  </a>
+                </li>
+              )
+            )}
           </ul>
         </nav>
         <span className="pz-grow" />
@@ -53,9 +85,19 @@ export function LandingNav({ t, altHref, current }: { t: Dict; altHref: string; 
 
       <div className="pz-sheet" id="site-sheet" data-sheet hidden>
         {links.map((l) => (
-          <a key={l.href} href={l.href} aria-current={here(l.href)}>
-            {l.label}
-          </a>
+          <div key={l.href} className="pz-sheet-group">
+            <a href={l.href} aria-current={here(l.href)}>
+              {l.label}
+            </a>
+            {l.href === lp(PATHS.agent)
+              ? clients.map((c) => (
+                  <a key={c.href} className="pz-sheet-sub" href={c.href} aria-current={here(c.href)}>
+                    <img src={c.logo} width={18} height={18} alt="" />
+                    <span lang="en" dir="ltr">{c.name}</span>
+                  </a>
+                ))
+              : null}
+          </div>
         ))}
         <div className="pz-sheet-cta">
           <a className="pz-btn pz-btn-primary pz-btn-lg" href={SIGN_UP_URL}>

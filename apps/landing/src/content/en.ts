@@ -355,5 +355,6 @@ export const en: Dict = {
       },
     ],
     copyright: '© 2026 Tadween.',
+    trademarks: 'Claude is a trademark of Anthropic, ChatGPT of OpenAI and Cursor of Anysphere. Tadween is not affiliated with or endorsed by them.',
   },
 };

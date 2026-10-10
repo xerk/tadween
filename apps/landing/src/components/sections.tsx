@@ -243,9 +243,8 @@ export function ArabicSection({ t }: { t: Dict }) {
 /** One conversation with the agent: the request, the tool calls lighting up one by one,
     the reply and a card of the posts it scheduled. Built from the app's chat; the calls
     play when the card scrolls in (CSS, keyed on .is-in from the motion engine). `frame` draws
-    it inside another AI client instead: its name as text and a neutral glyph (never its
-    logo), and the Tadween tool calls it makes. */
-export function AgentChat({ t, demo, compact, frame }: { t: Dict; demo: ChatDemo; compact?: boolean; frame?: { title: string; online: string; icon: IconName; input: string } }) {
+    it inside another AI client instead: its name and mark, and the Tadween tool calls it makes. */
+export function AgentChat({ t, demo, compact, frame }: { t: Dict; demo: ChatDemo; compact?: boolean; frame?: { title: string; online: string; icon: IconName; logo?: string; input: string } }) {
   const c = frame ?? { ...t.agentPage.chat, icon: 'bot' as IconName };
   const steps = demo.tools.length;
   const delay = (i: number) => ({ ['--d' as string]: `${250 + i * 500}ms` });
@@ -253,8 +252,8 @@ export function AgentChat({ t, demo, compact, frame }: { t: Dict; demo: ChatDemo
     <div className={cx('pz-chat', frame && 'is-client')} data-art dir={demo.lang === 'ar' ? 'rtl' : 'ltr'} lang={demo.lang}>
       {compact ? null : (
         <div className="pz-chat-top">
-          <span className={cx('pz-tile-ic', !frame && 'is-smart')}>
-            <Icon name={c.icon} size={16} />
+          <span className={cx('pz-tile-ic', !frame && 'is-smart', frame?.logo && 'is-logo')}>
+            {frame?.logo ? <img src={frame.logo} width={16} height={16} alt="" /> : <Icon name={c.icon} size={16} />}
           </span>
           {c.title}
           <span>{c.online}</span>
@@ -501,6 +500,7 @@ export function Footer({ t }: { t: Dict }) {
         </div>
         <p className="pz-foot-legal">
           <span>{t.footer.copyright}</span>
+          <span>{t.footer.trademarks}</span>
           <span lang="en" dir="ltr">
             <a href={SOURCE_URL} rel="noopener" target="_blank">
               Built on Postiz

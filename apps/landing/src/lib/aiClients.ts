@@ -34,6 +34,9 @@ export interface AiClientFacts {
   slug: string;
   /** The product's own name, always shown as text in its own spelling. */
   name: string;
+  /** The product's mark (Simple Icons, CC0 SVG, unmodified, in the brand's colour) in
+      public/logos. Used to say "works with"; the footer carries the trademark notice. */
+  logo: string;
   kind: ClientKind;
   /** The first method is the one the page leads with ("Connect in N steps"). */
   methods: ClientMethod[];
@@ -50,7 +53,7 @@ const json = (value: object) => JSON.stringify(value, null, 2);
 /** Puts the key in an environment variable, in the shell profile, for clients that read it. */
 const EXPORT_KEY = { label: 'Terminal', code: `export TADWEEN_API_KEY="${KEY}"` };
 
-/** A neutral glyph per kind of client; product logos are never drawn. */
+/** A neutral glyph per kind of client, for places that list clients without a page. */
 export const KIND_ICON: Record<ClientKind, IconName> = { assistant: 'message-circle', coding: 'terminal' };
 
 /** The MCP tools a client sees on {api}/mcp-oauth-dynamic and {api}/mcp, as the backend names
@@ -82,6 +85,7 @@ const CLAUDE_DOCS = [
 export const AI_CLIENTS: AiClientFacts[] = [
   {
     slug: 'chatgpt',
+    logo: '/logos/chatgpt.svg',
     name: 'ChatGPT',
     kind: 'assistant',
     methods: [{ auth: 'oauth', steps: [null, { label: 'MCP server URL', code: OAUTH_URL }, null, null] }],
@@ -93,6 +97,7 @@ export const AI_CLIENTS: AiClientFacts[] = [
   },
   {
     slug: 'claude',
+    logo: '/logos/claude.svg',
     name: 'Claude',
     kind: 'assistant',
     methods: [{ auth: 'oauth', steps: [null, { label: 'Remote MCP server URL', code: OAUTH_URL }, null, null, null] }],
@@ -101,6 +106,7 @@ export const AI_CLIENTS: AiClientFacts[] = [
   },
   {
     slug: 'cursor',
+    logo: '/logos/cursor.svg',
     name: 'Cursor',
     kind: 'coding',
     methods: [

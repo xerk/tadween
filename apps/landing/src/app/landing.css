@@ -723,3 +723,32 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
   .pz-acc-btn { padding: 18px; font-size: 16px; }
   .pz-acc-body { padding: 0 18px 20px; }
 }
+
+/* AI agent menu in the site bar: hover or keyboard focus opens the list of AI tool pages */
+.pz-nav-dd { position: relative; }
+.pz-nav-menu {
+  position: absolute; top: calc(100% + 6px); inset-inline-start: 0; z-index: 60;
+  min-width: 220px; margin: 0; padding: 6px; list-style: none;
+  border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--popover, var(--card));
+  box-shadow: var(--shadow-md, 0 12px 32px rgba(0, 0, 0, .12));
+  opacity: 0; visibility: hidden; transform: translateY(4px);
+  transition: opacity var(--duration-fast) ease, transform var(--duration-fast) ease, visibility 0s linear var(--duration-fast);
+}
+.pz-nav-dd:hover .pz-nav-menu, .pz-nav-dd:focus-within .pz-nav-menu {
+  opacity: 1; visibility: visible; transform: none; transition-delay: 0s;
+}
+.pz-nav-dd::after { content: ''; position: absolute; inset-inline: 0; top: 100%; height: 8px; } /* hover bridge */
+.pz-nav-menu a {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-md);
+  font-size: 14px; font-weight: 500; color: var(--foreground); text-decoration: none;
+}
+.pz-nav-menu a:hover, .pz-nav-menu a:focus-visible, .pz-nav-menu a[aria-current='page'] { background: var(--accent); outline: none; }
+.pz-nav-menu-ic { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: #fff; border: 1px solid var(--border); color: var(--primary); flex: none; }
+.pz-nav-dd .pz-nav-link svg { transition: transform var(--duration-fast) ease; }
+.pz-nav-dd:hover .pz-nav-link svg, .pz-nav-dd:focus-within .pz-nav-link svg { transform: rotate(180deg); }
+.pz-sheet-sub { display: flex !important; align-items: center; gap: 10px; padding-inline-start: 28px !important; font-size: 15px !important; color: var(--muted-foreground) !important; }
+.pz-sheet-group { display: contents; }
+/* product marks sit on a white tile so dark marks (Cursor) stay visible in dark mode */
+.pz-tile-ic.is-logo, .pz-aichip-ic.is-logo { background: #fff; border: 1px solid var(--border); }
+.pz-tile-ic.is-logo img, .pz-aichip-ic.is-logo img { display: block; }
+@media (prefers-reduced-motion: reduce) { .pz-nav-menu, .pz-nav-dd .pz-nav-link svg { transition: none; } }

@@ -580,13 +580,12 @@ export function ChannelPage({ t, slug }: { t: Dict; slug: string }) {
   );
 }
 
-/** A link card to an AI client's page: a neutral glyph (never the product's logo), the
-    client's name as text and what it is. */
+/** A link card to an AI client's page: the product's mark, its name and what it is. */
 function ClientCard({ t, c }: { t: Dict; c: AiClientFacts }) {
   return (
     <a className="pz-chcard" href={localePath(t.lang, clientPath(c.slug))}>
-      <span className="pz-tile-ic">
-        <Icon name={KIND_ICON[c.kind]} size={20} />
+      <span className="pz-tile-ic is-logo">
+        <img src={c.logo} width={20} height={20} alt="" />
       </span>
       <span>
         <strong lang="en" dir="ltr">
@@ -687,7 +686,7 @@ const CompareCell = ({ text }: { text: string }) =>
     Connect and Ask cards with the numbered steps, the channel orbit, a comparison table, what it
     can do, the MCP server, example requests, every channel, the client beside its siblings,
     pricing, security and troubleshooting, questions (FAQPage data), related pages and the call
-    to action. Client names are text with a neutral glyph; no client logo is drawn. */
+    to action. Each client shows its own mark next to its name. */
 export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
   const facts = clientBySlug(slug)!;
   const copy = t.aiClients.items[slug];
@@ -715,8 +714,8 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
                 </ol>
               </nav>
               <span className="pz-aichip" data-hero-in>
-                <span className="pz-aichip-ic">
-                  <Icon name={KIND_ICON[facts.kind]} size={16} />
+                <span className="pz-aichip-ic is-logo">
+                  <img src={facts.logo} width={16} height={16} alt="" />
                 </span>
                 {fill(p.eyebrow)}
               </span>
@@ -743,7 +742,7 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
                   </li>
                 ))}
               </ul>
-              <AgentChat t={t} demo={copy.demo} frame={{ title: facts.name, online: fill(p.frameOnline), icon: KIND_ICON[facts.kind], input: fill(p.frameInput) }} />
+              <AgentChat t={t} demo={copy.demo} frame={{ title: facts.name, online: fill(p.frameOnline), icon: KIND_ICON[facts.kind], logo: facts.logo, input: fill(p.frameInput) }} />
             </div>
           </div>
         </section>
@@ -789,8 +788,8 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
                     {copy.ask.prompt}
                   </p>
                   <div className="pz-askchat-reply" data-step style={{ ['--d' as string]: '300ms' }}>
-                    <span className="pz-tile-ic" aria-hidden="true">
-                      <Icon name={KIND_ICON[facts.kind]} size={16} />
+                    <span className="pz-tile-ic is-logo" aria-hidden="true">
+                      <img src={facts.logo} width={16} height={16} alt="" />
                     </span>
                     <div>
                       <p dir="auto">{copy.ask.reply}</p>

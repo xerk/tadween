@@ -97,7 +97,7 @@ export const featuresEn: Record<FeatureSlug, FeatureCopy> = {
   composer: {
     nav: { label: 'Composer and previews', blurb: 'Write once, adjust per network, preview it' },
     meta: {
-      title: 'Post composer with network previews, in English and Arabic | Tadween',
+      title: 'Post composer with network previews | Tadween',
       description:
         'Write one post, adjust it for each network and see it the way LinkedIn, Instagram, Facebook, TikTok, YouTube and Pinterest will show it. Arabic writes right to left.',
     },
@@ -108,11 +108,12 @@ export const featuresEn: Record<FeatureSlug, FeatureCopy> = {
     benefits: [
       {
         title: 'One post, a version per network',
-        body: 'Start with one text for all channels. Open a channel to give it its own text, media and comments; edits to the shared text still flow into the others.',
+        body: 'Start with one text for all channels. Open a channel to give it its own text, media and comments. Channels you don’t customise keep following the shared text.',
         points: ['Bold, underline, headings, bullets, emoji and mentions', 'Tags and a customer on every post', 'A signature or a saved set in one click'],
         shot: 'composer',
       },
       {
+        id: 'arabic',
         title: 'Arabic, right to left',
         body: 'Write in Arabic and the editor and previews turn right to left on their own, so punctuation, numbers and mentions stay where your readers expect them. Mix an English post and an Arabic post in the same week.',
         shot: 'composer-arabic',
@@ -187,7 +188,7 @@ export const featuresEn: Record<FeatureSlug, FeatureCopy> = {
     meta: {
       title: 'Social media analytics for LinkedIn pages and more | Tadween',
       description:
-        'See followers, reach and engagement where the network shares them, what you published from Tadween over a year, and export it all to CSV.',
+        'See followers, reach and engagement where the network shares them, what you published from Tadween over a year, and export what you published to CSV.',
     },
     h1: 'Numbers you can read in a minute',
     sub: 'The figures each network shares, next to what you actually published from Tadween. Pick a period, compare it with the last one, export it.',
@@ -218,7 +219,7 @@ export const featuresEn: Record<FeatureSlug, FeatureCopy> = {
     faq: [
       { title: 'Does LinkedIn analytics work for personal profiles?', content: 'LinkedIn shares page analytics with apps like Tadween, not profile analytics. For profiles you still get “Published from Tadween”.' },
       { title: 'How far back does it go?', content: 'Network numbers cover 7, 30 or 90 days, depending on what each network allows. “Published from Tadween” covers up to a year.' },
-      { title: 'Can I get the numbers through the API?', content: 'Yes. The public API returns the same analytics, so you can build your own reports.' },
+      { title: 'Can I get the numbers through the API?', content: 'Yes. The public API returns each channel’s network analytics, so you can build your own reports.' },
     ],
   },
   collaboration: {
@@ -235,7 +236,7 @@ export const featuresEn: Record<FeatureSlug, FeatureCopy> = {
       {
         title: 'Notifications that say what to do',
         body: 'Published, failed, a channel that needs reconnecting or was switched off: each notification says what happened and what to do next. Filter by unread, published, failed or channels.',
-        points: ['Mark all as read', 'Email for successes and failures, if you want it', 'A daily digest option'],
+        points: ['Mark all as read', 'Email for successes and failures, if you want it', 'Streak reminders by email'],
         shot: 'notifications',
       },
       {
@@ -250,7 +251,7 @@ export const featuresEn: Record<FeatureSlug, FeatureCopy> = {
       },
       {
         title: 'Roles that stay simple',
-        body: 'Invite people by email or with a link, as admins or members. Members write and schedule; admins also manage the team, billing and settings.',
+        body: 'Invite people by email or with a link, as admins or members. Members write and schedule; admins also manage the team and billing.',
         shot: 'team',
       },
     ],
@@ -284,7 +285,7 @@ export const featuresEn: Record<FeatureSlug, FeatureCopy> = {
       },
       {
         title: 'Plugs: act when a post takes off',
-        body: 'On X, Bluesky, LinkedIn pages and Threads, a plug can repost your post or add a reply once it passes the number of likes you set. Tadween checks every six hours, up to three times.',
+        body: 'On X, Bluesky and LinkedIn pages a plug can repost your post, and on those and Threads it can add a reply, once the post passes the number of likes you set. Tadween checks every six hours, up to three times.',
         shot: 'plugs',
       },
       {

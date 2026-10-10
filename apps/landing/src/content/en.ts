@@ -14,20 +14,20 @@ export const en: Dict = {
   meta: {
     title: 'Tadween — LinkedIn scheduling, written in two languages',
     description:
-      'Plan LinkedIn posts for your profile and company pages, preview them the way LinkedIn will show them, and publish at the hour you choose. In English and Arabic, with 30+ channels and an AI agent.',
+      'Plan LinkedIn posts for your profile and pages, preview them as LinkedIn will show them and publish on time. In English and Arabic, with 30+ channels.',
     pricingTitle: 'Pricing — Tadween',
     pricingDescription:
-      'Four plans for people, brands and agencies on LinkedIn. Every plan starts with seven days free. Pay in Egyptian pounds or US dollars.',
+      'Four plans for people, brands and agencies on LinkedIn. Every plan starts with seven days free. Prices in Egyptian pounds or US dollars.',
     ogLocale: 'en_US',
     features: {
-      title: 'Features — calendar, board, composer, media, analytics and AI agent | Tadween',
+      title: 'Features: calendar, board, composer and AI agent | Tadween',
       description:
-        'Every tool in Tadween: a calendar and a board for your posts, a composer with network previews and Arabic writing, a media library, analytics, team tools and an AI agent.',
+        'Every tool in Tadween: calendar and board, a composer with network previews and Arabic writing, media library, analytics, team tools and an AI agent.',
     },
     agent: {
-      title: 'AI agent for social media: write and schedule by chat, or from Claude and ChatGPT | Tadween',
+      title: 'AI agent for social media scheduling | Tadween',
       description:
-        'Ask Tadween’s agent to write and schedule your LinkedIn posts in English or Arabic, or connect Claude, ChatGPT, Cursor and other AI tools to your calendar through MCP.',
+        'Ask Tadween’s agent to write and schedule LinkedIn posts in English or Arabic, or connect Claude, ChatGPT and Cursor to your calendar.',
     },
   },
   skip: 'Skip to content',
@@ -111,7 +111,7 @@ export const en: Dict = {
     sub: 'Plan posts for your profile and company pages, see them the way LinkedIn will, and publish at the hour you choose. Then reach 30+ other channels from the same calendar.',
     primary: 'Start 7-day trial',
     secondary: 'See the product',
-    fine: 'No card needed · Cancel any time · Pay in EGP or USD',
+    fine: 'Seven days free · Cancel any time · Prices in EGP or USD',
     nets: 'LinkedIn, X, Instagram, Facebook, Threads, TikTok and 25 more',
   },
   product: {
@@ -186,7 +186,7 @@ export const en: Dict = {
   steps: {
     title: 'From idea to published in three steps',
     items: [
-      { title: 'Connect', body: 'Link your LinkedIn profile and every page you manage, then any other network. No passwords stored.' },
+      { title: 'Connect', body: 'Link your LinkedIn profile and every page you manage, then any other network. Most networks connect through their own sign-in.' },
       { title: 'Write', body: 'Draft in English or Arabic, add images or a carousel, and check each preview.' },
       { title: 'Schedule', body: 'Pick a time or the next free slot. Tadween publishes and posts your first comment.' },
     ],
@@ -199,7 +199,7 @@ export const en: Dict = {
       { title: 'Does it really handle Arabic?', content: 'Yes. The editor and previews turn right to left for Arabic text, the interface is in Arabic, and posts keep their punctuation and numbers where Arabic readers expect them.' },
       { title: 'Can an AI agent schedule for me?', content: 'Yes. Use the agent inside Tadween, or connect Claude, ChatGPT, Cursor or any MCP client. It can write, schedule, list posts and add media. It can’t delete posts.' },
       { title: 'Can my team and clients work in it?', content: 'Invite teammates, keep each client’s channels under their own customer, and send preview links so people can comment before a post goes out.' },
-      { title: 'Is there a free trial?', content: 'Every plan starts with seven days free, and you can pay in Egyptian pounds or US dollars.' },
+      { title: 'Is there a free trial?', content: 'Every plan starts with seven days free, with prices in Egyptian pounds or US dollars.' },
     ],
   },
   featuresIndex: {
@@ -213,7 +213,6 @@ export const en: Dict = {
     howTitle: 'How it works',
     relatedTitle: 'Works well with',
     faqTitle: 'Questions',
-    learnMore: 'Learn more',
   },
   features: featuresEn,
   agentPage: {
@@ -244,9 +243,9 @@ export const en: Dict = {
     },
     connect: {
       title: 'Connect your AI tool in a minute',
-      sub: 'Copy one address into the AI tool you already use and sign in to Tadween when it asks. There is no key to paste.',
+      sub: 'Copy one address into the AI tool you already use and sign in to Tadween when it asks. For Claude, ChatGPT and Cursor there is no key to paste.',
       connectTitle: 'Copy the Tadween MCP address',
-      connectBody: 'The same address works for every client. Your tool opens Tadween so you can sign in and approve it.',
+      connectBody: 'One address for Claude, ChatGPT and Cursor. Your tool opens Tadween so you can sign in and approve it.',
       linkLabel: 'Tadween MCP address',
       copy: 'Copy',
       copied: 'Copied',
@@ -282,17 +281,17 @@ export const en: Dict = {
           how: 'One command in your terminal',
           steps: ['Run the command below', 'Sign in to Tadween in the browser tab that opens'],
           codeLabel: 'Terminal',
-          code: 'claude mcp add tadween --transport http "{api}/mcp-oauth-dynamic"',
+          code: 'claude mcp add --transport http tadween "{api}/mcp-oauth-dynamic"',
         },
         {
-          name: 'Cursor and other MCP clients',
+          name: 'Cursor',
           how: 'A remote MCP server in the client’s settings',
           steps: ['Add the server to your MCP settings', 'Sign in to Tadween when the client asks'],
           codeLabel: '.cursor/mcp.json',
           code: '{\n  "mcpServers": {\n    "tadween": {\n      "url": "{api}/mcp-oauth-dynamic"\n    }\n  }\n}',
         },
       ],
-      keyNote: 'Prefer an API key? Use {api}/mcp with your key from Settings, API & MCP in an “Authorization: Bearer” header.',
+      keyNote: 'Another MCP client, or prefer a key? Use {api}/mcp with your key from Settings, API & MCP in an “Authorization: Bearer” header. Never put the key in a URL.',
     },
     examples: {
       title: 'Things people ask',
@@ -397,10 +396,10 @@ export const en: Dict = {
     faqTitle: 'Questions',
     unlimited: 'Unlimited',
     plans: [
-      { key: 'creator', name: 'Creator', for: 'For one voice on LinkedIn', features: ['Profile + 1 company page', 'Unlimited scheduled posts', 'First comments and repeats', 'Calendar and board', 'Analytics'] },
-      { key: 'pro', name: 'Pro', for: 'For creators who post every week', features: ['5 LinkedIn channels', 'Everything in Creator', 'AI writing assistant', 'Image carousels on LinkedIn', 'Sets and signatures'] },
-      { key: 'team', name: 'Team', for: 'For brands with a team', features: ['15 channels', 'Unlimited team members', 'Preview links for clients', 'Shared calendar and tags', 'Agent and MCP access'] },
-      { key: 'agency', name: 'Agency', for: 'For agencies and many clients', features: ['50 channels', 'Customer groups', 'Analytics exports to CSV', 'Priority support in Arabic', 'Invoices in EGP or USD'] },
+      { key: 'creator', name: 'Creator', for: 'For one voice on LinkedIn', features: ['Profile + 1 company page', 'Unlimited scheduled posts', 'Calendar, board and network previews', 'First comments and repeats', 'Analytics'] },
+      { key: 'pro', name: 'Pro', for: 'For creators who post every week', features: ['5 channels', 'Everything in Creator', 'AI writing assistant', 'Image carousels on LinkedIn', 'Sets and signatures'] },
+      { key: 'team', name: 'Team', for: 'For brands with a team', features: ['15 channels', 'Everything in Pro', 'Unlimited team members', 'Preview links for clients', 'Shared calendar and tags'] },
+      { key: 'agency', name: 'Agency', for: 'For agencies and many clients', features: ['50 channels', 'Everything in Team', 'Each client under their own customer', 'Room for many brands'] },
     ],
     compare: [
       { label: 'Channels', help: 'LinkedIn profiles and pages, and any other network you connect.', field: 'channels' },
@@ -419,12 +418,10 @@ export const en: Dict = {
     ],
     faq: [
       { title: 'Is there a free trial?', content: 'Every plan starts with a 7-day free trial. You only pay if you keep using Tadween.' },
-      { title: 'Can I pay in Egyptian pounds?', content: 'Yes. Pay in EGP with a local card or wallet, or in USD with any international card. Invoices are issued in the currency you pay with.' },
+      { title: 'Can I pay in Egyptian pounds?', content: 'Prices show in Egyptian pounds and US dollars. The payment methods for your region are shown at checkout.' },
       { title: 'Does it work with LinkedIn company pages?', content: 'Yes. Connect your profile and every page you admin, then schedule to one or many at once.' },
-      { title: 'Can I write in Arabic?', content: 'Tadween is built right-to-left from the start: Arabic previews, Arabic hook rewrites, and an Arabic interface.' },
+      { title: 'Can I write in Arabic?', content: 'Tadween is built right-to-left from the start: Arabic previews, right-to-left writing and an Arabic interface.' },
       { title: 'Is the API and MCP server on every plan?', content: 'Yes. Every paid plan includes the public API and the MCP server, so you can schedule from Claude, ChatGPT or your own code.' },
-      { title: 'Can I change or cancel my plan?', content: 'Any time from Billing. Upgrades apply immediately with a prorated charge; downgrades apply at the end of the period.' },
-      { title: 'What happens to scheduled posts if I cancel?', content: 'They stay in your calendar as drafts until the end of your billing period, then pause. Nothing is deleted.' },
     ],
   },
   cta: {

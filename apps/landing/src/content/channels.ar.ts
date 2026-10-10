@@ -43,7 +43,6 @@ export const channelsAr: ChannelsDict = {
     ],
     previewTitle: 'منشورك على {name} في المحرر',
     previewSub: 'اكتب مرة لكل القنوات، ثم افتح {name} لتمنحه نصه ووسائطه الخاصة وترى المعاينة.',
-    previewGeneric: 'المحرر بمنشور على {name}. الشبكات التي ليست لها معاينة خاصة تعرض المعاينة العامة.',
     faqTitle: 'أسئلة شائعة',
     relatedTitle: 'قنوات ذات صلة',
     ctaTitle: 'جدوِل منشورك القادم على {name} اليوم.',

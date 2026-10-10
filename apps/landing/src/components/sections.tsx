@@ -131,7 +131,7 @@ export function ProductShot({ t }: { t: Dict }) {
       <div className="pz-container is-wide">
         <div className="pz-stage pz-showcase" data-parallax>
           <div className="pz-mock pz-zoomable" data-art>
-            <Shot t={t} id="calendar-week" priority sizes="(min-width: 1440px) 1360px, 100vw" />
+            <Shot t={t} id="calendar-week" priority />
             <span className="pz-mock-chip" style={{ top: '46%', insetInlineStart: '44%', ['--dx' as string]: t.dir === 'rtl' ? '-110%' : '110%', ['--dy' as string]: '-140%' }} aria-hidden="true">
               <img src={li.icon} alt="" width={14} height={14} />
               Nile Studio · 09:00
@@ -211,7 +211,7 @@ export function FeatureRow({ t, id, kicker, icon, title, body, points, shot, lin
         ) : null}
       </div>
       <div className="pz-row-media pz-zoomable" data-reveal data-parallax>
-        <Shot t={t} id={shot} sizes="(min-width: 1200px) 700px, 100vw" />
+        <Shot t={t} id={shot} />
       </div>
     </div>
   );
@@ -241,7 +241,7 @@ export function ArabicSection({ t }: { t: Dict }) {
         <div className="pz-row-copy" data-reveal>
           <span className="pz-kicker">
             <Icon name="languages" size={16} />
-            العربية · Arabic
+            <span lang="ar">العربية</span> · <span lang="en">Arabic</span>
           </span>
           <h2 id="arabic-title" className="t-h2">
             {t.arabic.title}
@@ -250,7 +250,7 @@ export function ArabicSection({ t }: { t: Dict }) {
           <CheckList items={t.arabic.bullets} />
         </div>
         <div className="pz-zoomable" data-reveal>
-          <Shot t={t} id="composer-arabic" sizes="(min-width: 1200px) 700px, 100vw" />
+          <Shot t={t} id="composer-arabic" />
         </div>
       </div>
     </section>
@@ -347,7 +347,7 @@ export function FeatureCard({ t, refId }: { t: Dict; refId: FeatureRef }) {
   return (
     <a className="pz-card" href={localePath(t.lang, featureRefPath(refId))}>
       <span className="pz-card-media" aria-hidden="true">
-        <Shot t={t} id={shot} frame="bare" sizes="400px" />
+        <Shot t={t} id={shot} frame="bare" />
       </span>
       <span className="pz-card-body">
         <strong>

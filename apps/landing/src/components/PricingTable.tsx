@@ -133,7 +133,7 @@ export function PricingTable({
       </div>
       <p className="caption pz-muted pz-pricing-note">{source === 'api' ? p.noteApi : p.note}</p>
       {compare ? (
-        <div className="pz-compare">
+        <div className="pz-compare" id="compare">
           <h3 className="title-2">{p.compareTitle}</h3>
           <div className="pz-compare-scroll" role="region" aria-label={p.compareTitle} tabIndex={0}>
             <table className="pz-compare-table">

@@ -162,7 +162,7 @@ export function FeaturePage({ t, slug }: { t: Dict; slug: FeatureSlug }) {
       <section className="pz-sec is-tight" aria-label={f.nav.label}>
         <div className="pz-container is-wide">
           <div className="pz-stage pz-showcase pz-zoomable" data-reveal data-parallax>
-            <Shot t={t} id={f.hero} priority sizes="(min-width: 1440px) 1360px, 100vw" />
+            <Shot t={t} id={f.hero} priority />
             {f.callouts ? (
               <>
                 <span className="pz-callout is-a">
@@ -181,7 +181,7 @@ export function FeaturePage({ t, slug }: { t: Dict; slug: FeatureSlug }) {
       <section className="pz-sec" id="tour" aria-label={t.featurePage.tour}>
         <div className="pz-container pz-rows">
           {f.benefits.map((b, i) => (
-            <FeatureRow key={b.title} t={t} id={slug === 'composer' && b.shot === 'composer-arabic' ? 'arabic' : undefined} title={b.title} body={b.body} points={b.points} shot={b.shot} flip={i % 2 === 1} headingLevel={2} />
+            <FeatureRow key={b.title} t={t} id={b.id} title={b.title} body={b.body} points={b.points} shot={b.shot} flip={i % 2 === 1} headingLevel={2} />
           ))}
         </div>
       </section>
@@ -350,7 +350,7 @@ export function AgentPage({ t }: { t: Dict }) {
         <div className="pz-container">
           <SectionHead id="inapp-title" title={a.inApp.title} sub={a.inApp.sub} />
           <div className="pz-stage pz-zoomable" data-reveal data-parallax>
-            <Shot t={t} id="agent" sizes="(min-width: 1200px) 1200px, 100vw" />
+            <Shot t={t} id="agent" />
           </div>
           <ul className="pz-checks is-centered" data-stagger>
             {a.inApp.points.map((p) => (

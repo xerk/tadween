@@ -46,16 +46,36 @@ export function NavController() {
       offs.push(() => el.removeEventListener(type, fn as EventListener, opts));
     };
 
+    // A menu that hover opened stays open when its trigger is clicked right after.
+    let hoverOpened = 0;
+    const firstLink = (menu: string) => panels.find((p) => p.dataset.menuPanel === menu)?.querySelector<HTMLAnchorElement>('a');
     triggers.forEach((b) => {
       const menu = b.dataset.menuTrigger!;
-      on(b, 'click', () => {
+      on(b, 'click', (e: MouseEvent) => {
         clearTimeout(timer);
+        const keyboard = e.detail === 0;
+        if (current === menu && !keyboard && Date.now() - hoverOpened < 600) return;
         show(current === menu ? null : menu);
+        // Opened from the keyboard: move into the menu, so its links are the next stops.
+        if (keyboard && current === menu) firstLink(menu)?.focus();
+      });
+      on(b, 'keydown', (e: KeyboardEvent) => {
+        if (e.key !== 'ArrowDown') return;
+        e.preventDefault();
+        show(menu);
+        firstLink(menu)?.focus();
       });
     });
     nav.querySelectorAll<HTMLElement>('[data-menu-hover]').forEach((li) => {
       const menu = li.dataset.menuHover!;
-      on(li, 'pointerenter', () => fine.matches && later(menu, current ? 0 : 120));
+      on(li, 'pointerenter', () => {
+        if (!fine.matches) return;
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          if (current !== menu) hoverOpened = Date.now();
+          show(menu);
+        }, current ? 0 : 120);
+      });
       on(li, 'pointerleave', () => fine.matches && later(null, 220));
     });
     panels.forEach((p) => {
@@ -70,7 +90,7 @@ export function NavController() {
         show(null);
         open?.focus();
       }
-      setSheet(false);
+      if (sheet && !sheet.hidden) setSheet(false);
     });
     on(document, 'pointerdown', (e: PointerEvent) => {
       if (current && !nav.contains(e.target as Node)) show(null);

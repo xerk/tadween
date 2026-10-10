@@ -43,7 +43,6 @@ export const channelsEn: ChannelsDict = {
     ],
     previewTitle: 'Your {name} post, in the composer',
     previewSub: 'Write once for every channel, then open {name} to give it its own text and media and see the preview.',
-    previewGeneric: 'The composer with a {name} post. Networks without a preview of their own show the general one.',
     faqTitle: 'Questions',
     relatedTitle: 'Related channels',
     ctaTitle: 'Schedule your next {name} post today.',

@@ -47,6 +47,8 @@ export interface FeatureNav {
 
 /** One block of a feature page: copy beside a product screenshot. */
 export interface Benefit {
+  /** Anchor for links into this block (e.g. /features/composer#arabic). */
+  id?: string;
   title: string;
   body: string;
   points?: string[];
@@ -93,7 +95,7 @@ export interface ChannelCopy {
   limitNote?: string;
   features: { title: string; body: string }[];
   faq: Faq[];
-  /** The sample post the preview shows. */
+  /** The sample post typed into the composer for this network's screenshot (see docs/tadween/demo-data.md). */
   sample: string;
 }
 
@@ -118,8 +120,6 @@ export interface ChannelsDict {
     /** Caption under the composer screenshot; "{name}" is the network. */
     previewTitle: string;
     previewSub: string;
-    /** Caption for networks without their own screenshot yet. */
-    previewGeneric: string;
     faqTitle: string;
     relatedTitle: string;
     /** "{name}" is replaced with the network's name. */
@@ -217,7 +217,6 @@ export interface Dict {
     howTitle: string;
     relatedTitle: string;
     faqTitle: string;
-    learnMore: string;
   };
   features: Record<FeatureSlug, FeatureCopy>;
   agentPage: Head & {

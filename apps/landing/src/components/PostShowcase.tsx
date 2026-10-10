@@ -42,8 +42,6 @@ const POSTS: ShowcasePost[][] = [
   ],
 ];
 
-/** The networks a visitor sees in the showcase, for the strip under it. */
-export const SHOWCASE_NETWORKS: Network[] = ['linkedin', 'x', 'instagram', 'facebook', 'threads', 'tiktok'];
 
 const Stat = ({ icon, value }: { icon: IconName; value?: ReactNode }) => (
   <span className="sc-stat">

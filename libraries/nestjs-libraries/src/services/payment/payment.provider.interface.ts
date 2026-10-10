@@ -60,6 +60,24 @@ export abstract class PaymentProviderAbstract {
     return this.notSupported();
   }
 
+  // Start the plan's free trial without a payment method
+  async startTrial(
+    uniqueId: string,
+    organizationId: string,
+    userId: string,
+    body: BillingSubscribeDto,
+    allowTrial: boolean
+  ): Promise<any> {
+    return this.notSupported();
+  }
+
+  // Trial end date and whether a payment method is on file (null: no trial)
+  async getTrialInfo(
+    organizationId: string
+  ): Promise<{ trialEnd: Date | null; hasPaymentMethod: boolean } | null> {
+    return null;
+  }
+
   // Price difference preview when switching plans
   async prorate(
     organizationId: string,

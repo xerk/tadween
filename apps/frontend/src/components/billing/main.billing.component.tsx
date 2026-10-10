@@ -1,12 +1,14 @@
 'use client';
 
-import React, { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { FC, useCallback, useEffect, useState } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Subscription } from '@prisma/client';
 import { useDebouncedCallback } from 'use-debounce';
 import { useToaster } from '@gitroom/react/toaster/toaster';
-import dayjs from 'dayjs';
-import { useTadweenPricing } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import {
+  PublicPlan,
+  useTadweenPricing,
+} from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { FAQComponent } from '@gitroom/frontend/components/billing/faq.component';
 import { useSWRConfig } from 'swr';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
@@ -23,34 +25,29 @@ import {
 } from '@gitroom/frontend/components/tadween/ui';
 import {
   BillingPeriod,
-  CheckList,
-  CompareTable,
   formatUsd,
   PeriodToggle,
-  TierCard,
-  useTierMeta,
 } from '@gitroom/frontend/components/tadween/billing/pricing';
 import { CurrentPlanCard } from '@gitroom/frontend/components/tadween/billing/current.plan';
 import {
   ChangePlanDialog,
   useBillingDialogs,
 } from '@gitroom/frontend/components/tadween/billing/billing.dialogs';
+import { PlansView } from '@gitroom/frontend/components/tadween/billing/plans.view';
+import { CheckoutDrawer } from '@gitroom/frontend/components/tadween/billing/checkout.drawer';
 import { useUtmUrl } from '@gitroom/helpers/utils/utm.saver';
-import { useTrack } from '@gitroom/react/helpers/use.track';
-import { TrackEnum } from '@gitroom/nestjs-libraries/user/track.enum';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { FinishTrial } from '@gitroom/frontend/components/billing/finish.trial';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { useDubClickId } from '@gitroom/frontend/components/layout/dubAnalytics';
-import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
 
 type SubscriptionWithPlatform = Subscription & {
   platform?: 'web' | 'mobile';
 };
 
 export const Prorate: FC<{
-  period: 'MONTHLY' | 'YEARLY';
-  pack: 'STANDARD' | 'PRO';
+  period: BillingPeriod;
+  pack: string;
 }> = (props) => {
   const { period, pack } = props;
   const t = useT();
@@ -96,54 +93,6 @@ export const Prorate: FC<{
     </>
   );
 };
-export const Features: FC<{
-  pack: 'FREE' | 'STANDARD' | 'PRO';
-}> = (props) => {
-  const { pack } = props;
-  // Tadween: plans from /admin overlay the pricing map; their bullets win
-  const { pricing, planFor } = useTadweenPricing();
-  const features = useMemo(() => {
-    const planFeatures = planFor(pack)?.features || [];
-    if (planFeatures.length) {
-      return planFeatures;
-    }
-    const currentPricing = pricing[pack];
-    const channelsOr = currentPricing.channel;
-    const list = [];
-    list.push(`${channelsOr} ${channelsOr === 1 ? 'channel' : 'channels'}`);
-    list.push(
-      `${
-        currentPricing.posts_per_month > 10000
-          ? 'Unlimited'
-          : currentPricing.posts_per_month
-      } posts per month`
-    );
-    if (currentPricing.team_members) {
-      list.push(`Unlimited team members`);
-    }
-    if (currentPricing?.ai) {
-      list.push(`AI auto-complete`);
-      list.push(`AI copilots`);
-      list.push(`AI Autocomplete`);
-    }
-    list.push(`Advanced Picture Editor`);
-    if (currentPricing?.image_generator) {
-      list.push(
-        `${currentPricing?.image_generation_count} AI Images per month`
-      );
-    }
-    if (currentPricing?.generate_videos) {
-      list.push(`${currentPricing?.generate_videos} AI Videos per month`);
-    }
-    if (currentPricing?.clipping_minutes) {
-      list.push(
-        `${currentPricing?.clipping_minutes} minutes of AI video clipping per month`
-      );
-    }
-    return list;
-  }, [pack, pricing, planFor]);
-  return <CheckList items={features} />;
-};
 
 export const MainBillingComponent: FC<{
   sub?: SubscriptionWithPlatform;
@@ -157,275 +106,202 @@ export const MainBillingComponent: FC<{
   const dub = useDubClickId();
   const dialogs = useBillingDialogs();
   const events = useFireEvents();
-  const tierMeta = useTierMeta();
-  const [changeTo, setChangeTo] = useState<string | null>(null);
   const router = useRouter();
   const utm = useUtmUrl();
-  const track = useTrack();
   const t = useT();
-  const { pricing, visible } = useTadweenPricing();
+  const { plans, planFor } = useTadweenPricing();
   const queryParams = useSearchParams();
   const [finishTrial, setFinishTrial] = useState(
     !!queryParams.get('finishTrial')
   );
 
-  const [subscription, setSubscription] = useState<SubscriptionWithPlatform | undefined>(
-    sub
-  );
+  const [subscription, setSubscription] = useState<
+    SubscriptionWithPlatform | undefined
+  >(sub);
   const [loading, setLoading] = useState<boolean>(false);
-  const [period, setPeriod] = useState<'MONTHLY' | 'YEARLY'>(
-    subscription?.period || 'MONTHLY'
-  );
-  const [monthlyOrYearly, setMonthlyOrYearly] = useState<'on' | 'off'>(
-    period === 'MONTHLY' ? 'off' : 'on'
-  );
-  const [initialChannels, setInitialChannels] = useState(
-    sub?.totalChannels || 1
-  );
+  const [period, setPeriod] = useState<BillingPeriod>(sub?.period || 'MONTHLY');
+  const [changeTo, setChangeTo] = useState<string | null>(null);
+  const [checkout, setCheckout] = useState<PublicPlan | null>(null);
   useEffect(() => {
-    if (initialChannels !== sub?.totalChannels) {
-      setInitialChannels(sub?.totalChannels || 1);
-    }
-    if (period !== sub?.period) {
-      setPeriod(sub?.period || 'MONTHLY');
-      setMonthlyOrYearly(
-        (sub?.period || 'MONTHLY') === 'MONTHLY' ? 'off' : 'on'
-      );
-    }
     setSubscription(sub);
+    setPeriod(sub?.period || 'MONTHLY');
   }, [sub]);
-  const updatePayment = useCallback(async () => {
+  // /billing?plan=TIER (from the upgrade paywall) starts on that plan
+  const preselect = queryParams.get('plan');
+  useEffect(() => {
+    const plan = plans.find((p) => p.tier === preselect);
+    if (!plan || plan.tier === sub?.subscriptionTier) {
+      return;
+    }
+    if (sub) {
+      setChangeTo(plan.tier);
+    } else {
+      setCheckout(plan);
+    }
+  }, [preselect, plans.length]);
+
+  // Card, invoices and receipts live in the Stripe customer portal
+  const openPortal = useCallback(async () => {
+    // Open the tab now (still inside the click) so it isn't blocked as a popup
+    const tab = window.open('', '_blank');
     const { portal } = await (await fetch('/billing/portal')).json();
-    window.location.href = portal;
+    if (portal && tab) {
+      tab.location.href = portal;
+    } else {
+      tab?.close();
+    }
   }, []);
-  const currentPackage = useMemo(() => {
-    if (!subscription) {
-      return 'FREE';
-    }
-    if (period === 'YEARLY' && monthlyOrYearly === 'off') {
-      return '';
-    }
-    if (period === 'MONTHLY' && monthlyOrYearly === 'on') {
-      return '';
-    }
-    return subscription?.subscriptionTier;
-  }, [subscription, initialChannels, monthlyOrYearly, period]);
-  const moveToCheckout = useCallback(
-    (billing: 'STANDARD' | 'PRO' | 'FREE', reactivate = false) =>
-      async () => {
-        if (reactivate) {
-          setLoading(true);
-          const { cancel_at } = await (
-            await fetch('/billing/cancel', {
-              method: 'POST',
-              body: JSON.stringify({
-                feedback: '',
-              }),
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            })
-          ).json();
-          setSubscription((subs) => ({
-            ...subs!,
-            cancelAt: cancel_at,
-          }));
 
-          toast.show(
-            cancel_at
-              ? 'Your subscription was already active, so it is now set to cancel. Click Reactivate subscription again to keep it.'
-              : 'Subscription reactivated successfully'
-          );
-          setLoading(false);
-          return;
-        }
-
-        const messages = [];
+  // In-app cancel (with reason and retention offer) and resume, both Postiz's
+  const toggleCancel = useCallback(
+    async (resume: boolean) => {
+      let feedback = '';
+      if (!resume) {
+        const current = planFor(subscription?.subscriptionTier || '');
         if (
-          !pricing[billing].team_members &&
-          pricing[subscription?.subscriptionTier!]?.team_members
-        ) {
-          messages.push(
-            `Your team members will be removed from your organization`
-          );
-        }
-        if (billing === 'FREE') {
-          if (
-            subscription?.cancelAt ||
-            (await dialogs.confirm({
-              title: t('tdw_cancel_subscription_q', 'Cancel your subscription?'),
-              description: [
-                t(
-                  'tdw_cancel_subscription_desc',
-                  'Your plan stays active until the end of this billing period.'
-                ),
-                ...messages,
-              ].join(' '),
-              confirmLabel: t('tdw_yes_cancel', 'Yes, cancel'),
-              cancelLabel: t('tdw_billing_keep_plan', 'Keep my plan'),
-              tone: 'destructive',
-            }))
-          ) {
-            // Tadween: reason (20+ characters) first, then the retention offer
-            const info = await dialogs.askReason();
-            if (info === null) {
-              return;
-            }
-
-            const checkDiscount = await (
-              await fetch('/billing/check-discount')
-            ).json();
-            if (checkDiscount.offerCoupon) {
-              if ((await dialogs.offerDiscount()) !== 'cancel') {
-                return;
-              }
-            }
-
-            events('cancel_subscription');
-            setLoading(true);
-            const { cancel_at } = await (
-              await fetch('/billing/cancel', {
-                method: 'POST',
-                body: JSON.stringify({
-                  feedback: info,
-                }),
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-              })
-            ).json();
-            setSubscription((subs) => ({
-              ...subs!,
-              cancelAt: cancel_at,
-            }));
-            toast.show(
-              cancel_at
-                ? 'Subscription set to canceled successfully'
-                : 'Your subscription was already set to cancel, so it has been reactivated. Click Cancel subscription again to cancel it.'
-            );
-            setLoading(false);
-          }
-          return;
-        }
-        if (
-          messages.length &&
           !(await dialogs.confirm({
-            title: t('tdw_change_plan_q', 'Change your plan?'),
-            description: messages.join(' '),
-            confirmLabel: t('tdw_yes_continue', 'Yes, continue'),
+            title: t('tdw_cancel_subscription_q', 'Cancel your subscription?'),
+            description: t(
+              'tdw_cancel_subscription_desc_plan',
+              'You keep {{name}} until the end of this billing period. After that the workspace has no plan.',
+              { name: current?.name || '' }
+            ),
+            confirmLabel: t('tdw_yes_cancel', 'Yes, cancel'),
+            cancelLabel: t('tdw_billing_keep_plan', 'Keep my plan'),
             tone: 'destructive',
           }))
         ) {
           return;
         }
-        setLoading(true);
-        const { url, portal, blocked } = await (
-          await fetch('/billing/subscribe', {
-            method: 'POST',
-            body: JSON.stringify({
-              period: monthlyOrYearly === 'on' ? 'YEARLY' : 'MONTHLY',
-              utm,
-              billing,
-              ...(dub ? { dub } : {}),
-            }),
-          })
+        const reason = await dialogs.askReason();
+        if (reason === null) {
+          return;
+        }
+        feedback = reason;
+        const checkDiscount = await (
+          await fetch('/billing/check-discount')
         ).json();
-        if (blocked) {
-          setLoading(false);
-          await dialogs.confirm({
-            title: t('tdw_already_subscribed', 'Already subscribed'),
-            description: t(
-              'billing_other_account_subscribed',
-              'Another account with this email already has an active subscription. Please log off and sign in to that account to manage your subscription.'
-            ),
-            confirmLabel: t('tdw_ok', 'OK'),
-            alert: true,
-          });
+        if (
+          checkDiscount.offerCoupon &&
+          (await dialogs.offerDiscount()) !== 'cancel'
+        ) {
           return;
         }
-        if (url) {
-          await track(TrackEnum.InitiateCheckout, {
-            value:
-              pricing[billing][
-                monthlyOrYearly === 'on' ? 'year_price' : 'month_price'
-              ],
-          });
-          window.location.href = url;
-          return;
-        }
-        if (portal) {
-          if (
-            await dialogs.confirm({
-              title: t('tdw_payment_method_required', 'Payment method required'),
-              description: t(
-                'tdw_could_not_charge',
-                'We could not charge your card. Update your payment method to continue.'
-              ),
-              confirmLabel: t('tdw_update_card', 'Update card'),
+        events('cancel_subscription');
+      }
+      setLoading(true);
+      const { cancel_at } = await (
+        await fetch('/billing/cancel', {
+          method: 'POST',
+          body: JSON.stringify({ feedback }),
+        })
+      ).json();
+      setSubscription((subs) => ({ ...subs!, cancelAt: cancel_at || null }));
+      toast.show(
+        cancel_at
+          ? t('tdw_cancel_scheduled', 'Your plan ends on {{date}}.', {
+              date: newDayjs(cancel_at).local().format('D MMM YYYY'),
             })
-          ) {
-            window.open(portal);
-          }
-        } else {
-          setPeriod(monthlyOrYearly === 'on' ? 'YEARLY' : 'MONTHLY');
-          setSubscription((subs) => ({
-            ...subs!,
-            subscriptionTier: billing,
-            cancelAt: null,
-          }));
-          mutate(
-            '/user/self',
-            {
-              ...user,
-              tier: billing,
-            },
-            {
-              revalidate: false,
-            }
-          );
-          toast.show('Subscription updated successfully');
-        }
-        setLoading(false);
-      },
-    [monthlyOrYearly, subscription, user, utm, pricing]
+          : t('tdw_resumed', 'Your subscription continues.')
+      );
+      setLoading(false);
+    },
+    [subscription, planFor]
   );
+
+  // Switch plan or period on a live subscription: Stripe prorates
+  const switchPlan = useCallback(
+    async (tier: string) => {
+      const target = planFor(tier);
+      const current = planFor(subscription?.subscriptionTier || '');
+      if (
+        current &&
+        target &&
+        current.teamMembers !== 0 &&
+        target.teamMembers === 0 &&
+        !(await dialogs.confirm({
+          title: t('tdw_change_plan_q', 'Change your plan?'),
+          description: t(
+            'tdw_team_removed',
+            'Your team members will be removed from this workspace.'
+          ),
+          confirmLabel: t('tdw_yes_continue', 'Yes, continue'),
+          tone: 'destructive',
+        }))
+      ) {
+        return;
+      }
+      setLoading(true);
+      const { portal, blocked } = await (
+        await fetch('/billing/subscribe', {
+          method: 'POST',
+          body: JSON.stringify({
+            period,
+            utm,
+            billing: tier,
+            ...(dub ? { dub } : {}),
+          }),
+        })
+      ).json();
+      setLoading(false);
+      if (blocked) {
+        await dialogs.confirm({
+          title: t('tdw_already_subscribed', 'Already subscribed'),
+          description: t(
+            'billing_other_account_subscribed',
+            'Another account with this email already has an active subscription. Please log off and sign in to that account to manage your subscription.'
+          ),
+          confirmLabel: t('tdw_ok', 'OK'),
+          alert: true,
+        });
+        return;
+      }
+      if (portal) {
+        if (
+          await dialogs.confirm({
+            title: t('tdw_payment_method_required', 'Payment method required'),
+            description: t(
+              'tdw_could_not_charge',
+              'We could not charge your card. Update your payment method to continue.'
+            ),
+            confirmLabel: t('tdw_update_card', 'Update card'),
+          })
+        ) {
+          window.open(portal);
+        }
+        return;
+      }
+      setSubscription((subs) => ({
+        ...subs!,
+        subscriptionTier: tier as Subscription['subscriptionTier'],
+        period,
+        cancelAt: null,
+      }));
+      mutate('/user/self');
+      toast.show(
+        t('tdw_plan_changed', 'You’re now on {{name}}.', {
+          name: target?.name || '',
+        })
+      );
+    },
+    [subscription, period, utm, dub, planFor]
+  );
+
   if (user?.isLifetime) {
     router.replace('/');
     return null;
   }
-  // Tadween: everything below is presentation; the handlers are Postiz's
-  const billingPeriod: BillingPeriod =
-    monthlyOrYearly === 'on' ? 'YEARLY' : 'MONTHLY';
-  const setBillingPeriod = (v: BillingPeriod) =>
-    setMonthlyOrYearly(v === 'YEARLY' ? 'on' : 'off');
-  const tiers = visible(true).filter((f) => !isGeneral || f[0] !== 'FREE');
-  const changeOptions = tiers
-    .filter(([name]) => name !== 'FREE' && name !== currentPackage)
-    .map(([name, values]) => ({
-      value: name,
-      label: `${tierMeta.name(name)} · ${formatUsd(
-        billingPeriod === 'YEARLY' ? values.year_price / 12 : values.month_price
-      )}${t('tdw_per_mo', '/mo')}`,
-      description: tierMeta.description(name),
-    }));
-  const trialEligible =
-    // @ts-ignore
-    (user?.tier === 'FREE' || user?.tier?.current === 'FREE') &&
-    user.allowTrial;
-  const footer = (
-    <div className="flex justify-center">
-      <LogoutComponent />
-    </div>
-  );
+
   const faq = (
-    <div className="pz-faq">
-      <h3 className="title-2">{t('tdw_questions', 'Questions')}</h3>
+    <section className="tdw-billing-faq">
+      <h2 className="tdw-section-title">{t('tdw_questions', 'Questions')}</h2>
       <FAQComponent />
-    </div>
+    </section>
   );
+
   if (subscription?.platform && subscription.platform !== 'web') {
     return (
-      <TadweenScope className="tdw-billing">
+      <TadweenScope className="tdw-billing-page">
         <section className="pz-bill-card pz-bill-center">
           <span className="pz-retention-mark" aria-hidden="true">
             <Icon name="smartphone" size={20} />
@@ -443,248 +319,179 @@ export const MainBillingComponent: FC<{
           </p>
         </section>
         {faq}
-        {footer}
       </TadweenScope>
     );
   }
-  const ctaFor = (name: string) => {
-    const upper = name.toUpperCase();
-    const popular = tierMeta.popular(upper);
-    if (currentPackage === upper && subscription?.cancelAt) {
+
+  const currentPlan = subscription
+    ? planFor(subscription.subscriptionTier)
+    : undefined;
+  const samePeriod = subscription?.period === period;
+  const otherPlans = plans.filter(
+    (p) => !(p.tier === subscription?.subscriptionTier && samePeriod)
+  );
+  const trialEligible = !subscription && !!user?.allowTrial;
+
+  const cta = (plan: PublicPlan) => {
+    if (!subscription) {
       return (
         <Button
-          variant="primary"
-          loading={loading}
-          onClick={moveToCheckout('FREE', true)}
+          variant={plan.mostPopular ? 'primary' : 'secondary'}
+          size="lg"
+          className="w-full"
+          onClick={() => setCheckout(plan)}
         >
-          {t('tdw_reactivate', 'Reactivate subscription')}
-        </Button>
-      );
-    }
-    if (currentPackage === upper) {
-      return (
-        <Button disabled icon="check">
-          {t('tdw_your_plan', 'Your plan')}
-        </Button>
-      );
-    }
-    if (upper === 'FREE') {
-      return (
-        <Button
-          variant="ghost"
-          className="is-danger"
-          loading={loading}
-          disabled={!!subscription?.cancelAt}
-          onClick={moveToCheckout('FREE')}
-        >
-          {subscription?.cancelAt
-            ? t('tdw_downgrades_on', 'Downgrades on {{date}}', {
-                date: dayjs
-                  .utc(subscription?.cancelAt)
-                  .local()
-                  .format('D MMM YYYY'),
+          {trialEligible && plan.trialDays > 0
+            ? t('tdw_start_trial', 'Start {{n}}-day trial', {
+                n: plan.trialDays,
               })
-            : t('tdw_cancel_subscription', 'Cancel subscription')}
+            : t('tdw_choose_plan_name', 'Choose {{name}}', { name: plan.name })}
         </Button>
       );
     }
-    if (subscription) {
+    if (plan.tier === subscription.subscriptionTier && samePeriod) {
       return (
-        <Button
-          variant={popular ? 'primary' : 'secondary'}
-          disabled={loading}
-          onClick={() => setChangeTo(upper)}
-        >
-          {t('tdw_switch_to', 'Switch to {{name}}', {
-            name: tierMeta.name(upper),
-          })}
+        <Button size="lg" className="w-full" disabled icon="check">
+          {t('tdw_current_plan', 'Current plan')}
         </Button>
       );
     }
     return (
       <Button
-        variant={popular ? 'primary' : 'secondary'}
-        loading={loading}
-        onClick={moveToCheckout(upper as 'STANDARD' | 'PRO')}
+        variant={plan.mostPopular ? 'primary' : 'secondary'}
+        size="lg"
+        className="w-full"
+        disabled={loading}
+        onClick={() => setChangeTo(plan.tier)}
       >
-        {trialEligible
-          ? t('tdw_start_trial', 'Start {{n}}-day trial', {
-              n: tierMeta.trialDays(upper),
-            })
-          : t('tdw_choose_plan_name', 'Choose {{name}}', {
-              name: tierMeta.name(upper),
-            })}
+        {plan.tier === subscription.subscriptionTier
+          ? period === 'YEARLY'
+            ? t('tdw_switch_yearly', 'Switch to yearly')
+            : t('tdw_switch_monthly', 'Switch to monthly')
+          : (currentPlan?.monthlyPriceUsd || 0) < plan.monthlyPriceUsd
+          ? t('tdw_upgrade_to', 'Upgrade to {{name}}', { name: plan.name })
+          : t('tdw_switch_to', 'Switch to {{name}}', { name: plan.name })}
       </Button>
     );
   };
+
   return (
-    <TadweenScope className="tdw-billing">
+    <TadweenScope className="tdw-billing-page">
       {dialogs.node}
       {finishTrial && <FinishTrial close={() => setFinishTrial(false)} />}
-      {!!subscription && user?.isTrailing && !subscription.cancelAt && (
-        <Banner
-          tone="info"
-          icon="clock"
-          title={t('tdw_on_trial', 'You are on a free trial.')}
-        >
-          {t(
-            'tdw_on_trial_desc',
-            'You will not be charged until it ends. Cancel any time from this page.'
-          )}
-        </Banner>
-      )}
       {subscription?.cancelAt && isGeneral && (
         <Banner
           tone="warning"
-          title={`${t(
-            'your_subscription_will_be_canceled_at',
-            'Your subscription will be canceled at'
-          )} ${newDayjs(subscription.cancelAt).local().format('D MMM YYYY')}.`}
+          title={t('tdw_plan_ends_on', 'Your plan ends on {{date}}.', {
+            date: newDayjs(subscription.cancelAt).local().format('D MMM YYYY'),
+          })}
         >
           {t(
-            'you_will_never_be_charged_again',
-            'You will never be charged again'
+            'tdw_plan_ends_desc',
+            'You will not be charged again. Resume any time before then to keep it.'
           )}
         </Banner>
       )}
-      {!!subscription && !!pricing[subscription.subscriptionTier] && (
+      {!!subscription && (
         <CurrentPlanCard
-          tier={subscription.subscriptionTier}
-          values={pricing[subscription.subscriptionTier]}
-          period={period}
+          plan={currentPlan}
+          period={subscription.period as BillingPeriod}
           trial={!!user?.isTrailing}
           cancelAt={subscription.cancelAt}
           actions={
             <>
-              {subscription.cancelAt ? (
-                <Button
-                  variant="primary"
-                  loading={loading}
-                  onClick={moveToCheckout('FREE', true)}
-                >
-                  {t('tdw_reactivate', 'Reactivate subscription')}
-                </Button>
-              ) : (
-                <Button
-                  variant="primary"
-                  disabled={loading || !changeOptions.length}
-                  onClick={() => setChangeTo(changeOptions[0]?.value || null)}
-                >
-                  {t('tdw_change_plan', 'Change plan')}
-                </Button>
-              )}
-              {!!subscription.id && (
-                <Button variant="ghost" icon="credit-card" onClick={updatePayment}>
-                  {t('tdw_update_card_invoices', 'Payment method and invoices')}
-                </Button>
-              )}
+              <Button variant="primary" icon="credit-card" onClick={openPortal}>
+                {t('tdw_manage_billing', 'Manage billing')}
+              </Button>
+              <Button variant="ghost" icon="receipt" onClick={openPortal}>
+                {t('tdw_invoices', 'Invoices')}
+              </Button>
               <span className="grow" />
-              {isGeneral && !subscription.cancelAt && (
-                <Button
-                  variant="ghost"
-                  className="is-danger"
-                  loading={loading}
-                  onClick={moveToCheckout('FREE')}
-                >
-                  {t('tdw_cancel_subscription', 'Cancel subscription')}
-                </Button>
-              )}
+              {isGeneral &&
+                (subscription.cancelAt ? (
+                  <Button
+                    variant="secondary"
+                    loading={loading}
+                    onClick={() => toggleCancel(true)}
+                  >
+                    {t('tdw_resume_subscription', 'Resume subscription')}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    className="is-danger"
+                    loading={loading}
+                    onClick={() => toggleCancel(false)}
+                  >
+                    {t('tdw_cancel_subscription', 'Cancel subscription')}
+                  </Button>
+                ))}
             </>
           }
         />
       )}
-      <div className="pz-pricing">
-        <div className="tdw-billing-head">
-          <div>
-            <h1 className="title-1">
-              {subscription
-                ? t('tdw_plans', 'Plans')
-                : t('tdw_choose_a_plan', 'Choose a plan')}
-            </h1>
-            <p>
-              {trialEligible
-                ? t(
-                    'tdw_plans_trial_lead',
-                    'Every plan starts with a 7-day free trial. Cancel any time.'
-                  )
-                : t(
-                    'tdw_plans_lead',
-                    'Prices in USD. Change or cancel any time from this page.'
-                  )}
-            </p>
-          </div>
-          <PeriodToggle
-            value={billingPeriod}
-            onChange={setBillingPeriod}
-            save={tierMeta.save}
-          />
-        </div>
-        <div
-          className="pz-tiers"
-          style={{
-            gridTemplateColumns: `repeat(${tiers.length}, minmax(0, 1fr))`,
-          }}
-        >
-          {tiers.map(([name, values]) => (
-            <TierCard
-              key={name}
-              tier={name}
-              values={values}
-              period={billingPeriod}
-              current={currentPackage === name.toUpperCase()}
-              cta={ctaFor(name)}
-              note={
-                subscription &&
-                currentPackage !== name.toUpperCase() &&
-                name !== 'FREE' &&
-                !!name ? (
-                  <Prorate
-                    period={billingPeriod}
-                    pack={name.toUpperCase() as 'STANDARD' | 'PRO'}
-                  />
-                ) : null
-              }
-              features={
-                <Features
-                  pack={name.toUpperCase() as 'FREE' | 'STANDARD' | 'PRO'}
-                />
-              }
-            />
-          ))}
-        </div>
-        <CompareTable tiers={tiers} period={billingPeriod} />
-        {faq}
-      </div>
-      {footer}
+      <PlansView
+        title={
+          subscription
+            ? t('tdw_plans', 'Plans')
+            : t('tdw_choose_a_plan', 'Choose a plan')
+        }
+        lead={
+          subscription
+            ? t(
+                'tdw_plans_lead_switch',
+                'Switch any time. Stripe charges only the difference for the rest of this period.'
+              )
+            : t(
+                'tdw_paywall_lead_plans',
+                'Both plans have every feature; they differ only in limits.'
+              )
+        }
+        period={period}
+        onPeriod={setPeriod}
+        currentTier={samePeriod ? subscription?.subscriptionTier : undefined}
+        cta={cta}
+        note={(plan) =>
+          subscription &&
+          !(plan.tier === subscription.subscriptionTier && samePeriod) ? (
+            <Prorate period={period} pack={plan.tier} />
+          ) : null
+        }
+      />
+      {faq}
       <ChangePlanDialog
         open={!!changeTo}
         onClose={() => setChangeTo(null)}
-        options={changeOptions}
+        options={otherPlans.map((p) => ({
+          value: p.tier,
+          label: `${p.name} · ${formatUsd(
+            period === 'YEARLY' ? p.yearlyPriceUsd / 12 : p.monthlyPriceUsd
+          )}${t('tdw_per_mo', '/mo')}`,
+          description: p.description || '',
+        }))}
         value={changeTo || ''}
         onChange={setChangeTo}
         period={
           <PeriodToggle
-            value={billingPeriod}
-            onChange={setBillingPeriod}
-            save={tierMeta.save}
+            value={period}
+            onChange={setPeriod}
+            save={plans[0]?.yearlyDiscountPercent || 0}
           />
         }
-        payToday={
-          changeTo && changeTo !== currentPackage ? (
-            <Prorate
-              period={billingPeriod}
-              pack={changeTo as 'STANDARD' | 'PRO'}
-            />
-          ) : null
-        }
+        payToday={changeTo ? <Prorate period={period} pack={changeTo} /> : null}
         loading={loading}
         onConfirm={() => {
           const target = changeTo;
           setChangeTo(null);
           if (target) {
-            moveToCheckout(target as 'STANDARD' | 'PRO')();
+            switchPlan(target);
           }
         }}
+      />
+      <CheckoutDrawer
+        plan={checkout}
+        period={period}
+        onClose={() => setCheckout(null)}
       />
     </TadweenScope>
   );

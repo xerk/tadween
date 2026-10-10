@@ -18,7 +18,7 @@ import {
   useFetch,
 } from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { CheckPayment } from '@gitroom/frontend/components/layout/check.payment';
 import { ToolTip } from '@gitroom/frontend/components/layout/top.tip';
@@ -39,6 +39,8 @@ import {
   isBareTopBar,
   Title,
 } from '@gitroom/frontend/components/layout/title';
+import { TrialBanner } from '@gitroom/frontend/components/tadween/billing/trial.banner';
+import { PaywallModal } from '@gitroom/frontend/components/tadween/billing/paywall.modal';
 import { TopMenu } from '@gitroom/frontend/components/layout/top.menu';
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
 import { StreakComponent } from '@gitroom/frontend/components/layout/streak.component';
@@ -61,6 +63,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   // The Sentry feedback button lives in the account menu (tadween/shell/account.menu.tsx)
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const sidebar = useSidebarCollapsed();
   useEffect(() => {
@@ -82,6 +85,20 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
       user ? { id: user.id, email: user.email, orgId: user.orgId } : null
     );
   }, [user]);
+
+  // A workspace without a plan lives on /billing (full screen, no app chrome),
+  // like Postiz's first-billing screen; super admins are never held there
+  const needsPlan =
+    !!user &&
+    user.tier === 'FREE' &&
+    isGeneral &&
+    billingEnabled &&
+    !user.billingExempt;
+  useEffect(() => {
+    if (needsPlan && pathname !== '/billing') {
+      router.replace('/billing');
+    }
+  }, [needsPlan, pathname]);
 
   if (!user) return null;
 
@@ -105,6 +122,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             <ShowPostSelector />
             <PreConditionComponent />
             <NewSubscription />
+            <PaywallModal />
             <ContinueProvider />
             <div
               className={clsx(
@@ -114,21 +132,20 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             >
               {/* Tadween: the full admin bar while impersonating; otherwise the
                   admin tools are one pill in the top bar (here only when the
-                  first-billing screen replaces the top bar) */}
+                  billing screen replaces the top bar) */}
               <div>
-                {user?.admin &&
-                (user?.impersonate ||
-                  (user.tier === 'FREE' && isGeneral && billingEnabled)) ? (
+                {user?.admin && (user?.impersonate || needsPlan) ? (
                   <Impersonate />
                 ) : (
                   <div />
                 )}
               </div>
-              {user.tier === 'FREE' && isGeneral && billingEnabled ? (
+              {needsPlan ? (
                 <FirstBillingComponent />
               ) : (
                 <>
                   <AnnouncementBanner />
+                  {billingEnabled && <TrialBanner />}
                   <div className="flex-1 flex gap-[8px] mobile:gap-0">
                     <Support />
                     {menuOpen && (

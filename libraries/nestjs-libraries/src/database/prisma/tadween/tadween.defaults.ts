@@ -7,7 +7,6 @@
 // can be added until the admin chooses otherwise. Channels a workspace already
 // connected are never affected by it.
 import { SubscriptionTier } from '@prisma/client';
-import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 
 // ── Registration ──────────────────────────────────────────────────────────────
 export type RegistrationMode = 'open' | 'invite' | 'closed';
@@ -252,25 +251,19 @@ export const credentialStatus = (identifier: string) => {
 };
 
 // ── Plans ────────────────────────────────────────────────────────────────────
-// The four Tadween tiers from the design system. PRICES ARE PLACEHOLDERS: the
-// owner sets real EGP/USD prices in /admin/plans before selling.
-// Tier mapping (Plan.tier → Postiz SubscriptionTier) is chosen so inherited
-// capabilities grow with the plan: Creator→STANDARD, Pro→TEAM, Team→PRO,
-// Agency→ULTIMATE. Stripe products stay keyed by the Postiz tier name.
+// Two plans that differ only in limits: every feature is on in both. Prices are
+// USD; the yearly price is always derived from the monthly one with the yearly
+// discount below (editable in /admin/plans, stored in platform settings).
 //
-// LIMITS COME FROM POSTIZ'S PRICING MAP. A plan's limits replace the tier's for
-// every workspace on it (team members and AI at once, channels at the next
-// Stripe renewal), and this instance already has paying subscribers. Loading the
-// defaults must therefore never lower anything: channels, team members and AI
-// credits equal the static `pricing` entry of the tier. Lowering them is a
-// deliberate edit in /admin/plans, which PlansService refuses while paying
-// workspaces are on that tier.
-const limitsOf = (tier: Exclude<SubscriptionTier, 'FREE'>) => ({
-  channels: pricing[tier].channel!,
-  teamMembers: pricing[tier].team_members ? -1 : 0,
-  postsPerMonth: -1,
-  aiCredits: pricing[tier].image_generation_count,
-});
+// Each plan sells its own Postiz tier (Stripe products, prices and webhooks map
+// subscriptions back by tier): Pro → TEAM, Business → PRO. TEAM and PRO enable
+// the same capabilities in Postiz's pricing map and differ only in numbers
+// (webhooks, AI videos, clipping minutes).
+//
+// Paying workspaces must never lose limits: loading the defaults goes through
+// PlansService's lower-limits guard, which refuses any default that would lower
+// a tier with subscribers and reports it instead.
+export const DEFAULT_YEARLY_DISCOUNT_PERCENT = 20;
 
 export interface DefaultPlan {
   key: string;
@@ -278,78 +271,46 @@ export interface DefaultPlan {
   description: string;
   tier: SubscriptionTier;
   monthlyPriceUsd: number;
-  yearlyPriceUsd: number;
-  monthlyPriceEgp: number;
-  yearlyPriceEgp: number;
   trialDays: number;
   mostPopular: boolean;
   channels: number;
   teamMembers: number;
   postsPerMonth: number;
   aiCredits: number;
+  // Extra bullets shown after the ones generated from the limits
   features: string[];
   position: number;
 }
 
 export const DEFAULT_PLANS: DefaultPlan[] = [
   {
-    key: 'creator',
-    name: 'Creator',
-    description: 'For one voice on LinkedIn',
-    tier: 'STANDARD',
+    key: 'pro',
+    name: 'Pro',
+    description: 'For creators and small teams',
+    tier: 'TEAM',
     monthlyPriceUsd: 9,
-    yearlyPriceUsd: 86,
-    monthlyPriceEgp: 299,
-    yearlyPriceEgp: 2868,
     trialDays: 7,
     mostPopular: false,
-    ...limitsOf('STANDARD'),
-    features: ['5 channels', 'Unlimited scheduled posts', 'First comments and repeats', 'Calendar and post previews', 'Analytics'],
+    channels: 10,
+    teamMembers: 3,
+    postsPerMonth: -1,
+    aiCredits: 100,
+    features: [],
     position: 0,
   },
   {
-    key: 'pro',
-    name: 'Pro',
-    description: 'For creators who post every week',
-    tier: 'TEAM',
-    monthlyPriceUsd: 19,
-    yearlyPriceUsd: 182,
-    monthlyPriceEgp: 599,
-    yearlyPriceEgp: 5748,
-    trialDays: 7,
-    mostPopular: false,
-    ...limitsOf('TEAM'),
-    features: ['10 channels', 'Unlimited team members', 'Everything in Creator', 'RSS auto-post', 'Sets and signatures'],
-    position: 1,
-  },
-  {
-    key: 'team',
-    name: 'Team',
-    description: 'For brands with a team',
+    key: 'business',
+    name: 'Business',
+    description: 'For brands and agencies with many pages',
     tier: 'PRO',
-    monthlyPriceUsd: 39,
-    yearlyPriceUsd: 374,
-    monthlyPriceEgp: 1199,
-    yearlyPriceEgp: 11508,
+    monthlyPriceUsd: 19,
     trialDays: 7,
     mostPopular: true,
-    ...limitsOf('PRO'),
-    features: ['30 channels', 'Unlimited team members', 'Preview links for clients', 'Shared calendar and tags', 'Agent and MCP access'],
-    position: 2,
-  },
-  {
-    key: 'agency',
-    name: 'Agency',
-    description: 'For agencies and many clients',
-    tier: 'ULTIMATE',
-    monthlyPriceUsd: 79,
-    yearlyPriceUsd: 758,
-    monthlyPriceEgp: 2499,
-    yearlyPriceEgp: 23988,
-    trialDays: 7,
-    mostPopular: false,
-    ...limitsOf('ULTIMATE'),
-    features: ['100 channels', 'Everything in Team', 'Customer groups', 'Unlimited webhooks'],
-    position: 3,
+    channels: 30,
+    teamMembers: -1,
+    postsPerMonth: -1,
+    aiCredits: 300,
+    features: [],
+    position: 1,
   },
 ];

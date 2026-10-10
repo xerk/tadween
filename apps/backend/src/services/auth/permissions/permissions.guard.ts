@@ -8,9 +8,13 @@ import {
   AbilityPolicy,
   CHECK_POLICIES_KEY,
 } from '@gitroom/backend/services/auth/permissions/permissions.ability';
-import { Organization } from '@prisma/client';
+import { Organization, User } from '@prisma/client';
+import { isBillingExempt } from '@gitroom/backend/services/auth/permissions/permissions.service';
 import { Request } from 'express';
-import { SubscriptionException } from './permission.exception.class';
+import {
+  Sections,
+  SubscriptionException,
+} from './permission.exception.class';
 
 @Injectable()
 export class PoliciesGuard implements CanActivate {
@@ -30,7 +34,7 @@ export class PoliciesGuard implements CanActivate {
       return true;
     }
 
-    const policyHandlers =
+    let policyHandlers =
       this._reflector.get<AbilityPolicy[]>(
         CHECK_POLICIES_KEY,
         context.getHandler()
@@ -42,7 +46,20 @@ export class PoliciesGuard implements CanActivate {
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
-    const { org }: { org: Organization } = request;
+    const { org, user }: { org: Organization; user: User } = request;
+
+    // Super admins are never held back by plan limits on their own actions;
+    // the workspace role check (Sections.ADMIN) still applies. While
+    // impersonating, `user` is the impersonated account (flagged isSuperAdmin
+    // by the auth middleware), so its workspace's real limits apply.
+    if (isBillingExempt(user, request)) {
+      policyHandlers = policyHandlers.filter(
+        (handler) => handler[1] === Sections.ADMIN
+      );
+      if (!policyHandlers.length) {
+        return true;
+      }
+    }
 
     const refreshChannelId = typeof request.query?.refresh === 'string' ? request.query.refresh : undefined;
 

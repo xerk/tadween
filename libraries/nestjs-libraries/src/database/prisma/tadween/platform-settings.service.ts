@@ -4,6 +4,7 @@ import {
   BRAND_LINK_KEYS,
   Branding,
   brandingDefaults,
+  DEFAULT_YEARLY_DISCOUNT_PERCENT,
   FEATURE_KEYS,
   FeatureKey,
   featureDefaultsFromEnv,
@@ -16,6 +17,7 @@ const KEYS = {
   registration: 'registration',
   features: 'features',
   branding: 'branding',
+  billing: 'billing',
 } as const;
 
 // Settings are read on hot paths (sign-up, every page load), so they are kept
@@ -80,6 +82,25 @@ export class PlatformSettingsService {
   // unsaved value must keep the existing env-driven behaviour (emails).
   async getSavedBranding(): Promise<Partial<Branding>> {
     return (await this.values())[KEYS.branding] || {};
+  }
+
+  // Percent off 12 monthly payments when paying yearly (default 20).
+  async getYearlyDiscountPercent(): Promise<number> {
+    const stored = (await this.values())[KEYS.billing]?.yearlyDiscountPercent;
+    return Number.isInteger(stored) && stored >= 0 && stored <= 90
+      ? stored
+      : DEFAULT_YEARLY_DISCOUNT_PERCENT;
+  }
+
+  async setYearlyDiscountPercent(percent: number, userId: string) {
+    return this.save(
+      KEYS.billing,
+      {
+        ...((await this.values())[KEYS.billing] || {}),
+        yearlyDiscountPercent: percent,
+      },
+      userId
+    );
   }
 
   // What any visitor may read: no secrets, nothing per-user. `ai.available`

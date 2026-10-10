@@ -45,18 +45,28 @@ export class SubscriptionService {
   }
 
   async deleteSubscription(customerId: string, provider: string) {
-    if (!(await this.isManagedBy(customerId, provider))) {
+    // Reached from payment webhooks: log failures instead of throwing
+    try {
+      if (!(await this.isManagedBy(customerId, provider))) {
+        return { count: 0 };
+      }
+      await this.modifySubscription(
+        customerId,
+        pricing.FREE.channel || 0,
+        'FREE'
+      );
+    } catch (e) {
+      console.error('Error downgrading subscription:', e);
+    }
+    try {
+      return await this._subscriptionRepository.deleteSubscriptionByCustomerId(
+        customerId,
+        provider
+      );
+    } catch (e) {
+      console.error('Error deleting subscription:', e);
       return { count: 0 };
     }
-    await this.modifySubscription(
-      customerId,
-      pricing.FREE.channel || 0,
-      'FREE'
-    );
-    return this._subscriptionRepository.deleteSubscriptionByCustomerId(
-      customerId,
-      provider
-    );
   }
 
   // Store-managed subscriptions (RevenueCat etc.) have no Stripe customer, they are keyed by org
@@ -68,15 +78,21 @@ export class SubscriptionService {
       return false;
     }
 
-    await this.modifySubscriptionByOrg(
-      organizationId,
-      pricing.FREE.channel || 0,
-      'FREE'
-    );
-    return this._subscriptionRepository.deleteSubscriptionByOrgId(
-      organizationId,
-      provider
-    );
+    // Reached from store webhooks (RevenueCat): log failures, never throw
+    try {
+      await this.modifySubscriptionByOrg(
+        organizationId,
+        pricing.FREE.channel || 0,
+        'FREE'
+      );
+      return await this._subscriptionRepository.deleteSubscriptionByOrgId(
+        organizationId,
+        provider
+      );
+    } catch (e) {
+      console.error('Error deleting subscription by organization:', e);
+      return false;
+    }
   }
 
   updateCustomerId(organizationId: string, customerId: string) {
@@ -114,8 +130,10 @@ export class SubscriptionService {
         organizationId
       ))!;
 
-    const from = pricing[getCurrentSubscription?.subscriptionTier || 'FREE'];
-    const to = pricing[billing];
+    // The admin's plans decide team members per tier, like every other limit
+    const plans = await this._plans.getPricing();
+    const from = plans[getCurrentSubscription?.subscriptionTier || 'FREE'];
+    const to = plans[billing];
 
     const allChannels = await this._integrationService.getIntegrationsList(
       organizationId
@@ -196,8 +214,10 @@ export class SubscriptionService {
       return false;
     }
 
-    const from = pricing[getCurrentSubscription?.subscriptionTier || 'FREE'];
-    const to = pricing[billing];
+    // The admin's plans decide team members per tier, like every other limit
+    const plans = await this._plans.getPricing();
+    const from = plans[getCurrentSubscription?.subscriptionTier || 'FREE'];
+    const to = plans[billing];
 
     const allChannels = await this._integrationService.getIntegrationsList(
       getOrgByCustomerId?.id!
@@ -267,10 +287,10 @@ export class SubscriptionService {
     org?: string
   ) {
     if (!code) {
-      if (!(await this.isManagedBy(customerId, provider))) {
-        return {};
-      }
       try {
+        if (!(await this.isManagedBy(customerId, provider))) {
+          return {};
+        }
         const load = await this.modifySubscription(
           customerId,
           totalChannels,
@@ -284,18 +304,23 @@ export class SubscriptionService {
         return {};
       }
     }
-    return this._subscriptionRepository.createOrUpdateSubscription(
-      provider,
-      isTrailing,
-      identifier,
-      customerId,
-      totalChannels,
-      billing,
-      period,
-      cancelAt,
-      code,
-      org ? { id: org } : undefined
-    );
+    try {
+      return await this._subscriptionRepository.createOrUpdateSubscription(
+        provider,
+        isTrailing,
+        identifier,
+        customerId,
+        totalChannels,
+        billing,
+        period,
+        cancelAt,
+        code,
+        org ? { id: org } : undefined
+      );
+    } catch (e) {
+      console.error('Error saving subscription:', e);
+      return {};
+    }
   }
 
   async createOrUpdateSubscriptionByOrg(

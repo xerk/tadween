@@ -20,7 +20,7 @@ The new models sit in a marked `Tadween` block at the end of `schema.prisma`. Wh
 | --- | --- |
 | `PlatformSetting { key, value Json, updatedBy }` | `registration` → `{ mode }`, `features` → `{ [key]: boolean }`, `branding` → `{ instanceName, supportEmail, defaultLanguage, defaultTimezone }` |
 | `ProviderSetting { identifier, enabled, position }` | Add-channel enablement and order. Holds no secrets. |
-| `Plan` | Name, key, description, `tier` (a Postiz `SubscriptionTier`), USD and EGP prices (whole numbers), trial days, most popular, limits (channels, team members, posts/month, AI credits), feature bullets, optional provider price ids, active, position, soft delete. |
+| `Plan` | Name, key, description, `tier` (a Postiz `SubscriptionTier`), USD prices (whole dollars; the yearly price is derived from the monthly price and the yearly discount; the old `monthlyPriceEgp`/`yearlyPriceEgp` columns are deprecated and unused), trial days, most popular, limits (channels, team members, posts/month, AI credits), feature bullets, optional provider price ids, active, position, soft delete. |
 
 Apply the schema with `pnpm run prisma-db-push`. Every reader catches a missing table and falls back to Postiz defaults, so deploying the code before the push does not break anything.
 
@@ -41,7 +41,11 @@ Apply the schema with `pnpm run prisma-db-push`. Every reader catches a missing 
 These places read the overlay: Stripe checkout, prorate and embedded checkout (prices and channels), the subscription webhooks (channels), `PermissionsService`, `SubscriptionService.addSubscription` and `checkCredits`, `/instance/settings` (frontend `user.context`), and the billing pages (`first.billing`, `main.billing`), which show plan names and bullets in admin order.
 
 - Stripe keeps working because it finds or creates a price by `unit_amount`, so a new USD price makes a new Stripe price. Existing subscribers keep what they pay.
-- One active plan per tier, because checkout is keyed by tier. The default mapping is Creator→STANDARD, Pro→TEAM, Team→PRO and Agency→ULTIMATE, so inherited Postiz capabilities grow with the plan.
+- One active plan per tier, because checkout is keyed by tier. The defaults are two plans that differ only in limits: Pro→TEAM ($9/month, $86/year, 10 channels, 3 team members, 100 AI images) and Business→PRO ($19/month, $182/year, 30 channels, unlimited team members, 300 AI images). TEAM and PRO enable the same Postiz capabilities.
+- **Yearly discount** (default 20%, stored in platform settings under `billing`): yearly = round(monthly × 12 × (1 − discount)). Saving the discount or a plan recomputes `yearlyPriceUsd`.
+- **Feature lists are generated** from each plan's limits and the instance's feature switches (`PlansService.getPublicPlans` → `featureItems` and English `features`), then the admin's extra bullets. The app translates `featureItems`; the website renders `features`.
+- **Load default plans** adds or resets Pro and Business and hides other plans, except on tiers with subscribers (kept on sale, reported as warnings).
+- **Team member counts** are enforced: a plan with `teamMembers` N > 0 refuses invites and joins once N members besides the owner are in.
 - Provider price ids are stored but **not read** yet.
 
 ### Existing subscribers
@@ -49,7 +53,7 @@ These places read the overlay: Stripe checkout, prorate and embedded checkout (p
 A plan's limits replace its tier's limits for **every workspace on that tier**: team members and AI at once (`PermissionsService`, `OrganizationService`), channels at the next Stripe subscription event (`Subscription.totalChannels`). So `PlansService` refuses (HTTP 400) any change that would make a tier's effective channels, team members, posts per month, AI or AI credits lower than today while a `Subscription` (not deleted, lifetime included) exists on that tier. That covers creating, editing, hiding, moving a plan to another tier, deleting it (the tier falls back to the static map) and loading the defaults. Raising limits is always allowed, and a tier nobody is subscribed to can be set to anything. To sell a smaller plan, put it on an empty tier.
 
 **Instances that already loaded the earlier defaults** (Creator 2, Pro 5, Team 15, Agency 50 channels; no team members on Pro) keep those rows: nothing rewrites saved plans, and the guard treats the saved values as today's. Before anyone subscribes on such an instance (or at once, if they already did), edit each plan in Admin → Plans up to at least Postiz's limits for its tier: STANDARD 5, TEAM 10 with team members -1, PRO 30, ULTIMATE 100 channels. Raising is always allowed.
-- EGP is stored and shown in the admin preview. Checkout still charges USD.
+- Prices are USD only. Stripe Adaptive Pricing shows the customer's local currency at checkout where Stripe supports it; Stripe and the app keep the USD price.
 
 ## Environment variables
 
@@ -101,7 +105,7 @@ The console has its own full-screen layout, the Subscribers page, provider keys 
 - **Overview**: stat tiles, subscriptions per tier, instance summary, and links to Post errors and Usage stats (the existing Postiz pages, now inside the console frame).
 - **Channels**: every provider with an order (up/down, "LinkedIn first"), an on/off switch, status (Ready, Enabled but missing keys (hidden from customers), Off, Hidden by env), a "Focus networks / All" filter and the env vars to set.
 - **Features**: registration mode (open, invite only, closed) and grouped feature switches. Each switch says what turning it off hides.
-- **Plans**: create from the defaults or from scratch, a table, an edit dialog, delete, and a pricing preview with USD/EGP and monthly/yearly toggles.
+- **Plans**: create from the defaults or from scratch, a table, an edit dialog, delete, and the yearly discount, and a preview of the plan cards Billing shows (monthly/yearly).
 - **Users**: search, pagination, and a user dialog with activate/deactivate, change plan per workspace, and impersonate (reusing `POST /user/impersonate`).
 - **Branding**: instance name and support email (used as the email sender name and reply-to once saved), default language and time zone.
 
@@ -128,8 +132,8 @@ Hiding is UI-only. The API routes behind these features still answer, so Phase B
 
 - Backend enforcement of feature switches (guards per controller), and hiding AI buttons in the editor.
 - ~~Provider credentials from the UI~~: done, see admin-console.md ("Provider keys").
-- Use provider price ids at checkout. Charge in EGP through a local provider (Paymob, Fawry or Stripe EGP), with currency picked per workspace.
-- Enforce team-member counts (Postiz only supports on/off) and posts/month.
+- Use provider price ids at checkout.
+- Enforce posts/month per plan.
 - Apply the default language and time zone to new accounts. Use the instance name in page titles and the UI.
 - `proxy.ts` still redirects `/auth/register` from the env only, because it can't read the database. Read the setting there through a cached fetch.
 - Audit log of admin changes (`PlatformSetting.updatedBy` is a start), and a provider drag-and-drop order.

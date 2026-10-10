@@ -44,7 +44,13 @@ export interface PublicPlan {
   teamMembers: number;
   postsPerMonth: number;
   aiCredits: number;
+  // Generated from the limits (translate tdw_plan_feature_<key>); -1 = unlimited
+  featureItems: { key: string; value?: number }[];
+  // The admin's own bullets, shown after the generated ones
+  extraFeatures: string[];
+  // featureItems in English + extraFeatures (the website renders this)
   features: string[];
+  yearlyDiscountPercent: number;
 }
 
 // Public links from /admin → Branding (env TADWEEN_*_URL until saved). An

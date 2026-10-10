@@ -108,6 +108,38 @@ export class BillingController {
     );
   }
 
+  // "Skip for now": the plan's trial without a card
+  @Post('/trial')
+  async startTrial(
+    @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
+    @Body() body: BillingSubscribeDto,
+    @Req() req: Request
+  ) {
+    if (await this.assertNoOtherSubscribedAccount(user)) {
+      return { blocked: true };
+    }
+
+    const uniqueId = req?.cookies?.track;
+    return (await this.provider(org)).startTrial(
+      uniqueId,
+      org.id,
+      user.id,
+      body,
+      org.allowTrial
+    );
+  }
+
+  @Get('/trial')
+  async trialInfo(@GetOrgFromRequest() org: Organization) {
+    return (
+      (await (await this.provider(org)).getTrialInfo(org.id)) || {
+        trialEnd: null,
+        hasPaymentMethod: false,
+      }
+    );
+  }
+
   @Post('/subscribe')
   async subscribe(
     @GetOrgFromRequest() org: Organization,

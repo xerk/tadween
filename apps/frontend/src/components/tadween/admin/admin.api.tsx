@@ -96,9 +96,8 @@ export interface AdminPlan {
   description: string | null;
   tier: Tier;
   monthlyPriceUsd: number;
+  // Derived on the server from the monthly price and the yearly discount
   yearlyPriceUsd: number;
-  monthlyPriceEgp: number;
-  yearlyPriceEgp: number;
   trialDays: number;
   mostPopular: boolean;
   channels: number;
@@ -283,10 +282,18 @@ export const useAdminSettings = () =>
 export const useAdminProviders = () =>
   useSWR<AdminProvider[]>('/admin/console/providers', useLoader<AdminProvider[]>(), swrOptions);
 
+export interface AdminPlansData {
+  plans: AdminPlan[];
+  yearlyDiscountPercent: number;
+  // Live subscriptions per tier
+  subscribers: Record<string, number>;
+  postizPricing: PricingInterface;
+}
+
 export const useAdminPlans = () =>
-  useSWR<{ plans: AdminPlan[]; postizPricing: PricingInterface }>(
+  useSWR<AdminPlansData>(
     '/admin/console/plans',
-    useLoader<{ plans: AdminPlan[]; postizPricing: PricingInterface }>(),
+    useLoader<AdminPlansData>(),
     swrOptions
   );
 

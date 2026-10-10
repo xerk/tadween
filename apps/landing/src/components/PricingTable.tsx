@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Dict } from '@/content/types';
 import { SIGN_UP_URL } from '@/lib/config';
-import type { PlanView } from '@/lib/plans';
+import { TIER_LIMITS, type PlanView } from '@/lib/plans';
+import { detectCurrency, type Currency } from '@/lib/currency';
+import type { CompareRow } from '@/content/types';
 import { Accordion } from './Accordion';
 import { Icon, cx } from './Icon';
 
 type Period = 'monthly' | 'yearly';
-type Currency = 'EGP' | 'USD';
 
 function Segmented<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
   const i = Math.max(0, options.findIndex((o) => o.value === value));
@@ -25,7 +26,8 @@ function Segmented<T extends string>({ label, value, options, onChange }: { labe
 }
 
 /** PricingTable from the design system: tiers with a Most popular flag, monthly or
-    yearly, EGP or USD, the compare table and the FAQ. Every price is a placeholder. */
+    yearly, in one currency (EGP, SAR or USD, from the visitor's location, with no switch),
+    the compare table and the FAQ. Every price is a placeholder. */
 export function PricingTable({
   p,
   lang,
@@ -46,15 +48,41 @@ export function PricingTable({
   compareHref?: string;
 }) {
   const [period, setPeriod] = useState<Period>('monthly');
-  const [currency, setCurrency] = useState<Currency>('EGP');
+  // The static page can't know the visitor's currency, so the amounts stay hidden (in place,
+  // so nothing moves) until the browser has picked it from the time zone or locale region.
+  const [detected, setDetected] = useState<Currency | null>(null);
+  useEffect(() => setDetected(detectCurrency()), []);
+  const currency = detected ?? 'USD';
+  const pending = detected === null;
   const fmt = new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 2 });
   const yearly = period === 'yearly';
 
   const priceOf = (plan: PlanView) => {
-    const c = currency === 'EGP' && plan.egp ? 'EGP' : 'USD';
-    const prices = c === 'EGP' ? plan.egp! : plan.usd;
+    const local = currency === 'EGP' ? plan.egp : currency === 'SAR' ? plan.sar : null;
+    const c: Currency = local ? currency : 'USD';
+    const prices = local ?? plan.usd;
     const perMonth = yearly ? prices.yearly / 12 : prices.monthly;
     return { cur: p.currencies[c], perMonth: fmt.format(Math.round(perMonth * 100) / 100), total: fmt.format(prices.yearly) };
+  };
+  // -1 means unlimited, 0 means not included; anything else is a number.
+  const count = (n: number) => (n < 0 ? p.unlimited : n === 0 ? false : fmt.format(n));
+  /** A compare cell: read from the plan for rows that name a field (so plans edited in the
+      app show here), from the row's own values otherwise. */
+  const cell = (r: CompareRow, plan: PlanView) => {
+    switch (r.field) {
+      case 'channels':
+        return fmt.format(plan.channels);
+      case 'teamMembers':
+        return count(plan.teamMembers);
+      case 'aiCredits':
+        return count(plan.aiCredits);
+      case 'webhooks':
+        return count(TIER_LIMITS[plan.tier].webhooks);
+      case 'autoPost':
+        return TIER_LIMITS[plan.tier].autoPost;
+      default:
+        return r.values?.[plan.key];
+    }
   };
   const copyOf = (plan: PlanView) => {
     const c = p.plans.find((x) => x.key === plan.key);
@@ -65,9 +93,12 @@ export function PricingTable({
 
   return (
     <div className="pz-pricing">
+      {/* Without JavaScript there is no currency detection: show the USD amounts. */}
+      <noscript>
+        <style>{'.pz-pricing .is-pending { visibility: visible; }'}</style>
+      </noscript>
       <div className="pz-pricing-toggle">
         <Segmented label={p.periodLabel} value={period} onChange={setPeriod} options={[{ value: 'monthly', label: p.monthly }, { value: 'yearly', label: p.yearly }]} />
-        <Segmented label={p.currencyLabel} value={currency} onChange={setCurrency} options={[{ value: 'EGP', label: p.currencies.EGP }, { value: 'USD', label: p.currencies.USD }]} />
         <span className="pz-billtoggle-save caption">{p.save}</span>
         <span className="pz-placeholder caption">{p.placeholder}</span>
       </div>
@@ -87,14 +118,14 @@ export function PricingTable({
                 {c.name}
               </h3>
               <p className="pz-tier-for">{c.for}</p>
-              <div className="pz-tier-price">
+              <div className={cx('pz-tier-price', pending && 'is-pending')}>
                 <span className="pz-tier-cur caption">{price.cur}</span>
                 <span key={`${period}-${currency}`} className="metric pz-tier-amount">
                   {price.perMonth}
                 </span>
                 <span className="pz-tier-per">{p.perMonth}</span>
               </div>
-              <p className="caption pz-muted pz-tier-bill">{yearly ? p.billedYearly.replace('{amount}', `${price.cur} ${price.total}`) : p.billedMonthly}</p>
+              <p className={cx('caption pz-muted pz-tier-bill', pending && yearly && 'is-pending')}>{yearly ? p.billedYearly.replace('{amount}', `${price.cur} ${price.total}`) : p.billedMonthly}</p>
               <a className={cx('pz-btn pz-tier-cta', plan.popular ? 'pz-btn-primary' : 'pz-btn-secondary')} href={`${SIGN_UP_URL}?plan=${encodeURIComponent(plan.key)}`}>
                 {p.trial}
               </a>
@@ -112,7 +143,7 @@ export function PricingTable({
       </div>
       <p className="caption pz-muted pz-pricing-note">{source === 'api' ? p.noteApi : p.note}</p>
       {compare ? (
-        <div className="pz-compare">
+        <div className="pz-compare" id="compare">
           <h3 className="title-2">{p.compareTitle}</h3>
           <div className="pz-compare-scroll" role="region" aria-label={p.compareTitle} tabIndex={0}>
             <table className="pz-compare-table">
@@ -124,7 +155,7 @@ export function PricingTable({
                     return (
                       <th key={plan.key} scope="col" className={cx(plan.popular && 'is-popular')}>
                         {copyOf(plan).name}
-                        <span className="caption pz-muted">
+                        <span className={cx('caption pz-muted', pending && 'is-pending')}>
                           {price.cur} {price.perMonth}
                           {p.perMonthShort}
                         </span>
@@ -134,7 +165,7 @@ export function PricingTable({
                 </tr>
               </thead>
               <tbody>
-                {p.compare.map((r, ri) => (
+                {p.compare.map((r) => (
                   <tr key={r.label}>
                     <th scope="row">
                       <span className="pz-compare-label">
@@ -150,8 +181,7 @@ export function PricingTable({
                       </span>
                     </th>
                     {plans.map((plan) => {
-                      // The first row is the channel limit, which the API may have changed.
-                      const v = ri === 0 ? fmt.format(plan.channels) : r.values[plan.key];
+                      const v = cell(r, plan);
                       return (
                         <td key={plan.key} className={cx(plan.popular && 'is-popular')}>
                           {v === true ? (

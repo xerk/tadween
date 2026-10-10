@@ -1,21 +1,10 @@
 import type { IconName } from '@/components/icons';
+import type { ClientAuth, ClientKind } from '@/lib/aiClients';
+import type { ChannelGroup } from '@/lib/channels';
+import type { FeatureSlug } from '@/lib/routes';
+import type { ShotId } from '@/lib/shots';
 
 export type Lang = 'en' | 'ar';
-
-export interface PostAuthor {
-  name: string;
-  headline: string;
-  initials: string;
-}
-
-export interface LinkedInLabels {
-  you: string;
-  now: string;
-  visibleToAnyone: string;
-  comments: string;
-  reposts: string;
-  actions: [string, string, string, string];
-}
 
 /** Placeholder plan copy and prices; the API (when configured) overrides prices and limits. */
 export interface PlanCopy {
@@ -28,8 +17,167 @@ export interface PlanCopy {
 export interface CompareRow {
   label: string;
   help: string;
+  /** Read the value from the plan (so plans edited in the app show here) instead of `values`. */
+  field?: 'channels' | 'teamMembers' | 'aiCredits' | 'webhooks' | 'autoPost';
   /** Values per plan key; true = included, false = not included, string = a value. */
-  values: Record<string, boolean | string>;
+  values?: Record<string, boolean | string>;
+}
+
+export interface Faq {
+  title: string;
+  content: string;
+}
+
+/** A page's own title and description, for <title>, the meta description and Open Graph. */
+export interface PageMeta {
+  title: string;
+  description: string;
+}
+
+/** A section heading with its supporting line. */
+export interface Head {
+  title: string;
+  sub: string;
+}
+
+/** A card or link entry for a tool. */
+export interface FeatureNav {
+  label: string;
+  blurb: string;
+}
+
+/** A tool's section on /features (anchor #<slug>). Its icon and screenshot, if any, live in
+    lib/features.ts. */
+export interface FeatureCopy {
+  nav: FeatureNav;
+  title: string;
+  body: string;
+  points: string[];
+  /** The tool's question for the page's FAQ. */
+  faq: Faq;
+}
+
+/** One conversation with the agent, the way the chat shows it. */
+export interface ChatDemo {
+  lang: Lang;
+  prompt: string;
+  tools: { tool: string; label: string }[];
+  reply: string;
+  /** The posts it scheduled: channel icon slug, channel name, first words, time. */
+  posts: { net: string; name: string; text: string; when: string }[];
+}
+
+/** One network's page. Limits and flags come from lib/channels.ts; this is only the words. */
+export interface ChannelCopy {
+  /** The network's name in this language, when it differs from the brand spelling. */
+  name?: string;
+  title: string;
+  description: string;
+  h1: string;
+  intro: string;
+  /** What you can schedule there: post types and per-network settings the app offers. */
+  formats: string[];
+  /** The network's media rules, in plain words (from the provider's @Rules). */
+  media: string;
+  /** Variants of the character limit, when there are any. */
+  limitNote?: string;
+  features: { title: string; body: string }[];
+  faq: Faq[];
+  /** The sample post typed into the composer for this network's screenshot (see docs/tadween/demo-data.md). */
+  sample: string;
+}
+
+export interface ChannelsDict {
+  meta: PageMeta;
+  index: Head & {
+    groups: Record<ChannelGroup, string>;
+    more: Head;
+  };
+  /** Networks listed on the overview without a page (lib/channels.ts OTHER_CHANNELS). */
+  others: Record<string, { name?: string; note: string }>;
+  page: {
+    start: string;
+    factsTitle: string;
+    limit: string;
+    editor: string;
+    editors: Record<'normal' | 'markdown' | 'html', string>;
+    comments: string;
+    commentsValue: { yes: string; text: string; no: string };
+    formatsTitle: string;
+    mediaTitle: string;
+    featuresTitle: string;
+    shared: { icon: IconName; title: string; body: string }[];
+    /** Caption under the composer screenshot; "{name}" is the network. */
+    previewTitle: string;
+    previewSub: string;
+    faqTitle: string;
+    relatedTitle: string;
+    /** "{name}" is replaced with the network's name. */
+    ctaTitle: string;
+    ctaBody: string;
+    limitQ: string;
+    limitA: string;
+    scheduleQ: string;
+    scheduleA: string;
+  };
+  items: Record<string, ChannelCopy>;
+}
+
+/** One AI client's page, in one language. Steps, codes and docs links live in
+    lib/aiClients.ts; this is only the words. */
+export interface AiClientCopy {
+  title: string;
+  description: string;
+  h1: string;
+  intro: string;
+  /** What the client is, in a few words, for cards and the menu. */
+  blurb: string;
+  /** The text of each step of each connection method, in the order lib/aiClients.ts lists them. */
+  methods: Partial<Record<ClientAuth, { label: string; how: string; steps: string[] }>>;
+  /** The conversation the hero draws inside the client. */
+  demo: ChatDemo;
+  /** First things to ask, in English and Egyptian Arabic. */
+  prompts: { lang: Lang; text: string }[];
+  /** Notes that apply to this client only (plans, where the setting lives). */
+  notes: string[];
+  faq: Faq[];
+}
+
+export interface AiClientsDict {
+  /** Labels shared by every client page; "{name}" is the client's name. */
+  page: {
+    eyebrow: string;
+    start: string;
+    stepsLink: string;
+    /** "{n}" is the number of steps. */
+    connectTitle: string;
+    connectSub: string;
+    /** The client window in the hero: its status line and input placeholder. */
+    frameOnline: string;
+    frameInput: string;
+    /** Marks the first of two ways to connect. */
+    recommended: string;
+    /** Before the links to the vendor's own documentation. */
+    docs: string;
+    promptsTitle: string;
+    promptsSub: string;
+    canTitle: string;
+    canSub: string;
+    channelsTitle: string;
+    channelsSub: string;
+    securityTitle: string;
+    security: { icon: IconName; title: string; body: string }[];
+    faqTitle: string;
+    relatedTitle: string;
+    allClients: string;
+    ctaTitle: string;
+    ctaBody: string;
+    /** Questions every client page answers, before its own. */
+    sharedFaq: Faq[];
+  };
+  /** Group titles of the "Works with" grid on the AI agent page. */
+  kinds: Record<ClientKind, string>;
+  items: Record<string, AiClientCopy>;
 }
 
 export interface Dict {
@@ -44,17 +192,47 @@ export interface Dict {
     pricingTitle: string;
     pricingDescription: string;
     ogLocale: string;
+    features: PageMeta;
+    agent: PageMeta;
   };
   skip: string;
   nav: {
     label: string;
-    links: { href: string; label: string }[];
+    features: string;
+    channels: string;
+    agent: string;
+    pricing: string;
     signIn: string;
     startTrial: string;
     home: string;
     switchTo: { label: string; title: string; lang: Lang };
     theme: string;
+    menu: string;
+    close: string;
+    breadcrumb: string;
+    allChannels: string;
+    /** The AI tools column of the footer. */
+    aiClients: string;
   };
+  /** Feed chrome and status chips of the hero showcase cards. */
+  showcase: {
+    like: string;
+    comment: string;
+    repost: string;
+    send: string;
+    share: string;
+    followers: string;
+    now: string;
+    yesterday: string;
+    location: string;
+    sound: string;
+    commentsShares: string;
+    status: Record<string, string>;
+  };
+  /** Alt text of every product screenshot, in this language. */
+  shots: Record<ShotId, string>;
+  /** The address bar text on framed screenshots. */
+  shotUrl: string;
   hero: {
     eyebrow: string;
     title: string;
@@ -62,32 +240,65 @@ export interface Dict {
     primary: string;
     secondary: string;
     fine: string;
-    tagBest: string;
-    tagScheduled: string;
-    scroll: string;
+    nets: string;
   };
-  linkedin: LinkedInLabels;
-  flow: {
-    title: string;
-    steps: { title: string; body: string; icon: IconName }[];
-    author: PostAuthor;
-    text: string;
-    chipWhen: string;
-    chipWhere: string;
-  };
-  features: {
-    title: string;
-    sub: string;
-    items: { icon: IconName; title: string; body: string; smart?: boolean }[];
-  };
+  product: Head & { calloutA: string; calloutB: string };
+  netstrip: { title: string; all: string };
+  arabic: Head & { bullets: string[] };
+  agentTeaser: Head & { link: string; eyebrow: string };
+  allFeatures: Head & { more: string };
   steps: {
     title: string;
-    items: { icon: IconName; title: string; body: string }[];
+    items: { title: string; body: string }[];
   };
-  arabic: {
-    title: string;
-    sub: string;
-    bullets: string[];
+  homeFaq: { title: string; items: Faq[] };
+  featuresIndex: Head & { agentNav: FeatureNav };
+  featurePage: {
+    start: string;
+    faqTitle: string;
+    /** The AI agent's section on /features links to its own page. */
+    agentLink: string;
+  };
+  features: Record<FeatureSlug, FeatureCopy>;
+  agentPage: Head & {
+    eyebrow: string;
+    hero: ChatDemo;
+    /** The "Works with" grid; the clients come from lib/aiClients.ts. */
+    works: Head & {
+      note: string;
+      /** Clients without a page, named as text (lib/aiClients.ts MORE_AI_CLIENTS). */
+      also: string;
+      alsoNote: string;
+      alsoLink: string;
+    };
+    /** Connect and ask: the address to copy, a first question, four short steps, then a
+        card per client. "{api}" in code is replaced with the API address. */
+    connect: Head & {
+      connectTitle: string;
+      connectBody: string;
+      linkLabel: string;
+      copy: string;
+      copied: string;
+      askTitle: string;
+      askBody: string;
+      ask: ChatDemo;
+      alsoTry: string;
+      suggestions: string[];
+      steps: { title: string; body: string }[];
+      clientsTitle: string;
+      clientsSub: string;
+      /** `guides` are the slugs in lib/aiClients.ts whose pages have the full steps. */
+      clients: { name: string; how: string; steps: string[]; codeLabel: string; code: string; guides: string[] }[];
+      guide: string;
+      keyNote: string;
+    };
+    can: Head & { items: { icon: IconName; title: string; body: string }[] };
+    cannot: string;
+    inApp: Head & { points: string[] };
+    connectors: Head & { badge: string; items: { icon: IconName; title: string; body: string }[]; planNote: string };
+    chat: { title: string; online: string; input: string };
+    faqTitle: string;
+    faq: Faq[];
   };
   pricing: {
     sectionTitle: string;
@@ -97,8 +308,7 @@ export interface Dict {
     periodLabel: string;
     monthly: string;
     yearly: string;
-    currencyLabel: string;
-    currencies: { EGP: string; USD: string };
+    currencies: { EGP: string; SAR: string; USD: string };
     save: string;
     placeholder: string;
     mostPopular: string;
@@ -118,7 +328,8 @@ export interface Dict {
     faqTitle: string;
     plans: PlanCopy[];
     compare: CompareRow[];
-    faq: { title: string; content: string }[];
+    faq: Faq[];
+    unlimited: string;
   };
   cta: {
     title: string;
@@ -126,8 +337,11 @@ export interface Dict {
     primary: string;
     secondary: string;
   };
+  channels: ChannelsDict;
+  aiClients: AiClientsDict;
   footer: {
     tagline: string;
+    channelsTitle: string;
     columns: { title: string; links: { href: string; label: string; external?: boolean }[] }[];
     copyright: string;
   };

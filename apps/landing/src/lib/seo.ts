@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { Dict } from '@/content/types';
 import { SITE_URL } from './config';
+import { localePath } from './routes';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -11,14 +12,14 @@ export const viewport: Viewport = {
   ],
 };
 
-/** Metadata for one page in one language, with hreflang alternates to its twin. */
-export function pageMetadata(t: Dict, page: 'home' | 'pricing'): Metadata {
-  const path = page === 'home' ? '' : '/pricing';
-  const en = path || '/';
-  const ar = `/ar${path}`;
-  const title = page === 'home' ? t.meta.title : t.meta.pricingTitle;
-  const description = page === 'home' ? t.meta.description : t.meta.pricingDescription;
+/** Metadata for one page in one language: canonical URL, hreflang alternates to its twin,
+    Open Graph and Twitter cards. `path` has no language prefix ('' is the home page) and
+    `og` names the generated card in app/og/[card]. */
+export function pageMetadata(t: Dict, { path, title, description, og }: { path: string; title: string; description: string; og: string }): Metadata {
+  const en = localePath('en', path);
+  const ar = localePath('ar', path);
   const url = t.lang === 'ar' ? ar : en;
+  const image = `/og/${og}.png`;
   return {
     metadataBase: new URL(SITE_URL),
     title,
@@ -33,9 +34,9 @@ export function pageMetadata(t: Dict, page: 'home' | 'pricing'): Metadata {
       url,
       locale: t.meta.ogLocale,
       alternateLocale: t.lang === 'ar' ? ['en_US'] : ['ar_EG'],
-      images: [{ url: '/og.png', width: 1200, height: 630, alt: t.meta.title }],
+      images: [{ url: image, width: 1200, height: 630, alt: title }],
     },
-    twitter: { card: 'summary_large_image', title, description, images: ['/og.png'] },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
     formatDetection: { telephone: false },
   };
 }

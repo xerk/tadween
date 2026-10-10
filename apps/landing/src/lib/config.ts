@@ -8,6 +8,16 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ? trim(process.env.NEXT_P
 /** Where this marketing site is served from (canonical URLs, sitemap, Open Graph). */
 export const SITE_URL = trim(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:4300');
 
+/** The base of the MCP addresses the agent and AI client pages show ({api}/mcp,
+    {api}/mcp-oauth-dynamic). Like the app's MCP_URL, NEXT_PUBLIC_MCP_URL wins when MCP is
+    served from its own host; otherwise it's the API, or a placeholder the reader replaces. */
+export const DOCS_API_URL = trim(process.env.NEXT_PUBLIC_MCP_URL || '') || API_URL || 'https://api.your-tadween-domain';
+
+/** Show the social-proof section with its clearly marked placeholder slots. Off by default,
+    so the live site never shows invented customers; set NEXT_PUBLIC_SHOW_PROOF_PLACEHOLDERS=1
+    on a preview build to see where real logos and a quote will go. */
+export const SHOW_PROOF = process.env.NEXT_PUBLIC_SHOW_PROOF_PLACEHOLDERS === '1';
+
 export const SIGN_UP_URL = `${APP_URL}/auth`;
 export const SIGN_IN_URL = `${APP_URL}/auth/login`;
 

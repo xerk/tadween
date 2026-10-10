@@ -75,8 +75,9 @@ function fromApi(p: ApiPlan): PlanView {
     teamMembers: p.teamMembers ?? fallback?.teamMembers ?? 0,
     aiCredits: p.aiCredits ?? fallback?.aiCredits ?? 0,
     tier: isTier(p.tier) ? p.tier : fallback?.tier ?? 'STANDARD',
-    // A yearly price of 0 means none was set (the column defaults to 0): bill twelve months.
-    usd: { monthly: p.monthlyPriceUsd, yearly: p.yearlyPriceUsd > 0 ? p.yearlyPriceUsd : p.monthlyPriceUsd * 12 },
+    // The yearly price as saved in Admin → Plans, like the app's own billing; twelve months
+    // only when an older API doesn't send it.
+    usd: { monthly: p.monthlyPriceUsd, yearly: p.yearlyPriceUsd ?? p.monthlyPriceUsd * 12 },
   };
 }
 

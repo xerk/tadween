@@ -52,8 +52,9 @@ export function PricingTable({
     const perMonth = yearly ? plan.usd.yearly / 12 : plan.usd.monthly;
     return { perMonth: fmt.format(Math.round(perMonth * 100) / 100), total: fmt.format(plan.usd.yearly) };
   };
-  // The best yearly saving across the plans, from their own prices (none when yearly isn't cheaper).
-  const savePct = Math.max(0, ...plans.map((plan) => (plan.usd.monthly > 0 ? Math.round((1 - plan.usd.yearly / (plan.usd.monthly * 12)) * 100) : 0)));
+  // The best yearly saving across the plans, from their own prices (none when yearly isn't
+  // cheaper; a plan without a yearly price doesn't count).
+  const savePct = Math.max(0, ...plans.map((plan) => (plan.usd.monthly > 0 && plan.usd.yearly > 0 ? Math.round((1 - plan.usd.yearly / (plan.usd.monthly * 12)) * 100) : 0)));
   // -1 means unlimited, 0 means not included; anything else is a number.
   const count = (n: number) => (n < 0 ? p.unlimited : n === 0 ? false : fmt.format(n));
   /** A compare cell: read from the plan for rows that name a field (so plans edited in the
@@ -76,8 +77,9 @@ export function PricingTable({
   };
   const copyOf = (plan: PlanView) => {
     const c = p.plans.find((x) => x.key === plan.key);
-    // Translated copy for the known plans; plans added in the app show their own text.
-    if (c && (lang === 'ar' || !plan.features?.length)) return c;
+    // Translated copy for the known plans, led by the plan's live channel count; plans added in
+    // the app show their own text.
+    if (c && (lang === 'ar' || !plan.features?.length)) return { ...c, features: [p.channelsFeature.replace('{n}', fmt.format(plan.channels)), ...c.features] };
     return { key: plan.key, name: plan.name ?? c?.name ?? plan.key, for: plan.description ?? c?.for ?? '', features: plan.features?.length ? plan.features : c?.features ?? [] };
   };
 

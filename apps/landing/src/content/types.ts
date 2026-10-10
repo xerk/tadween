@@ -5,7 +5,8 @@ import type { ShotId } from '@/lib/shots';
 
 export type Lang = 'en' | 'ar';
 
-/** Translated copy for the known plans; prices and limits come from the plans themselves (lib/plans.ts). */
+/** Translated copy for the known plans, with no numbers in it: prices and limits come from
+    the plans themselves (lib/plans.ts). */
 export interface PlanCopy {
   key: string;
   name: string;
@@ -371,6 +372,8 @@ export interface Dict {
     billedYearly: string;
     perMonthShort: string;
     trial: string;
+    /** The first bullet of a translated plan, from the plan's own channel count; "{n}" is the count. */
+    channelsFeature: string;
     note: string;
     compareTitle: string;
     compareLink: string;

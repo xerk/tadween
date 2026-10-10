@@ -284,6 +284,7 @@ export const en: Dict = {
     billedYearly: 'Billed {amount} yearly',
     perMonthShort: '/mo',
     trial: 'Start 7-day trial',
+    channelsFeature: '{n} channels',
     note: 'Prices are in US dollars and billed through Stripe.',
     compareTitle: 'Compare plans',
     compareLink: 'Compare every plan',
@@ -293,10 +294,10 @@ export const en: Dict = {
     faqTitle: 'Questions',
     unlimited: 'Unlimited',
     plans: [
-      { key: 'creator', name: 'Creator', for: 'For one voice on LinkedIn', features: ['Profile + 1 company page', 'Unlimited scheduled posts', 'Calendar, board and network previews', 'First comments and repeats', 'Analytics'] },
-      { key: 'pro', name: 'Pro', for: 'For creators who post every week', features: ['5 channels', 'Everything in Creator', 'AI writing assistant', 'Image carousels on LinkedIn', 'Sets and signatures'] },
-      { key: 'team', name: 'Team', for: 'For brands with a team', features: ['15 channels', 'Everything in Pro', 'Unlimited team members', 'Preview links for clients', 'Shared calendar and tags'] },
-      { key: 'agency', name: 'Agency', for: 'For agencies and many clients', features: ['50 channels', 'Everything in Team', 'Each client under their own customer', 'Room for many brands'] },
+      { key: 'creator', name: 'Creator', for: 'For one voice on LinkedIn', features: ['Unlimited scheduled posts', 'Calendar, board and network previews', 'First comments and repeats', 'Analytics'] },
+      { key: 'pro', name: 'Pro', for: 'For creators who post every week', features: ['Everything in Creator', 'AI writing assistant', 'Image carousels on LinkedIn', 'Sets and signatures'] },
+      { key: 'team', name: 'Team', for: 'For brands with a team', features: ['Everything in Pro', 'Unlimited team members', 'Preview links for clients', 'Shared calendar and tags'] },
+      { key: 'agency', name: 'Agency', for: 'For agencies and many clients', features: ['Everything in Team', 'Each client under their own customer', 'Room for many brands'] },
     ],
     compare: [
       { label: 'Channels', help: 'LinkedIn profiles and pages, Instagram, Facebook, Threads, YouTube and any other network you connect.', field: 'channels' },

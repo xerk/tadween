@@ -11,7 +11,10 @@ import {
 } from '@nestjs/common';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
-import { ProviderSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-settings.service';
+import {
+  PROVIDER_NOT_AVAILABLE,
+  ProviderSettingsService,
+} from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-settings.service';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization, User } from '@prisma/client';
@@ -235,10 +238,13 @@ export class IntegrationsController {
       throw new Error('Integration not allowed');
     }
 
-    // Tadween: a provider the super admin disabled can't be newly connected.
-    // Reconnecting (refresh) an existing channel still works.
-    if (!refresh && !(await this._providerSettings.isEnabled(integration))) {
-      throw new HttpException('This channel type is turned off', 400);
+    // Tadween: only providers the super admin made available (on, with app
+    // keys) can be newly connected; channels the workspace already has can
+    // still reconnect.
+    if (
+      !(await this._providerSettings.canConnect(org.id, integration, refresh))
+    ) {
+      throw new HttpException(PROVIDER_NOT_AVAILABLE, 400);
     }
 
     // A provider migrated via MIGRATE_PROVIDERS reconnects through its target

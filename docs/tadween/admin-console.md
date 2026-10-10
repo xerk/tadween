@@ -87,7 +87,7 @@
 | Overview | stat tiles, subscriptions per tier | links to Subscribers, Channels, Errors |
 | Subscribers `/admin/organizations` | server DataTable, filters Plan / Status, sort by workspace, plan, cancel date, channels, members, created; bulk copy owner emails / ids; CSV | workspace drawer |
 | Users | server DataTable, filters Status / Role, sort by name, email, last seen, joined; bulk activate / deactivate; CSV | user drawer (workspaces, change plan, impersonate, activate) |
-| Channels | client DataTable (order matters, 30-odd rows), filters Status / In Add channel; order arrows are disabled while filtered | keys drawer |
+| Channels | client DataTable (order matters, 30-odd rows), filters Show (focus networks / all), Status, In Add channel; order arrows are disabled while filtered | keys drawer |
 | Plans | client DataTable | plan dialog |
 | Features, Branding | forms (unchanged) | |
 | Post errors | server DataTable over Postiz's `GET /admin/errors` (search = user email, filters Platform / unknown first) | error drawer with the provider response and "Copy debug code" |
@@ -127,7 +127,7 @@ All in `AdminConsoleController` (`/admin/console`, `PlatformAdminGuard`) unless 
 | GET | `/admin/console/users` | `page`, `pageSize`, `sort` (`createdAt`, `lastOnline`, `email`, `name`), `order`, `search` (email, name, exact id, workspace name), `status` (`active`/`inactive`), `role` (`superadmin`/`member`) | `{ items, total, page, pageSize, pages }` (was `{ users, … }`) |
 | GET | `/admin/console/users/:id` | | one user, same fields as a list row (opens a drawer for a user not on the current page) |
 | PUT | `/admin/console/users/:id/activation` | `{ activated }` | unchanged |
-| GET / PUT | `/admin/console/providers` | | now includes `credentials.fields` |
+| GET / PUT | `/admin/console/providers` | | now includes `credentials.fields`, and `focus` (in the focus list) |
 | PUT | `/admin/console/providers/:identifier/credentials` | `{ values }` | key status list |
 | Postiz GET | `/admin/errors` | `page`, `limit`, `platform`, `email`, `unknownFirst` | `{ items, total, page, limit, hasMore }` |
 

@@ -208,6 +208,11 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
   ) as typeof social;
   const rest = social.filter((s) => !LINKEDIN.includes(s.identifier));
   const article = data?.article || [];
+  // Channels without a LinkedIn card above (also LinkedIn ones when the admin
+  // hid LinkedIn from Add channel) are listed under "Connected channels".
+  const others = connected.filter(
+    (c) => !linkedin.some((l) => l.identifier === c.identifier)
+  );
 
   // The LinkedIn cards press Postiz's own provider tile, so the connect flow
   // (and whatever upstream changes in it) stays Postiz's
@@ -300,25 +305,32 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
         )}
       </div>
 
-      {connected.filter((c) => !LINKEDIN.includes(c.identifier)).length > 0 && (
+      {others.length > 0 && (
         <div className="pz-ob-section">
           <h3 className="caption pz-ob-section-title">
             {t('tdw_ob_connected_channels', 'Connected channels')}
           </h3>
           <div className="pz-ob-connected">
-            {connected
-              .filter((c) => !LINKEDIN.includes(c.identifier))
-              .map((c) => (
-                <span key={c.id} className="pz-ob-chip">
-                  <span className="pz-ob-chip-av">
-                    <img src={c.picture || '/no-picture.jpg'} alt="" />
-                    <img src={`/icons/platforms/${c.identifier}.png`} alt="" />
-                  </span>
-                  {c.name}
+            {others.map((c) => (
+              <span key={c.id} className="pz-ob-chip">
+                <span className="pz-ob-chip-av">
+                  <img src={c.picture || '/no-picture.jpg'} alt="" />
+                  <img src={`/icons/platforms/${c.identifier}.png`} alt="" />
                 </span>
-              ))}
+                {c.name}
+              </span>
+            ))}
           </div>
         </div>
+      )}
+
+      {!!data && !social.length && !article.length && (
+        <p className="caption pz-muted">
+          {t(
+            'tdw_add_channel_none',
+            'No channel types are available to add yet. Ask your administrator to set them up.'
+          )}
+        </p>
       )}
 
       {(rest.length > 0 || article.length > 0) && (

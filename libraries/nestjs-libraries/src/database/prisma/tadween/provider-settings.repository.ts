@@ -3,7 +3,10 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ProviderSettingsRepository {
-  constructor(private _providers: PrismaRepository<'providerSetting'>) {}
+  constructor(
+    private _providers: PrismaRepository<'providerSetting'>,
+    private _integration: PrismaRepository<'integration'>
+  ) {}
 
   getAll() {
     return this._providers.model.providerSetting.findMany({
@@ -12,6 +15,27 @@ export class ProviderSettingsRepository {
         enabled: true,
         position: true,
       },
+    });
+  }
+
+  // A live channel of one of `providers` in this workspace, optionally a
+  // given account (internalId). `settled` skips a connect that stopped before
+  // its page was picked (inBetweenSteps).
+  findChannel(
+    org: string,
+    providers: string[],
+    internalId?: string,
+    settled = false
+  ) {
+    return this._integration.model.integration.findFirst({
+      where: {
+        organizationId: org,
+        deletedAt: null,
+        providerIdentifier: { in: providers },
+        ...(internalId ? { internalId } : {}),
+        ...(settled ? { inBetweenSteps: false } : {}),
+      },
+      select: { id: true },
     });
   }
 

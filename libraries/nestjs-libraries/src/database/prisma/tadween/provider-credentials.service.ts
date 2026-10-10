@@ -186,6 +186,23 @@ export class ProviderCredentialsService
     });
   }
 
+  // Whether a provider has every app credential it needs (console value or env
+  // var). A provider without declared credentials (Bluesky, WordPress… where
+  // the user brings their own server or token) counts as configured.
+  isConfigured(identifier: string) {
+    if (!hasCredentials(identifier)) {
+      return true;
+    }
+    const env = snapshot();
+    const isSet = (name: string) =>
+      !!(this._console.get(name)?.value ?? env[name]);
+    const spec = PROVIDER_CREDENTIALS[identifier];
+    return (
+      spec.required.every(isSet) &&
+      (!spec.anyOf || spec.anyOf.some((group) => group.every(isSet)))
+    );
+  }
+
   async save(
     identifier: string,
     values: Record<string, string | null>,

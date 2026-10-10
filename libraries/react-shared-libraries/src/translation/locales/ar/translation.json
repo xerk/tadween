@@ -1902,5 +1902,6 @@
   "tdw_side_needs_two": "قناتان تحتاجان إعادة ربط",
   "tdw_side_needs_few": "{{count}} قنوات تحتاج إعادة ربط",
   "tdw_side_needs_many": "{{count}} قناة تحتاج إعادة ربط",
-  "tdw_side_needs_other": "{{count}} قناة تحتاج إعادة ربط"
+  "tdw_side_needs_other": "{{count}} قناة تحتاج إعادة ربط",
+  "tdw_acct_profile": "الملف الشخصي والصورة"
 }

@@ -1,6 +1,13 @@
 'use client';
 
-import React, { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  FC,
+  RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
@@ -28,11 +35,13 @@ import {
   useTodayActions,
   useTodayIntegrations,
 } from '@gitroom/frontend/components/tadween/today/today.hooks';
+import { TopbarPopover } from '@gitroom/frontend/components/tadween/shell/topbar.popover';
 
-// The notifications panel under the top bar's bell: a popover on desktop, a
-// bottom sheet on phones. GET /notifications/list returns each notification's
-// stored text plus what it is about (kind, network, the post and channel), so
-// every row can say what happened in its own words and offer the next step.
+// The notifications panel under the top bar's bell: a popover on desktop
+// (TopbarPopover), a bottom sheet on phones. GET /notifications/list returns
+// each notification's stored text plus what it is about (kind, network, the
+// post and channel), so every row can say what happened in its own words and
+// offer the next step.
 // Post and channel actions reuse Today's (the calendar's edit and reconnect).
 // Styles: app/tadween/notifications.scss.
 
@@ -543,40 +552,37 @@ const NotificationsBody: FC<{ onClose: () => void; phone: boolean }> = ({
   );
 };
 
-export const TadweenNotifications: FC<{ open: boolean; onClose: () => void }> = ({
-  open,
-  onClose,
-}) => {
+export const TadweenNotifications: FC<{
+  open: boolean;
+  onClose: () => void;
+  anchor: RefObject<HTMLElement | null>;
+}> = ({ open, onClose, anchor }) => {
   const t = useT();
   const phone = usePhoneLayout();
 
-  // the sheet is portalled to <body>: keep its taps from reaching the bell's
-  // click-away listener on document, which would close it on the first touch
-  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
-
   if (phone) {
     return (
-      <div onMouseDown={stop} onTouchStart={stop} className="contents">
-        <TadweenSheet
-          open={open}
-          onClose={onClose}
-          detent="large"
-          title={t('notifications', 'Notifications')}
-          className="tdw-notif-sheet"
-        >
-          <NotificationsBody onClose={onClose} phone />
-        </TadweenSheet>
-      </div>
+      <TadweenSheet
+        open={open}
+        onClose={onClose}
+        detent="large"
+        title={t('notifications', 'Notifications')}
+        className="tdw-notif-sheet"
+      >
+        <NotificationsBody onClose={onClose} phone />
+      </TadweenSheet>
     );
   }
 
-  if (!open) {
-    return null;
-  }
-
   return (
-    <div className="tdw-notif-popover" role="dialog" aria-label={t('notifications', 'Notifications')}>
+    <TopbarPopover
+      open={open}
+      onClose={onClose}
+      anchor={anchor}
+      label={t('notifications', 'Notifications')}
+      className="tdw-notif-popover"
+    >
       <NotificationsBody onClose={onClose} phone={false} />
-    </div>
+    </TopbarPopover>
   );
 };

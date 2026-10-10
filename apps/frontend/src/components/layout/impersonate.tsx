@@ -4,11 +4,10 @@ import {
   FC,
   ReactNode,
   useCallback,
-  useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
-import { useClickAway } from '@uidotdev/usehooks';
 import useSWR, { useSWRConfig } from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
@@ -26,6 +25,7 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { AdminAddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/admin.add.team.member.dto';
 import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
+import { TopbarPopover } from '@gitroom/frontend/components/tadween/shell/topbar.popover';
 
 interface Charge {
   id: string;
@@ -1036,20 +1036,13 @@ const SwitchUser = () => {
 const AdminBarMenu: FC<{ children: ReactNode }> = ({ children }) => {
   const t = useT();
   const [open, setOpen] = useState(false);
-  const ref = useClickAway<HTMLDivElement>(() => setOpen(false));
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const close = useCallback(() => setOpen(false), []);
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="flex">
       <button
+        ref={trigger}
         type="button"
         className="tdw-adminbar-pill"
         aria-expanded={open}
@@ -1061,9 +1054,15 @@ const AdminBarMenu: FC<{ children: ReactNode }> = ({ children }) => {
           <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      {open && (
+      <TopbarPopover
+        open={open}
+        onClose={close}
+        anchor={trigger}
+        label={t('tdw_admin_tools', 'Admin tools')}
+        className="tdw-adminbar-menu"
+      >
         <div
-          className="tdw-adminbar-menu"
+          className="contents"
           onClick={(e) => {
             if ((e.target as HTMLElement).closest('.tdw-adminbar-item')) {
               setOpen(false);
@@ -1072,7 +1071,7 @@ const AdminBarMenu: FC<{ children: ReactNode }> = ({ children }) => {
         >
           {children}
         </div>
-      )}
+      </TopbarPopover>
     </div>
   );
 };

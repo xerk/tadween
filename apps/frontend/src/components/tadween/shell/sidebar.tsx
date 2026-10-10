@@ -1,7 +1,6 @@
 'use client';
 
 import { CSSProperties, FC, useCallback, useEffect, useRef, useState } from 'react';
-import useCookie from 'react-use-cookie';
 import clsx from 'clsx';
 import useSWR from 'swr';
 import { createPortal } from 'react-dom';
@@ -13,17 +12,41 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 // Tadween app shell: the left menu is a full panel (logo, workspace, labelled items)
 // or an icon rail with floating labels. ⌘\ / Ctrl+\ or the panel button switches.
-// The choice is kept in the `tdw-side` cookie, like Postiz's `collapseMenu`.
+// The choice is kept in localStorage (`tdw-side`, as in the design system); a
+// menu collapsed before that still has it in the `tdw-side` cookie, read once.
 // Styles: app/tadween/shell.scss. Below the `mobile` breakpoint the slide-in
 // menu always shows the full panel.
 
+const SIDE_KEY = 'tdw-side';
+const readSide = () => {
+  // server render: the menu itself only renders in the browser
+  if (typeof window === 'undefined') {
+    return 'full';
+  }
+  try {
+    const saved = localStorage.getItem(SIDE_KEY);
+    if (saved) {
+      return saved;
+    }
+  } catch (e) {
+    // storage blocked: fall back to the cookie
+  }
+  return /(?:^|; )tdw-side=rail(?:;|$)/.test(document.cookie) ? 'rail' : 'full';
+};
+
 export const useSidebarCollapsed = () => {
-  const [side, setSide] = useCookie('tdw-side', 'full');
+  const [side, setSide] = useState(readSide);
   const collapsed = side === 'rail';
 
   const toggle = useCallback(() => {
-    setSide(collapsed ? 'full' : 'rail');
-  }, [collapsed, setSide]);
+    const next = collapsed ? 'full' : 'rail';
+    setSide(next);
+    try {
+      localStorage.setItem(SIDE_KEY, next);
+    } catch (e) {
+      // not remembered, the menu still switches
+    }
+  }, [collapsed]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -108,7 +131,20 @@ const WorkspaceSwitcher: FC = () => {
   const [style, setStyle] = useState<CSSProperties>({});
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
-  const list: { id: string; name: string }[] = Array.isArray(data) ? data : [];
+  const list: {
+    id: string;
+    name: string;
+    users?: { role: 'SUPERADMIN' | 'ADMIN' | 'USER' }[];
+  }[] = Array.isArray(data) ? data : [];
+  // the role in each workspace, as the old top-bar switcher listed it
+  const roleLabel = (role?: string) =>
+    role === 'SUPERADMIN'
+      ? t('tdw_role_owner', 'Owner')
+      : role === 'ADMIN'
+      ? t('tdw_role_admin', 'Admin')
+      : role
+      ? t('tdw_role_member', 'Member')
+      : '';
   const current = list.find((d) => d.id === user?.orgId);
 
   const changeOrg = useCallback(
@@ -237,6 +273,9 @@ const WorkspaceSwitcher: FC = () => {
                 )}
               </span>
               <span className="tdw-side-switch-name">{org.name}</span>
+              <span className="tdw-side-switch-role">
+                {roleLabel(org.users?.[0]?.role)}
+              </span>
             </button>
           ))}
         </div>,

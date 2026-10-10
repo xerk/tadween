@@ -63,6 +63,28 @@ export class PostsRepository {
     });
   }
 
+  // The streak popover: when this organization published, nothing else
+  getPublishedDates(orgId: string, query: GetPostsDto) {
+    return this._post.model.post.findMany({
+      where: {
+        organizationId: orgId,
+        state: 'PUBLISHED',
+        deletedAt: null,
+        parentPostId: null,
+        publishDate: {
+          gte: dayjs.utc(query.startDate).toDate(),
+          lte: dayjs.utc(query.endDate).toDate(),
+        },
+      },
+      orderBy: {
+        publishDate: 'asc',
+      },
+      select: {
+        publishDate: true,
+      },
+    });
+  }
+
   getOldPosts(orgId: string, date: string) {
     return this._post.model.post.findMany({
       where: {

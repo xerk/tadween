@@ -20,6 +20,7 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { LanguageComponent } from '@gitroom/frontend/components/layout/language.component';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
+import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
 const ModeComponent = dynamic(
   () => import('@gitroom/frontend/components/layout/mode.component'),
   {
@@ -27,9 +28,10 @@ const ModeComponent = dynamic(
   }
 );
 
-// Account menu at the foot of the sidebar: settings, billing, appearance, language
-// and log out. Appearance, language and log out are Postiz's own components; each
-// row forwards its clicks to that component, so their logic is untouched. The panel stays mounted while closed because
+// Account menu at the foot of the sidebar: settings, billing, appearance, language,
+// feedback (with Sentry) and log out. Appearance, language, feedback and log out
+// are Postiz's own components; each row forwards its clicks to that component,
+// so their logic is untouched. The panel stays mounted while closed because
 // ModeComponent is what applies the saved theme to <body>. It is portalled to
 // <body> so the page content (painted after the fixed #left-menu) can't cover it.
 
@@ -77,7 +79,7 @@ const pressHost = (e: KeyboardEvent<HTMLDivElement>) => {
 export const AccountMenu: FC = () => {
   const user = useUser();
   const t = useT();
-  const { billingEnabled } = useVariables();
+  const { billingEnabled, sentryDsn } = useVariables();
   const [open, setOpen] = useState(false);
   const [style, setStyle] = useState<CSSProperties>({});
   const wrap = useRef<HTMLDivElement>(null);
@@ -235,6 +237,18 @@ export const AccountMenu: FC = () => {
             <LanguageComponent />
             <span>{t('change_language', 'Change Language')}</span>
           </div>
+          {!!sentryDsn && (
+            <div
+              role="menuitem"
+              tabIndex={0}
+              className="tdw-acct-item tdw-acct-host"
+              onClick={clickHost}
+              onKeyDown={pressHost}
+            >
+              <AttachToFeedbackIcon />
+              <span>{t('feedback', 'Feedback')}</span>
+            </div>
+          )}
           <span className="tdw-acct-sep" role="separator" />
           <div
             role="menuitem"

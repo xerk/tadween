@@ -93,7 +93,7 @@ const FOCUSABLE =
 // Escape in a text field first leaves the field so the next Escape closes.
 // Styles: app/tadween/drawer.scss.
 const ModalDrawer: FC<{
-  zIndex: number;
+  zIndex: string;
   isLast: boolean;
   onClose?: () => void;
   children: ReactNode;
@@ -245,7 +245,7 @@ export const useModals = () => {
 
 export const Component: FC<{
   closeModal: (id: string) => void;
-  zIndex: number;
+  zIndex: string;
   isLast: boolean;
   modal: { id: string } & OpenModalInterface;
 }> = memo(({ isLast, modal, closeModal, zIndex }) => {
@@ -468,7 +468,7 @@ export const ModalManagerInner: FC = () => {
           isLast={modalManager.length - 1 === index}
           key={modal.id}
           modal={modal}
-          zIndex={200 + index}
+          zIndex={`calc(var(--tdw-z-modal) + ${index})`}
           closeModal={closeModal}
         />
       ))}

@@ -731,6 +731,18 @@ export class PostsService {
     return list;
   }
 
+  // The streak popover asks for a year; never read more than 13 months
+  async getPublishedDates(orgId: string, query: GetPostsDto) {
+    const earliest = dayjs.utc(query.endDate).subtract(13, 'month');
+    const list = await this._postRepository.getPublishedDates(orgId, {
+      ...query,
+      startDate: dayjs.utc(query.startDate).isBefore(earliest)
+        ? earliest.format()
+        : query.startDate,
+    });
+    return list.map((p) => p.publishDate);
+  }
+
   async getOldPosts(orgId: string, date: string) {
     return this._postRepository.getOldPosts(orgId, date);
   }

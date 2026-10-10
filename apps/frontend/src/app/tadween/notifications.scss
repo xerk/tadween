@@ -4,36 +4,16 @@
 // mark, what happened, the post it was about, and the next step. Colour only
 // carries meaning (green = published, red = failed, amber = needs you).
 
-@keyframes tdw-notif-pop {
-  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
-}
 @keyframes tdw-notif-row-in {
   from { opacity: 0; transform: translateY(6px); }
 }
 
 body {
+  // placed and layered by .tdw-topbar-popover (TopbarPopover)
   .tdw-notif-popover {
-    position: absolute;
-    top: 100%;
-    inset-inline-end: 0;
-    z-index: 600;
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
     width: 420px;
-    max-width: calc(100vw - 24px);
     max-height: min(620px, calc(100dvh - 96px));
-    border-radius: var(--tdw-radius-lg);
-    background: var(--tdw-popover);
-    color: var(--tdw-foreground);
-    box-shadow: var(--tdw-shadow-lg);
-    overflow: hidden;
-    cursor: default;
-    user-select: text;
-    transform-origin: top right;
-    animation: tdw-notif-pop 220ms var(--tdw-ease-spring) both;
   }
-  html[dir='rtl'] & .tdw-notif-popover { transform-origin: top left; }
 
   .tdw-notif-scope {
     display: flex;
@@ -245,6 +225,6 @@ body {
   .tdw-notif-sheet .tdw-notif-acts .pz-btn-sm { height: 34px; }
 
   @media (prefers-reduced-motion: reduce) {
-    .tdw-notif-popover, .tdw-notif-row { animation: none; }
+    .tdw-notif-row { animation: none; }
   }
 }

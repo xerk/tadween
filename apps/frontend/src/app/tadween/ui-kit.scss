@@ -310,7 +310,7 @@
 // ── Toasts ──────────────────────────────────────────────────────────────────
 .tdw-toaster {
   position: fixed;
-  z-index: 900;
+  z-index: var(--tdw-z-toast);
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);

@@ -15,7 +15,9 @@ export const Title = () => {
   const t = useT();
   const { all: menuItems } = useMenuItem();
   const current = useMemo(() => {
-    const fromMenu = menuItems.find((item) => path.indexOf(item.path) > -1);
+    const fromMenu = menuItems.find(
+      (item) => item.pageTitle !== false && path.indexOf(item.path) > -1
+    );
     if (fromMenu) {
       return fromMenu;
     }

@@ -583,7 +583,8 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
   .tdw-ws-hour {
     align-items: flex-start;
     justify-content: flex-end;
-    padding: 0 10px 0 0;
+    padding-block: 0;
+    padding-inline: 6px 12px; // the gap sits on the grid side in both directions
     font-size: 11px;
     line-height: 14px;
     color: var(--tdw-muted-foreground);
@@ -650,7 +651,8 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
     color: #fff;
   }
 
-  // Postiz's slot cell: no inner border, past hours quiet instead of striped.
+  // Postiz's slot cell: no inner border. Past hours are disabled the way
+  // Postiz shows them (no "+", no drop): hairline stripes on a muted fill.
   // The cell stretches its column; min-h-full (a % of an auto-height grid
   // item) would otherwise stop tall content from growing the row.
   .tdw-ws-cell {
@@ -666,12 +668,17 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
   }
 
   .repeated-strip {
-    background-image: none;
-    background-color: color-mix(in srgb, var(--tdw-muted) 38%, transparent);
+    background-color: color-mix(in srgb, var(--tdw-muted) 45%, transparent);
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 6px,
+      color-mix(in srgb, var(--tdw-foreground) 6%, transparent) 6px 7px
+    );
   }
 
-  .tdw-ws-cell.is-today .repeated-strip {
-    background-color: color-mix(in srgb, var(--tdw-muted) 30%, transparent);
+  // Today's tint only covers the hours still ahead; the now-line is the edge
+  .tdw-ws-cell.is-today:has(> .repeated-strip) {
+    background: none;
   }
 
   .col-calendar {
@@ -731,6 +738,8 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
   .tdw-ws-day-list {
     display: grid;
     grid-template-columns: 72px minmax(0, 1fr);
+    // Rows hug their posts, so a tall post never runs into the next slot
+    grid-auto-rows: max-content;
     align-content: start;
     column-gap: 14px;
     padding-block: 16px 24px;
@@ -894,9 +903,6 @@ html[dir] body .tdw-ws .tdw-chip {
     transform: scale(0.98);
   }
 
-  &[data-state='published'] {
-    opacity: 0.8;
-  }
 
   &[data-state='draft'] {
     background: color-mix(in srgb, var(--tdw-muted) 55%, var(--tdw-card));
@@ -907,9 +913,15 @@ html[dir] body .tdw-ws .tdw-chip {
     background: color-mix(in oklab, var(--tdw-destructive) 7%, var(--tdw-card));
   }
 
+  // The drag source sets an inline `opacity`, so past posts fade through
+  // `filter` instead (it composes with it)
   &.is-past {
-    filter: saturate(0.5);
-    opacity: 0.72;
+    filter: saturate(0.45) opacity(0.7);
+  }
+
+  &.is-past:hover,
+  &.is-past:focus-within {
+    filter: none;
   }
 }
 html[dir='rtl'] body .tdw-ws .tdw-chip::before {
@@ -1116,13 +1128,237 @@ html[dir='rtl'] body .tdw-ws .tdw-chip::before {
   }
 }
 
+// Hover card: the whole post beside its chip (chip.preview.tsx, portalled)
+.tdw-chip-card {
+  --card-ink: var(--tdw-primary);
+  position: fixed;
+  z-index: 170;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--tdw-popover) 96%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 0 0 1px var(--tdw-border), var(--tdw-shadow-lg);
+  color: var(--tdw-foreground);
+  font-size: 13px;
+  line-height: 1.45;
+  transform-origin: top left;
+  animation: tdw-ws-pop 200ms var(--tdw-ease-spring) both;
+
+  &.is-start {
+    transform-origin: top right;
+  }
+
+  &[data-state='published'] {
+    --card-ink: var(--tdw-success);
+  }
+
+  &[data-state='failed'] {
+    --card-ink: var(--tdw-destructive);
+  }
+
+  &[data-state='draft'] {
+    --card-ink: var(--tdw-muted-foreground);
+  }
+}
+html[dir='rtl'] .tdw-chip-card {
+  transform-origin: top right;
+
+  &.is-start {
+    transform-origin: top left;
+  }
+}
+
+.tdw-chip-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tdw-chip-card-who {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  line-height: 1.3;
+
+  b,
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  b {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  span {
+    font-size: 12px;
+    color: var(--tdw-muted-foreground);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.tdw-chip-card-state {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--card-ink) 12%, transparent);
+  color: var(--card-ink);
+  font-size: 11px;
+  font-weight: 600;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+}
+
+.tdw-chip-card-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tdw-destructive) 9%, transparent);
+  color: var(--tdw-destructive);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+
+  svg {
+    flex: none;
+    margin-top: 1px;
+  }
+}
+
+// About eight lines, then it scrolls and fades out at the bottom
+.tdw-chip-card-text {
+  max-height: calc(1.45em * 8);
+  margin: 0;
+  overflow-y: auto;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  unicode-bidi: plaintext;
+  text-align: start;
+  scrollbar-width: thin;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+  padding-bottom: 10px;
+
+  &:focus-visible {
+    outline: 2px solid var(--tdw-ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.tdw-chip-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 11px;
+    background: var(--tdw-muted);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+}
+
+.tdw-chip-card-acts {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--tdw-border);
+}
+
+.tdw-chip-card-grow {
+  flex: 1;
+}
+
+.tdw-chip-card-edit,
+.tdw-chip-card-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--tdw-muted-foreground);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--tdw-accent);
+    color: var(--tdw-foreground);
+    outline: none;
+  }
+
+  &.is-danger:hover,
+  &.is-danger:focus-visible {
+    color: var(--tdw-destructive);
+  }
+}
+
+.tdw-chip-card-edit {
+  gap: 6px;
+  padding: 0 12px;
+  background: var(--tdw-primary-strong);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--tdw-primary-strong);
+    color: #fff;
+    filter: brightness(1.08);
+  }
+}
+
+.tdw-chip-card-act {
+  width: 30px;
+
+  svg {
+    width: 15px;
+    height: 15px;
+  }
+}
+
 // ── 7. Side panel ───────────────────────────────────────────────────────────
 .tdw-ws-side {
   display: none;
   flex-direction: column;
-  gap: 28px;
+  gap: 26px;
   min-width: 0;
-  padding: 24px 20px 28px;
+  padding: 26px 20px;
   border-inline-start: 1px solid var(--ws-line);
   background: var(--tdw-background);
 
@@ -1317,7 +1553,7 @@ html[dir='rtl'] .tdw-ws-draft {
 .tdw-mini {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px 0;
+  gap: 2px;
   text-align: center;
 
   em {
@@ -1352,9 +1588,16 @@ html[dir='rtl'] .tdw-ws-draft {
       opacity: 0.5;
     }
 
+    // The days shown on the calendar, each its own soft tile
     &.is-range {
-      border-radius: 0;
       background: var(--tdw-muted);
+    }
+
+    // The day last clicked
+    &.is-picked {
+      border-radius: 9px;
+      box-shadow: inset 0 0 0 1.5px var(--tdw-primary);
+      font-weight: 600;
     }
 
     &.is-today {
@@ -1853,6 +2096,7 @@ html[dir='rtl'] .tdw-ws-sheet-head {
   .tdw-ws-sheet,
   .tdw-ws-scrim,
   .tdw-ws-menu,
+  .tdw-chip-card,
   .tdw-ws-dayitem,
   .tdw-ws-fab > button,
   html body .tdw-ws .tdw-chip {

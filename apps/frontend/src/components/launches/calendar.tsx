@@ -60,6 +60,7 @@ import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
 import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 import { ChipMoreMenu } from '@gitroom/frontend/components/tadween/workspace/chip.more.menu';
+import { ChipPreview } from '@gitroom/frontend/components/tadween/workspace/chip.preview';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -287,6 +288,25 @@ export const usePostActions = (onMutate?: () => void) => {
   return { editPost, deletePost, copyDebugJson, openStatistics, openMissingRelease, openPost };
 };
 
+// Tadween: the clock the views mark "now" with (header, now-line, hour label)
+const useNow = (everyMs = 60000) => {
+  const [now, setNow] = useState(() => newDayjs());
+  useEffect(() => {
+    const id = setInterval(() => setNow(newDayjs()), everyMs);
+    return () => clearInterval(id);
+  }, [everyMs]);
+  return now;
+};
+
+// Tadween: the current time across today's column, at the exact minute
+const NowLine: FC<{ now: dayjs.Dayjs }> = ({ now }) => (
+  <span
+    className="tdw-ws-now"
+    aria-hidden="true"
+    style={{ top: `${(now.minute() / 60) * 100}%` }}
+  />
+);
+
 export const DayView = () => {
   const calendar = useCalendar();
   const { integrations, posts, startDate } = calendar;
@@ -332,8 +352,9 @@ export const DayView = () => {
   }, [integrations, posts]);
 
   // Tadween: the current-time marker sits before the first slot still ahead
-  const nowSlot = currentDay.format('YYYY-MM-DD') === newDayjs().format('YYYY-MM-DD')
-    ? options.find((option) => currentDay.startOf('day').add(option[0].time, 'minute').local().isAfter(newDayjs()))?.[0]?.time
+  const now = useNow();
+  const nowSlot = currentDay.format('YYYY-MM-DD') === now.format('YYYY-MM-DD')
+    ? options.find((option) => currentDay.startOf('day').add(option[0].time, 'minute').local().isAfter(now))?.[0]?.time
     : undefined;
 
   return (
@@ -375,17 +396,32 @@ export const DayView = () => {
   );
 };
 export const WeekView = () => {
-  const { startDate, endDate } = useCalendar();
+  const { startDate, endDate, posts, loading } = useCalendar();
   const t = useT();
-  // Tadween: open the week scrolled to the working day (7:00, or an hour before now if later)
+  // Tadween: once per week shown, scroll to now (this week) or to the first
+  // post of the week (7:00 when it has none), so no post sits above the fold
   const weekScrollRef = React.useRef<HTMLDivElement>(null);
+  const scrolledWeek = React.useRef('');
   useEffect(() => {
     const el = weekScrollRef.current;
-    if (!el) return;
-    const target = Math.max(7, newDayjs().hour() - 1);
+    if (!el || loading || scrolledWeek.current === startDate) return;
+    const today = newDayjs().format('YYYY-MM-DD');
+    const thisWeek = today >= startDate && today <= endDate;
+    // The posts land a render after `loading` clears: an empty list may
+    // still fill in, so only a week with posts (or this week) is done
+    const done = thisWeek || posts.length ? startDate : `${startDate}:empty`;
+    if (scrolledWeek.current === done) return;
+    scrolledWeek.current = done;
+    const target = thisWeek
+      ? Math.max(0, newDayjs().hour() - 1)
+      : posts.length
+      ? Math.min(...posts.map((p) => dayjs.utc(p.publishDate).local().hour()))
+      : 7;
     const row = el.querySelector<HTMLElement>(`[data-tdw-hour="${target}"]`);
     if (row) el.scrollTop = row.offsetTop - 70;
-  }, [startDate]);
+  }, [startDate, endDate, posts, loading]);
+  const now = useNow();
+  const todayKey = now.format('L');
 
   // Use dayjs to get localized day names
   const localizedDays = useMemo(() => {
@@ -415,7 +451,7 @@ export const WeekView = () => {
               key={day.name}
               className={clsx(
                 'tdw-ws-dh p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 z-[20]',
-                day.day === newDayjs().format('L') && 'is-today'
+                day.day === todayKey && 'is-today'
               )}
             >
               <div className="text-[14px] font-[500] text-newTableText">
@@ -425,11 +461,11 @@ export const WeekView = () => {
               <div
                 className={clsx(
                   'text-[14px] font-[600] flex items-center justify-center gap-[6px]',
-                  day.day === newDayjs().format('L') &&
+                  day.day === todayKey &&
                     'text-newTableTextFocused'
                 )}
               >
-                {day.day === newDayjs().format('L') && (
+                {day.day === todayKey && (
                   <div className="w-[6px] h-[6px] bg-newTableTextFocused rounded-full" />
                 )}
                 <span className="tdw-ws-dh-long">{day.day}</span>
@@ -443,7 +479,9 @@ export const WeekView = () => {
                 data-tdw-hour={hour}
                 className={clsx(
                   'tdw-ws-hour p-2 pe-4 tablet:px-[4px] text-center items-center justify-center flex text-[14px] tablet:text-[12px] tablet:whitespace-nowrap text-newTableText',
-                  hour === newDayjs().hour() && 'tdw-now-hour'
+                  hour === now.hour() &&
+                    localizedDays.some((day) => day.day === todayKey) &&
+                    'tdw-now-hour'
                 )}
               >
                 {convertTimeFormatBasedOnLocality(hour)}
@@ -455,12 +493,15 @@ export const WeekView = () => {
                   <div
                     className={clsx(
                       'tdw-ws-cell relative',
-                      day.day === newDayjs().format('L') && 'is-today'
+                      day.day === todayKey && 'is-today'
                     )}
                   >
                     <CalendarColumn
                       getDate={day.date.hour(hour).startOf('hour')}
                     />
+                    {day.day === todayKey && hour === now.hour() && (
+                      <NowLine now={now} />
+                    )}
                   </div>
                 </Fragment>
               ))}
@@ -719,7 +760,7 @@ export const CalendarColumn: FC<{
       if (isBeforeNow) {
         return;
       }
-      setNum(num + 1);
+      setNum((n) => n + 1);
     }, [isBeforeNow]),
     random(120000, 150000)
   );
@@ -919,14 +960,6 @@ export const CalendarColumn: FC<{
       )}
       ref={drop as any}
     >
-      {display === 'week' &&
-        getDate.format('YYYY-MM-DD HH') === newDayjs().format('YYYY-MM-DD HH') && (
-          <span
-            className="tdw-ws-now"
-            aria-hidden="true"
-            style={{ top: `${(newDayjs().minute() / 60) * 100}%` }}
-          />
-        )}
       {display === 'month' && (
         <div className={clsx('tdw-ws-mnum pt-[6px] text-[14px]')}>{getDate.date()}</div>
       )}
@@ -1182,14 +1215,29 @@ const CalendarItem: FC<{
     onClick: () => void;
     danger?: boolean;
   }[];
+  // Tadween: the chip element, for the hover card
+  const chipRef = React.useRef<HTMLDivElement>(null);
+  const setChipRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      dragRef(el);
+      chipRef.current = el;
+    },
+    [dragRef]
+  );
   return (
     <div
-      // @ts-ignore
-      ref={dragRef}
+      ref={setChipRef}
       data-state={stateKey}
       className={clsx('tdw-chip group', `tdw-chip--${display}`, isBeforeNow && 'is-past')}
       style={{ opacity }}
     >
+      <ChipPreview
+        anchor={chipRef}
+        post={post}
+        stateKey={stateKey}
+        onEdit={editPost}
+        actions={actions}
+      />
       {state === 'ERROR' && (
         <div
           className="tdw-chip-error"

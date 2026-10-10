@@ -14,7 +14,7 @@ $tdw-mobile: '(max-width: 1025px)';
 
 // ── Widths ──────────────────────────────────────────────────────────────────
 .tdw-side {
-  --tdw-side-w: 248px;
+  --tdw-side-w: 256px;
   --tdw-side-dur: 420ms;
   flex: none;
   width: var(--tdw-side-w);
@@ -32,7 +32,17 @@ $tdw-mobile: '(max-width: 1025px)';
 
   &.is-collapsed {
     @media #{$tdw-desktop} {
-      --tdw-side-w: 80px;
+      --tdw-side-w: 72px;
+    }
+  }
+
+  // Design system: the menu sits flat on the page, a hairline away from the
+  // content (not a card of its own)
+  @media #{$tdw-desktop} {
+    &.bg-newBgColorInner {
+      background: transparent;
+      border-radius: 0;
+      border-inline-end: 1px solid var(--tdw-border);
     }
   }
 
@@ -107,6 +117,44 @@ $tdw-mobile: '(max-width: 1025px)';
   flex: 1;
   display: grid;
   line-height: 1.25;
+  text-align: start;
+}
+
+// With more than one workspace the brand is the switcher
+.tdw-side-switch {
+  margin: -4px 0;
+  padding: 4px 8px 4px 4px;
+  border-radius: 10px;
+  color: var(--tdw-foreground);
+  transition: background-color 150ms ease;
+
+  &:hover,
+  &[aria-expanded='true'] {
+    background: var(--tdw-accent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tdw-ring);
+    outline-offset: -2px;
+  }
+}
+
+html[dir='rtl'] .tdw-side-switch {
+  padding: 4px 4px 4px 8px;
+}
+
+.tdw-acct-menu.tdw-side-switch-menu {
+  transform-origin: top left;
+}
+
+html[dir='rtl'] .tdw-acct-menu.tdw-side-switch-menu {
+  transform-origin: top right;
+}
+
+.tdw-side-switch-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tdw-side-ws-name {
@@ -162,6 +210,8 @@ html[dir='rtl'] .tdw-side-toggle svg {
   .tdw-side.is-collapsed .tdw-side-brand {
     flex: none;
     gap: 0;
+    margin: 0;
+    padding: 2px;
 
     > svg {
       width: 40px;
@@ -187,11 +237,12 @@ html[dir='rtl'] .tdw-side-toggle svg {
   flex-direction: row;
   justify-content: flex-start;
   gap: 12px;
-  height: 40px;
+  height: 36px;
   padding: 0 12px;
-  border-radius: 10px;
+  border-radius: 9px;
   font-size: 14px;
   font-weight: 500;
+  color: var(--tdw-muted-foreground);
   transition: background-color 150ms ease, color 150ms ease,
     padding var(--tdw-side-dur) var(--tdw-ease-spring);
 
@@ -205,11 +256,16 @@ html[dir='rtl'] .tdw-side-toggle svg {
     outline-offset: -2px;
   }
 
+  // The current page: a raised card, the icon in the brand colour
   &.bg-boxFocused,
   &.bg-boxFocused:hover {
-    background: var(--tdw-primary-soft);
-    color: var(--tdw-primary);
-    font-weight: 600;
+    background: var(--tdw-card);
+    color: var(--tdw-foreground);
+    box-shadow: var(--tdw-shadow-sm);
+
+    .tdw-side-icon {
+      color: var(--tdw-primary);
+    }
   }
 
   .tdw-side-icon {
@@ -234,7 +290,7 @@ html[dir='rtl'] .tdw-side-toggle svg {
   }
 
   @media (max-height: 800px) {
-    height: 36px;
+    height: 34px;
   }
 }
 
@@ -242,8 +298,8 @@ html[dir='rtl'] .tdw-side-toggle svg {
   .tdw-side.is-collapsed .tdw-side-item {
     justify-content: center;
     gap: 0;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     margin-inline: auto;
     padding: 0;
   }

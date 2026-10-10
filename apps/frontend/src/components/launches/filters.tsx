@@ -293,6 +293,15 @@ export const useCalendarNavigation = () => {
   const goTo = useCallback(
     (display: 'day' | 'week' | 'month', date: string) => {
       const range = getDateRange(display, date);
+      // Already showing that range: setting it again empties the calendar
+      // until a reload (same SWR key, so the posts never come back)
+      if (
+        calendar.display === display &&
+        calendar.startDate === range.startDate &&
+        calendar.endDate === range.endDate
+      ) {
+        return;
+      }
       calendar.setFilters({
         startDate: range.startDate,
         endDate: range.endDate,

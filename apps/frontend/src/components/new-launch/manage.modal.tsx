@@ -36,7 +36,9 @@ import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { capitalize } from 'lodash';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
-import { CopilotPopup } from '@copilotkit/react-ui';
+import { CopilotPopup, useChatContext } from '@copilotkit/react-ui';
+import { AiOnly } from '@gitroom/frontend/components/tadween/instance/ai.guard';
+import { useAiAvailable } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { DummyCodeComponent } from '@gitroom/frontend/components/new-launch/dummy.code.component';
 import { CreationMethodBadge } from '@gitroom/frontend/components/launches/creation.method.badge';
 import {
@@ -78,6 +80,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   const [mobileSheet, setMobileSheet] = useState<
     'channels' | 'settings' | 'tags' | 'repeat' | 'date' | null
   >(null);
+  // phones hide the floating assistant button, the meta bar opens it instead
+  const aiAvailable = useAiAvailable();
+  const [assistantRequest, setAssistantRequest] = useState(0);
   const [showPostNow, setShowPostNow] = useState(false);
   const postNowRef = useClickOutside<HTMLDivElement>(() => {
     setShowPostNow(false);
@@ -679,6 +684,11 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                       onSettings={
                         !dummy ? () => setMobileSheet('settings') : undefined
                       }
+                      onAssistant={
+                        aiAvailable
+                          ? () => setAssistantRequest((n) => n + 1)
+                          : undefined
+                      }
                     />
                     <div
                       className={clsx(
@@ -1001,6 +1011,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             setTags(e.target.value);
           }}
           list={true}
+          // the new-tag dialog opens under the sheets: step out of the sheet
+          // while it is open and come back to it afterwards
+          onModal={(open) => setMobileSheet(open ? null : 'tags')}
         />
       </TadweenSheet>
       <TadweenSheet
@@ -1060,11 +1073,12 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           />
         </div>
       </TadweenSheet>
-      <CopilotPopup
-        className="mobile:!z-[460] mobile:!bottom-[112px]"
-        hitEscapeToClose={false}
-        clickOutsideToClose={true}
-        instructions={`
+      <AiOnly>
+        <CopilotPopup
+          className="mobile:!z-[460] mobile:!bottom-[112px]"
+          hitEscapeToClose={false}
+          clickOutsideToClose={true}
+          instructions={`
 You are an assistant that help the user to schedule their social media posts,
 Here are the things you can do:
 - Add a new comment / post to the list of posts
@@ -1075,16 +1089,31 @@ Here are the things you can do:
 Post content can be added using the addPostContentFor{num} function.
 After using the addPostFor{num} it will create a new addPostContentFor{num+ 1} function.
 `}
-        labels={{
-          title: t('your_assistant', 'Your Assistant'),
-          initial: t(
-            'assistant_initial_message',
-            'Hi! I can help you to refine your social media posts.'
-          ),
-        }}
-      />
+          labels={{
+            title: t('your_assistant', 'Your Assistant'),
+            initial: t(
+              'assistant_initial_message',
+              'Hi! I can help you to refine your social media posts.'
+            ),
+          }}
+        >
+          <OpenAssistant request={assistantRequest} />
+        </CopilotPopup>
+      </AiOnly>
     </div>
   );
+};
+
+// Opens the assistant popup whenever `request` changes (phones, where its
+// floating button is hidden). Rendered inside the popup for its chat context.
+const OpenAssistant: FC<{ request: number }> = ({ request }) => {
+  const { setOpen } = useChatContext();
+  useEffect(() => {
+    if (request) {
+      setOpen(true);
+    }
+  }, [request, setOpen]);
+  return null;
 };
 
 const Scrollable: FC<{

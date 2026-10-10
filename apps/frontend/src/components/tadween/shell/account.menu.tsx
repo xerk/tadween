@@ -54,14 +54,21 @@ const Icon: FC<{ children: ReactNode }> = ({ children }) => (
   </svg>
 );
 
-// The profile photo isn't part of /user/self; Settings → Profile saves it
-// through /user/personal and revalidates this key.
+// The profile photo isn't part of /user/self. Same key and fetch as
+// Settings → Profile, so saving a new photo there updates this avatar.
 const usePersonal = () => {
   const fetch = useFetch();
-  return useSWR<{ picture?: { path: string } | null }>(
-    'tdw-personal',
-    async () => (await fetch('/user/personal')).json()
+  const load = useCallback(
+    async (path: string) =>
+      (await (await fetch(path)).json()) as {
+        picture?: { path: string } | null;
+      },
+    []
   );
+  return useSWR('/user/personal', load, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  });
 };
 
 const initials = (value: string) =>

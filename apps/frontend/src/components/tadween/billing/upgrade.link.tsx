@@ -105,3 +105,26 @@ export const UpgradeButton: FC = () => {
     </Link>
   );
 };
+
+// Sidebar, above the account: the trial's days left, neutral with only the
+// icon in colour (hidden in the icon rail)
+export const UpgradeTrialLine: FC = () => {
+  const t = useT();
+  const offer = useUpgradeOffer();
+  if (!offer?.daysLeft) {
+    return null;
+  }
+  return (
+    <div className="tdw-side-trial">
+      <Icon name="sparkles" size={14} />
+      <span>
+        {t('tdw_trial_days_left', '{{count}} days left in your trial', {
+          count: offer.daysLeft,
+        })}
+      </span>
+      <Link href="/billing" className="tdw-side-trial-link">
+        {t('tdw_choose_plan', 'Choose plan')}
+      </Link>
+    </div>
+  );
+};

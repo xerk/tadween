@@ -9,10 +9,7 @@ import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { AgentMediaModal } from '@gitroom/frontend/components/layout/agent.media.modal';
 import { useFeatures } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { AdminMenuIcon } from '@gitroom/frontend/components/tadween/admin/admin.menu.icon';
-import {
-  useUpgradeLabel,
-  useUpgradeOffer,
-} from '@gitroom/frontend/components/tadween/billing/upgrade.link';
+import { useUpgradeOffer } from '@gitroom/frontend/components/tadween/billing/upgrade.link';
 import { Icon } from '@gitroom/frontend/components/tadween/ui';
 
 interface MenuItemInterface {
@@ -39,7 +36,6 @@ export const useMenuItem = () => {
   const isOn = useFeatures();
   const user = useUser();
   const upgrade = useUpgradeOffer();
-  const upgradeLabel = useUpgradeLabel(upgrade?.daysLeft || null);
 
   const handleAgentMediaClick = useCallback(() => {
     openModal({
@@ -312,20 +308,21 @@ export const useMenuItem = () => {
       onClick: handleAgentMediaClick,
     },
     {
-      name: t('admin', 'Admin'),
-      description: t('tdw_admin_desc', 'Run the instance: users, plans, channels and features.'),
-      icon: <AdminMenuIcon />,
-      path: '/admin',
-      hide: !(user as { admin?: boolean })?.admin,
-    },
-    {
-      // Tadween: tadween/billing/upgrade.link.tsx decides when it shows
-      name: upgradeLabel,
+      // Tadween: tadween/billing/upgrade.link.tsx decides when it shows; the
+      // trial's days left sit on the trial line under it
+      name: t('tdw_upgrade', 'Upgrade'),
       icon: <Icon name="sparkles" size={20} />,
       path: '/billing',
       hide: !upgrade,
       className: 'is-upgrade',
       pageTitle: false,
+    },
+    {
+      name: t('admin', 'Admin'),
+      description: t('tdw_admin_desc', 'Run the instance: users, plans, channels and features.'),
+      icon: <AdminMenuIcon />,
+      path: '/admin',
+      hide: !(user as { admin?: boolean })?.admin,
     },
     {
       name: t('settings', 'Settings'),
@@ -365,13 +362,14 @@ export const useMenuItem = () => {
   };
 };
 
-export const TopMenu: FC = () => {
+// Tadween: `children` (the sidebar's channels) sit between the two lists
+export const TopMenu: FC<{ children?: ReactNode }> = ({ children }) => {
   const user = useUser();
   const { firstMenu, secondMenu } = useMenuItem();
   const { isGeneral, billingEnabled } = useVariables();
   return (
     <>
-      <div className="tdw-side-nav flex flex-1 flex-col minCustom:gap-[16px] blurMe">
+      <div className="tdw-side-nav flex flex-col minCustom:gap-[16px] blurMe">
         {
           // @ts-ignore
           user?.orgId &&
@@ -404,6 +402,7 @@ export const TopMenu: FC = () => {
               ))
         }
       </div>
+      {children}
       <div className="tdw-side-nav is-secondary flex flex-col minCustom:gap-[20px] custom:gap-[8px] blurMe">
         {secondMenu
           .filter((f) => {

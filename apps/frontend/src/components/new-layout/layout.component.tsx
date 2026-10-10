@@ -7,6 +7,10 @@ import {
   useSidebarCollapsed,
 } from '@gitroom/frontend/components/tadween/shell/sidebar';
 import { AccountMenu } from '@gitroom/frontend/components/tadween/shell/account.menu';
+import {
+  SidebarChannels,
+  SidebarCreatePost,
+} from '@gitroom/frontend/components/tadween/shell/sidebar.channels';
 
 import clsx from 'clsx';
 import {
@@ -38,7 +42,10 @@ import {
 import { TopMenu } from '@gitroom/frontend/components/layout/top.menu';
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
 import { StreakComponent } from '@gitroom/frontend/components/layout/streak.component';
-import { UpgradeButton } from '@gitroom/frontend/components/tadween/billing/upgrade.link';
+import {
+  UpgradeButton,
+  UpgradeTrialLine,
+} from '@gitroom/frontend/components/tadween/billing/upgrade.link';
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
 import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
 import { TrialTracker } from '@gitroom/frontend/components/layout/gtm.component';
@@ -152,7 +159,11 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                             collapsed={sidebar.collapsed}
                             onToggle={sidebar.toggle}
                           />
-                          <TopMenu />
+                          <SidebarCreatePost />
+                          <TopMenu>
+                            <SidebarChannels collapsed={sidebar.collapsed} />
+                          </TopMenu>
+                          <UpgradeTrialLine />
                           <AccountMenu />
                         </div>
                       </div>

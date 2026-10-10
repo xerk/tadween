@@ -64,9 +64,19 @@ $tdw-mobile: '(max-width: 1025px)';
 }
 
 .tdw-side .tdw-side-body {
-  gap: 18px;
+  gap: 14px;
   min-width: 0;
+  min-height: 0;
   padding-bottom: 12px;
+}
+
+// The sticky menu is a stacking context of its own: lift it above the page,
+// so Postiz's channel menu (fixed, inside it) isn't painted over by the
+// calendar next to it. Phones keep the slide-in menu's --tdw-z-nav.
+@media not #{$tdw-mobile} {
+  .tdw-side {
+    z-index: calc(var(--tdw-z-sticky) + 1);
+  }
 }
 
 // Labels fade instead of jumping when the width changes.
@@ -302,15 +312,16 @@ html[dir='rtl'] .tdw-side-toggle svg {
   }
 }
 
-// Upgrade, above Settings (tadween/billing/upgrade.link.tsx): a brand tint
-// that stands out without shouting
+// Upgrade, above Admin / Settings (tadween/billing/upgrade.link.tsx): brand
+// colour and a hairline, so it stands out without a filled block
 .tdw-side .tdw-side-item.is-upgrade {
   color: var(--tdw-primary);
-  background: color-mix(in srgb, var(--tdw-primary-soft) 70%, transparent);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--tdw-primary) 22%, transparent);
 
   &:hover {
     color: var(--tdw-primary);
-    background: var(--tdw-primary-soft);
+    background: color-mix(in srgb, var(--tdw-primary-soft) 60%, transparent);
   }
 
   .tdw-side-icon {
@@ -326,6 +337,310 @@ html[dir='rtl'] .tdw-side-toggle svg {
     height: 40px;
     margin-inline: auto;
     padding: 0;
+  }
+}
+
+// ── Create post + channels (tadween/shell/sidebar.channels.tsx) ────────────
+.tdw-side-create {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--tdw-primary-strong);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: var(--tdw-shadow-sm);
+  transition: filter 150ms ease, transform 120ms ease,
+    padding var(--tdw-side-dur) var(--tdw-ease-spring);
+
+  &:hover {
+    filter: brightness(1.06);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tdw-ring);
+    outline-offset: 2px;
+  }
+
+  .tdw-side-label {
+    flex: 1;
+    text-align: start;
+  }
+}
+
+.tdw-side-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tdw-side-rule {
+  display: none;
+  height: 1px;
+  margin: 4px 10px 10px;
+  background: var(--tdw-border);
+}
+
+.tdw-side-heading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px 4px 4px;
+}
+
+.tdw-side-heading-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--tdw-muted-foreground);
+
+  &:hover {
+    color: var(--tdw-foreground);
+  }
+
+  &[aria-expanded='false'] .tdw-side-chev {
+    transform: rotate(-90deg);
+  }
+}
+
+html[dir='rtl'] .tdw-side-heading-btn {
+  letter-spacing: 0;
+
+  &[aria-expanded='false'] .tdw-side-chev {
+    transform: rotate(90deg);
+  }
+}
+
+.tdw-side-chev {
+  transition: transform 300ms var(--tdw-ease-spring);
+}
+
+.tdw-side-count {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.tdw-side-needs {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tdw-warning);
+  box-shadow: inset 0 0 0 1px var(--tdw-border);
+}
+
+.tdw-side-add {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--tdw-muted-foreground);
+
+  &:hover {
+    background: var(--tdw-accent);
+    color: var(--tdw-foreground);
+  }
+}
+
+.tdw-side-chbody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tdw-side-customer {
+  padding: 0 2px 6px;
+  background: transparent;
+
+  .pz-trigger {
+    width: 100%;
+  }
+}
+
+.tdw-side-channels {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 1px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.tdw-side-channel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  height: 40px;
+  padding: 0 2px 0 8px;
+  border-radius: 9px;
+  font-size: 14px;
+  color: var(--tdw-foreground);
+  transition: background-color 150ms ease;
+
+  &:hover {
+    background: var(--tdw-accent);
+  }
+
+  &.is-disabled .tdw-side-chname,
+  &.is-disabled .tdw-ch-avatar {
+    opacity: 0.55;
+  }
+}
+
+html[dir='rtl'] .tdw-side-channel {
+  padding: 0 8px 0 2px;
+}
+
+.tdw-side-chname {
+  flex: 1;
+}
+
+.tdw-side-fix {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tdw-warning);
+  box-shadow: inset 0 0 0 1px var(--tdw-border);
+
+  &:hover {
+    background: var(--tdw-accent);
+  }
+}
+
+// Postiz's channel menu: shown on hover / focus
+.tdw-side-chmenu {
+  flex: none;
+  display: flex;
+  color: var(--tdw-muted-foreground);
+  opacity: 0;
+  transition: opacity 150ms ease;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.tdw-side-channel:hover .tdw-side-chmenu,
+.tdw-side-channel:focus-within .tdw-side-chmenu {
+  opacity: 1;
+}
+
+.tdw-side-addrail {
+  display: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: 6px auto 0;
+  border: 1px dashed var(--tdw-input);
+  border-radius: 50%;
+  color: var(--tdw-muted-foreground);
+
+  &:hover {
+    color: var(--tdw-foreground);
+    border-color: var(--tdw-muted-foreground);
+  }
+}
+
+// Trial line above the account (tadween/billing/upgrade.link.tsx)
+.tdw-side-trial {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--tdw-muted-foreground);
+  box-shadow: inset 0 0 0 1px var(--tdw-border);
+
+  > svg {
+    color: var(--tdw-smart);
+  }
+}
+
+.tdw-side-trial-link {
+  margin-inline-start: auto;
+  font-weight: 600;
+  color: var(--tdw-primary);
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+@media #{$tdw-desktop} {
+  .tdw-side.is-collapsed {
+    .tdw-side-create {
+      justify-content: center;
+      gap: 0;
+      width: 40px;
+      margin-inline: auto;
+      padding: 0;
+      border-radius: 12px;
+    }
+
+    .tdw-side-rule {
+      display: block;
+    }
+
+    .tdw-side-heading,
+    .tdw-side-customer,
+    .tdw-side-trial {
+      display: none;
+    }
+
+    .tdw-side-channels {
+      scrollbar-width: none;
+    }
+
+    .tdw-side-channel {
+      justify-content: center;
+      gap: 0;
+      height: 44px;
+      padding: 0;
+    }
+
+    .tdw-side-channel .tdw-ch-avatar {
+      width: 32px !important;
+      height: 32px !important;
+    }
+
+    .tdw-side-addrail {
+      display: grid;
+    }
   }
 }
 

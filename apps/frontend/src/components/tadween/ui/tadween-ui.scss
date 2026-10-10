@@ -224,6 +224,26 @@
 
   .pz-overlay-sheet { place-items: stretch end; padding: var(--space-3); }
   .pz-overlay-sheet.no-scrim { pointer-events: none; }
+
+  // Drawer — slides in from the inline end (same block as the admin console's)
+  .pz-drawer-layer { position: fixed; inset: 0; z-index: 60; display: flex; justify-content: flex-end; }
+  .pz-drawer-layer[data-state="closed"] .pz-scrim { opacity: 0; }
+  .pz-drawer {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: var(--popover);
+    box-shadow: var(--shadow-lg);
+    transition: transform var(--duration-spring) var(--ease-spring), opacity var(--duration-base) ease;
+  }
+  .pz-drawer-md { max-width: 520px; }
+  .pz-drawer-lg { max-width: 760px; }
+  .pz-drawer[data-state="closed"] { transform: translateX(100%); opacity: 0.6; }
+  .pz-drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 24px 12px; border-bottom: 1px solid var(--border); }
+  .pz-drawer-body { flex: 1; overflow: auto; padding: 20px 24px; }
+  .pz-drawer-foot { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; padding: 14px 24px; border-top: 1px solid var(--border); }
   .pz-sheet { pointer-events: auto; position: relative; max-width: 100%; display: flex; flex-direction: column; border-radius: var(--radius-xl); background: var(--popover); box-shadow: var(--shadow-lg);
     transition: transform var(--duration-spring) var(--ease-spring), opacity var(--duration-base) ease; }
   .pz-sheet[data-state="closed"] { transform: translateX(calc(100% + 24px)); opacity: 0.6; }
@@ -515,3 +535,5 @@
 @keyframes pz-pulse { 50% { opacity: 0.4; } }
 @keyframes pz-halo { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: none; } }
 @keyframes pz-fade { from { opacity: 0; } }
+
+html[dir='rtl'] .tdw-ui .pz-drawer[data-state='closed'] { transform: translateX(-100%); }

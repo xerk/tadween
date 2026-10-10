@@ -3,7 +3,6 @@
 import { FC, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
-import clsx from 'clsx';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
@@ -12,16 +11,18 @@ import {
   useInstanceSettings,
   useTadweenPricing,
 } from '@gitroom/frontend/components/tadween/instance/instance.settings';
-import { MenuItem } from '@gitroom/frontend/components/new-layout/menu-item';
 import { Icon } from '@gitroom/frontend/components/tadween/ui';
 
-// "Upgrade" in the sidebar (above Settings) and in the top bar, both to
+// "Upgrade" in the sidebar (above Settings, an entry of layout/top.menu.tsx)
+// and in the top bar, both to
 // /billing. Shown when billing is on, the user can manage this workspace's
 // billing (the account menu's Billing rule; super admins too on a workspace
 // without a subscription), the plan isn't lifetime, and there is a higher plan
 // or the workspace is on a trial. Styles: app/tadween/shell.scss.
 
 const DAY = 86400000;
+// what StripeService gives every trial (trial_period_days)
+const TRIAL_DAYS = 7;
 
 // The billing page's own request (same key), only while on a trial: the trial
 // started with the subscription row
@@ -38,11 +39,11 @@ const useTrialSubscription = (trial: boolean) => {
 };
 
 // null: no Upgrade. Otherwise the trial's days left, when on a trial.
-const useUpgradeOffer = () => {
+export const useUpgradeOffer = () => {
   const user = useUser();
   const { billingEnabled } = useVariables();
   const { data: settings } = useInstanceSettings();
-  const { pricing, visible, planFor } = useTadweenPricing();
+  const { pricing, visible } = useTadweenPricing();
   const trial = !!user?.isTrailing;
   const { data: sub } = useTrialSubscription(trial);
 
@@ -59,10 +60,13 @@ const useUpgradeOffer = () => {
       return null;
     }
     if (trial) {
-      const started = sub?.subscription?.createdAt;
-      const days = planFor(tier)?.trialDays || 7;
+      // wait for the subscription, so the label doesn't change under the user
+      if (!sub) {
+        return null;
+      }
+      const started = sub.subscription?.createdAt;
       const left = started
-        ? Math.ceil(days - (Date.now() - new Date(started).getTime()) / DAY)
+        ? Math.ceil(TRIAL_DAYS - (Date.now() - new Date(started).getTime()) / DAY)
         : 0;
       return { daysLeft: left > 0 ? left : null };
     }
@@ -71,33 +75,16 @@ const useUpgradeOffer = () => {
       return null;
     }
     return { daysLeft: null };
-  }, [billingEnabled, user, settings, trial, sub, pricing, visible, planFor]);
+  }, [billingEnabled, user, settings, trial, sub, pricing, visible]);
 };
 
-const useUpgradeLabel = (daysLeft: number | null) => {
+export const useUpgradeLabel = (daysLeft: number | null) => {
   const t = useT();
   return daysLeft
     ? t('tdw_upgrade_days_left', 'Upgrade · {{n}} days left', {
         n: daysLeft,
       })
     : t('tdw_upgrade', 'Upgrade');
-};
-
-// Sidebar entry, rendered right above Settings (layout/top.menu.tsx)
-export const UpgradeMenuItem: FC = () => {
-  const offer = useUpgradeOffer();
-  const label = useUpgradeLabel(offer?.daysLeft || null);
-  if (!offer) {
-    return null;
-  }
-  return (
-    <MenuItem
-      path="/billing"
-      label={label}
-      icon={<Icon name="sparkles" size={20} />}
-      className="is-upgrade"
-    />
-  );
 };
 
 // Top bar: a soft pill on desktop, the icon alone on phones
@@ -110,7 +97,7 @@ export const UpgradeButton: FC = () => {
   return (
     <Link
       href="/billing"
-      className={clsx('tdw-upgrade-pill', offer.daysLeft && 'is-trial')}
+      className="tdw-upgrade-pill"
       aria-label={label}
     >
       <Icon name="sparkles" size={16} />

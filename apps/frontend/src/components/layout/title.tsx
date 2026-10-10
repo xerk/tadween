@@ -13,7 +13,9 @@ export const Title = () => {
   const path = usePathname();
   const { all: menuItems } = useMenuItem();
   const current = useMemo(() => {
-    return menuItems.find((item) => path.indexOf(item.path) > -1);
+    return menuItems.find(
+      (item) => item.pageTitle !== false && path.indexOf(item.path) > -1
+    );
   }, [path]);
 
   if (isBareTopBar(path)) {

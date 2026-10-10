@@ -1094,9 +1094,14 @@
   "tdw_streak_title": "سلسلة النشر",
   "tdw_streak_current": "السلسلة الحالية",
   "tdw_streak_best": "الأفضل خلال 12 شهرًا",
-  "tdw_streak_one_day": "يوم واحد",
-  "tdw_streak_n_days": "{{n}} يوم",
   "tdw_streak_days_label": "أيام فيها منشور تم نشره",
   "tdw_streak_posted": "تم النشر",
-  "tdw_streak_how": "سلسلة مساحة العمل تزيد كل يوم يُنشر فيه منشور، وتنتهي بعد 24 ساعة من غير نشر."
+  "tdw_streak_how": "سلسلة مساحة العمل تزيد كل يوم يُنشر فيه منشور، وتنتهي بعد 24 ساعة من غير نشر.",
+  "tdw_admin_tools": "أدوات المشرف",
+  "tdw_streak_days_zero": "{{count}} أيام",
+  "tdw_streak_days_one": "يوم واحد",
+  "tdw_streak_days_two": "يومان",
+  "tdw_streak_days_few": "{{count}} أيام",
+  "tdw_streak_days_many": "{{count}} يومًا",
+  "tdw_streak_days_other": "{{count}} يوم"
 }

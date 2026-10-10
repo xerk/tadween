@@ -49,7 +49,7 @@ export const TopbarPopover: FC<{
         ? { left: Math.max(12, r.left) }
         : { right: Math.max(12, window.innerWidth - r.right) }),
     });
-  }, [open]);
+  }, [open, anchor]);
 
   useEffect(() => {
     if (!open) {
@@ -70,15 +70,35 @@ export const TopbarPopover: FC<{
         anchor.current?.focus();
       }
     };
+    // a phone's keyboard resizes the window: keep the panel while typing in it
+    const onResize = () => {
+      if (!panel.current?.contains(document.activeElement)) {
+        onClose();
+      }
+    };
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
-    window.addEventListener('resize', onClose);
+    window.addEventListener('resize', onResize);
     return () => {
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('keydown', onKey);
-      window.removeEventListener('resize', onClose);
+      window.removeEventListener('resize', onResize);
     };
-  }, [open, onClose]);
+  }, [open, onClose, anchor]);
+
+  // The panel is portalled to the end of <body>; move focus into it, as the
+  // account menu does
+  const placed = !!style;
+  useEffect(() => {
+    if (placed) {
+      // its first control, or the panel itself when it only shows things
+      (
+        panel.current?.querySelector<HTMLElement>(
+          'input, button, a[href], [tabindex]:not([tabindex="-1"])'
+        ) || panel.current
+      )?.focus({ preventScroll: true });
+    }
+  }, [placed]);
 
   if (!open || !style) {
     return null;
@@ -89,6 +109,7 @@ export const TopbarPopover: FC<{
       ref={panel}
       role="dialog"
       aria-label={label}
+      tabIndex={-1}
       className={clsx('tdw-topbar-popover', className)}
       style={style}
     >

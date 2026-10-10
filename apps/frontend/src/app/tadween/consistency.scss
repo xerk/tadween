@@ -223,12 +223,6 @@ body {
     @media (max-width: 1025px) { h1 { font-size: 17px; line-height: 22px; } }
   }
   .tdw-topbar-actions {
-    > .w-\[1px\] { height: 18px; margin-inline: 6px; }
-    // separators only between things that rendered
-    > .w-\[1px\]:first-child,
-    > .w-\[1px\] + .w-\[1px\],
-    > .w-\[1px\] + .contents:empty + .w-\[1px\],
-    > .w-\[1px\]:first-child + .contents:empty + .w-\[1px\] { display: none; }
     // every icon in the cluster gets the same 36px hit area and hover tile
     > a, > button, .tdw-topbar-icon {
       display: inline-flex;
@@ -352,11 +346,12 @@ body {
     transform-origin: top right;
     animation: tdw-topbar-pop 220ms var(--tdw-ease-spring) both;
   }
+  .tdw-topbar-popover:focus { outline: none; }
   html[dir='rtl'] & .tdw-topbar-popover { transform-origin: top left; }
   @media (prefers-reduced-motion: reduce) {
     .tdw-topbar-popover { animation: none; }
   }
-  // org switcher (billing pages) + notifications popovers
+  // org switcher (billing pages)
   .tdw-org-menu {
     gap: 2px;
     padding: 6px;

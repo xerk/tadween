@@ -3,6 +3,8 @@
 import { FC, useCallback, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import clsx from 'clsx';
+import dayjs from 'dayjs';
+import isoWeek from 'dayjs/plugin/isoWeek';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
@@ -19,6 +21,8 @@ import {
 // the streak workflow's (orchestrator streak.workflow.ts): it starts with a
 // publish and ends after 24 hours without one, so a run of publishes less
 // than a day apart is one streak. Styles: app/tadween/consistency.scss.
+
+dayjs.extend(isoWeek);
 
 const DAY = 86400000;
 const WEEKS = 5;
@@ -73,19 +77,21 @@ const StreakBody: FC<{ current: number; open: boolean }> = ({
 
   const { days, best } = useMemo(() => {
     const times = (data || []).map((d) => new Date(d).getTime());
-    const days = new Set(
-      times.map((time) => newDayjs(time).local().format('YYYY-MM-DD'))
+    const keys = times.map((time) =>
+      newDayjs(time).local().format('YYYY-MM-DD')
     );
-    // runs of publishes less than a day apart, like the streak workflow
+    // runs of publishes less than a day apart, like the streak workflow, each
+    // counted in the days it touched (so a daily post for 7 days is 7)
     let best = current;
-    let start = times[0];
+    let run = new Set<string>();
     times.forEach((time, i) => {
       if (i && time - times[i - 1] >= DAY) {
-        start = time;
+        run = new Set<string>();
       }
-      best = Math.max(best, Math.floor((time - start) / DAY) + 1);
+      run.add(keys[i]);
+      best = Math.max(best, run.size);
     });
-    return { days, best };
+    return { days: new Set(keys), best };
   }, [data, current]);
 
   const today = newDayjs();
@@ -96,9 +102,7 @@ const StreakBody: FC<{ current: number; open: boolean }> = ({
   );
   const weekdays = cells.slice(0, 7).map((d) => d.format('dd'));
   const count = (n: number) =>
-    n === 1
-      ? t('tdw_streak_one_day', '1 day')
-      : t('tdw_streak_n_days', '{{n}} days', { n });
+    t('tdw_streak_days', '{{count}} days', { count: n });
 
   return (
     <div className="tdw-streak-body">

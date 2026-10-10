@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, Fragment, ReactNode, useCallback } from 'react';
+import { FC, ReactNode, useCallback } from 'react';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
@@ -9,7 +9,11 @@ import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { AgentMediaModal } from '@gitroom/frontend/components/layout/agent.media.modal';
 import { useFeatures } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { AdminMenuIcon } from '@gitroom/frontend/components/tadween/admin/admin.menu.icon';
-import { UpgradeMenuItem } from '@gitroom/frontend/components/tadween/billing/upgrade.link';
+import {
+  useUpgradeLabel,
+  useUpgradeOffer,
+} from '@gitroom/frontend/components/tadween/billing/upgrade.link';
+import { Icon } from '@gitroom/frontend/components/tadween/ui';
 
 interface MenuItemInterface {
   name: string;
@@ -21,6 +25,10 @@ interface MenuItemInterface {
   hide?: boolean;
   requireBilling?: boolean;
   onClick?: () => void;
+  // Tadween: an extra class on the sidebar item
+  className?: string;
+  // Tadween: false keeps the entry out of the top bar's page title
+  pageTitle?: boolean;
 }
 
 export const useMenuItem = () => {
@@ -30,6 +38,8 @@ export const useMenuItem = () => {
   // Tadween: features the super admin switched off are hidden from the menu
   const isOn = useFeatures();
   const user = useUser();
+  const upgrade = useUpgradeOffer();
+  const upgradeLabel = useUpgradeLabel(upgrade?.daysLeft || null);
 
   const handleAgentMediaClick = useCallback(() => {
     openModal({
@@ -309,6 +319,15 @@ export const useMenuItem = () => {
       hide: !(user as { admin?: boolean })?.admin,
     },
     {
+      // Tadween: tadween/billing/upgrade.link.tsx decides when it shows
+      name: upgradeLabel,
+      icon: <Icon name="sparkles" size={20} />,
+      path: '/billing',
+      hide: !upgrade,
+      className: 'is-upgrade',
+      pageTitle: false,
+    },
+    {
       name: t('settings', 'Settings'),
       icon: (
         <svg
@@ -403,15 +422,14 @@ export const TopMenu: FC = () => {
             return true;
           })
           .map((item, index) => (
-            <Fragment key={item.name}>
-              {item.path === '/settings' && <UpgradeMenuItem />}
-              <MenuItem
-                path={item.path}
-                label={item.name}
-                icon={item.icon}
-                onClick={item.onClick}
-              />
-            </Fragment>
+            <MenuItem
+              path={item.path}
+              label={item.name}
+              icon={item.icon}
+              key={item.name}
+              onClick={item.onClick}
+              className={item.className}
+            />
           ))}
       </div>
     </>

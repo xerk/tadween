@@ -1052,9 +1052,10 @@
   "tdw_streak_title": "Posting streak",
   "tdw_streak_current": "Current streak",
   "tdw_streak_best": "Best in 12 months",
-  "tdw_streak_one_day": "1 day",
-  "tdw_streak_n_days": "{{n}} days",
   "tdw_streak_days_label": "Days with a published post",
   "tdw_streak_posted": "Published",
-  "tdw_streak_how": "Your workspace’s streak grows every day it publishes a post and ends after 24 hours without one."
+  "tdw_streak_how": "Your workspace’s streak grows every day it publishes a post and ends after 24 hours without one.",
+  "tdw_admin_tools": "Admin tools",
+  "tdw_streak_days_one": "{{count}} day",
+  "tdw_streak_days_other": "{{count}} days"
 }

@@ -201,7 +201,13 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                           <Title />
                         </div>
                         <div className="tdw-topbar-actions flex items-center gap-[6px] text-textItemBlur">
-                          {user?.admin && !user?.impersonate ? <Impersonate /> : null}
+                          {/* the admin tools pill only inside the admin console;
+                              elsewhere the sidebar's Admin item leads there */}
+                          {user?.admin &&
+                          !user?.impersonate &&
+                          /^\/admin(\/|$)/.test(pathname) ? (
+                            <Impersonate />
+                          ) : null}
                           <UpgradeButton />
                           <StreakComponent />
                           <NotificationComponent />

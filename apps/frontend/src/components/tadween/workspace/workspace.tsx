@@ -19,7 +19,7 @@ import { NewPost } from '@gitroom/frontend/components/launches/new.post';
 import { GeneratorComponent } from '@gitroom/frontend/components/launches/generator/generator';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
 import { useAddProvider } from '@gitroom/frontend/components/launches/add.provider.component';
-import { Icon } from '@gitroom/frontend/components/tadween/ui';
+import { Icon, usePresence } from '@gitroom/frontend/components/tadween/ui';
 import { WorkspaceToolbar } from '@gitroom/frontend/components/tadween/workspace/toolbar';
 import { ChannelsSheet } from '@gitroom/frontend/components/tadween/workspace/channels.sheet';
 import {
@@ -208,12 +208,20 @@ export const CalendarWorkspace: FC<{
   const isPhone = useMedia('(max-width: 768px)');
   // The side panel (and its requests) only exists where it's shown
   const showSide = useMedia('(min-width: 1100px)') && side === '1';
+  // stays mounted through its exit, so the panel slides out instead of vanishing
+  const sidePanel = usePresence(showSide, 360);
 
   const swipe = useDaySwipe(isPhone && calendar.display === 'day', nav.previous, nav.next);
   const closeSheet = useCallback(() => setSheet(null), []);
 
   return (
-    <div className={clsx('tdw-ws', showSide && 'has-side', `is-${calendar.display}`)}>
+    <div
+      className={clsx(
+        'tdw-ws',
+        sidePanel.state === 'open' && 'has-side',
+        `is-${calendar.display}`
+      )}
+    >
       <div className="tdw-ws-main">
         <WorkspaceToolbar
           hasChannels={hasChannels}
@@ -244,7 +252,12 @@ export const CalendarWorkspace: FC<{
           )}
         </div>
       </div>
-      {showSide && <WorkspaceSidePanel onClose={() => setSide('0')} />}
+      {sidePanel.mounted && (
+        <WorkspaceSidePanel
+          state={sidePanel.state}
+          onClose={() => setSide('0')}
+        />
+      )}
       <ChannelsSheet open={!!sheet} anchor={isPhone ? null : sheet} onClose={closeSheet}>
         {hasChannels && (
           <div className="tdw-ws-sheet-filter">

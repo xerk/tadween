@@ -289,7 +289,10 @@ const DraftRow: FC<{ post: any; onDropped: () => void }> = ({ post, onDropped })
   );
 };
 
-export const WorkspaceSidePanel: FC<{ onClose: () => void }> = ({ onClose }) => {
+export const WorkspaceSidePanel: FC<{
+  state: 'open' | 'closed';
+  onClose: () => void;
+}> = ({ state, onClose }) => {
   const t = useT();
   const upNext = useUpNextPosts();
   const drafts = useDraftPosts();
@@ -304,7 +307,11 @@ export const WorkspaceSidePanel: FC<{ onClose: () => void }> = ({ onClose }) => 
   const draftList = drafts.data?.posts || [];
 
   return (
-    <aside className="tdw-ui tdw-ws-side" aria-label={t('tdw_ws_side_panel', 'Up next and drafts')}>
+    <aside
+      className="tdw-ui tdw-ws-side"
+      data-state={state}
+      aria-label={t('tdw_ws_side_panel', 'Up next and drafts')}
+    >
       <UpNext posts={upNext.data?.posts || []} loading={upNext.isLoading} onClose={onClose} />
       <MiniMonth />
       <section aria-labelledby="tdw-ws-drafts">

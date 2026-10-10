@@ -448,6 +448,49 @@ a.pz-card:hover .pz-card-media .pz-shot img { transform: scale(1.03); }
 .pz-works { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .pz-works li { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: var(--radius-full); background: var(--card); box-shadow: var(--shadow-sm); font-size: 15px; font-weight: 500; }
 .pz-works li::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+
+/* ── AI client pages ─────────────────────────────────── */
+/* The client's own window, drawn generically: its name as text, a neutral glyph, and a
+   terminal for command-line clients. Never the client's logo or a screenshot of it. */
+.pz-chat.is-client .pz-chat-top .pz-tile-ic { background: var(--muted); color: var(--foreground); }
+.pz-chat.is-terminal { background: #111214; color: #e9e9ee; font-family: var(--font-mono); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 60px -30px rgba(0, 0, 0, 0.5); }
+.pz-chat.is-terminal .pz-chat-top { border-color: rgba(255, 255, 255, 0.1); }
+.pz-chat.is-terminal .pz-chat-top .pz-tile-ic { background: rgba(255, 255, 255, 0.08); color: #e9e9ee; }
+.pz-chat.is-terminal .pz-chat-top span:last-child { color: #a0a0a7; }
+.pz-chat.is-terminal .pz-chat-msg { justify-self: stretch; max-width: none; padding: 0; border-radius: 0; background: none; color: #e9e9ee; font-size: 14px; line-height: 22px; }
+.pz-chat.is-terminal .pz-chat-msg::before { content: '> '; color: #3fcfb4; }
+.pz-chat.is-terminal .pz-chat-reply { font-size: 14px; line-height: 22px; }
+.pz-chat.is-terminal :is(.pz-chat-msg, .pz-chat-reply):lang(ar) { font-family: var(--font-arabic); font-size: 15px; line-height: 26px; }
+.pz-chat.is-terminal .pz-chat-tool { background: rgba(255, 255, 255, 0.05); color: #e9e9ee; }
+.pz-chat.is-terminal .pz-chat-tool code { color: #a0a0a7; }
+.pz-chat.is-terminal .pz-chat-tool .pz-icon { color: #5bd47f; }
+.pz-chat.is-terminal .pz-chat-posts { border-color: rgba(255, 255, 255, 0.1); font-family: var(--font-sans, inherit); }
+.pz-chat.is-terminal .pz-chat-post > span > span { color: #a0a0a7; }
+.pz-chat.is-terminal .pz-chat-post time { color: #3fcfb4; }
+.pz-chat.is-terminal .pz-chat-input { background: rgba(255, 255, 255, 0.05); color: #a0a0a7; }
+.pz-chat.is-terminal .pz-chat-input .pz-tile-ic { background: #3fcfb4; color: #03231d; }
+.pz-pair.is-single { grid-template-columns: minmax(0, 760px); justify-content: center; }
+.pz-method { display: inline-flex; align-items: center; gap: 6px; justify-self: start; padding: 4px 10px; border-radius: var(--radius-full); background: var(--primary-soft); color: var(--primary); font-size: 13px; font-weight: 600; line-height: 18px; }
+.pz-method.is-key { background: var(--smart-soft); color: var(--smart); }
+.pz-mini-steps.is-code { gap: 18px; }
+.pz-mini-steps.is-code li > div { display: grid; gap: 10px; flex: 1; min-width: 0; }
+.pz-mini-steps.is-code p { margin: 0; }
+.pz-client-notes { display: grid; gap: 10px; max-width: 760px; margin: 32px auto 0; padding: 0; list-style: none; }
+.pz-client-notes li { display: flex; gap: 10px; align-items: flex-start; color: var(--muted-foreground); font-size: 14px; line-height: 21px; }
+.pz-client-notes .pz-icon { flex: none; margin-top: 2px; color: var(--primary); }
+.pz-client-notes a { color: var(--foreground); }
+.pz-prompts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.pz-prompts li { display: flex; gap: 12px; align-items: flex-start; padding: 18px 20px; border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm); font-size: 15px; line-height: 23px; text-align: start; }
+.pz-prompts li:lang(ar) { font-family: var(--font-arabic); font-size: 16px; line-height: 26px; }
+.pz-prompts .pz-icon { flex: none; margin-top: 3px; color: var(--primary); }
+.pz-chtile.is-link { text-decoration: none; transition: box-shadow var(--duration-base) ease; }
+.pz-chtile.is-link:hover { box-shadow: var(--shadow-md); }
+.pz-chcard > .pz-tile-ic { flex: none; width: 40px; height: 40px; border-radius: 10px; color: var(--primary); }
+.pz-chat.is-terminal .pz-chat-top { font-family: var(--font-sans); }
+.pz-chat.is-terminal:lang(ar) .pz-chat-top span:last-child, .pz-chat.is-terminal :is(.pz-chat-tool, .pz-chat-input):lang(ar) { font-family: var(--font-arabic); }
+.pz-mega-group.is-clients { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pz-mega-group.is-clients > span { grid-column: 1 / -1; }
+.pz-mega-chan .pz-icon { color: var(--muted-foreground); }
 .pz-convos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 .pz-connectors { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
 .pz-connectors li { display: flex; gap: 14px; align-items: flex-start; padding: 18px; border-radius: var(--radius-lg); border: 1.5px dashed var(--border); }
@@ -586,12 +629,12 @@ a.pz-card:hover .pz-card-media .pz-shot img { transform: scale(1.03); }
   .sc-stage { height: 520px; min-height: 0; }
   .pz-cards, .pz-steps, .pz-checks, .pz-convos, .pz-steps.is-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pz-pair, .pz-clients { grid-template-columns: minmax(0, 1fr); }
-  .pz-chcards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pz-chcards, .pz-prompts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pz-callout { display: none; }
 }
 @media (max-width: 640px) {
   .pz-nav .pz-btn-primary { padding: 0 12px; }
-  .pz-tiers, .pz-cards, .pz-steps, .pz-steps.is-row, .pz-checks, .pz-convos, .pz-chcards, .pz-facts { grid-template-columns: minmax(0, 1fr); }
+  .pz-tiers, .pz-cards, .pz-steps, .pz-steps.is-row, .pz-checks, .pz-convos, .pz-chcards, .pz-facts, .pz-prompts { grid-template-columns: minmax(0, 1fr); }
   .sc-stage { height: 440px; grid-template-columns: minmax(0, 1fr); padding-inline: 8%; }
   .sc-column.is-down { display: none; }
   .pz-cta-row .pz-btn { flex: 1 1 auto; }

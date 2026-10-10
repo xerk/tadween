@@ -1,4 +1,5 @@
 import { LICENSE_URL, SIGN_IN_URL, SIGN_UP_URL, SOURCE_URL } from '@/lib/config';
+import { aiClientsEn } from './aiClients.en';
 import { channelsEn } from './channels.en';
 import { featuresEn } from './features.en';
 import type { Dict } from './types';
@@ -47,6 +48,7 @@ export const en: Dict = {
     breadcrumb: 'Breadcrumb',
     allFeatures: 'See every feature',
     allChannels: 'See all channels',
+    aiClients: 'AI tools',
     spotlight: { title: 'New: the Board', body: 'Every post by status, channel or day, in columns.' },
     resourceLinks: [
       { href: '/#faq', label: 'Questions', body: 'Short answers about Tadween', icon: 'circle-help' },
@@ -237,8 +239,7 @@ export const en: Dict = {
     },
     works: {
       title: 'Works with the AI tools you already use',
-      sub: 'Anything that speaks MCP can read your calendar and schedule posts with your permission.',
-      items: ['Claude', 'ChatGPT', 'Claude Code', 'Cursor', 'VS Code', 'Windsurf', 'Codex', 'Gemini CLI'],
+      sub: 'Anything that speaks MCP can read your calendar and schedule posts with your permission. Each one has a step-by-step page.',
       note: 'Names are trademarks of their owners. Tadween isn’t affiliated with them.',
     },
     connect: {
@@ -360,7 +361,7 @@ export const en: Dict = {
     },
     faqTitle: 'Questions',
     faq: [
-      { title: 'Which AI tools can I connect?', content: 'Any client that supports MCP over HTTP: Claude, ChatGPT, Claude Code, Cursor, VS Code, Windsurf, Codex, Gemini CLI and more. Claude and ChatGPT can also sign in with OAuth instead of an API key.' },
+      { title: 'Which AI tools can I connect?', content: 'Any client that can add a remote MCP server over HTTP. Each of these has a step-by-step page: ChatGPT, Claude, Claude Cowork, Perplexity, Claude Code, Codex, Cursor, VS Code and Grok Build. ChatGPT, Claude, Cowork and Perplexity sign in with OAuth; the coding tools can sign in or use an API key.' },
       { title: 'Where do I find my API key?', content: 'In Tadween, open Settings, then API & MCP. You can copy the key and see the settings for each client there.' },
       { title: 'Will the agent post without asking me?', content: 'It does what you ask, and it asks before it schedules anything. You can always open the post on the calendar, edit it or delete it.' },
       { title: 'Can it delete posts?', content: 'No. The agent has no delete tool, and it can’t rewrite a post that is already scheduled. Those stay in the calendar.' },
@@ -431,6 +432,7 @@ export const en: Dict = {
     secondary: 'Sign in',
   },
   channels: channelsEn,
+  aiClients: aiClientsEn,
   footer: {
     tagline: 'LinkedIn scheduling for people and brands in Egypt and the region.',
     channelsTitle: 'Channels',

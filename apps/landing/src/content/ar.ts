@@ -1,4 +1,5 @@
 import { LICENSE_URL, SIGN_IN_URL, SIGN_UP_URL, SOURCE_URL } from '@/lib/config';
+import { aiClientsAr } from './aiClients.ar';
 import { channelsAr } from './channels.ar';
 import { featuresAr } from './features.ar';
 import type { Dict } from './types';
@@ -47,6 +48,7 @@ export const ar: Dict = {
     breadcrumb: 'مسار التنقل',
     allFeatures: 'شاهد كل المزايا',
     allChannels: 'شاهد كل القنوات',
+    aiClients: 'أدوات الذكاء الاصطناعي',
     spotlight: { title: 'جديد: اللوحة', body: 'كل منشوراتك حسب الحالة أو القناة أو اليوم، في أعمدة.' },
     resourceLinks: [
       { href: '/ar#faq', label: 'أسئلة شائعة', body: 'إجابات قصيرة عن تدوين', icon: 'circle-help' },
@@ -237,8 +239,7 @@ export const ar: Dict = {
     },
     works: {
       title: 'يعمل مع أدوات الذكاء الاصطناعي التي تستخدمها',
-      sub: 'كل أداة تدعم MCP يمكنها قراءة تقويمك وجدولة المنشورات بإذنك.',
-      items: ['Claude', 'ChatGPT', 'Claude Code', 'Cursor', 'VS Code', 'Windsurf', 'Codex', 'Gemini CLI'],
+      sub: 'كل أداة تدعم MCP يمكنها قراءة تقويمك وجدولة المنشورات بإذنك، ولكلٍّ منها صفحة خطوة بخطوة.',
       note: 'الأسماء علامات تجارية لأصحابها، وتدوين غير تابع لها.',
     },
     connect: {
@@ -360,7 +361,7 @@ export const ar: Dict = {
     },
     faqTitle: 'أسئلة شائعة',
     faq: [
-      { title: 'أي أدوات الذكاء الاصطناعي يمكنني ربطها؟', content: 'أي أداة تدعم MCP عبر HTTP: Claude وChatGPT وClaude Code وCursor وVS Code وWindsurf وCodex وGemini CLI وغيرها. ويمكن لـClaude وChatGPT تسجيل الدخول عبر OAuth بدلًا من المفتاح.' },
+      { title: 'أي أدوات الذكاء الاصطناعي يمكنني ربطها؟', content: 'أي أداة تستطيع إضافة خادم MCP بعيد عبر HTTP. ولكلٍّ من هذه الأدوات صفحة خطوة بخطوة: ChatGPT وClaude وClaude Cowork وPerplexity وClaude Code وCodex وCursor وVS Code وGrok Build. يتصل ChatGPT وClaude وCowork وPerplexity بتسجيل الدخول عبر OAuth، وأدوات البرمجة بتسجيل الدخول أو بمفتاح برمجي.' },
       { title: 'أين أجد مفتاحي البرمجي؟', content: 'في تدوين، افتح الإعدادات ثم API وMCP. يمكنك نسخ المفتاح ورؤية إعدادات كل أداة هناك.' },
       { title: 'هل ينشر الوكيل دون أن يسألني؟', content: 'ينفّذ ما تطلبه، ويسألك قبل أن يجدول أي شيء. ويمكنك دائمًا فتح المنشور في التقويم وتعديله أو حذفه.' },
       { title: 'هل يستطيع حذف المنشورات؟', content: 'لا. ليست لدى الوكيل أداة حذف، ولا يستطيع إعادة كتابة منشور مجدول. هذه تبقى في التقويم.' },
@@ -431,6 +432,7 @@ export const ar: Dict = {
     secondary: 'تسجيل الدخول',
   },
   channels: channelsAr,
+  aiClients: aiClientsAr,
   footer: {
     tagline: 'جدولة منشورات لينكدإن للأفراد والعلامات التجارية في مصر والمنطقة.',
     channelsTitle: 'القنوات',

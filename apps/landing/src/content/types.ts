@@ -1,4 +1,5 @@
 import type { IconName } from '@/components/icons';
+import type { ClientAuth, ClientKind } from '@/lib/aiClients';
 import type { ChannelGroup } from '@/lib/channels';
 import type { FeatureSlug } from '@/lib/routes';
 import type { ShotId } from '@/lib/shots';
@@ -133,6 +134,63 @@ export interface ChannelsDict {
   items: Record<string, ChannelCopy>;
 }
 
+/** One AI client's page, in one language. Steps, codes and docs links live in
+    lib/aiClients.ts; this is only the words. */
+export interface AiClientCopy {
+  title: string;
+  description: string;
+  h1: string;
+  intro: string;
+  /** What the client is, in a few words, for cards and the menu. */
+  blurb: string;
+  /** The text of each step of each connection method, in the order lib/aiClients.ts lists them. */
+  methods: Partial<Record<ClientAuth, { label: string; how: string; steps: string[] }>>;
+  /** The conversation the hero draws inside the client. */
+  demo: ChatDemo;
+  /** First things to ask, in English and Egyptian Arabic. */
+  prompts: { lang: Lang; text: string }[];
+  /** Notes that apply to this client only (plans, where the setting lives). */
+  notes: string[];
+  faq: Faq[];
+}
+
+export interface AiClientsDict {
+  /** Labels shared by every client page; "{name}" is the client's name. */
+  page: {
+    eyebrow: string;
+    start: string;
+    stepsLink: string;
+    /** "{n}" is the number of steps. */
+    connectTitle: string;
+    connectSub: string;
+    /** The client window in the hero: its status line and input placeholder. */
+    frameOnline: string;
+    frameInput: string;
+    /** Marks the first of two ways to connect. */
+    recommended: string;
+    /** Before the links to the vendor's own documentation. */
+    docs: string;
+    promptsTitle: string;
+    promptsSub: string;
+    canTitle: string;
+    canSub: string;
+    channelsTitle: string;
+    channelsSub: string;
+    securityTitle: string;
+    security: { icon: IconName; title: string; body: string }[];
+    faqTitle: string;
+    relatedTitle: string;
+    allClients: string;
+    ctaTitle: string;
+    ctaBody: string;
+    /** Questions every client page answers, before its own. */
+    sharedFaq: Faq[];
+  };
+  /** Group titles of the "Works with" grid on the AI agent page. */
+  kinds: Record<ClientKind, string>;
+  items: Record<string, AiClientCopy>;
+}
+
 export interface Dict {
   lang: Lang;
   dir: 'ltr' | 'rtl';
@@ -165,6 +223,8 @@ export interface Dict {
     breadcrumb: string;
     allFeatures: string;
     allChannels: string;
+    /** The AI clients group in the Resources menu and the phone sheet. */
+    aiClients: string;
     /** The featured card in the Features menu. */
     spotlight: { title: string; body: string };
     resourceLinks: { href: string; label: string; body: string; icon: IconName; external?: boolean }[];
@@ -222,7 +282,8 @@ export interface Dict {
   agentPage: Head & {
     eyebrow: string;
     hero: ChatDemo;
-    works: Head & { items: string[]; note: string };
+    /** The "Works with" grid; the clients come from lib/aiClients.ts. */
+    works: Head & { note: string };
     /** Connect and ask: the address to copy, a first question, four short steps, then a
         card per client. "{api}" in code is replaced with the API address. */
     connect: Head & {
@@ -290,6 +351,7 @@ export interface Dict {
     secondary: string;
   };
   channels: ChannelsDict;
+  aiClients: AiClientsDict;
   footer: {
     tagline: string;
     channelsTitle: string;

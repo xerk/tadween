@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ImageResponse } from 'next/og';
 import { en } from '@/content/en';
+import { AI_CLIENTS, clientBySlug } from '@/lib/aiClients';
 import { CHANNELS, channelBySlug } from '@/lib/channels';
 import { FEATURE_SLUGS } from '@/lib/routes';
 
@@ -22,7 +23,7 @@ const PAGES: Record<string, { eyebrow: string; title: string }> = {
 };
 
 export function generateStaticParams() {
-  return [...Object.keys(PAGES), ...CHANNELS.map((c) => `channel-${c.slug}`)].map((card) => ({ card: `${card}.png` }));
+  return [...Object.keys(PAGES), ...CHANNELS.map((c) => `channel-${c.slug}`), ...AI_CLIENTS.map((c) => `client-${c.slug}`)].map((card) => ({ card: `${card}.png` }));
 }
 
 const asset = async (file: string, type: string) =>
@@ -31,7 +32,12 @@ const asset = async (file: string, type: string) =>
 export async function GET(_req: Request, { params }: { params: Promise<{ card: string }> }) {
   const card = (await params).card.replace(/\.png$/, '');
   const channel = card.startsWith('channel-') ? channelBySlug(card.slice('channel-'.length)) : undefined;
-  const page = channel ? { eyebrow: channel.name, title: en.channels.items[channel.slug].h1 } : PAGES[card];
+  const client = card.startsWith('client-') ? clientBySlug(card.slice('client-'.length)) : undefined;
+  const page = channel
+    ? { eyebrow: channel.name, title: en.channels.items[channel.slug].h1 }
+    : client
+      ? { eyebrow: `Tadween in ${client.name}`, title: en.aiClients.items[client.slug].h1 }
+      : PAGES[card];
   const logo = await asset('logo.svg', 'image/svg+xml');
   const icon = channel ? await asset(channel.icon.replace(/^\//, ''), 'image/png') : null;
 

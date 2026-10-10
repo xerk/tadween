@@ -1,8 +1,9 @@
 import type { Dict } from '@/content/types';
+import { AI_CLIENTS, KIND_ICON } from '@/lib/aiClients';
 import { CHANNELS, type ChannelGroup } from '@/lib/channels';
 import { SIGN_IN_URL, SIGN_UP_URL } from '@/lib/config';
 import { FEATURE_MENU, featureRefIcon, featureRefPath, type FeatureRef } from '@/lib/features';
-import { PATHS, channelPath, localePath } from '@/lib/routes';
+import { PATHS, channelPath, clientPath, localePath } from '@/lib/routes';
 import { shotSrc } from '@/lib/shots';
 import { Icon, cx } from './Icon';
 import { Logo } from './Logo';
@@ -137,8 +138,8 @@ export function LandingNav({ t, altHref, current }: { t: Dict; altHref: string; 
       </div>
 
       <div className="pz-mega" id="menu-resources" data-menu-panel="resources" hidden>
-        <div className="pz-container is-wide">
-          <ul className="pz-mega-list is-3">
+        <div className="pz-container is-wide pz-mega-grid">
+          <ul className="pz-mega-list">
             {t.nav.resourceLinks.map((r) => (
               <li key={r.href}>
                 <a className="pz-mega-item" href={r.href} {...external(r.external)}>
@@ -153,6 +154,18 @@ export function LandingNav({ t, altHref, current }: { t: Dict; altHref: string; 
               </li>
             ))}
           </ul>
+          <div className="pz-mega-group is-clients">
+            <span>{t.nav.aiClients}</span>
+            {AI_CLIENTS.map((c) => {
+              const href = lp(clientPath(c.slug));
+              return (
+                <a key={c.slug} className="pz-mega-chan" href={href} aria-current={here(href)} lang="en" dir="ltr">
+                  <Icon name={KIND_ICON[c.kind]} size={18} />
+                  {c.name}
+                </a>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -199,6 +212,21 @@ export function LandingNav({ t, altHref, current }: { t: Dict; altHref: string; 
                 {r.label}
               </a>
             ))}
+          </div>
+        </details>
+        <details>
+          <summary>
+            {t.nav.aiClients}
+            <Icon name="chevron-down" size={18} />
+          </summary>
+          <div className="pz-sheet-links">
+            {AI_CLIENTS.map((c) => (
+              <a key={c.slug} href={lp(clientPath(c.slug))} lang="en" dir="ltr">
+                <Icon name={KIND_ICON[c.kind]} size={18} />
+                {c.name}
+              </a>
+            ))}
+            <a href={`${lp(PATHS.agent)}#clients`}>{t.aiClients.page.allClients}</a>
           </div>
         </details>
         <a href={lp(PATHS.pricing)}>{t.nav.pricing}</a>

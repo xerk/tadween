@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import type { ChannelCopy, Dict } from '@/content/types';
+import { AI_CLIENTS, KIND_ICON, clientBySlug, type AiClientFacts, type ClientKind } from '@/lib/aiClients';
 import { CHANNELS, MORE_CHANNELS, channelBySlug, type ChannelFacts, type ChannelGroup } from '@/lib/channels';
 import { DOCS_API_URL } from '@/lib/config';
 import { FEATURES, FEATURE_MENU } from '@/lib/features';
 import { breadcrumbs, faqPage, organization, product, softwareApplication } from '@/lib/jsonld';
 import { loadPlans } from '@/lib/plans';
-import { PATHS, channelPath, featurePath, localePath, type FeatureSlug } from '@/lib/routes';
+import { PATHS, channelPath, clientPath, featurePath, localePath, type FeatureSlug } from '@/lib/routes';
 import { CHANNEL_SHOT, channelShotSrc } from '@/lib/shots';
 import { CopyButton } from './CopyButton';
 import { Icon, cx } from './Icon';
@@ -277,16 +278,10 @@ export function AgentPage({ t }: { t: Dict }) {
           </div>
         </div>
       </section>
-      <section className="pz-sec is-tight" aria-labelledby="works-title">
+      <section className="pz-sec is-tight" id="clients" aria-labelledby="works-title">
         <div className="pz-container">
           <SectionHead id="works-title" title={a.works.title} sub={a.works.sub} />
-          <ul className="pz-works" data-stagger>
-            {a.works.items.map((name) => (
-              <li key={name} lang="en" dir="ltr">
-                {name}
-              </li>
-            ))}
-          </ul>
+          <ClientsGrid t={t} />
           <p className="pz-fine pz-center-text">{a.works.note}</p>
         </div>
       </section>
@@ -611,3 +606,241 @@ export function ChannelPage({ t, slug }: { t: Dict; slug: string }) {
   );
 }
 
+
+/** A link card to an AI client's page: a neutral glyph (never the product's logo), the
+    client's name as text and what it is. */
+export function ClientCard({ t, c }: { t: Dict; c: AiClientFacts }) {
+  return (
+    <a className="pz-chcard" href={localePath(t.lang, clientPath(c.slug))}>
+      <span className="pz-tile-ic">
+        <Icon name={KIND_ICON[c.kind]} size={20} />
+      </span>
+      <span>
+        <strong lang="en" dir="ltr">
+          {c.name}
+        </strong>
+        <span>{t.aiClients.items[c.slug].blurb}</span>
+      </span>
+      <Icon name="chevron-right" className="pz-flip-rtl pz-muted" />
+    </a>
+  );
+}
+
+const CLIENT_KINDS: ClientKind[] = ['assistant', 'coding'];
+
+/** Every client page, grouped by kind: the "Works with" grid on the AI agent page. */
+function ClientsGrid({ t }: { t: Dict }) {
+  return (
+    <div className="pz-chgroups">
+      {CLIENT_KINDS.map((kind) => (
+        <div key={kind}>
+          <h3 id={`k-${kind}`} className="t-h3 pz-group-title">
+            {t.aiClients.kinds[kind]}
+          </h3>
+          <ul className="pz-chcards" data-stagger aria-labelledby={`k-${kind}`}>
+            {AI_CLIENTS.filter((c) => c.kind === kind).map((c) => (
+              <li key={c.slug}>
+                <ClientCard t={t} c={c} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** One AI client's page: the client chatting with Tadween, how to connect it step by step
+    with the snippets to copy, what to ask, what it can do, the channels it reaches, how
+    access stays safe, questions (FAQPage data), related clients and the call to action. */
+export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
+  const facts = clientBySlug(slug)!;
+  const copy = t.aiClients.items[slug];
+  const p = t.aiClients.page;
+  const fill = (s: string) => s.replaceAll('{name}', facts.name).replaceAll('{n}', new Intl.NumberFormat(t.numberLocale).format(facts.methods[0].steps.length));
+  const path = clientPath(slug);
+  const crumbs = trail(t, { name: t.agentPage.eyebrow, href: localePath(t.lang, PATHS.agent) }, { name: facts.name, href: localePath(t.lang, path) });
+  const faq = [...p.sharedFaq.map((f) => ({ title: fill(f.title), content: withApi(fill(f.content)) })), ...copy.faq];
+  // The words and the snippets live in two files; a step without its words fails the build.
+  for (const m of facts.methods) {
+    if (copy.methods[m.auth]?.steps.length !== m.steps.length) throw new Error(`${t.lang} copy for ${slug} (${m.auth}) needs ${m.steps.length} steps.`);
+  }
+  return (
+    <Shell t={t} path={path} jsonLd={[faqPage(faq), trailLd(crumbs)]}>
+      <section className="pz-hero" aria-labelledby="client-title">
+        <div className="pz-container pz-hero-grid">
+          <div className="pz-hero-copy">
+            <nav className="pz-crumbs is-start" aria-label={t.nav.breadcrumb}>
+              <ol>
+                {crumbs.map((c, i) => (
+                  <li key={c.href}>{i < crumbs.length - 1 ? <a href={c.href}>{c.name}</a> : <span aria-current="page">{c.name}</span>}</li>
+                ))}
+              </ol>
+            </nav>
+            <span data-hero-in>
+              <Eyebrow icon="plug" smart>
+                {fill(p.eyebrow)}
+              </Eyebrow>
+            </span>
+            <h1 id="client-title" className="display" data-hero-in>
+              {copy.h1}
+            </h1>
+            <p className="t-lead" data-hero-in>
+              {copy.intro}
+            </p>
+            <div data-hero-in>
+              <TrialButtons t={t} primary={p.start} secondaryHref="#connect" secondary={fill(p.stepsLink)} />
+            </div>
+          </div>
+          <div data-hero-in>
+            <AgentChat t={t} demo={copy.demo} frame={{ title: facts.name, online: fill(p.frameOnline), icon: KIND_ICON[facts.kind], input: fill(p.frameInput), terminal: facts.terminal }} />
+          </div>
+        </div>
+      </section>
+      <section className="pz-sec" id="connect" aria-labelledby="connect-title">
+        <div className="pz-container">
+          <SectionHead id="connect-title" title={fill(p.connectTitle)} sub={fill(p.connectSub)} />
+          <div className={cx('pz-pair', facts.methods.length === 1 && 'is-single')} data-stagger>
+            {facts.methods.map((m, mi) => {
+              const words = copy.methods[m.auth]!;
+              return (
+                <div key={m.auth} className="pz-panel">
+                  <span className={cx('pz-method', m.auth === 'key' && 'is-key')}>
+                    <Icon name={m.auth === 'key' ? 'key' : 'shield-check'} size={14} />
+                    {mi === 0 && facts.methods.length > 1 ? `${words.label} · ${p.recommended}` : words.label}
+                  </span>
+                  <h3 className="t-h3">{fill(words.how)}</h3>
+                  <ol className="pz-mini-steps is-code">
+                    {m.steps.map((code, i) => (
+                      <li key={i}>
+                        <div>
+                          <p>{withApi(fill(words.steps[i]))}</p>
+                          {code ? <Code t={t} label={code.label} code={code.code} /> : null}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              );
+            })}
+          </div>
+          <ul className="pz-client-notes" data-reveal>
+            {copy.notes.map((n) => (
+              <li key={n}>
+                <Icon name="circle-help" size={16} />
+                <span>{withApi(fill(n))}</span>
+              </li>
+            ))}
+            <li>
+              <Icon name="file-text" size={16} />
+              <span>
+                {fill(p.docs)}{' '}
+                {facts.docs.map((d, i) => (
+                  <span key={d.url}>
+                    {i ? ', ' : null}
+                    <a href={d.url} rel="noopener nofollow" target="_blank" lang="en" dir="ltr">
+                      {d.label}
+                    </a>
+                  </span>
+                ))}
+              </span>
+            </li>
+          </ul>
+        </div>
+      </section>
+      <section className="pz-sec is-band" aria-labelledby="prompts-title">
+        <div className="pz-container">
+          <SectionHead id="prompts-title" title={fill(p.promptsTitle)} sub={fill(p.promptsSub)} />
+          <ul className="pz-prompts" data-stagger>
+            {copy.prompts.map((pr) => (
+              <li key={pr.text} lang={pr.lang} dir={pr.lang === 'ar' ? 'rtl' : 'ltr'}>
+                <Icon name="message-square" size={18} />
+                <span>{pr.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+      <section className="pz-sec" aria-labelledby="can-title">
+        <div className="pz-container">
+          <SectionHead id="can-title" title={fill(p.canTitle)} sub={fill(p.canSub)} />
+          <ul className="pz-checks" data-stagger>
+            {t.agentPage.can.items.map((c) => (
+              <li key={c.title}>
+                <span className="pz-tile-ic">
+                  <Icon name={c.icon} size={20} />
+                </span>
+                <strong>{c.title}</strong>
+                <p>{c.body}</p>
+              </li>
+            ))}
+          </ul>
+          <p className="pz-note" data-reveal>
+            <Icon name="shield-check" size={18} />
+            {t.agentPage.cannot}
+          </p>
+        </div>
+      </section>
+      <section className="pz-sec is-band" aria-labelledby="nets-title">
+        <div className="pz-container">
+          <SectionHead id="nets-title" title={fill(p.channelsTitle)} sub={fill(p.channelsSub)} />
+          <ul className="pz-chgrid" data-stagger>
+            {CHANNELS.map((c) => (
+              <li key={c.slug}>
+                <a className="pz-chtile is-link" href={localePath(t.lang, channelPath(c.slug))}>
+                  <img src={c.icon} width={28} height={28} alt="" loading="lazy" />
+                  <span>{channelName(t, c)}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p className="pz-center-text">
+            <a className="pz-more-link" href={localePath(t.lang, PATHS.channels)}>
+              {t.nav.allChannels}
+              <Icon name="arrow-right" className="pz-flip-rtl" />
+            </a>
+          </p>
+        </div>
+      </section>
+      <section className="pz-sec" aria-labelledby="security-title">
+        <div className="pz-container">
+          <SectionHead id="security-title" title={fill(p.securityTitle)} />
+          <ul className="pz-checks" data-stagger>
+            {p.security.map((s) => (
+              <li key={s.title}>
+                <span className="pz-tile-ic">
+                  <Icon name={s.icon} size={20} />
+                </span>
+                <strong>{fill(s.title)}</strong>
+                <p>{fill(s.body)}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+      <FaqSection id="faq" title={fill(p.faqTitle)} items={faq} />
+      <section className="pz-sec is-tight" aria-labelledby="related-title">
+        <div className="pz-container">
+          <h2 id="related-title" className="t-h3 pz-group-title">
+            {p.relatedTitle}
+          </h2>
+          <ul className="pz-chcards">
+            {facts.related.map((r) => (
+              <li key={r}>
+                <ClientCard t={t} c={clientBySlug(r)!} />
+              </li>
+            ))}
+          </ul>
+          <p className="pz-center-text">
+            <a className="pz-more-link" href={`${localePath(t.lang, PATHS.agent)}#clients`}>
+              {p.allClients}
+              <Icon name="arrow-right" className="pz-flip-rtl" />
+            </a>
+          </p>
+          <p className="pz-fine pz-center-text">{t.agentPage.works.note}</p>
+        </div>
+      </section>
+      <CTA t={t} title={fill(p.ctaTitle)} body={fill(p.ctaBody)} />
+    </Shell>
+  );
+}

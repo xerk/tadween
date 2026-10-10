@@ -260,16 +260,19 @@ export function ArabicSection({ t }: { t: Dict }) {
 /** One conversation with the agent: the request, the tool calls lighting up one by one,
     the reply and a card of the posts it scheduled. Built from the app's chat; the calls
     play when the card scrolls in (CSS, keyed on .is-in from the motion engine). */
-export function AgentChat({ t, demo, compact }: { t: Dict; demo: ChatDemo; compact?: boolean }) {
-  const c = t.agentPage.chat;
+/** A conversation with the agent. `frame` draws it inside another AI client instead of
+    Tadween's own chat: that client's name as text and a neutral glyph (never its logo), a
+    terminal for command-line clients, and the Tadween tool calls it makes. */
+export function AgentChat({ t, demo, compact, frame }: { t: Dict; demo: ChatDemo; compact?: boolean; frame?: { title: string; online: string; icon: IconName; input: string; terminal?: boolean } }) {
+  const c = frame ?? { ...t.agentPage.chat, icon: 'bot' as IconName };
   const steps = demo.tools.length;
   const delay = (i: number) => ({ ['--d' as string]: `${250 + i * 500}ms` });
   return (
-    <div className="pz-chat" data-art dir={demo.lang === 'ar' ? 'rtl' : 'ltr'} lang={demo.lang}>
+    <div className={cx('pz-chat', frame && 'is-client', frame?.terminal && 'is-terminal')} data-art dir={demo.lang === 'ar' ? 'rtl' : 'ltr'} lang={demo.lang}>
       {compact ? null : (
         <div className="pz-chat-top">
-          <span className="pz-tile-ic is-smart">
-            <Icon name="bot" size={16} />
+          <span className={cx('pz-tile-ic', !frame && 'is-smart')}>
+            <Icon name={c.icon} size={16} />
           </span>
           {c.title}
           <span>{c.online}</span>

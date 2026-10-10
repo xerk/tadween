@@ -53,9 +53,17 @@ $tdw-mobile: '(max-width: 1025px)';
 
 // The fixed inner column keeps the menu in place while the page scrolls.
 .tdw-side .tdw-side-inner {
-  width: calc(var(--tdw-side-w) - 16px);
-  inset-inline-start: 20px;
+  width: calc(var(--tdw-side-w) - 20px);
+  inset-inline-start: 22px;
   transition: width var(--tdw-side-dur) var(--tdw-ease-spring);
+
+  // inside the floating card: clear of its rounded top and bottom edges
+  @media not #{$tdw-mobile} {
+    top: 12px;
+    height: calc(100vh - 24px);
+    height: calc(100dvh - 24px);
+    padding-block: 10px 4px;
+  }
 
   @media #{$tdw-mobile} {
     width: 100%;

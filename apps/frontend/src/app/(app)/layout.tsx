@@ -47,6 +47,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </head>
       <ChangeDirClient />
       <body
+        // Extensions (e.g. ColorZilla's cz-shortcut-listen) add attributes before hydration.
+        suppressHydrationWarning
         className={clsx(jakartaSans.className, 'dark text-primary !bg-primary')}
       >
         <VariableContextComponent

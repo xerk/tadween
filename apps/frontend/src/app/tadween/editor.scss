@@ -2,13 +2,16 @@
 //
 // The create / edit post modal (components/new-launch/*):
 //   · channel avatar with network badge      (tadween/editor/channel.avatar.tsx)
-//   · scope strip: All channels + one tab per channel   (new-launch/select.current.tsx)
+//   · scope strip: All channels + one avatar tab per channel (new-launch/select.current.tsx)
+//   · "All channels" identity in the shared preview (launches/general.preview.component.tsx)
 //   · lock card and "own version" note       (tadween/editor/scope.tsx)
 //   · character counter + per-channel list   (launches/information.component.tsx)
 //   · checks chip                            (tadween/editor/checks.tsx)
 //   · settings panel, footer buttons, split "Add to calendar ▾ Post now"
+//   · desktop layout: header, editor column, inspector (preview / settings),
+//     sticky footer; its width inside the side drawer (drawer.scss)
 // Tokens come from ../tadween.scss. `body` raises specificity above Tailwind
-// utilities on the same elements. Social previews are not touched here.
+// utilities on the same elements. Per-network social previews are not touched here.
 
 @keyframes tdw-ed-pop {
   from { opacity: 0; transform: scale(0.96) translateY(4px); }
@@ -32,6 +35,42 @@ body {
     height: 100% !important;
     border-radius: 50%;
     object-fit: cover;
+  }
+  // a picture that failed to load (TadweenAvatarImage)
+  .tdw-avatar-initials {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--tdw-primary-soft);
+    color: var(--tdw-primary);
+    font-size: 0.8em;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .tdw-ch-avatar .tdw-avatar-initials { font-size: 10px; }
+
+  // ── "All channels" identity in the shared preview ────────────────────────
+  .tdw-global-avatar {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--tdw-primary-soft);
+    color: var(--tdw-primary);
+  }
+  .tdw-net-marks {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    img {
+      width: 14px !important;
+      height: 14px !important;
+      border-radius: 3px;
+    }
   }
   .tdw-ch-avatar-net {
     position: absolute;
@@ -65,6 +104,7 @@ body {
     align-items: center;
     gap: 4px;
     width: 100%;
+    min-width: 0;
     padding: 4px;
     border-radius: 12px;
     background: var(--tdw-muted);
@@ -96,11 +136,19 @@ body {
       box-shadow: var(--tdw-shadow-sm);
     }
   }
-  .tdw-scope-name {
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  // one channel: its avatar only (name in the tooltip and aria-label)
+  .tdw-scope.tdw-scope-ch {
+    justify-content: center;
+    width: 42px;
+    padding: 0;
+    .tdw-ch-avatar-img,
+    .tdw-avatar-initials {
+      transition: box-shadow 150ms ease;
+    }
+    &.is-on .tdw-ch-avatar-img,
+    &.is-on .tdw-avatar-initials {
+      box-shadow: 0 0 0 2px var(--tdw-card), 0 0 0 3.5px var(--tdw-primary);
+    }
   }
   .tdw-scope-sep {
     flex: none;
@@ -113,32 +161,47 @@ body {
     position: relative;
     flex: none;
   }
+  // remove: a small red × on the tab's top-start corner (the avatar's
+  // top-end corner keeps the "own version" / "needs a fix" dot). Shown on the
+  // open tab, and on hover or keyboard focus, so the strip stays calm.
   .tdw-scope-x {
     position: absolute;
-    top: -3px;
-    inset-inline-end: -3px;
+    top: -1px;
+    inset-inline-start: -1px;
     display: grid;
     place-items: center;
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     padding: 0;
     border: 0;
     border-radius: 50%;
-    background: var(--tdw-foreground);
-    color: var(--tdw-card);
+    background: var(--tdw-card);
+    color: var(--tdw-destructive);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--tdw-destructive) 35%, transparent),
+      var(--tdw-shadow-sm);
     opacity: 0;
     transform: scale(0.8);
+    pointer-events: none;
     cursor: pointer;
-    transition: opacity 150ms ease, transform 200ms var(--tdw-ease-spring);
+    transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease,
+      transform 200ms var(--tdw-ease-spring);
+    // a bigger hit area than the dot it draws
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -5px;
+    }
+    &:hover {
+      background: var(--tdw-destructive);
+      color: #fff;
+    }
   }
+  .tdw-scope.is-on + .tdw-scope-x,
   .tdw-scope-item:hover .tdw-scope-x,
   .tdw-scope-x:focus-visible {
     opacity: 1;
     transform: none;
-  }
-  .tdw-scope-x:hover { background: var(--tdw-destructive); color: #fff; }
-  @media (hover: none) {
-    .tdw-scope-x { opacity: 1; transform: none; }
+    pointer-events: auto;
   }
 
   // ── "Own version" note and the lock card ─────────────────────────────────
@@ -297,7 +360,8 @@ body {
   .tdw-limits-empty { color: var(--tdw-warning); }
 
   // ── Checks chip ──────────────────────────────────────────────────────────
-  .tdw-checks-anchor { position: relative; display: flex; }
+  .tdw-checks-anchor { position: relative; display: flex; min-width: 0; }
+  .tdw-checks-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .tdw-checks {
     display: inline-flex;
     align-items: center;
@@ -401,10 +465,7 @@ body {
     font-weight: 500;
     color: var(--tdw-foreground);
     text-align: start;
-    cursor: pointer;
-    > svg { color: var(--tdw-muted-foreground); }
-    &:hover { background: var(--tdw-accent); }
-    &.is-open { border-bottom: 1px solid var(--tdw-border); }
+    border-bottom: 1px solid var(--tdw-border);
   }
   .tdw-pem-settings-label {
     display: flex;
@@ -529,6 +590,223 @@ body {
     &:disabled { opacity: 0.5; cursor: not-allowed; }
   }
   .tdw-pem-foot .tdw-dp-trigger { margin-inline-start: 0; }
+  .tdw-btn-icon { width: 44px; padding: 0; }
+  // the main action's shortcut, inside the primary button
+  .tdw-kbd {
+    padding: 3px 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.92);
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.02em;
+  }
+
+  // ── Desktop layout ───────────────────────────────────────────────────────
+  // header · [editor column | inspector] · footer. The inspector is the live
+  // preview or the channel settings; hiding it (`is-solo`) only hides it, the
+  // providers inside hold the post's forms.
+  @media (min-width: 1026px) {
+    .tdw-cm-head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 60px;
+      flex: none;
+      padding-block: 0;
+      padding-inline: 20px 12px;
+      border-bottom: 1px solid var(--tdw-border);
+    }
+    .tdw-cm-heading {
+      margin: 0;
+      margin-inline-end: 4px;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .tdw-cm-icon {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      flex: none;
+      padding: 0;
+      border: 0;
+      border-radius: 10px;
+      background: none;
+      color: var(--tdw-muted-foreground);
+      cursor: pointer;
+      transition: background-color 150ms ease, color 150ms ease;
+      &:hover { background: var(--tdw-accent); color: var(--tdw-foreground); }
+    }
+    // the customer picker sits with the header's quiet controls
+    .tdw-cm-head > :not(button):not(h2):not(.flex-1) { flex: none; }
+
+    .tdw-cm-inspector {
+      flex: none;
+      width: 460px;
+      min-height: 0;
+      border-inline-start: 1px solid var(--tdw-border);
+      background: var(--tdw-background);
+    }
+    .tdw-cm.is-solo .tdw-cm-inspector { display: none; }
+    .tdw-cm-inspector-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex: none;
+      padding: 14px 20px 2px;
+    }
+    .tdw-cm-inspector #wrapper-settings { padding-top: 14px; }
+
+    .tdw-pem-foot {
+      flex: none;
+      gap: 12px;
+      min-height: 72px;
+      padding: 14px 20px;
+      container-type: inline-size;
+    }
+    .tdw-pem-foot-start {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      > * { flex: none; white-space: nowrap; }
+      > .tdw-checks-anchor { flex: 0 1 auto; }
+      .tdw-checks { max-width: 100%; }
+    }
+    .tdw-cm-inspector-title {
+      padding: 5px 2px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    // a narrow composer (preview hidden): repeat and tags show their icons,
+    // the shortcut hint goes
+    .tdw-foot-label {
+      display: inline-block;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    @container (max-width: 900px) {
+      .tdw-foot-label,
+      .tdw-kbd,
+      .tdw-checks.is-ok .tdw-checks-label { display: none; }
+    }
+    .tdw-checks > svg { flex: none; }
+    .tdw-pem-foot-end {
+      display: flex;
+      flex: none;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+  @media (min-width: 1026px) and (max-width: 1300px) {
+    .tdw-cm-inspector { width: 400px; }
+  }
+
+  // a two-option segmented control (Preview / Settings, Desktop / Mobile)
+  .tdw-cm-seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--tdw-muted);
+    button {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 28px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 7px;
+      background: none;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--tdw-muted-foreground);
+      cursor: pointer;
+      transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+      &:hover { color: var(--tdw-foreground); }
+      &[aria-selected='true'],
+      &[aria-pressed='true'] {
+        background: var(--tdw-card);
+        color: var(--tdw-foreground);
+        box-shadow: var(--tdw-shadow-sm);
+      }
+    }
+    &.is-icons button { width: 32px; padding: 0; }
+  }
+  .tdw-cm-seg-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--tdw-destructive);
+  }
+
+  // the preview at a desktop feed's width, or in a phone-sized frame
+  .tdw-cm-stage {
+    width: 100%;
+    max-width: 560px;
+    margin-inline: auto;
+    transition: max-width 320ms var(--tdw-ease-spring);
+    &[data-device='mobile'] {
+      max-width: 360px;
+      min-height: 520px;
+      padding: 10px;
+      border-radius: 30px;
+      background: var(--tdw-card);
+      box-shadow: inset 0 0 0 1px var(--tdw-border), var(--tdw-shadow-md);
+    }
+  }
+  @media (max-width: 1025px) {
+    // phones are the mobile preview already
+    .tdw-cm-stage[data-device='mobile'] {
+      max-width: none;
+      padding: 0;
+      border-radius: 0;
+      background: none;
+      box-shadow: none;
+    }
+  }
+
+  // ── Inside the side drawer ───────────────────────────────────────────────
+  // A floating panel with the preview, narrower with it hidden, the whole
+  // screen when expanded (a two-pane page). The editor keeps a readable
+  // measure when the composer is that wide.
+  @media (min-width: 1026px) {
+    .tdw-drawer .tdw-cm {
+      width: min(1180px, calc(100vw - 56px));
+      padding: 8px;
+      transition: width 360ms var(--tdw-ease-spring), padding 200ms ease;
+      &.is-solo { width: min(800px, calc(100vw - 56px)); }
+      &.is-wide { width: 100vw; padding: 0; }
+    }
+    .tdw-drawer .tdw-cm-card {
+      overflow: hidden;
+      border-radius: 18px;
+      box-shadow: var(--tdw-shadow-lg);
+    }
+    .tdw-drawer .tdw-cm.is-wide .tdw-cm-card { border-radius: 0; box-shadow: none; }
+    .tdw-cm.is-wide .tdw-cm-inspector { width: min(620px, 40vw); }
+    .tdw-cm.is-wide.is-solo #social-content > * {
+      width: 100%;
+      max-width: 860px;
+      margin-inline: auto;
+    }
+    // the assistant opens from the header, not a floating button over the footer
+    .tdw-cm .copilotKitButton { display: none; }
+  }
+  @media (min-width: 1026px) and (prefers-reduced-motion: reduce) {
+    .tdw-drawer .tdw-cm,
+    .tdw-cm-stage { transition: none; }
+  }
 
   // Phones: the composer has its own top bar, accessory bar and sheets
   // (composer-mobile.scss); the settings panel lives in a TadweenSheet.

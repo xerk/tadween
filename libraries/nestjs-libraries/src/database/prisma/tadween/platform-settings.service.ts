@@ -81,14 +81,21 @@ export class PlatformSettingsService {
     return (await this.values())[KEYS.branding] || {};
   }
 
-  // What any visitor may read: no secrets, nothing per-user.
+  // What any visitor may read: no secrets, nothing per-user. `ai.available`
+  // only says whether an OpenAI key is set, so the app can hide the assistant
+  // instead of mounting it against a runtime that can't answer.
   async getPublicSettings() {
     const [mode, features, branding] = await Promise.all([
       this.getRegistrationMode(),
       this.getFeatures(),
       this.getBranding(),
     ]);
-    return { registration: { mode }, features, branding };
+    return {
+      registration: { mode },
+      features,
+      branding,
+      ai: { available: !!process.env.OPENAI_API_KEY },
+    };
   }
 
   setRegistrationMode(mode: RegistrationMode, userId: string) {

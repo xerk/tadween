@@ -73,6 +73,11 @@ export const RepeatComponent: FC<{
     return list.find((p) => p.value === repeat)?.label;
   }, [repeat, list]);
 
+  // Tadween: "Repeat Post" until one is set, it fits the composer footer
+  const repeatLabel = repeat
+    ? `${t('repeat_post_every_label', 'Repeat Post Every')} ${everyLabel}`
+    : t('repeat_post', 'Repeat Post');
+
   if (props.list) {
     // the radio list starts with "do not repeat", the dropdown ends with cancel
     const options = [
@@ -117,22 +122,22 @@ export const RepeatComponent: FC<{
         isOpen ? 'border-[#612BD3]' : 'border-newTextColor/10',
       )}
     >
-      <div
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-label={repeatLabel}
         onClick={() => setIsOpen(!isOpen)}
         className="px-[16px] justify-center flex gap-[8px] items-center h-full select-none flex-1"
       >
         <div className="cursor-pointer">
           <RepeatIcon />
         </div>
-        <div className="cursor-pointer">
-          {repeat
-            ? `${t('repeat_post_every_label', 'Repeat Post Every')} ${everyLabel}`
-            : t('repeat_post_every', 'Repeat Post Every...')}
-        </div>
+        <div className="cursor-pointer tdw-foot-label">{repeatLabel}</div>
         <div className="cursor-pointer">
           <DropdownArrowIcon rotated={isOpen} />
         </div>
-      </div>
+      </button>
       {isOpen && (
         <div className="z-[300] absolute start-0 bottom-[100%] w-[240px] bg-newBgColorInner p-[12px] menu-shadow -translate-y-[10px] flex flex-col">
           {list.map((p) => (

@@ -1,9 +1,52 @@
 'use client';
 
-import { FC, ReactNode } from 'react';
+import { FC, ReactNode, useEffect, useState } from 'react';
 import clsx from 'clsx';
 import SafeImage from '@gitroom/react/helpers/safe.image';
 import { Integrations } from '@gitroom/frontend/components/launches/calendar.context';
+import { GlobalIcon } from '@gitroom/frontend/components/ui/icons';
+
+const initials = (value: string) =>
+  value
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join('');
+
+// A channel picture that never shows a broken image: no picture uses the
+// default one, a picture that fails to load turns into the name's initials.
+export const TadweenAvatarImage: FC<{
+  src?: string | null;
+  name?: string;
+  size?: number;
+  className?: string;
+}> = ({ src, name = '', size, className }) => {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
+
+  if (failed) {
+    return (
+      <span
+        className={clsx('tdw-avatar-initials', className)}
+        role="img"
+        aria-label={name}
+        style={size ? { width: size, height: size } : undefined}
+      >
+        {initials(name) || '?'}
+      </span>
+    );
+  }
+
+  return (
+    <SafeImage
+      src={src || '/no-picture.jpg'}
+      alt={name}
+      className={className}
+      onError={() => setFailed(true)}
+    />
+  );
+};
 
 // Channel picture with its network badge, as used across the post editor
 // (scope strip, counter list, checks list). Styles: app/tadween/editor.scss.
@@ -17,16 +60,10 @@ export const TadweenChannelAvatar: FC<{
     className={clsx('tdw-ch-avatar', className)}
     style={{ width: size, height: size }}
   >
-    <SafeImage
-      src={integration.picture || '/no-picture.jpg'}
-      alt={integration.name}
-      width={size}
-      height={size}
+    <TadweenAvatarImage
+      src={integration.picture}
+      name={integration.name}
       className="tdw-ch-avatar-img"
-      onError={(e) => {
-        e.currentTarget.src = '/no-picture.jpg';
-        e.currentTarget.srcset = '/no-picture.jpg';
-      }}
     />
     {integration.identifier === 'youtube' ? (
       <img
@@ -44,5 +81,33 @@ export const TadweenChannelAvatar: FC<{
       />
     )}
     {dot}
+  </span>
+);
+
+// The "All channels" identity in the post preview: an icon, no picture to load.
+export const TadweenGlobalAvatar: FC<{ size?: number }> = ({ size = 40 }) => (
+  <span
+    className="tdw-global-avatar"
+    style={{ width: size, height: size }}
+    aria-hidden="true"
+  >
+    <GlobalIcon size={Math.round(size / 2)} />
+  </span>
+);
+
+// One mark per network the post goes to, side by side (no overlapping stack).
+export const TadweenNetworkMarks: FC<{ identifiers: string[] }> = ({
+  identifiers,
+}) => (
+  <span className="tdw-net-marks">
+    {identifiers.map((identifier) => (
+      <SafeImage
+        key={identifier}
+        src={`/icons/platforms/${identifier}.png`}
+        alt=""
+        width={14}
+        height={14}
+      />
+    ))}
   </span>
 );

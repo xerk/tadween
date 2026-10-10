@@ -117,8 +117,15 @@ export const PicksSocialsComponent: FC<{
                   'data-tooltip-content': integration.name,
                 })}
               >
-                <div
+                <button
+                  type="button"
                   onClick={toggleIntegration(integration)}
+                  aria-pressed={
+                    selectedIntegrations.findIndex(
+                      (p) => p.integration.id === integration.id
+                    ) !== -1
+                  }
+                  aria-label={integration.name}
                   className={clsx(
                     'cursor-pointer border-[2px] relative rounded-full flex justify-center items-center bg-fifth filter transition-all duration-500',
                     selectedIntegrations.findIndex(
@@ -144,7 +151,7 @@ export const PicksSocialsComponent: FC<{
                     height={42}
                   />
                   <PlatformBadge integration={integration} />
-                </div>
+                </button>
               </div>
             ))}
           </div>

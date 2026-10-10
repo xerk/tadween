@@ -64,6 +64,14 @@ export const SignatureModal: FC<{
   close: () => void;
   appendSignature: (sign: string) => void;
 }> = (props) => {
-  const { appendSignature } = props;
-  return <SignaturesComponent appendSignature={appendSignature} />;
+  const { appendSignature, close } = props;
+  // using a signature is the end of this dialog, back to the post
+  return (
+    <SignaturesComponent
+      appendSignature={(sign) => {
+        appendSignature(sign);
+        close();
+      }}
+    />
+  );
 };

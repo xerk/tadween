@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, useMemo, useState } from 'react';
+import { FC, useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { useShallow } from 'zustand/react/shallow';
 import { useClickOutside } from '@mantine/hooks';
@@ -14,10 +14,13 @@ import { TadweenIcon } from '@gitroom/frontend/components/tadween/editor/icons';
 import { TadweenSheet } from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
 
 export interface EditorIssue {
-  kind: 'empty' | 'too_long';
+  kind: 'empty' | 'too_long' | 'server';
   index: number;
   count?: number;
   limit?: number;
+  // kind 'server': what `/posts/valid` said, and whether a setting is the cause
+  message?: string;
+  settings?: boolean;
 }
 
 // Read-only checks from what the editor already holds: the same "empty" and
@@ -28,15 +31,19 @@ export interface EditorIssue {
 // uses (`chars`, from each provider's maximumCharacters).
 // `blank` is a post nobody has started yet: no text or media anywhere, so the
 // editor stays quiet instead of flagging every channel at once.
+// What the last save got back from `/posts/valid` (serverChecks: settings
+// errors and provider rules) joins the list for the channel it belongs to.
 export const useEditorChecks = () => {
-  const { selectedIntegrations, global, internal, chars } = useLaunchStore(
-    useShallow((state) => ({
-      selectedIntegrations: state.selectedIntegrations,
-      global: state.global,
-      internal: state.internal,
-      chars: state.chars,
-    }))
-  );
+  const { selectedIntegrations, global, internal, chars, serverChecks } =
+    useLaunchStore(
+      useShallow((state) => ({
+        selectedIntegrations: state.selectedIntegrations,
+        global: state.global,
+        internal: state.internal,
+        chars: state.chars,
+        serverChecks: state.serverChecks,
+      }))
+    );
 
   return useMemo(() => {
     const checks = selectedIntegrations
@@ -60,11 +67,22 @@ export const useEditorChecks = () => {
             issues.push({ kind: 'too_long', index, count, limit });
           }
         });
+        serverChecks
+          .filter((p) => p.id === integration.id)
+          .forEach((p) =>
+            issues.push({
+              kind: 'server',
+              index: 0,
+              message: p.message,
+              settings: p.settings,
+            })
+          );
         return { integration, issues, values };
       })
       .filter((p) => p.issues.length);
 
     const blank =
+      !serverChecks.length &&
       checks.length === selectedIntegrations.length &&
       checks.every(
         (p) =>
@@ -72,11 +90,15 @@ export const useEditorChecks = () => {
       );
 
     return { checks: blank ? [] : checks, blank };
-  }, [selectedIntegrations, global, internal, chars]);
+  }, [selectedIntegrations, global, internal, chars, serverChecks]);
 };
 
 const IssueLabel: FC<{ issue: EditorIssue }> = ({ issue }) => {
   const t = useT();
+  if (issue.kind === 'server') {
+    return <span>{issue.message}</span>;
+  }
+
   const where =
     issue.index === 0
       ? t('tdw_the_post', 'The post')
@@ -101,7 +123,13 @@ const IssueLabel: FC<{ issue: EditorIssue }> = ({ issue }) => {
   );
 };
 
-export const EditorChecks: FC<{ sheet?: boolean }> = ({ sheet }) => {
+// `onSettings` opens the channel settings, for an issue a setting causes;
+// `onPickChannels` is where "Choose a channel" goes when none is selected.
+export const EditorChecks: FC<{
+  sheet?: boolean;
+  onSettings?: () => void;
+  onPickChannels?: () => void;
+}> = ({ sheet, onSettings, onPickChannels }) => {
   const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useClickOutside<HTMLDivElement>(() => setOpen(false));
@@ -116,14 +144,45 @@ export const EditorChecks: FC<{ sheet?: boolean }> = ({ sheet }) => {
 
   const issueCount = checks.reduce((acc, p) => acc + p.issues.length, 0);
 
+  // a new problem (like a rejected save) opens the list on its own
+  const serverCount = checks.reduce(
+    (acc, p) => acc + p.issues.filter((i) => i.kind === 'server').length,
+    0
+  );
+  useEffect(() => {
+    if (serverCount && !sheet) {
+      setOpen(true);
+    }
+  }, [serverCount]);
+
+  if (!total && onPickChannels && !sheet) {
+    return (
+      <div className="tdw-checks-anchor">
+        <button
+          type="button"
+          className="tdw-checks is-issues"
+          onClick={onPickChannels}
+        >
+          <TadweenIcon name="users" size={15} />
+          <span className="tdw-checks-label">
+            {t('tdw_choose_a_channel', 'Choose a channel')}
+          </span>
+        </button>
+      </div>
+    );
+  }
+
   if (!total || blank) {
     return null;
   }
 
-  const jump = (integration: Integrations) => {
+  const jump = (integration: Integrations, issue: EditorIssue) => {
     setOpen(false);
     setCurrent(integration.id);
     setHide(true);
+    if (issue.settings) {
+      onSettings?.();
+    }
   };
 
   const label = issueCount
@@ -164,16 +223,30 @@ export const EditorChecks: FC<{ sheet?: boolean }> = ({ sheet }) => {
   }
 
   return (
-    <div ref={ref} className="tdw-checks-anchor">
+    <div
+      ref={ref}
+      className="tdw-checks-anchor"
+      onKeyDown={(e) => {
+        // Escape closes the list, not the composer behind it
+        if (e.key === 'Escape' && open) {
+          e.stopPropagation();
+          // Next hydrates the whole document, so React and the modal's
+          // Escape hotkey listen on the same node
+          e.nativeEvent.stopImmediatePropagation();
+          setOpen(false);
+        }
+      }}
+    >
       <button
         type="button"
         className={clsx('tdw-checks', issueCount ? 'is-issues' : 'is-ok')}
+        aria-label={label}
         aria-expanded={issueCount ? open : undefined}
         aria-haspopup={issueCount ? 'dialog' : undefined}
         onClick={() => issueCount && setOpen(!open)}
       >
         <TadweenIcon name={issueCount ? 'alert' : 'check'} size={15} />
-        {label}
+        <span className="tdw-checks-label">{label}</span>
       </button>
       {open && !!issueCount && (
         <div className="tdw-checks-pop" role="dialog">
@@ -191,7 +264,7 @@ export const EditorChecks: FC<{ sheet?: boolean }> = ({ sheet }) => {
 // Each channel with what to fix; tapping a line goes to that channel.
 const EditorChecksList: FC<{
   checks: ReturnType<typeof useEditorChecks>['checks'];
-  onJump: (integration: Integrations) => void;
+  onJump: (integration: Integrations, issue: EditorIssue) => void;
 }> = ({ checks, onJump }) => (
   <>
     {checks.map(({ integration, issues }) => (
@@ -205,9 +278,9 @@ const EditorChecksList: FC<{
             key={i}
             type="button"
             className="tdw-checks-item"
-            onClick={() => onJump(integration)}
+            onClick={() => onJump(integration, issue)}
           >
-            <TadweenIcon name="type" size={14} />
+            <TadweenIcon name={issue.settings ? 'sliders' : 'type'} size={14} />
             <IssueLabel issue={issue} />
             <TadweenIcon name="chevron" size={14} className="tdw-checks-go" />
           </button>

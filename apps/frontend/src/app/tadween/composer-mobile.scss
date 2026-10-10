@@ -534,33 +534,7 @@ body {
       &::-webkit-scrollbar { display: none; }
     }
     #social-content .tdw-scope { min-height: 36px; }
-    // remove a channel from its open pill only: a small muted × inside it
-    // (same button, same confirm dialog)
-    #social-content .tdw-scope-x { display: none; }
-    #social-content .tdw-scope.is-on + .tdw-scope-x {
-      display: grid;
-      top: 50%;
-      inset-inline-end: 4px;
-      width: 28px;
-      height: 28px;
-      margin-top: -14px;
-      background: none;
-      color: var(--tdw-muted-foreground);
-      opacity: 0.8;
-      transform: none;
-      &::before {
-        content: '';
-        position: absolute;
-        inset: 6px;
-        border-radius: 50%;
-        background: var(--tdw-muted);
-      }
-      svg { position: relative; width: 8px; height: 8px; }
-      &:active { opacity: 1; color: var(--tdw-destructive); }
-    }
-    #social-content .tdw-scope-item:has(.tdw-scope.is-on + .tdw-scope-x) .tdw-scope.is-on {
-      padding-inline-end: 34px;
-    }
+    #social-content .tdw-scope-ch { width: 44px; }
 
     // the floating assistant bubble would sit on the writing area
     .tdw-cm .copilotKitButton { display: none; }

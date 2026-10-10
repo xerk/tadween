@@ -898,6 +898,7 @@
   "tdw_all_channels": "كل الحسابات",
   "tdw_editing": "التحرير",
   "tdw_remove_channel": "إزالة الحساب",
+  "tdw_remove_channel_name": "إزالة {{name}}",
   "tdw_use_the_shared_post": "استخدم المنشور المشترك",
   "tdw_only_channel_gets_this_version": "هذه النسخة لـ {{name}} فقط.",
   "tdw_channel_uses_the_shared_post": "{{name}} يستخدم المنشور المشترك",

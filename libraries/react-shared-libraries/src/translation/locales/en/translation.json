@@ -856,6 +856,7 @@
   "tdw_all_channels": "All channels",
   "tdw_editing": "Editing",
   "tdw_remove_channel": "Remove channel",
+  "tdw_remove_channel_name": "Remove {{name}}",
   "tdw_use_the_shared_post": "Use the shared post",
   "tdw_only_channel_gets_this_version": "Only {{name}} gets this version.",
   "tdw_channel_uses_the_shared_post": "{{name}} uses the shared post",

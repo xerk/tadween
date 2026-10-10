@@ -19,6 +19,10 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 const SIDE_KEY = 'tdw-side';
 const readSide = () => {
+  // server render: the menu itself only renders in the browser
+  if (typeof window === 'undefined') {
+    return 'full';
+  }
   try {
     const saved = localStorage.getItem(SIDE_KEY);
     if (saved) {

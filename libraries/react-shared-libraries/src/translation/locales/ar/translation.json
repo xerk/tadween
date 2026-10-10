@@ -1105,13 +1105,16 @@
   "tdw_streak_days_many": "{{count}} يومًا",
   "tdw_streak_days_other": "{{count}} يوم",
   "tdw_channel_disabled": "معطّلة",
-  "tdw_side_needs": "تحتاج إعادة ربط: {{n}}",
   "tdw_all_customers": "كل العملاء",
-  "tdw_trial_days_left_zero": "انتهت فترة التجربة",
   "tdw_trial_days_left_one": "باقي يوم واحد في التجربة",
   "tdw_trial_days_left_two": "باقي يومان في التجربة",
   "tdw_trial_days_left_few": "باقي {{count}} أيام في التجربة",
   "tdw_trial_days_left_many": "باقي {{count}} يومًا في التجربة",
   "tdw_trial_days_left_other": "باقي {{count}} يوم في التجربة",
-  "tdw_choose_plan": "اختر خطة"
+  "tdw_choose_plan": "اختر خطة",
+  "tdw_side_needs_one": "قناة تحتاج إعادة ربط",
+  "tdw_side_needs_two": "قناتان تحتاجان إعادة ربط",
+  "tdw_side_needs_few": "{{count}} قنوات تحتاج إعادة ربط",
+  "tdw_side_needs_many": "{{count}} قناة تحتاج إعادة ربط",
+  "tdw_side_needs_other": "{{count}} قناة تحتاج إعادة ربط"
 }

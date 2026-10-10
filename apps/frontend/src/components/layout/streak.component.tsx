@@ -177,7 +177,10 @@ export const StreakComponent: FC = () => {
       <button
         ref={trigger}
         type="button"
-        className={clsx('tdw-streak flex items-center gap-[6px]', open && 'is-open')}
+        className={clsx(
+          'tdw-streak flex items-center gap-[6px]',
+          open && 'is-open'
+        )}
         aria-expanded={open}
         aria-label={`${title}: ${streakDays}`}
         onClick={() => setOpen(!open)}

@@ -66,7 +66,9 @@ export const useUpgradeOffer = () => {
       }
       const started = sub.subscription?.createdAt;
       const left = started
-        ? Math.ceil(TRIAL_DAYS - (Date.now() - new Date(started).getTime()) / DAY)
+        ? Math.ceil(
+            TRIAL_DAYS - (Date.now() - new Date(started).getTime()) / DAY
+          )
         : 0;
       return { daysLeft: left > 0 ? left : null };
     }
@@ -78,7 +80,7 @@ export const useUpgradeOffer = () => {
   }, [billingEnabled, user, settings, trial, sub, pricing, visible]);
 };
 
-export const useUpgradeLabel = (daysLeft: number | null) => {
+const useUpgradeLabel = (daysLeft: number | null) => {
   const t = useT();
   return daysLeft
     ? t('tdw_upgrade_days_left', 'Upgrade · {{n}} days left', {
@@ -95,11 +97,7 @@ export const UpgradeButton: FC = () => {
     return null;
   }
   return (
-    <Link
-      href="/billing"
-      className="tdw-upgrade-pill"
-      aria-label={label}
-    >
+    <Link href="/billing" className="tdw-upgrade-pill" aria-label={label}>
       <Icon name="sparkles" size={16} />
       <span className="tdw-upgrade-label">{label}</span>
     </Link>

@@ -399,7 +399,8 @@ html[dir='rtl'] .tdw-side-toggle svg {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 0 2px 4px 4px;
+  padding-block: 0 4px;
+  padding-inline: 4px 2px;
 }
 
 .tdw-side-heading-btn {
@@ -500,7 +501,8 @@ html[dir='rtl'] .tdw-side-heading-btn {
   gap: 10px;
   min-width: 0;
   height: 40px;
-  padding: 0 2px 0 8px;
+  padding-block: 0;
+  padding-inline: 8px 2px;
   border-radius: 9px;
   font-size: 14px;
   color: var(--tdw-foreground);
@@ -514,10 +516,6 @@ html[dir='rtl'] .tdw-side-heading-btn {
   &.is-disabled .tdw-ch-avatar {
     opacity: 0.55;
   }
-}
-
-html[dir='rtl'] .tdw-side-channel {
-  padding: 0 8px 0 2px;
 }
 
 .tdw-side-chname {
@@ -555,6 +553,13 @@ html[dir='rtl'] .tdw-side-channel {
 .tdw-side-channel:hover .tdw-side-chmenu,
 .tdw-side-channel:focus-within .tdw-side-chmenu {
   opacity: 1;
+}
+
+// no hover on touch screens: always show it
+@media (hover: none) {
+  .tdw-side-chmenu {
+    opacity: 1;
+  }
 }
 
 .tdw-side-addrail {

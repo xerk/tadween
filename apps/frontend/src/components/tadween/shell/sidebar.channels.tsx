@@ -1,6 +1,13 @@
 'use client';
 
-import { FC, useCallback, useContext, useMemo, useState } from 'react';
+import {
+  FC,
+  MouseEvent,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from 'react';
 import { useSWRConfig } from 'swr';
 import clsx from 'clsx';
 import { uniqBy } from 'lodash';
@@ -66,7 +73,11 @@ export const SidebarCreatePost: FC = () => {
         // the mobile slide-in menu closes on any click inside it
         e.stopPropagation();
         // nothing to post to yet: connect a channel first
-        integrations.length ? create() : addChannel();
+        if (integrations.length) {
+          create();
+        } else {
+          addChannel();
+        }
       }}
     >
       <Icon name="plus" size={18} />
@@ -77,10 +88,11 @@ export const SidebarCreatePost: FC = () => {
 
 const ChannelRow: FC<{
   integration: TodayIntegration;
+  collapsed: boolean;
   totalActive: number;
   onReconnect: (integration: TodayIntegration) => () => void;
   reload: () => void;
-}> = ({ integration, totalActive, onReconnect, reload }) => {
+}> = ({ integration, collapsed, totalActive, onReconnect, reload }) => {
   const t = useT();
   const user = useUser();
   const fix = needsReconnect(integration);
@@ -96,11 +108,22 @@ const ChannelRow: FC<{
     <div
       className={clsx(
         'tdw-side-channel',
-        fix && 'is-refresh',
         integration.disabled && 'is-disabled'
       )}
       data-tooltip-id="tdw-rail"
       data-tooltip-content={tip}
+      // the rail has no Reconnect button: the avatar reconnects, like the
+      // calendar's channel list
+      {...(fix && collapsed
+        ? {
+            role: 'button',
+            tabIndex: 0,
+            onClick: (e: MouseEvent) => {
+              e.stopPropagation();
+              onReconnect(integration)();
+            },
+          }
+        : {})}
     >
       <TadweenChannelAvatar integration={integration} size={28} />
       <span className="tdw-side-chname tdw-side-label" dir="auto">
@@ -157,8 +180,9 @@ export const SidebarChannels: FC<{ collapsed: boolean }> = ({ collapsed }) => {
       ).map((i) => ({ value: i.customer!.id!, label: i.customer!.name || '' })),
     [integrations]
   );
+  // the rail has no filter, so it lists every channel
   const shown = integrations.filter(
-    (i) => customer === 'all' || i.customer?.id === customer
+    (i) => collapsed || customer === 'all' || i.customer?.id === customer
   );
   const needs = integrations.filter(needsReconnect).length;
   const totalActive = integrations.filter((i) => !i.disabled).length;
@@ -172,7 +196,7 @@ export const SidebarChannels: FC<{ collapsed: boolean }> = ({ collapsed }) => {
 
   return (
     <CalendarContext.Provider value={context}>
-      <div className={clsx('tdw-side-section', open && 'is-open')}>
+      <div className="tdw-side-section">
         <span className="tdw-side-rule" aria-hidden="true" />
         <div className="tdw-side-heading tdw-side-label">
           <button
@@ -191,8 +215,8 @@ export const SidebarChannels: FC<{ collapsed: boolean }> = ({ collapsed }) => {
           {needs ? (
             <span
               className="tdw-side-needs"
-              title={t('tdw_side_needs', '{{n}} need reconnecting', {
-                n: needs,
+              title={t('tdw_side_needs', '{{count}} need reconnecting', {
+                count: needs,
               })}
             >
               <Icon name="refresh-cw" size={11} />
@@ -216,20 +240,23 @@ export const SidebarChannels: FC<{ collapsed: boolean }> = ({ collapsed }) => {
           <div className="tdw-side-chbody">
             {customers.length ? (
               <TadweenScope className="tdw-side-customer tdw-side-label">
-                <Select
-                  size="sm"
-                  icon="building-2"
-                  aria-label={t('customers', 'Customers')}
-                  value={customer}
-                  onChange={setCustomer}
-                  options={[
-                    {
-                      value: 'all',
-                      label: t('tdw_all_customers', 'All customers'),
-                    },
-                    ...customers,
-                  ]}
-                />
+                {/* the phone's slide-in menu closes on any click inside it */}
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Select
+                    size="sm"
+                    icon="building-2"
+                    aria-label={t('customers', 'Customers')}
+                    value={customer}
+                    onChange={setCustomer}
+                    options={[
+                      {
+                        value: 'all',
+                        label: t('tdw_all_customers', 'All customers'),
+                      },
+                      ...customers,
+                    ]}
+                  />
+                </div>
               </TadweenScope>
             ) : null}
             <div className="tdw-side-channels">
@@ -237,6 +264,7 @@ export const SidebarChannels: FC<{ collapsed: boolean }> = ({ collapsed }) => {
                 <ChannelRow
                   key={integration.id}
                   integration={integration}
+                  collapsed={collapsed}
                   totalActive={totalActive}
                   onReconnect={reconnect}
                   reload={reload}

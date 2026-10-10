@@ -21,6 +21,7 @@ import {
   Banner,
   Button,
   Dialog,
+  Drawer,
   EmptyState,
   Icon,
   IconButton,
@@ -392,7 +393,7 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
         id: 'chatgpt',
         name: 'ChatGPT',
         icon: clientIcon('ChatGPT'),
-        summary: t('tdw_api_chatgpt_summary', 'Custom connector, sign in'),
+        summary: t('tdw_api_chatgpt_summary', 'Custom connector in ChatGPT'),
         methods: [
           {
             value: 'connector',
@@ -1058,6 +1059,17 @@ const ConnectGallery: FC<{ context: ConnectContext }> = ({ context }) => {
   ) : (
     ''
   );
+  const authLabel = {
+    oauth: t('tdw_api_auth_oauth', 'Sign in'),
+    key: t('tdw_api_auth_key', 'API key'),
+    none: t('tdw_api_auth_none', 'Webhook'),
+  };
+  // the ways a client can connect, in the order its guide lists them
+  const auths = (g: ClientGuide) =>
+    g.methods
+      .map((m) => m.auth)
+      .filter((auth, i, all) => all.indexOf(auth) === i);
+
   const body = guide ? (
     <GuideBody key={guide.id} guide={guide} context={context} />
   ) : null;
@@ -1081,13 +1093,24 @@ const ConnectGallery: FC<{ context: ConnectContext }> = ({ context }) => {
                 setOpen(g.id);
               }}
             >
-              <span className="tdw-api-tile-ico">{g.icon}</span>
-              <span className="tdw-api-tile-text">
-                <span className="tdw-api-tile-name">{g.name}</span>
-                <span className="tdw-api-tile-sub">{g.summary}</span>
+              <span className="tdw-api-tile-top">
+                <span className="tdw-api-tile-ico">{g.icon}</span>
+                <span className="tdw-api-tile-go tdw-flip" aria-hidden="true">
+                  <Icon name="arrow-right" size={14} />
+                </span>
               </span>
-              <span className="tdw-api-tile-chev tdw-flip" aria-hidden="true">
-                <Icon name="chevron-right" size={16} />
+              <span className="tdw-api-tile-name">{g.name}</span>
+              <span className="tdw-api-tile-sub">{g.summary}</span>
+              <span className="tdw-api-tile-auth">
+                {auths(g).map((auth) => (
+                  <span key={auth} className="tdw-api-tile-tag">
+                    <Icon
+                      name={auth === 'oauth' ? 'lock' : auth === 'key' ? 'key-round' : 'webhook'}
+                      size={11}
+                    />
+                    {authLabel[auth]}
+                  </span>
+                ))}
               </span>
             </button>
           </li>
@@ -1103,9 +1126,15 @@ const ConnectGallery: FC<{ context: ConnectContext }> = ({ context }) => {
           <div className="tdw-ui">{body}</div>
         </TadweenSheet>
       ) : (
-        <Dialog open={!!open} onClose={close} title={title} size="lg">
+        <Drawer
+          open={!!open}
+          onClose={close}
+          title={title}
+          description={guide?.summary}
+          size="lg"
+        >
           {body}
-        </Dialog>
+        </Drawer>
       )}
     </SettingsSection>
   );

@@ -774,56 +774,76 @@ body {
     margin: 0;
     padding: 4px 0 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+    gap: 10px;
+    > li { display: flex; }
   }
+  // A card per client: logo, name, one plain line, how it connects
   .tdw-api-tile {
     width: 100%;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border: 0;
-    border-radius: 12px;
-    background: var(--tdw-muted);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 14px 14px 12px;
+    border: 1px solid var(--tdw-border);
+    border-radius: 14px;
+    background: var(--tdw-card);
     font: inherit;
     color: var(--tdw-foreground);
     text-align: start;
     cursor: pointer;
-    transition: background-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+    transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
     &:hover {
-      background: var(--tdw-card);
-      box-shadow: var(--tdw-shadow-sm), inset 0 0 0 1px var(--tdw-border);
-      .tdw-api-tile-chev { opacity: 1; transform: translateX(2px); }
+      border-color: color-mix(in srgb, var(--tdw-primary) 45%, var(--tdw-border));
+      box-shadow: 0 6px 20px -12px color-mix(in srgb, var(--tdw-foreground) 40%, transparent);
+      .tdw-api-tile-go { opacity: 1; transform: none; }
     }
     &:active { transform: scale(0.99); }
     &:focus-visible { outline: 2px solid var(--tdw-ring); outline-offset: 2px; }
   }
+  .tdw-api-tile-top { width: 100%; display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
   .tdw-api-tile-ico {
     flex: none;
     display: grid;
     place-items: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    background: var(--tdw-card);
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: var(--tdw-muted);
     box-shadow: inset 0 0 0 1px var(--tdw-border);
     color: var(--tdw-foreground);
   }
-  .tdw-api-tile-text { flex: 1; min-width: 0; display: grid; gap: 1px; }
-  .tdw-api-tile-name { font-size: 14px; line-height: 20px; font-weight: 600; }
-  .tdw-api-tile-sub {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 12.5px;
-    line-height: 17px;
+  .tdw-api-tile-go {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--tdw-muted);
+    color: var(--tdw-foreground);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 150ms ease, transform 150ms ease;
+  }
+  .tdw-api-tile-name { font-size: 15px; line-height: 20px; font-weight: 600; letter-spacing: -0.01em; }
+  .tdw-api-tile-sub { font-size: 13px; line-height: 18px; color: var(--tdw-muted-foreground); }
+  .tdw-api-tile-auth { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; padding-top: 10px; }
+  .tdw-api-tile-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: var(--tdw-muted);
+    font-size: 11.5px;
+    font-weight: 500;
     color: var(--tdw-muted-foreground);
   }
-  .tdw-api-tile-chev { flex: none; display: grid; color: var(--tdw-muted-foreground); opacity: 0.6; transition: opacity 150ms ease, transform 150ms ease; }
 
-  // A guide (in the dialog on desktop, the sheet on phones)
-  .tdw-api-guide-title { display: inline-flex; align-items: center; gap: 12px; .tdw-api-tile-ico { width: 34px; height: 34px; } }
+  // A guide (in the drawer on desktop, the sheet on phones)
+  .tdw-api-guide-title { display: inline-flex; align-items: center; gap: 12px; .tdw-api-tile-ico { width: 36px; height: 36px; border-radius: 10px; } }
   .tdw-api-guide { display: grid; gap: 16px; min-width: 0; font-size: 14px; line-height: 20px; color: var(--tdw-foreground); }
   .tdw-api-guide-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; > .pz-btn:last-child { margin-inline-start: auto; } }
   .tdw-api-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; counter-reset: none; }
@@ -1005,7 +1025,7 @@ body {
     // addresses take the full width under their label
     .tdw-api .tdw-set-row-control:has(.tdw-api-field) { flex: 1 1 100%; min-width: 0; justify-content: flex-start; margin-inline-start: 0; }
     .tdw-api .tdw-set-row-control .tdw-api-field { flex: 1; justify-content: space-between; }
-    .tdw-api-tiles { grid-template-columns: minmax(0, 1fr); }
+    .tdw-api-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .tdw-api-key-foot, .tdw-api-examples-foot { flex-wrap: wrap; }
     .tdw-api-guide { padding: 4px 16px 24px; }
   }
@@ -1013,7 +1033,8 @@ body {
 
 html[dir='rtl'] body {
   .tdw-settings-nav .tdw-flip, .tdw-settings-head .tdw-flip, .tdw-api-tile .tdw-flip { transform: scaleX(-1); }
-  .tdw-api-tile:hover .tdw-api-tile-chev { transform: scaleX(-1) translateX(2px); }
+  .tdw-api-tile .tdw-api-tile-go { transform: scaleX(-1) translateX(4px); }
+  .tdw-api-tile:hover .tdw-api-tile-go { transform: scaleX(-1); }
   @media (max-width: 1025px) {
     .tdw-settings.is-page .tdw-settings-body { animation-name: tdw-set-push-rtl; }
   }
@@ -1027,6 +1048,6 @@ html[dir='rtl'] body {
     .tdw-member,
     .tdw-save { animation: none !important; }
     .tdw-api-tile,
-    .tdw-api-tile-chev { transition: none; }
+    .tdw-api-tile-go { transition: none; }
   }
 }

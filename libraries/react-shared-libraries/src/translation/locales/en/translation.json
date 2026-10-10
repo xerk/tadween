@@ -1228,5 +1228,7 @@
   "tdw_apps_empty": "When you connect Claude, ChatGPT or another app by signing in, it shows up here.",
   "tdw_apps_unnamed": "Unnamed app",
   "authorized_on": "Authorized on",
-  "revoke": "Revoke"
+  "revoke": "Revoke",
+  "tdw_set_oauth_apps": "OAuth apps",
+  "tdw_set_oauth_apps_desc": "Build an app that other people connect with their own account."
 }

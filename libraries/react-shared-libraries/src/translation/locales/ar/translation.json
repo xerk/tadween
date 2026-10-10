@@ -1269,5 +1269,7 @@
   "tdw_apps_empty": "عندما تربط Claude أو ChatGPT أو تطبيقًا آخر بتسجيل الدخول، سيظهر هنا.",
   "tdw_apps_unnamed": "تطبيق بلا اسم",
   "authorized_on": "اعتُمد في",
-  "revoke": "إلغاء الوصول"
+  "revoke": "إلغاء الوصول",
+  "tdw_set_oauth_apps": "تطبيقات OAuth",
+  "tdw_set_oauth_apps_desc": "أنشئ تطبيقًا يربطه الآخرون بحساباتهم."
 }

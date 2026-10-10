@@ -19,6 +19,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import {
   ApiSettings,
   ApprovedAppsSettings,
+  OAuthAppsSettings,
 } from '@gitroom/frontend/components/tadween/settings/api.settings';
 import { useFeatures } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { TeamSettings } from '@gitroom/frontend/components/tadween/settings/team.settings';
@@ -214,6 +215,19 @@ export const SettingsPopup: FC<{
         ],
       });
     }
+    if (user?.tier?.public_api && isGeneral && showLogout && isOn('publicApi')) {
+      arr.push({
+        tab: 'oauth_apps',
+        group: 'developers',
+        icon: 'code',
+        label: t('tdw_set_oauth_apps', 'OAuth apps'),
+        description: t(
+          'tdw_set_oauth_apps_desc',
+          'Build an app that other people connect with their own account.'
+        ),
+        keywords: ['OAuth', 'pos_', 'client id', 'client secret', 'redirect URI'],
+      });
+    }
     arr.push({
       tab: 'approved_apps',
       group: 'developers',
@@ -357,6 +371,7 @@ export const SettingsPopup: FC<{
           {tab === 'autopost' && <AutopostSettings />}
           {tab === 'webhooks' && <WebhooksSettings />}
           {tab === 'api' && <ApiSettings />}
+          {tab === 'oauth_apps' && <OAuthAppsSettings />}
           {tab === 'approved_apps' && <ApprovedAppsSettings />}
           {tab === 'danger' && <DangerSettings />}
         </div>

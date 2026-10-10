@@ -23,7 +23,7 @@ import {
   getMcpConfig,
   isChatOnlyMcpClient,
   isSelfHosted,
-  localCliSteps,
+  fillCliSteps,
   McpAuth,
   McpClient,
   mcpClients,
@@ -38,6 +38,10 @@ import {
   Skeleton,
   TadweenScope,
 } from '@gitroom/frontend/components/tadween/ui';
+import {
+  useBrandLinks,
+  useFeatures,
+} from '@gitroom/frontend/components/tadween/instance/instance.settings';
 
 const LINKEDIN = ['linkedin', 'linkedin-page'];
 
@@ -87,6 +91,7 @@ const useConnected = () => {
 export const TadweenOnboarding: FC<{ onClose: () => void }> = ({ onClose }) => {
   const t = useT();
   const rtl = useDir();
+  const isOn = useFeatures();
   const [step, setStep] = useState(0);
   const [travel, setTravel] = useState(1);
   const connected = useConnected();
@@ -159,10 +164,10 @@ export const TadweenOnboarding: FC<{ onClose: () => void }> = ({ onClose }) => {
             </Button>
           ) : null}
           <span className="pz-ob-foot-note caption">
-            {step === 1
+            {step === 1 && isOn('publicApi')
               ? t(
                   'tdw_ob_agents_later',
-                  'More agents and full instructions are in Settings, Developers.'
+                  'More agents and full instructions are in Settings → API & MCP.'
                 )
               : null}
           </span>
@@ -202,6 +207,7 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
     Boolean
   ) as typeof social;
   const rest = social.filter((s) => !LINKEDIN.includes(s.identifier));
+  const article = data?.article || [];
 
   // The LinkedIn cards press Postiz's own provider tile, so the connect flow
   // (and whatever upstream changes in it) stays Postiz's
@@ -315,7 +321,7 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
         </div>
       )}
 
-      {rest.length > 0 && (
+      {(rest.length > 0 || article.length > 0) && (
         <div className="pz-ob-section">
           <h3 className="caption pz-ob-section-title">
             {t('tdw_ob_other_networks', 'Other networks')}
@@ -324,7 +330,7 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
             <AddProviderComponent
               invite={false}
               social={rest as any}
-              article={data?.article || []}
+              article={article}
               onboarding={true}
             />
           </div>
@@ -341,7 +347,6 @@ const otherTab = 'Other agents' as const;
 const otherAgents = mcpClients.filter((c) => !(onboardingAgents as readonly string[]).includes(c));
 const apiTab = 'API' as const;
 type OnboardingTab = OnboardingAgent | typeof otherTab | typeof apiTab;
-const cliCommands = localCliSteps.map((s) => s.code);
 
 const CopyBtn: FC<{ text: string; label: string }> = ({ text, label }) => {
   const toaster = useToaster();
@@ -379,7 +384,9 @@ const Panel: FC<{ title: ReactNode; desc?: ReactNode; children?: ReactNode; asid
 const AgentsStep: FC = () => {
   const t = useT();
   const user = useUser();
-  const { backendUrl, mcpUrl, billingEnabled } = useVariables();
+  const isOn = useFeatures();
+  const { backendUrl, mcpUrl, mcpOfficialConnectors } = useVariables();
+  const brand = useBrandLinks();
   const [tab, setTab] = useState<OnboardingTab>('Claude');
   const [otherAgent, setOtherAgent] = useState<McpClient>(otherAgents[0]);
   const agent: AnyMcpClient | typeof apiTab = tab === otherTab ? otherAgent : tab;
@@ -387,11 +394,16 @@ const AgentsStep: FC = () => {
   const [revealed, setRevealed] = useState(false);
   const mcpBase = mcpUrl || backendUrl;
   const apiKey = user?.publicApi || '';
-  const available = !!apiKey && !!user?.tier?.public_api;
-  const officialConnectors = billingEnabled || isSelfHosted;
+  // Same conditions as Settings → API & MCP, including the admin's switch
+  const apiOn = isOn('publicApi');
+  const available = apiOn && !!apiKey && !!user?.tier?.public_api;
+  // Directory connectors sign in through Postiz's cloud: opt-in only
+  const officialConnectors = !!mcpOfficialConnectors;
+  const cliCommands = fillCliSteps(backendUrl, revealed ? apiKey : '*'.repeat(apiKey.length)).map((s) => s.code);
+  const cliCopy = fillCliSteps(backendUrl, apiKey).map((s) => s.code);
 
   const { config, hint } =
-    agent === apiTab ? { config: '', hint: '' } : getMcpConfig(agent, auth, mcpBase, apiKey);
+    agent === apiTab ? { config: '', hint: '' } : getMcpConfig(agent, auth, mcpBase, apiKey, backendUrl);
   const maskedConfig =
     revealed || auth === 'oauth' || !apiKey
       ? config
@@ -458,15 +470,17 @@ const AgentsStep: FC = () => {
           title={t('tdw_documentation', 'Documentation')}
           desc={t('tdw_api_desc', 'Use the API from your own code, n8n or any other automation.')}
           aside={
-            <a
-              className="pz-btn pz-btn-primary pz-btn-md no-underline shrink-0"
-              href="https://docs.postiz.com/public-api/introduction"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Icon name="external-link" />
-              {t('tdw_read_api_docs', 'Read the API docs')}
-            </a>
+            brand.docs() ? (
+              <a
+                className="pz-btn pz-btn-primary pz-btn-md no-underline shrink-0"
+                href={brand.docs('/public-api/introduction')}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Icon name="external-link" />
+                {t('tdw_read_api_docs', 'Read the API docs')}
+              </a>
+            ) : undefined
           }
         />
         <Panel
@@ -533,7 +547,8 @@ const AgentsStep: FC = () => {
           >
             <pre className="pz-ob-code">{cliCommands.join('\n')}</pre>
             <div className="pz-ob-actions">
-              <CopyBtn text={cliCommands.join(' && ')} label={t('tdw_commands', 'Commands')} />
+              {reveal}
+              <CopyBtn text={cliCopy.join(' && ')} label={t('tdw_commands', 'Commands')} />
             </div>
           </Panel>
         </div>
@@ -589,10 +604,15 @@ const AgentsStep: FC = () => {
         <div className="pz-ob-panel">
           <div className="pz-ob-panel-body text-center">
             <p className="pz-muted m-0">
-              {t(
-                'tdw_agent_unavailable',
-                'Agent access is not on your current plan or role. You can set it up later in Settings, Developers.'
-              )}
+              {apiOn
+                ? t(
+                    'tdw_agent_unavailable',
+                    'Agent access is not on your current plan or role. You can set it up later in Settings → API & MCP.'
+                  )
+                : t(
+                    'tdw_agent_disabled',
+                    'Agent access through the API and MCP is turned off.'
+                  )}
             </p>
           </div>
         </div>
@@ -604,6 +624,18 @@ const AgentsStep: FC = () => {
 /* Step 3: the tutorial video */
 const TutorialStep: FC = () => {
   const t = useT();
+  // Tadween: our own video from /admin → Branding; without one, a short wrap-up
+  const { tutorialVideoUrl } = useBrandLinks();
+  if (!tutorialVideoUrl) {
+    return (
+      <div className="text-center grid gap-[4px]">
+        <h2 className="title-1">{t('tdw_ob_done_title', 'You’re all set')}</h2>
+        <p className="pz-ob-lead">
+          {t('tdw_ob_done_lead', 'Head to your calendar and schedule your first post.')}
+        </p>
+      </div>
+    );
+  }
   return (
     <>
       <div className="text-center grid gap-[4px]">
@@ -614,7 +646,7 @@ const TutorialStep: FC = () => {
       </div>
       <div className="pz-ob-video mx-auto max-w-[880px]">
         <iframe
-          src="https://www.youtube.com/embed/BdsCVvEYgHU?si=vvhaZJ8I5oXXvVJS?autoplay=1"
+          src={tutorialVideoUrl}
           title={t('tdw_tutorial', 'Tutorial')}
           allow="autoplay"
           allowFullScreen

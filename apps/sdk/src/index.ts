@@ -13,10 +13,21 @@ function toQueryString(obj: Record<string, any>): string {
 }
 
 export default class Postiz {
-  constructor(
-    private _apiKey: string,
-    private _path = 'https://api.postiz.com'
-  ) {}
+  // Tadween: there is no hosted default (it used to be api.postiz.com, which
+  // would send your key to Postiz's cloud). Pass your instance's API URL, or
+  // set POSTIZ_API_URL. Constructing without one still works; the first request
+  // fails with a clear error instead.
+  constructor(private _apiKey: string, private _url?: string) {}
+
+  private get _path() {
+    const url = this._url || process.env.POSTIZ_API_URL || '';
+    if (!url) {
+      throw new Error(
+        'No API URL: pass it as the second argument (new Postiz(key, "https://your-instance/api")) or set POSTIZ_API_URL'
+      );
+    }
+    return url.replace(/\/+$/, '');
+  }
 
   async post(posts: CreatePostDto) {
     return (

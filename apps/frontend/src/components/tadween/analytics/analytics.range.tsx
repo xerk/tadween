@@ -5,6 +5,7 @@ import {
   KeyboardEvent,
   ReactNode,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -69,7 +70,7 @@ const MonthGrid: FC<{
   head: ReactNode;
   onPick: (day: string) => void;
   onHover: (day: string | null) => void;
-  onKey: (e: KeyboardEvent) => void;
+  onKey: (e: KeyboardEvent<HTMLElement>) => void;
 }> = ({ month, draft, hover, focus, limits, fmt, head, onPick, onHover, onKey }) => {
   const t = useT();
   const first = dayjs(month).startOf('month');
@@ -158,12 +159,12 @@ const MonthGrid: FC<{
 
 /* DateInput: a typed YYYY-MM-DD day, applied when it's a real day in bounds */
 const DateInput: FC<{
-  id: string;
   label: string;
   value: string | null;
   limits: Limits;
   onChange: (day: string) => void;
-}> = ({ id, label, value, limits, onChange }) => {
+}> = ({ label, value, limits, onChange }) => {
+  const id = useId();
   const [text, setText] = useState(value || '');
   useEffect(() => setText(value || ''), [value]);
   const invalid = !!text && (!isYmd(text) || outOfBounds(text, limits));
@@ -258,24 +259,39 @@ const RangePanel: FC<{
     setView(dayjs(range.to).startOf('month').format(YMD));
   };
 
-  // arrows move between days (mirrored in RTL), Home / End to the week's ends
-  const onKey = (e: KeyboardEvent) => {
-    const rtl = document.dir === 'rtl';
+  // the day Tab lands on: the focused one, or the first pickable day shown
+  // once the month arrows moved away from it
+  const clampDay = (day: string) =>
+    limits.min && day < limits.min
+      ? limits.min
+      : day > limits.max
+      ? limits.max
+      : day;
+  const focusShown = visible.some((m) => dayjs(m).isSame(focus, 'month'));
+  const tabDay = focusShown ? focus : clampDay(visible[0]);
+
+  // arrows move between days (mirrored in RTL), Home / End to the week's
+  // ends, Page Up / Down a month; never past the days that can be picked
+  const onKey = (e: KeyboardEvent<HTMLElement>) => {
+    const rtl = getComputedStyle(e.currentTarget).direction === 'rtl';
+    const offset = (dayjs(tabDay).day() - fmt.weekStart + 7) % 7;
     const steps: Record<string, number> = {
       ArrowLeft: rtl ? 1 : -1,
       ArrowRight: rtl ? -1 : 1,
       ArrowUp: -7,
       ArrowDown: 7,
+      Home: -offset,
+      End: 6 - offset,
       PageUp: -30,
       PageDown: 30,
     };
     const step = steps[e.key];
-    if (!step) return;
+    if (step === undefined) return;
     e.preventDefault();
-    const next = dayjs(focus).add(step, 'day').format(YMD);
+    const next = clampDay(dayjs(tabDay).add(step, 'day').format(YMD));
     setFocus(next);
     show(next);
-    if (!outOfBounds(next, limits)) setHover(next);
+    setHover(next);
     requestAnimationFrame(() =>
       (gridsRef.current?.querySelector(`[data-day="${next}"]`) as HTMLElement | null)?.focus()
     );
@@ -326,7 +342,11 @@ const RangePanel: FC<{
     <button
       type="button"
       className="tdw-dp-nav"
-      disabled={dir > 0 && dayjs(view).isSame(today, 'month')}
+      disabled={
+        dir > 0
+          ? dayjs(view).isSame(today, 'month')
+          : !!limits.min && !dayjs(visible[0]).isAfter(limits.min, 'month')
+      }
       aria-label={
         dir < 0 ? t('previous_month', 'Previous month') : t('next_month', 'Next month')
       }
@@ -366,7 +386,7 @@ const RangePanel: FC<{
               month={month}
               draft={draft}
               hover={hover}
-              focus={focus}
+              focus={tabDay}
               limits={limits}
               fmt={fmt}
               onPick={pick}
@@ -385,7 +405,6 @@ const RangePanel: FC<{
 
         <div className="tdw-an-rp-fields">
           <DateInput
-            id="tdw-an-rp-from"
             label={t('tdw_an_rp_from', 'From')}
             value={draft.from}
             limits={limits}
@@ -401,7 +420,6 @@ const RangePanel: FC<{
             –
           </span>
           <DateInput
-            id="tdw-an-rp-to"
             label={t('tdw_an_rp_to', 'To')}
             value={draft.to || draft.from}
             limits={limits}
@@ -485,6 +503,17 @@ export const DateRangePicker: FC<{
     setOpen(false);
     trigger.current?.focus();
   };
+  // Escape or a click outside: focus goes back to the trigger unless the click
+  // gave it to something else (the anchor is a plain div that can't take it)
+  const dismiss = () => {
+    setOpen(false);
+    requestAnimationFrame(() => {
+      const active = document.activeElement;
+      if (!active || active === document.body || anchor.current?.contains(active)) {
+        trigger.current?.focus();
+      }
+    });
+  };
   const apply = (range: DayRange) => {
     onChange(range);
     close();
@@ -534,7 +563,7 @@ export const DateRangePicker: FC<{
           </TadweenScope>
         </TadweenSheet>
       ) : (
-        <Popover open={open} onClose={() => setOpen(false)} anchor={anchor} className="tdw-an-rp-pop">
+        <Popover open={open} onClose={dismiss} anchor={anchor} className="tdw-an-rp-pop">
           <div role="dialog" aria-label={t('tdw_an_date_range', 'Date range')}>
             {open ? (
               <RangePanel

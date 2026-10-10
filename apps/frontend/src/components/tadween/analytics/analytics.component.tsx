@@ -112,7 +112,7 @@ const downloadCsv = (name: string, rows: (string | number)[][]) => {
     )
     .join('\n');
   const url = URL.createObjectURL(
-    new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+    new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
   );
   const a = document.createElement('a');
   a.href = url;
@@ -215,14 +215,17 @@ export const TadweenAnalytics: FC = () => {
   const published = usePublishedPosts(channel?.id, postsWindow.from, postsWindow.to);
 
   // Daily series cropped to the range. A one-total series covers the whole
-  // request up to today, so it only matches a range that ends today.
+  // request up to today, so it only matches a range that ends today. "Today"
+  // alone is a 1-day request: nothing to crop.
   const rawSeries = analytics.data || NO_SERIES;
   const { series, totalsOnly } = useMemo(() => {
     const shown: AnalyticsSeries[] = [];
     const hidden: string[] = [];
     rawSeries.forEach((s) => {
-      if (!isPeriodTotal(s, requestDays)) {
-        shown.push(cropSeries(s, range));
+      if (requestDays === 1) {
+        shown.push(s);
+      } else if (!isPeriodTotal(s, requestDays, today)) {
+        shown.push(cropSeries(s, range, today));
       } else if (range.to === today) {
         shown.push(s);
       } else {
@@ -236,15 +239,15 @@ export const TadweenAnalytics: FC = () => {
     () =>
       keyBy(
         (analyticsBefore.data || NO_SERIES)
-          .filter((s) => !isPeriodTotal(s, previousDays))
-          .map((s) => cropSeries(s, previous)),
+          .filter((s) => !isPeriodTotal(s, previousDays, today))
+          .map((s) => cropSeries(s, previous, today)),
         'label'
       ),
-    [analyticsBefore.data, previousDays, previous]
+    [analyticsBefore.data, previousDays, previous, today]
   );
   const seriesDelta = (s: AnalyticsSeries) => {
     const prev = before[s.label];
-    return !isPeriodTotal(s, requestDays) && prev?.data.length
+    return !isPeriodTotal(s, requestDays, today) && prev?.data.length
       ? percentChange(summarise(s).value, summarise(prev).value)
       : null;
   };
@@ -290,7 +293,7 @@ export const TadweenAnalytics: FC = () => {
     downloadCsv(
       `tadween-analytics-${(channel?.name || 'all-channels')
         .toLowerCase()
-        .replace(/[^a-z0-9؀-ۿ]+/gi, '-')}-${range.from}_${range.to}.csv`,
+        .replace(/[^a-z0-9\u0600-\u06ff]+/gi, '-')}-${range.from}_${range.to}.csv`,
       [header, ...rows]
     );
   }, [series, buckets, dates, weekly, channel, range, t]);

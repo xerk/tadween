@@ -208,12 +208,14 @@ export const clampRange = (
   min?: string,
   today = todayYmd()
 ): DayRange => {
-  let from = range.from > range.to ? range.to : range.from;
-  let to = range.from > range.to ? range.from : range.to;
+  const swapped = range.from > range.to;
+  let from = swapped ? range.to : range.from;
+  let to = swapped ? range.from : range.to;
+  const asked = rangeLength({ from, to });
   if (to > today) to = today;
   if (min && from < min) from = min;
   if (from > to) {
-    return lastDays(Math.min(rangeLength(range), maxDays), today);
+    return lastDays(Math.max(1, Math.min(asked, maxDays)), today);
   }
   if (rangeLength({ from, to }) > maxDays) {
     from = dayjs(to).subtract(maxDays - 1, 'day').format(YMD);
@@ -240,19 +242,42 @@ export const useAnalyticsRange = () => {
   return [range, setRange] as const;
 };
 
-// A series some networks send as one total for the whole request (followers,
-// Instagram's likes…), dated today: it can't be cut to a range
-export const isPeriodTotal = (series: AnalyticsSeries, requestedDays: number) =>
-  requestedDays > 1 && series.data.length === 1;
+// Networks date points with the server's clock, which can be a day ahead of or
+// behind the user's: "today" on the server is within a day of today here
+const nearToday = (date: string, today: string) =>
+  Math.abs(dayjs(date).diff(dayjs(today), 'day')) <= 1;
 
-// The points of a daily series that fall inside the range
+// A series some networks send as one total for the whole request instead of
+// one point per day (followers, Instagram's likes…): its last point is dated
+// today and anything before it is zero (X starts with a 0 at the first day).
+// It can't be cut to a range. With 2 days requested ("Yesterday") a single
+// point dated yesterday is a daily one, so the date has to be today there.
+export const isPeriodTotal = (
+  series: AnalyticsSeries,
+  requestedDays: number,
+  today = todayYmd()
+) => {
+  const last = series.data[series.data.length - 1];
+  if (requestedDays <= 1 || !last) return false;
+  const dated =
+    requestedDays === 2 ? last.date >= today : nearToday(last.date, today);
+  return dated && series.data.slice(0, -1).every((p) => !Number(p.total));
+};
+
+// The points of a daily series that fall inside the range; a range ending
+// today keeps a point dated tomorrow on a server ahead of the user's clock
 export const cropSeries = (
   series: AnalyticsSeries,
-  range: DayRange
-): AnalyticsSeries => ({
-  ...series,
-  data: series.data.filter((p) => p.date >= range.from && p.date <= range.to),
-});
+  range: DayRange,
+  today = todayYmd()
+): AnalyticsSeries => {
+  const to =
+    range.to === today ? dayjs(today).add(1, 'day').format(YMD) : range.to;
+  return {
+    ...series,
+    data: series.data.filter((p) => p.date >= range.from && p.date <= to),
+  };
+};
 
 export const useAnalyticsRanges = () => {
   const { disableXAnalytics } = useVariables();

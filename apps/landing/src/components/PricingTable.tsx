@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Dict } from '@/content/types';
 import { SIGN_UP_URL } from '@/lib/config';
 import { TIER_LIMITS, type PlanView } from '@/lib/plans';
-import { detectCurrency, type Currency } from '@/lib/currency';
 import type { CompareRow } from '@/content/types';
 import { Accordion } from './Accordion';
 import { Icon, cx } from './Icon';
@@ -26,14 +25,13 @@ function Segmented<T extends string>({ label, value, options, onChange }: { labe
 }
 
 /** PricingTable from the design system: tiers with a Most popular flag, monthly or
-    yearly, in one currency (EGP, SAR or USD, from the visitor's location, with no switch),
-    the compare table and the FAQ. Every price is a placeholder. */
+    yearly, in US dollars (the plans and prices from Admin → Plans, see lib/plans.ts), the
+    compare table and the FAQ. */
 export function PricingTable({
   p,
   lang,
   numberLocale,
   plans,
-  source,
   compare = true,
   faq = true,
   compareHref,
@@ -42,28 +40,20 @@ export function PricingTable({
   lang: Dict['lang'];
   numberLocale: string;
   plans: PlanView[];
-  source: 'api' | 'static';
   compare?: boolean;
   faq?: boolean;
   compareHref?: string;
 }) {
   const [period, setPeriod] = useState<Period>('monthly');
-  // The static page can't know the visitor's currency, so the amounts stay hidden (in place,
-  // so nothing moves) until the browser has picked it from the time zone or locale region.
-  const [detected, setDetected] = useState<Currency | null>(null);
-  useEffect(() => setDetected(detectCurrency()), []);
-  const currency = detected ?? 'USD';
-  const pending = detected === null;
   const fmt = new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 2 });
   const yearly = period === 'yearly';
 
   const priceOf = (plan: PlanView) => {
-    const local = currency === 'EGP' ? plan.egp : currency === 'SAR' ? plan.sar : null;
-    const c: Currency = local ? currency : 'USD';
-    const prices = local ?? plan.usd;
-    const perMonth = yearly ? prices.yearly / 12 : prices.monthly;
-    return { cur: p.currencies[c], perMonth: fmt.format(Math.round(perMonth * 100) / 100), total: fmt.format(prices.yearly) };
+    const perMonth = yearly ? plan.usd.yearly / 12 : plan.usd.monthly;
+    return { perMonth: fmt.format(Math.round(perMonth * 100) / 100), total: fmt.format(plan.usd.yearly) };
   };
+  // The best yearly saving across the plans, from their own prices (none when yearly isn't cheaper).
+  const savePct = Math.max(0, ...plans.map((plan) => (plan.usd.monthly > 0 ? Math.round((1 - plan.usd.yearly / (plan.usd.monthly * 12)) * 100) : 0)));
   // -1 means unlimited, 0 means not included; anything else is a number.
   const count = (n: number) => (n < 0 ? p.unlimited : n === 0 ? false : fmt.format(n));
   /** A compare cell: read from the plan for rows that name a field (so plans edited in the
@@ -93,14 +83,9 @@ export function PricingTable({
 
   return (
     <div className="pz-pricing">
-      {/* Without JavaScript there is no currency detection: show the USD amounts. */}
-      <noscript>
-        <style>{'.pz-pricing .is-pending { visibility: visible; }'}</style>
-      </noscript>
       <div className="pz-pricing-toggle">
         <Segmented label={p.periodLabel} value={period} onChange={setPeriod} options={[{ value: 'monthly', label: p.monthly }, { value: 'yearly', label: p.yearly }]} />
-        <span className="pz-billtoggle-save caption">{p.save}</span>
-        <span className="pz-placeholder caption">{p.placeholder}</span>
+        {savePct > 0 ? <span className="pz-billtoggle-save caption">{p.save.replace('{pct}', fmt.format(savePct))}</span> : null}
       </div>
       <div className="pz-tiers">
         {plans.map((plan) => {
@@ -118,14 +103,14 @@ export function PricingTable({
                 {c.name}
               </h3>
               <p className="pz-tier-for">{c.for}</p>
-              <div className={cx('pz-tier-price', pending && 'is-pending')}>
-                <span className="pz-tier-cur caption">{price.cur}</span>
-                <span key={`${period}-${currency}`} className="metric pz-tier-amount">
+              <div className="pz-tier-price">
+                <span className="pz-tier-cur caption">{p.currency}</span>
+                <span key={period} className="metric pz-tier-amount">
                   {price.perMonth}
                 </span>
                 <span className="pz-tier-per">{p.perMonth}</span>
               </div>
-              <p className={cx('caption pz-muted pz-tier-bill', pending && yearly && 'is-pending')}>{yearly ? p.billedYearly.replace('{amount}', `${price.cur} ${price.total}`) : p.billedMonthly}</p>
+              <p className="caption pz-muted pz-tier-bill">{yearly ? p.billedYearly.replace('{amount}', `${p.currency} ${price.total}`) : p.billedMonthly}</p>
               <a className={cx('pz-btn pz-tier-cta', plan.popular ? 'pz-btn-primary' : 'pz-btn-secondary')} href={`${SIGN_UP_URL}?plan=${encodeURIComponent(plan.key)}`}>
                 {p.trial}
               </a>
@@ -141,7 +126,7 @@ export function PricingTable({
           );
         })}
       </div>
-      <p className="caption pz-muted pz-pricing-note">{source === 'api' ? p.noteApi : p.note}</p>
+      <p className="caption pz-muted pz-pricing-note">{p.note}</p>
       {compare ? (
         <div className="pz-compare" id="compare">
           <h3 className="title-2">{p.compareTitle}</h3>
@@ -155,8 +140,8 @@ export function PricingTable({
                     return (
                       <th key={plan.key} scope="col" className={cx(plan.popular && 'is-popular')}>
                         {copyOf(plan).name}
-                        <span className={cx('caption pz-muted', pending && 'is-pending')}>
-                          {price.cur} {price.perMonth}
+                        <span className="caption pz-muted">
+                          {p.currency} {price.perMonth}
                           {p.perMonthShort}
                         </span>
                       </th>

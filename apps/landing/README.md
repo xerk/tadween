@@ -23,11 +23,11 @@ All of these are read at build time (`NEXT_PUBLIC_*` values are inlined into the
 | --- | --- | --- |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:4200` | The Tadween app. Sign-up buttons go to `${APP_URL}/auth` and sign-in to `${APP_URL}/auth/login`. |
 | `NEXT_PUBLIC_SITE_URL` | `http://localhost:4300` | Where this site is served. Used for canonical URLs, hreflang, the sitemap and Open Graph. |
-| `NEXT_PUBLIC_API_URL` | unset | The Tadween API. When set, pricing reads plans from `GET ${API_URL}/instance/settings` (added in PR #4) at build time and refreshes them at most hourly. If it's unset, unreachable or has no plans saved, the site uses its built-in placeholder plans. The agent and AI client pages also use it for the MCP and API URLs in their examples (a placeholder otherwise). |
+| `NEXT_PUBLIC_API_URL` | unset | The Tadween API. When set, pricing reads plans from `GET ${API_URL}/instance/settings` (added in PR #4) and the pages that show prices re-read them at most every 60 seconds (ISR), so a change in Admin → Plans is live within a minute. If it's unset, unreachable or has no plans saved, the site quietly shows its built-in plans (`DEFAULT_PLANS` in `src/lib/plans.ts`) and logs a warning on the server. The agent and AI client pages also use it for the MCP and API URLs in their examples (a placeholder otherwise). |
 | `NEXT_PUBLIC_MCP_URL` | unset | Where the MCP server is served, when it isn't the API host (the app's `MCP_URL`). The agent and AI client pages build `/mcp` and `/mcp-oauth-dynamic` from it, falling back to `NEXT_PUBLIC_API_URL`. |
 | `NEXT_PUBLIC_SHOW_PROOF_PLACEHOLDERS` | unset | Set to `1` to show the home page's social-proof section with its marked placeholder slots (for previews). Leave it unset in production until real customer logos and quotes replace the placeholders in `src/content`. |
 
-All prices are placeholders, and the page says so. Each visitor sees one currency, picked in the browser from their time zone or locale region (EGP in Egypt, SAR in Saudi Arabia, USD elsewhere; `src/lib/currency.ts`), with no switch. The API returns USD prices only, so EGP and SAR amounts always come from the placeholders in `src/lib/plans.ts`.
+Prices are US dollars for every visitor (payments go through Stripe in USD): the monthly and yearly USD prices of each plan from the API, rendered in the static HTML with no currency detection. The yearly saving in the period toggle is worked out from those prices. Structured data carries no prices.
 
 ## Deploy
 
@@ -54,7 +54,7 @@ The image installs only this app's dependencies (no Prisma, no other workspace a
 - `src/lib/redirects.ts`: permanent redirects for retired URLs (the old tool pages, channel pages and AI client pages), built from the same lists in `routes.ts`, `channels.ts` and `aiClients.ts` and loaded by `next.config.ts`.
 - `src/app/og/[card]/route.tsx`: Open Graph images, generated at build time. They're in English for both languages, because the image renderer can't shape Arabic. The Arabic is written for Egyptian and Gulf readers in Modern Standard Arabic, not translated word for word.
 - `src/components/sections.tsx`: hero, the four-step flow, social proof (placeholders), features, channels, agent, steps, Arabic, FAQ, CTA and footer. These are server components. `pages.tsx` composes them into pages.
-- `src/components/PricingTable.tsx`: tiers, monthly or yearly, in the visitor's currency, the compare table and the FAQ.
+- `src/components/PricingTable.tsx`: tiers, monthly or yearly, in US dollars, the compare table and the FAQ.
 - `src/lib/motion/engine.ts`: GSAP word reveals, the pinned flow, reveals, tilt cards, the Arabic card flip and the CTA clip-path. It loads after hydration with a dynamic import.
 - `src/lib/motion/hero3d.ts`: the three.js week of tiles (one `InstancedMesh`). It's a separate chunk. A CSS poster of the same grid shows until the first frame is drawn, and stays if WebGL is unavailable. The scene renders only while it's on screen and the tab is visible, with the DPR capped at 1.75. Its colours come from the theme tokens.
 - `src/app/tokens.css`, `src/app/landing.css`: design tokens (light and dark) and the ported component styles.

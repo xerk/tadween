@@ -20,8 +20,8 @@ export function organization() {
   };
 }
 
-/** No offers: the site shows each visitor one price in their own currency, so structured
-    data carries no prices. */
+/** No offers: prices are edited in the app (Admin → Plans) and the page follows them within
+    a minute, so structured data carries no prices that could go stale. */
 export function softwareApplication(t: Dict) {
   return {
     '@context': 'https://schema.org',

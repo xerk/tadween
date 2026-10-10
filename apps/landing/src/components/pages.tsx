@@ -72,7 +72,7 @@ function PricingSection({ t, children }: { t: Dict; children: ReactNode }) {
 
 /** The home page, in either language. */
 export async function LandingPage({ t }: { t: Dict }) {
-  const { plans, source } = await loadPlans();
+  const plans = await loadPlans();
   return (
     <Shell t={t} path={PATHS.home} jsonLd={[organization(), softwareApplication(t)]}>
       <Hero t={t} />
@@ -83,7 +83,7 @@ export async function LandingPage({ t }: { t: Dict }) {
       <AllFeatures t={t} more />
       <Steps t={t} title={t.steps.title} items={t.steps.items} />
       <PricingSection t={t}>
-        <PricingTable p={t.pricing} lang={t.lang} numberLocale={t.numberLocale} plans={plans} source={source} compare={false} faq={false} compareHref={localePath(t.lang, PATHS.pricing)} />
+        <PricingTable p={t.pricing} lang={t.lang} numberLocale={t.numberLocale} plans={plans} compare={false} faq={false} compareHref={localePath(t.lang, PATHS.pricing)} />
       </PricingSection>
       <FaqSection id="faq" title={t.homeFaq.title} items={t.homeFaq.items} />
       <CTA t={t} />
@@ -93,14 +93,14 @@ export async function LandingPage({ t }: { t: Dict }) {
 
 /** The pricing page: tiers, the full compare table and the FAQ. */
 export async function PricingPage({ t }: { t: Dict }) {
-  const { plans, source } = await loadPlans();
+  const plans = await loadPlans();
   return (
-    // No offers in structured data: each visitor sees one price, in their own currency.
+    // No offers in structured data: prices change in Admin → Plans, and the data would lag.
     <Shell t={t} path={PATHS.pricing} jsonLd={[faqPage(t.pricing.faq)]}>
       <PageHead t={t} title={t.pricing.pageTitle} sub={t.pricing.pageSub} />
       <section className="pz-sec" aria-label={t.pricing.pageTitle}>
         <div className="pz-container">
-          <PricingTable p={t.pricing} lang={t.lang} numberLocale={t.numberLocale} plans={plans} source={source} />
+          <PricingTable p={t.pricing} lang={t.lang} numberLocale={t.numberLocale} plans={plans} />
         </div>
       </section>
       <CTA t={t} />

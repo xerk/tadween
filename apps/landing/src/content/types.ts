@@ -5,7 +5,7 @@ import type { ShotId } from '@/lib/shots';
 
 export type Lang = 'en' | 'ar';
 
-/** Placeholder plan copy and prices; the API (when configured) overrides prices and limits. */
+/** Translated copy for the known plans; prices and limits come from the plans themselves (lib/plans.ts). */
 export interface PlanCopy {
   key: string;
   name: string;
@@ -360,9 +360,10 @@ export interface Dict {
     periodLabel: string;
     monthly: string;
     yearly: string;
-    currencies: { EGP: string; SAR: string; USD: string };
+    /** The label before every amount (prices are US dollars). */
+    currency: string;
+    /** "{pct}" is the best yearly saving across the plans; hidden when there is none. */
     save: string;
-    placeholder: string;
     mostPopular: string;
     perMonth: string;
     billedMonthly: string;
@@ -371,7 +372,6 @@ export interface Dict {
     perMonthShort: string;
     trial: string;
     note: string;
-    noteApi: string;
     compareTitle: string;
     compareLink: string;
     included: string;

@@ -103,8 +103,6 @@ a { color: var(--primary); text-underline-offset: 3px; }
 /* ── Pricing ─────────────────────────────────────────── */
 .pz-billtoggle-save { padding: 3px 8px; border-radius: var(--radius-full); background: var(--success-soft); color: var(--success); font-weight: 600; }
 .pz-pricing { display: grid; grid-template-columns: minmax(0, 1fr); gap: 36px; }
-/* Amounts wait, in place, until the browser has picked the visitor's currency. */
-.pz-tier-price.is-pending, .pz-tier-bill.is-pending, .pz-compare-table .is-pending { visibility: hidden; }
 .pz-pricing-toggle { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; }
 .pz-tiers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 .pz-tier { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 28px 24px; border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); }

@@ -1,27 +1,10 @@
 import type { IconName } from '@/components/icons';
 import type { ClientAuth, ClientKind, McpTool } from '@/lib/aiClients';
+import type { FeatureKey } from '@/lib/plans';
 import type { FeatureSlug } from '@/lib/routes';
 import type { ShotId } from '@/lib/shots';
 
 export type Lang = 'en' | 'ar';
-
-/** Translated copy for the known plans, with no numbers in it: prices and limits come from
-    the plans themselves (lib/plans.ts). */
-export interface PlanCopy {
-  key: string;
-  name: string;
-  for: string;
-  features: string[];
-}
-
-export interface CompareRow {
-  label: string;
-  help: string;
-  /** Read the value from the plan (so plans edited in the app show here) instead of `values`. */
-  field?: 'channels' | 'teamMembers' | 'aiCredits' | 'webhooks' | 'autoPost';
-  /** Values per plan key; true = included, false = not included, string = a value. */
-  values?: Record<string, boolean | string>;
-}
 
 /** Which refund wording the Refund Policy shows: a refund window on the first payment, or no
     refunds except where the law requires (NEXT_PUBLIC_REFUND_DAYS=0). See lib/config.ts. */
@@ -418,30 +401,39 @@ export interface Dict {
     periodLabel: string;
     monthly: string;
     yearly: string;
-    /** The label before every amount (prices are US dollars). */
-    currency: string;
-    /** "{pct}" is the best yearly saving across the plans; hidden when there is none. */
+    /** On the Yearly option; "{pct}" is the yearly discount from the API. Hidden at 0. */
     save: string;
     mostPopular: string;
+    /** After the price: "/month". */
     perMonth: string;
     billedMonthly: string;
-    /** "{amount}" is replaced with the formatted yearly total. */
+    /** "{amount}" is the yearly total ("$470"). */
     billedYearly: string;
-    perMonthShort: string;
+    /** The plan CTA; "{days}" is the plan's trial length from `days`. */
     trial: string;
-    /** The first bullet of a translated plan, from the plan's own channel count; "{n}" is the count. */
-    channelsFeature: string;
-    note: string;
-    compareTitle: string;
-    compareLink: string;
+    /** The trial length by plural form (Intl.PluralRules); "{n}" is the number. `other`
+        covers any form left out. */
+    days: Partial<Record<Intl.LDMLPluralRule, string>> & { other: string };
+    /** The plan CTA when a plan has no trial. */
+    subscribe: string;
+    /** The home page's link to the pricing page. */
+    seeAll: string;
+    /** The strip under the cards with what every plan has. */
+    includedTitle: string;
     included: string;
+    /** A feature line one plan has and another doesn't. */
     notIncluded: string;
-    notListed: string;
-    faqTitle: string;
-    plans: PlanCopy[];
-    compare: CompareRow[];
-    faq: Faq[];
     unlimited: string;
+    /** The label of each generated feature line (lib/plans.ts FEATURE_KEYS), the value the
+        plan's own number; the app's tdw_plan_feature_* strings in the same words. */
+    features: Record<FeatureKey, string>;
+    /** Translations of the app's default plan descriptions (Admin → Plans text is English);
+        a description the admin changed shows as written. */
+    descriptions: Record<string, string>;
+    /** Short reassurances under the cards. */
+    trust: { icon: IconName; label: string }[];
+    faqTitle: string;
+    faq: Faq[];
   };
   cta: {
     title: string;

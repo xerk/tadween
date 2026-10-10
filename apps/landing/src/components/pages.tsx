@@ -5,7 +5,7 @@ import { CHANNELS, MORE_CHANNELS, OTHER_CHANNELS, channelBySlug, networkBySlug, 
 import { DOCS_API_URL, LEGAL, LEGAL_UPDATED, POLICY_URLS, REFUND_MODE } from '@/lib/config';
 import { FEATURES } from '@/lib/features';
 import { breadcrumbs, faqPage, organization, softwareApplication } from '@/lib/jsonld';
-import { loadPlans } from '@/lib/plans';
+import { loadPricing } from '@/lib/plans';
 import { FEATURE_SLUGS, LEGAL_PAGES, PATHS, channelPath, clientPath, localePath, type LegalPageKey } from '@/lib/routes';
 import { CHANNEL_SHOT, CHANNEL_SHOT_SLUGS, channelShotSrc } from '@/lib/shots';
 import { CopyButton } from './CopyButton';
@@ -72,7 +72,7 @@ function PricingSection({ t, children }: { t: Dict; children: ReactNode }) {
 
 /** The home page, in either language. */
 export async function LandingPage({ t }: { t: Dict }) {
-  const plans = await loadPlans();
+  const pricing = await loadPricing();
   return (
     <Shell t={t} path={PATHS.home} jsonLd={[organization(), softwareApplication(t)]}>
       <Hero t={t} />
@@ -83,7 +83,7 @@ export async function LandingPage({ t }: { t: Dict }) {
       <AllFeatures t={t} more />
       <Steps t={t} title={t.steps.title} items={t.steps.items} />
       <PricingSection t={t}>
-        <PricingTable p={t.pricing} lang={t.lang} numberLocale={t.numberLocale} plans={plans} agree={legalText(t, t.legal.pricingAgree)} compare={false} faq={false} compareHref={localePath(t.lang, PATHS.pricing)} />
+        <PricingTable p={t.pricing} numberLocale={t.numberLocale} pricing={pricing} agree={legalText(t, t.legal.pricingAgree)} compact moreHref={localePath(t.lang, PATHS.pricing)} />
       </PricingSection>
       <FaqSection id="faq" title={t.homeFaq.title} items={t.homeFaq.items} />
       <CTA t={t} />
@@ -91,16 +91,16 @@ export async function LandingPage({ t }: { t: Dict }) {
   );
 }
 
-/** The pricing page: tiers, the full compare table and the FAQ. */
+/** The pricing page: the plans, what every plan includes and the FAQ. */
 export async function PricingPage({ t }: { t: Dict }) {
-  const plans = await loadPlans();
+  const pricing = await loadPricing();
   return (
     // No offers in structured data: prices change in Admin → Plans, and the data would lag.
     <Shell t={t} path={PATHS.pricing} jsonLd={[faqPage(t.pricing.faq)]}>
       <PageHead t={t} title={t.pricing.pageTitle} sub={t.pricing.pageSub} />
       <section className="pz-sec" aria-label={t.pricing.pageTitle}>
         <div className="pz-container">
-          <PricingTable p={t.pricing} lang={t.lang} numberLocale={t.numberLocale} plans={plans} agree={legalText(t, t.legal.pricingAgree)} />
+          <PricingTable p={t.pricing} numberLocale={t.numberLocale} pricing={pricing} agree={legalText(t, t.legal.pricingAgree)} />
         </div>
       </section>
       <CTA t={t} />

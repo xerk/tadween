@@ -1,17 +1,22 @@
 'use client';
 
-import { FC, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, ReactNode, useMemo } from 'react';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { TadweenChannelAvatar } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 import {
-  Button,
   Icon,
-  Popover,
   SegmentedControl,
   Skeleton,
   cx,
 } from '@gitroom/frontend/components/tadween/ui';
-import { AnalyticsChannel } from './analytics.hooks';
+import {
+  AnalyticsChannel,
+  DayRange,
+  lastDays,
+  rangeLength,
+  todayYmd,
+} from './analytics.hooks';
+import { DateRangePicker } from './analytics.range';
 
 // Building blocks of the analytics page, kept generic so other screens can use
 // them (docs/tadween/analytics-agent.md). Styles: app/tadween/analytics.scss.
@@ -126,101 +131,42 @@ export const ChartCard: FC<{
   </section>
 );
 
-/* RangePicker: preset day ranges plus "last N days" up to `max` */
+/* RangePicker: one-tap "last N days" presets, and the FROM–TO date range */
 export const RangePicker: FC<{
   presets: number[];
-  max: number;
-  value: number;
-  onChange: (days: number) => void;
-}> = ({ presets, max, value, onChange }) => {
+  value: DayRange;
+  onChange: (range: DayRange) => void;
+  maxDays: number;
+  min?: string;
+  minReason?: string;
+}> = ({ presets, value, onChange, maxDays, min, minReason }) => {
   const t = useT();
-  const anchor = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(String(value));
-  const isPreset = presets.includes(value);
-
-  useEffect(() => {
-    if (open) {
-      setDraft(String(value));
-    }
-  }, [open]);
-
-  const options = [
-    ...presets.map((d) => ({
-      value: String(d),
-      label: t('tdw_an_days_short', '{{days}}d', { days: d }),
-    })),
-    {
-      value: 'custom',
-      label: isPreset
-        ? t('tdw_an_custom', 'Custom')
-        : t('tdw_an_last_n_days', 'Last {{days}} days', { days: value }),
-    },
-  ];
-
-  const apply = () => {
-    const days = Math.round(Number(draft));
-    if (days >= 1) {
-      onChange(Math.min(days, max));
-      setOpen(false);
-    }
-  };
-
+  const today = todayYmd();
+  // a preset is selected while the range is exactly its last N days
+  const selected =
+    value.to === today && presets.includes(rangeLength(value))
+      ? String(rangeLength(value))
+      : '';
   return (
-    <div className="pz-anchor tdw-an-range" ref={anchor}>
+    <DateRangePicker
+      value={value}
+      onChange={onChange}
+      presets={presets}
+      maxDays={maxDays}
+      min={min}
+      minReason={minReason}
+    >
       <SegmentedControl
         size="sm"
-        label={t('tdw_an_date_range', 'Date range')}
-        options={options}
-        value={isPreset ? String(value) : 'custom'}
-        onChange={(v) => {
-          if (v === 'custom') {
-            setOpen(true);
-            return;
-          }
-          onChange(Number(v));
-        }}
+        label={t('tdw_an_quick_ranges', 'Quick ranges')}
+        options={presets.map((d) => ({
+          value: String(d),
+          label: t('tdw_an_days_short', '{{days}}d', { days: d }),
+        }))}
+        value={selected}
+        onChange={(v) => onChange(lastDays(Number(v), today))}
       />
-      <Popover
-        open={open}
-        onClose={() => setOpen(false)}
-        anchor={anchor}
-        align="end"
-        width={260}
-      >
-        <form
-          className="tdw-an-custom"
-          onSubmit={(e) => {
-            e.preventDefault();
-            apply();
-          }}
-        >
-          <label className="tdw-an-custom-label" htmlFor="tdw-an-days">
-            {t('tdw_an_show_last', 'Show the last')}
-          </label>
-          <div className="tdw-an-custom-row">
-            <input
-              id="tdw-an-days"
-              className="pz-input tdw-an-custom-input"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={max}
-              value={draft}
-              autoFocus
-              onChange={(e) => setDraft(e.target.value)}
-            />
-            <span className="tdw-an-custom-unit">{t('tdw_an_days', 'days')}</span>
-          </div>
-          <p className="tdw-an-custom-help">
-            {t('tdw_an_custom_max', 'Up to {{max}} days for this view.', { max })}
-          </p>
-          <Button type="submit" variant="primary" size="sm" className="w-full">
-            {t('tdw_an_apply', 'Apply')}
-          </Button>
-        </form>
-      </Popover>
-    </div>
+    </DateRangePicker>
   );
 };
 

@@ -279,7 +279,7 @@ export const DEFAULT_PLANS: DefaultPlan[] = [
     trialDays: 7,
     mostPopular: false,
     ...limitsOf('STANDARD'),
-    features: ['5 channels', 'Unlimited scheduled posts', 'First comments and repeats', 'Best-time hints', 'Analytics'],
+    features: ['5 channels', 'Unlimited scheduled posts', 'First comments and repeats', 'Calendar and post previews', 'Analytics'],
     position: 0,
   },
   {
@@ -294,7 +294,7 @@ export const DEFAULT_PLANS: DefaultPlan[] = [
     trialDays: 7,
     mostPopular: false,
     ...limitsOf('TEAM'),
-    features: ['10 channels', 'Unlimited team members', 'Everything in Creator', 'Hook rewrites in Arabic and English', 'PDF carousel builder', 'Sets and signatures'],
+    features: ['10 channels', 'Unlimited team members', 'Everything in Creator', 'RSS auto-post', 'Sets and signatures'],
     position: 1,
   },
   {
@@ -324,7 +324,7 @@ export const DEFAULT_PLANS: DefaultPlan[] = [
     trialDays: 7,
     mostPopular: false,
     ...limitsOf('ULTIMATE'),
-    features: ['100 channels', 'Customer groups', 'Client-ready reports', 'Priority support in Arabic', 'Invoices in EGP or USD'],
+    features: ['100 channels', 'Everything in Team', 'Customer groups', 'Unlimited webhooks'],
     position: 3,
   },
 ];

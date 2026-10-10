@@ -114,7 +114,7 @@ a { color: var(--primary); text-underline-offset: 3px; }
 .pz-tier-for { margin: 0; font-size: 15px; line-height: 22px; color: var(--muted-foreground); min-height: 44px; }
 .pz-tier-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin-top: 6px; }
 .pz-tier-cur { color: var(--muted-foreground); font-weight: 600; }
-.pz-tier-amount { font-size: 40px; line-height: 44px; animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
+.pz-tier-amount { font-family: var(--font-sans); font-weight: 600; letter-spacing: -0.03em; font-size: 40px; line-height: 44px; animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
 .pz-tier-per { font-size: 13px; color: var(--muted-foreground); }
 .pz-tier-bill { margin: -4px 0 4px; }
 .pz-tier-cta { width: 100%; margin-bottom: 8px; }

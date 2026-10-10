@@ -9,7 +9,6 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
-import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { useInstanceSettings } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { McpClientIcon } from '@gitroom/frontend/components/public-api/mcp.client.icons';
 import { getMcpOauthUrl } from '@gitroom/frontend/components/public-api/public.component';
@@ -1458,30 +1457,25 @@ const PublicApiSection: FC<{ context: ConnectContext }> = ({ context }) => {
   );
 };
 
-const OAuthAppSection: FC = () => {
+// Its own settings tab (Developers → OAuth apps): building an app that other people
+// approve with their accounts. Same editor and endpoints as before (/user/oauth-app).
+export const OAuthAppsSettings: FC = () => {
   const t = useT();
-  const modal = useModals();
-  const open = useCallback(() => {
-    modal.openModal({
-      title: t('tdw_api_oauth_app', 'Your OAuth app'),
-      withCloseButton: true,
-      children: <DeveloperComponent />,
-    });
-  }, [modal, t]);
   return (
-    <SettingsSection title={t('tdw_api_oauth_apps', 'OAuth apps')}>
-      <SettingsRow
-        label={t('tdw_api_build_app', 'Building an app for other people?')}
-        description={t(
-          'tdw_api_build_app_desc',
-          'Create an OAuth app. People approve it with their own account and you get a pos_ token that works with the API, MCP and CLI like a key.'
-        )}
-      >
-        <Button variant="secondary" icon="code" onClick={open}>
-          {t('tdw_api_manage_app', 'Manage OAuth app')}
-        </Button>
-      </SettingsRow>
-    </SettingsSection>
+    <TadweenScope className="tdw-set-page tdw-api">
+      <SettingsSection title={t('tdw_api_oauth_apps', 'OAuth apps')}>
+        <SettingsRow
+          label={t('tdw_api_build_app', 'Building an app for other people?')}
+          description={t(
+            'tdw_api_build_app_desc',
+            'Create an OAuth app. People approve it with their own account and you get a pos_ token that works with the API, MCP and CLI like a key.'
+          )}
+        />
+        <div className="tdw-api-oauth-editor">
+          <DeveloperComponent />
+        </div>
+      </SettingsSection>
+    </TadweenScope>
   );
 };
 
@@ -1493,7 +1487,6 @@ export const ApiSettings: FC = () => {
       <ApiKeySection context={context} />
       <ConnectGallery context={context} />
       <PublicApiSection context={context} />
-      <OAuthAppSection />
     </TadweenScope>
   );
 };

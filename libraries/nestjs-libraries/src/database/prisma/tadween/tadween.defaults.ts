@@ -58,7 +58,7 @@ export const FEATURES: FeatureDefinition[] = [
   { key: 'plugs', group: 'Publishing', label: 'Plugs', description: 'Auto repost and auto plug when a post reaches a like threshold.', hides: 'Plugs in the sidebar', applied: true },
   { key: 'analytics', group: 'Workspace', label: 'Analytics', description: 'Channel and post analytics.', hides: 'Analytics in the sidebar', applied: true },
   { key: 'media', group: 'Workspace', label: 'Media library', description: 'The standalone media page. Uploading from the editor stays on.', hides: 'Media in the sidebar', applied: true },
-  { key: 'thirdParty', group: 'Workspace', label: 'Integrations', description: 'Third-party tools such as HeyGen.', hides: 'Integrations in the sidebar', applied: true },
+  { key: 'thirdParty', group: 'Workspace', label: 'Integrations', description: 'Third-party tools such as HeyGen. Off unless you switch it on.', hides: 'Integrations in the sidebar', applied: true },
   { key: 'signatures', group: 'Workspace', label: 'Signatures', description: 'Saved sign-offs added to posts.', hides: 'Settings → Signatures', applied: true },
   { key: 'sets', group: 'Workspace', label: 'Sets', description: 'Saved channel groups with a message template.', hides: 'Settings → Sets', applied: true },
   { key: 'shortLinks', group: 'Workspace', label: 'Short links', description: 'Shorten and track links in posts.', hides: 'Settings → Short links preference', applied: true },
@@ -82,7 +82,8 @@ export const featureDefaultsFromEnv = (): Record<FeatureKey, boolean> => {
     .split(',')
     .map((p) => p.trim())
     .filter(Boolean);
-  const offByDefault: FeatureKey[] = ['ugc'];
+  // off until the admin switches them on: UGC (a Postiz partner deal) and Integrations (hidden for now)
+  const offByDefault: FeatureKey[] = ['ugc', 'thirdParty'];
   return FEATURE_KEYS.reduce(
     (all, key) => ({
       ...all,

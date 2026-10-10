@@ -3,8 +3,7 @@
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
-import { useTranslation } from 'react-i18next';
-import { groupBy, orderBy, uniq } from 'lodash';
+import { groupBy, keyBy, orderBy, uniq } from 'lodash';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 import { TadweenChannelAvatar } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
@@ -28,12 +27,24 @@ import {
 import {
   AnalyticsChannel,
   AnalyticsSeries,
+  DayRange,
   OWN_DATA_MAX_DAYS,
   PublishedDate,
   PublishedPost,
+  YMD,
+  clampRange,
+  cropSeries,
+  daysBack,
+  isPeriodTotal,
+  lastDays,
+  previousRange,
+  rangeLength,
+  todayYmd,
   useAnalyticsChannels,
+  useAnalyticsRange,
   useAnalyticsRanges,
   useChannelAnalytics,
+  useFormatters,
   usePublishedPosts,
   useReconnectChannel,
 } from './analytics.hooks';
@@ -41,6 +52,11 @@ import {
 // Tadween analytics: pick "All channels" or one channel, a date range, and see
 // the network's own numbers (when its API has them) next to what the workspace
 // published from Tadween. Styles: app/tadween/analytics.scss.
+//
+// A network's endpoint only answers "the last N days up to today", so for a
+// FROM–TO range the page asks for N = days from FROM to today and crops every
+// daily series to the range; the previous period (the same length right before
+// FROM) is a second request the same way, when the network keeps that far back.
 
 type T = ReturnType<typeof useT>;
 
@@ -49,55 +65,6 @@ const DEFAULT_PRESETS = [7, 30, 90];
 const NO_SERIES: AnalyticsSeries[] = [];
 const NO_POSTS: PublishedPost[] = [];
 const NO_DATES: PublishedDate[] = [];
-
-// Numbers and dates in the UI language, Latin digits (same as Today)
-const useFormatters = () => {
-  const { i18n } = useTranslation();
-  const lang = (i18n.resolvedLanguage || 'en').replace('_', '-');
-  const locale = lang === 'ar' ? 'ar-EG-u-nu-latn' : lang;
-  return useMemo(() => {
-    const safe = <O,>(make: (l: string) => O) => {
-      try {
-        return make(locale);
-      } catch (e) {
-        return make('en');
-      }
-    };
-    const number = safe((l) => new Intl.NumberFormat(l));
-    const decimal = safe(
-      (l) => new Intl.NumberFormat(l, { maximumFractionDigits: 1 })
-    );
-    const day = safe(
-      (l) =>
-        new Intl.DateTimeFormat(l, {
-          day: 'numeric',
-          month: 'short',
-          timeZone: 'UTC',
-        })
-    );
-    const dateTime = safe(
-      (l) =>
-        new Intl.DateTimeFormat(l, {
-          day: 'numeric',
-          month: 'short',
-          hour: 'numeric',
-          minute: '2-digit',
-        })
-    );
-    return {
-      count: (v: number) => number.format(Math.round(v)),
-      percent: (v: number) => `${decimal.format(v)}%`,
-      // YYYY-MM-DD (as the networks send it) to "3 Oct"
-      day: (ymd: string) => {
-        const d = dayjs(ymd);
-        return d.isValid()
-          ? day.format(new Date(Date.UTC(d.year(), d.month(), d.date(), 12)))
-          : ymd;
-      },
-      dateTime: (iso: string) => dateTime.format(new Date(iso)),
-    };
-  }, [locale]);
-};
 
 // A network series: its total (or average for rates) and its points
 const summarise = (series: AnalyticsSeries) => {
@@ -109,19 +76,14 @@ const summarise = (series: AnalyticsSeries) => {
   };
 };
 
-// The range the page shows: the last `days` local days, today included
-const localRange = (days: number) => {
-  const from = dayjs().startOf('day').subtract(days - 1, 'day');
-  return { from, to: dayjs().endOf('day') };
-};
-
-// Published posts per local day (or per 7 days from the range's start, for
-// long ranges), oldest first; same window the backend counted
-const bucketPosts = (published: PublishedDate[], days: number) => {
+// Published posts per local day (or per 7 days from FROM, for long ranges),
+// oldest first; same window the backend counted
+const bucketPosts = (published: PublishedDate[], range: DayRange) => {
+  const days = rangeLength(range);
   const step = days > 45 ? 7 : 1;
-  const { from } = localRange(days);
+  const from = dayjs(range.from);
   const buckets = Array.from({ length: Math.ceil(days / step) }, (_, i) => ({
-    key: from.add(i * step, 'day').format('YYYY-MM-DD'),
+    key: from.add(i * step, 'day').format(YMD),
     total: 0,
   }));
   published.forEach((p) => {
@@ -150,7 +112,7 @@ const downloadCsv = (name: string, rows: (string | number)[][]) => {
     )
     .join('\n');
   const url = URL.createObjectURL(
-    new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
+    new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
   );
   const a = document.createElement('a');
   a.href = url;
@@ -206,7 +168,7 @@ export const TadweenAnalytics: FC = () => {
   const { channels, isLoading: channelsLoading } = useAnalyticsChannels();
 
   const [selectedId, setSelectedId] = useState<string | undefined>();
-  const [days, setDays] = useState(30);
+  const [requested, setRange] = useAnalyticsRange();
 
   const channel = channels.find((c) => c.id === selectedId);
   // a removed channel falls back to the overview
@@ -220,25 +182,77 @@ export const TadweenAnalytics: FC = () => {
   const status = channel ? channelStatus(channel, ranges.length > 0) : 'none';
   const networkData = !!channel && status === 'ok';
   const presets = networkData ? ranges : DEFAULT_PRESETS;
-  const max = networkData ? Math.max(...ranges) : OWN_DATA_MAX_DAYS;
-  const period = Math.min(days, max);
+  const maxDays = networkData ? Math.max(...ranges) : OWN_DATA_MAX_DAYS;
+  const today = todayYmd();
+  // a network keeps its last `maxDays` days; Tadween's posts go back as far as needed
+  const min = networkData ? lastDays(maxDays, today).from : undefined;
+  // the range shown: the one asked for, inside what this view can load
+  const range = useMemo(
+    () => clampRange(requested, maxDays, min, today),
+    [requested, maxDays, min, today]
+  );
+  const days = rangeLength(range);
+  const previous = useMemo(() => previousRange(range), [range]);
+  const requestDays = daysBack(range.from, today);
+  const previousDays = daysBack(previous.from, today);
 
   const analytics = useChannelAnalytics(
     networkData ? channel!.id : undefined,
-    period
+    requestDays
   );
-  // ISO strings stay the same for the whole day, so SWR keeps one key per range
-  const range = useMemo(() => {
-    const { from, to } = localRange(period);
-    return { from: from.toISOString(), to: to.toISOString() };
-  }, [period]);
-  const published = usePublishedPosts(channel?.id, range.from, range.to);
+  const analyticsBefore = useChannelAnalytics(
+    networkData && previousDays <= maxDays ? channel!.id : undefined,
+    previousDays
+  );
+  // local day boundaries; the same ISO strings all day, so SWR keeps one key per range
+  const postsWindow = useMemo(
+    () => ({
+      from: dayjs(range.from).startOf('day').toISOString(),
+      to: dayjs(range.to).endOf('day').toISOString(),
+    }),
+    [range]
+  );
+  const published = usePublishedPosts(channel?.id, postsWindow.from, postsWindow.to);
 
-  const series = analytics.data || NO_SERIES;
+  // Daily series cropped to the range. A one-total series covers the whole
+  // request up to today, so it only matches a range that ends today.
+  const rawSeries = analytics.data || NO_SERIES;
+  const { series, totalsOnly } = useMemo(() => {
+    const shown: AnalyticsSeries[] = [];
+    const hidden: string[] = [];
+    rawSeries.forEach((s) => {
+      if (!isPeriodTotal(s, requestDays)) {
+        shown.push(cropSeries(s, range));
+      } else if (range.to === today) {
+        shown.push(s);
+      } else {
+        hidden.push(s.label);
+      }
+    });
+    return { series: shown, totalsOnly: hidden };
+  }, [rawSeries, requestDays, range, today]);
+  // the same daily series over the previous period, by label
+  const before = useMemo(
+    () =>
+      keyBy(
+        (analyticsBefore.data || NO_SERIES)
+          .filter((s) => !isPeriodTotal(s, previousDays))
+          .map((s) => cropSeries(s, previous)),
+        'label'
+      ),
+    [analyticsBefore.data, previousDays, previous]
+  );
+  const seriesDelta = (s: AnalyticsSeries) => {
+    const prev = before[s.label];
+    return !isPeriodTotal(s, requestDays) && prev?.data.length
+      ? percentChange(summarise(s).value, summarise(prev).value)
+      : null;
+  };
+
   const posts = published.data?.posts || NO_POSTS;
   const dates = published.data?.published || NO_DATES;
-  const buckets = useMemo(() => bucketPosts(dates, period), [dates, period]);
-  const weekly = period > 45;
+  const buckets = useMemo(() => bucketPosts(dates, range), [dates, range]);
+  const weekly = days > 45;
 
   const postPoints: ChartPoint[] = useMemo(
     () => buckets.map((b) => ({ label: fmt.day(b.key), value: b.total })),
@@ -261,7 +275,7 @@ export const TadweenAnalytics: FC = () => {
       ...(weekly ? [] : buckets.map((b) => b.key)),
     ]).sort();
     const postsByDay = groupBy(dates, (p) =>
-      dayjs(p.publishDate).format('YYYY-MM-DD')
+      dayjs(p.publishDate).format(YMD)
     );
     const header = [
       t('tdw_an_csv_date', 'Date'),
@@ -276,10 +290,10 @@ export const TadweenAnalytics: FC = () => {
     downloadCsv(
       `tadween-analytics-${(channel?.name || 'all-channels')
         .toLowerCase()
-        .replace(/[^a-z0-9\u0600-\u06ff]+/gi, '-')}-${period}d.csv`,
+        .replace(/[^a-z0-9؀-ۿ]+/gi, '-')}-${range.from}_${range.to}.csv`,
       [header, ...rows]
     );
-  }, [series, buckets, dates, weekly, channel, period, t]);
+  }, [series, buckets, dates, weekly, channel, range, t]);
 
   // ── Tiles ───────────────────────────────────────────────────────────────
   const publishedTotal = published.data?.total ?? 0;
@@ -287,7 +301,7 @@ export const TadweenAnalytics: FC = () => {
     ? percentChange(publishedTotal, published.data.previous)
     : null;
   const deltaLabel = t('tdw_an_vs_previous_days', 'vs the {{days}} days before', {
-    days: period,
+    days,
   });
 
   const overviewTiles = useMemo(() => {
@@ -299,11 +313,11 @@ export const TadweenAnalytics: FC = () => {
     );
     return {
       activeChannels: Object.keys(byChannel).length,
-      perWeek: (publishedTotal / period) * 7,
+      perWeek: (publishedTotal / days) * 7,
       topNetwork: byNetwork[0],
       byNetwork,
     };
-  }, [dates, publishedTotal, period]);
+  }, [dates, publishedTotal, days]);
 
   const loadingPosts = published.isLoading;
   const loadingNetwork = networkData && analytics.isLoading;
@@ -369,9 +383,19 @@ export const TadweenAnalytics: FC = () => {
           <div className="tdw-an-head-actions">
             <RangePicker
               presets={presets}
-              max={max}
-              value={period}
-              onChange={setDays}
+              value={range}
+              onChange={setRange}
+              maxDays={maxDays}
+              min={min}
+              minReason={
+                networkData
+                  ? t(
+                      'tdw_an_rp_network_limit',
+                      '{{name}} shares only its last {{days}} days of analytics.',
+                      { name: channel!.name, days: maxDays }
+                    )
+                  : undefined
+              }
             />
             <Button
               size="sm"
@@ -450,7 +474,7 @@ export const TadweenAnalytics: FC = () => {
           </section>
         ) : null}
 
-        {networkData && !analytics.error && analytics.data && !series.length ? (
+        {networkData && !analytics.error && analytics.data && !rawSeries.length ? (
           <section className="tdw-an-card tdw-an-state">
             <TadweenEmptyState
               icon="chart"
@@ -500,8 +524,8 @@ export const TadweenAnalytics: FC = () => {
                     key={s.label + i}
                     label={s.label}
                     value={s.average ? fmt.percent(value) : fmt.count(value)}
-                    delta={s.percentageChange ? s.percentageChange : null}
-                    deltaLabel={t('tdw_an_reported_change', 'change reported by the network')}
+                    delta={seriesDelta(s)}
+                    deltaLabel={deltaLabel}
                     hint={s.average ? t('tdw_an_average', 'Average for the period') : undefined}
                     trend={values}
                   />
@@ -513,7 +537,7 @@ export const TadweenAnalytics: FC = () => {
               <KpiTile
                 label={t('tdw_an_per_week', 'Posts per week')}
                 value={fmt.count(overviewTiles.perWeek)}
-                hint={t('tdw_an_per_week_hint', 'Average over {{days}} days', { days: period })}
+                hint={t('tdw_an_per_week_hint', 'Average over {{days}} days', { days })}
                 loading={loadingPosts}
               />
               {!channel ? (
@@ -555,6 +579,17 @@ export const TadweenAnalytics: FC = () => {
             </>
           )}
         </div>
+
+        {networkData && !loadingNetwork && totalsOnly.length ? (
+          <p className="tdw-an-note">
+            <Icon name="info" size={14} />
+            {t(
+              'tdw_an_totals_today_only',
+              '{{metrics}}: the network only gives one total up to today, so they show when the range ends today.',
+              { metrics: totalsOnly.join(', ') }
+            )}
+          </p>
+        ) : null}
 
         {/* Charts */}
         <div className="tdw-an-grid">

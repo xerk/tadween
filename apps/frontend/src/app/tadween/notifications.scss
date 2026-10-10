@@ -1,0 +1,250 @@
+// Tadween notifications panel (components/tadween/notifications). Loaded from
+// global.scss. A popover under the top bar's bell on desktop, the composer's
+// bottom sheet on phones. Each row: the channel with its network and a status
+// mark, what happened, the post it was about, and the next step. Colour only
+// carries meaning (green = published, red = failed, amber = needs you).
+
+@keyframes tdw-notif-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+}
+@keyframes tdw-notif-row-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+body {
+  .tdw-notif-popover {
+    position: absolute;
+    top: 100%;
+    inset-inline-end: 0;
+    z-index: 600;
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    width: 420px;
+    max-width: calc(100vw - 24px);
+    max-height: min(620px, calc(100dvh - 96px));
+    border-radius: var(--tdw-radius-lg);
+    background: var(--tdw-popover);
+    color: var(--tdw-foreground);
+    box-shadow: var(--tdw-shadow-lg);
+    overflow: hidden;
+    cursor: default;
+    user-select: text;
+    transform-origin: top right;
+    animation: tdw-notif-pop 220ms var(--tdw-ease-spring) both;
+  }
+  html[dir='rtl'] & .tdw-notif-popover { transform-origin: top left; }
+
+  .tdw-notif-scope {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    background: transparent;
+    font-size: 14px;
+  }
+
+  // ── Header and filters ──────────────────────────────────────────────────
+  .tdw-notif-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px 10px;
+  }
+  .tdw-notif-header h2 { margin: 0; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--foreground); }
+  .tdw-notif-markall {
+    padding: 4px 6px;
+    margin: -4px -6px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--primary);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .tdw-notif-markall:hover { background: var(--primary-soft); }
+  .tdw-notif-markall:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  .tdw-notif-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tdw-notif-toolbar .pz-seg { width: 100%; }
+
+  .tdw-notif-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: 6px;
+  }
+  .tdw-notif-scroll .pz-empty { padding-block: 36px; }
+
+  // ── Groups and rows ─────────────────────────────────────────────────────
+  .tdw-notif-group-label {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    margin: 0;
+    padding: 10px 16px 6px;
+    background: var(--popover);
+    color: var(--muted-foreground);
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  html[dir='rtl'] & .tdw-notif-group-label { letter-spacing: 0; }
+  .tdw-notif-list { margin: 0; padding: 0; list-style: none; }
+
+  .tdw-notif-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px 16px;
+    animation: tdw-notif-row-in 320ms var(--ease-spring) both;
+    animation-delay: calc(var(--i, 0) * 30ms);
+    transition: background-color var(--duration-fast) ease;
+  }
+  .tdw-notif-row + .tdw-notif-row::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    inset-inline: 64px 16px;
+    border-top: 1px solid var(--border);
+  }
+  .tdw-notif-row:hover { background: color-mix(in srgb, var(--foreground) 3%, transparent); }
+  .tdw-notif-row.is-unread { background: color-mix(in srgb, var(--primary-soft) 55%, transparent); }
+  .tdw-notif-row.is-skeleton { animation: none; }
+  .tdw-notif-row.is-skeleton .tdw-notif-main { gap: 8px; padding-top: 2px; }
+
+  .tdw-notif-unread {
+    position: absolute;
+    top: 26px;
+    inset-inline-start: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+
+  .tdw-notif-who { position: relative; width: 36px; height: 36px; }
+  .tdw-notif-who .tdw-ch-avatar-net { width: 15px !important; height: 15px !important; min-width: 15px; border-radius: 4px; box-shadow: 0 0 0 2px var(--popover); }
+  .tdw-notif-icon {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  .tdw-notif-status {
+    position: absolute;
+    top: -3px;
+    inset-inline-end: -4px;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    color: #fff;
+    background: var(--muted-foreground);
+    box-shadow: 0 0 0 2px var(--popover);
+  }
+  .tdw-notif-status .pz-icon, .tdw-notif-status svg { stroke-width: 3; }
+
+  .is-ok .tdw-notif-status { background: var(--success); }
+  .is-bad .tdw-notif-status { background: var(--destructive); }
+  .is-warn .tdw-notif-status { background: var(--warning); }
+  .is-ok .tdw-notif-icon { color: var(--success); background: color-mix(in oklab, var(--success) 12%, var(--popover)); }
+  .is-bad .tdw-notif-icon { color: var(--destructive); background: color-mix(in oklab, var(--destructive) 12%, var(--popover)); }
+  .is-warn .tdw-notif-icon { color: var(--warning); background: color-mix(in oklab, var(--warning) 14%, var(--popover)); }
+
+  .tdw-notif-main { display: grid; gap: 2px; min-width: 0; }
+  .tdw-notif-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; }
+  .tdw-notif-title { min-width: 0; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--foreground); }
+  .tdw-notif-time { flex: none; font-size: 12px; line-height: 16px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tdw-notif-channel { font-size: 12px; line-height: 16px; color: var(--muted-foreground); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+  .tdw-notif-post { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 10px; margin-top: 6px; }
+  .tdw-notif-text {
+    margin: 0;
+    font-size: 13px;
+    line-height: 19px;
+    color: var(--foreground);
+    opacity: 0.86;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    text-align: start;
+  }
+  .tdw-notif-row > .tdw-notif-main > .tdw-notif-text { margin-top: 4px; }
+  .tdw-notif-thumb {
+    display: block;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--muted);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .tdw-notif-thumb img, .tdw-notif-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .tdw-notif-reason, .tdw-notif-detail {
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 17px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+  .tdw-notif-detail { color: var(--muted-foreground); }
+  .tdw-notif-reason {
+    padding: 6px 8px;
+    border-radius: 8px;
+    color: var(--destructive);
+    background: color-mix(in oklab, var(--destructive) 8%, var(--popover));
+  }
+
+  .tdw-notif-inline-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--primary);
+    font-weight: 500;
+    text-decoration: none;
+    vertical-align: baseline;
+  }
+  .tdw-notif-inline-link:hover { text-decoration: underline; }
+
+  .tdw-notif-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+  .tdw-notif-acts:empty { display: none; }
+  .tdw-notif-acts .pz-btn-sm { height: 30px; }
+
+  // ── Phone: the composer's bottom sheet ──────────────────────────────────
+  .tdw-notif-sheet .tdw-sheet-body { display: flex; flex-direction: column; padding: 0; }
+  .tdw-notif-sheet .tdw-notif-scope { background: var(--tdw-popover); }
+  .tdw-notif-sheet .tdw-notif-toolbar { flex-wrap: wrap; row-gap: 8px; padding-top: 4px; }
+  .tdw-notif-sheet .tdw-notif-toolbar .pz-seg { flex: 1 1 100%; }
+  .tdw-notif-sheet .tdw-notif-markall { margin: 0; margin-inline-start: auto; }
+  .tdw-notif-sheet .tdw-notif-scroll { overflow: visible; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+  .tdw-notif-sheet .tdw-notif-acts .pz-btn-sm { height: 34px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tdw-notif-popover, .tdw-notif-row { animation: none; }
+  }
+}

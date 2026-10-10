@@ -55,6 +55,10 @@ import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/adm
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { GetOrgActivityDto } from '@gitroom/nestjs-libraries/dtos/analytics/get.org.activity.dto';
 import dayjs from 'dayjs';
+import {
+  PROVIDER_NOT_AVAILABLE,
+  ProviderSettingsService,
+} from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-settings.service';
 
 @ApiTags('Public API')
 @Controller('/public/v1')
@@ -69,7 +73,8 @@ export class PublicIntegrationsController {
     private _usersService: UsersService,
     private _adminStatsService: AdminStatsService,
     private _organizationService: OrganizationService,
-    private _clippingService: ClippingService
+    private _clippingService: ClippingService,
+    private _providerSettings: ProviderSettingsService
   ) {}
 
   @Post('/upload')
@@ -297,6 +302,12 @@ export class PublicIntegrationsController {
         .includes(integration)
     ) {
       throw new HttpException({ msg: 'Integration not allowed' }, 400);
+    }
+
+    // Tadween: only providers the super admin made available (on, with app
+    // keys) can be newly connected; reconnecting (refresh) always works.
+    if (!refresh && !(await this._providerSettings.isAvailable(integration))) {
+      throw new HttpException({ msg: PROVIDER_NOT_AVAILABLE }, 400);
     }
 
     // A provider migrated via MIGRATE_PROVIDERS reconnects through its target

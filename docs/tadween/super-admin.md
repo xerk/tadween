@@ -28,7 +28,9 @@ Apply the schema with `pnpm run prisma-db-push`. Every reader catches a missing 
 
 - Features default to on, except the Postiz partner shortcuts `ugc` (AgentMedia UGC videos) and `affiliate`, which start off. `TADWEEN_DISABLED_FEATURES="plugs,agent"` turns features off and `TADWEEN_ENABLED_FEATURES="ugc"` turns the partner shortcuts on, until the admin saves a value.
 - Registration falls back to `DISABLE_REGISTRATION` (closed), then `INVITE_ONLY_REGISTRATION` (invite), then open.
-- Providers default to LinkedIn and LinkedIn Page first, followed by Postiz's own order, all enabled. `HIDDEN_PROVIDERS` still hides a provider whatever the setting says.
+- Providers default to LinkedIn and LinkedIn Page first, followed by Postiz's own order. Until the admin saves Admin → Channels, only the **focus networks** are on: `linkedin`, `linkedin-page`, `instagram`, `instagram-standalone`, `facebook`, `threads` and `youtube` (`FOCUS_PROVIDERS` in `tadween.defaults.ts`). `TADWEEN_ENABLED_PROVIDERS="linkedin,linkedin-page,x"` replaces that list. Once saved, the admin's choice wins; a provider with no saved row (for example one added upstream later) falls back to the focus list. `HIDDEN_PROVIDERS` still hides a provider whatever the setting says.
+- **What customers can add**: a provider shows in Add channel (and in onboarding, Today, the calendar and the composer, which all read `GET /integrations`) only when it is on, its app keys are set (`ProviderCredentialsService.isConfigured`: every name in `PROVIDER_CREDENTIALS[identifier].required`, plus one complete `anyOf` group, set in the console or as env vars; providers with no entry need no keys) and `HIDDEN_PROVIDERS` doesn't list it. Starting a new connect for any other provider returns 400 (`GET /integrations/social/:id`, `GET /public/v1/social/:id` and the `POST /integrations/social-connect/:id` callback).
+- **Channels already connected are never affected**: they keep publishing, refreshing and showing in the calendar and composer, and can still reconnect (`?refresh=`). A workspace that already has a channel of a hidden type can re-enter that channel's credentials; the callback then only accepts the same account. Publishing and token refresh run in the orchestrator, which doesn't read these settings.
 - Plans are seeded **on request**: Admin → Plans → "Add the Tadween plans" creates Creator, Pro, Team and Agency from the design system. Their prices are **placeholders**. Seeding is not automatic because it would change what an existing instance charges.
 
 ## Pricing: how plans reach billing
@@ -71,7 +73,7 @@ Changes to existing routes:
 The console has its own full-screen layout, the Subscribers page, provider keys and one DataTable for every list: see [admin-console.md](admin-console.md).
 
 - **Overview**: stat tiles, subscriptions per tier, instance summary, and links to Post errors and Usage stats (the existing Postiz pages, now inside the console frame).
-- **Channels**: every provider with an order (up/down, "LinkedIn first"), an on/off switch, status (Ready, Missing credentials, No setup needed, Hidden by env) and the env vars to set.
+- **Channels**: every provider with an order (up/down, "LinkedIn first"), an on/off switch, status (Ready, Enabled but missing keys (hidden from customers), Off, Hidden by env), a "Focus networks / All" filter and the env vars to set.
 - **Features**: registration mode (open, invite only, closed) and grouped feature switches. Each switch says what turning it off hides.
 - **Plans**: create from the defaults or from scratch, a table, an edit dialog, delete, and a pricing preview with USD/EGP and monthly/yearly toggles.
 - **Users**: search, pagination, and a user dialog with activate/deactivate, change plan per workspace, and impersonate (reusing `POST /user/impersonate`).
@@ -84,7 +86,7 @@ The UI comes from the Tadween design system, ported to `components/tadween/ui` w
 | Feature | Effect today |
 | --- | --- |
 | registration | **Enforced on the backend** (`AuthService.canRegister`). Invite-only lets a signed invite through. The register and login pages show the mode. |
-| providers | **Enforced on the backend**: hidden from Add channel, and new connects refused |
+| providers | **Enforced on the backend**: off or keyless types are hidden from Add channel, and new connects refused. Connected channels keep working |
 | agent, analytics, media, plugs, thirdParty, ugc, affiliate | Hidden from the sidebar |
 | autopost, sets, signatures, publicApi, webhooks | Settings tabs hidden |
 | shortLinks | Settings → short-link preference hidden |

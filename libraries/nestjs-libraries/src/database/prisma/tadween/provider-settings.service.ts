@@ -6,11 +6,16 @@ import {
 } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import {
   credentialStatus,
+  focusProviders,
   PROVIDER_PRIORITY,
 } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { ProviderCredentialsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-credentials.service';
 
 const TTL_MS = 15_000;
+
+// Returned (400) when someone tries to add a channel type customers can't add.
+export const PROVIDER_NOT_AVAILABLE =
+  'This channel type is not available. Ask your administrator to turn it on.';
 
 type Row = { identifier: string; enabled: boolean; position: number };
 
@@ -33,9 +38,16 @@ export class ProviderSettingsService {
       this._cache = { at: Date.now(), rows };
       return rows;
     } catch (e) {
-      // Table not pushed yet: every provider enabled, Postiz order.
+      // Table not pushed yet: the focus networks, Postiz order.
       return [];
     }
+  }
+
+  // A saved row wins; without one (never saved, or a provider added after the
+  // last save) only the focus networks are on.
+  private enabledOf(identifier: string, rows: Row[]) {
+    const row = rows.find((r) => r.identifier === identifier);
+    return row ? row.enabled : focusProviders().includes(identifier);
   }
 
   // Default position when the admin has not saved an order: LinkedIn first,
@@ -59,7 +71,7 @@ export class ProviderSettingsService {
         return {
           identifier: p.identifier,
           name: p.name,
-          enabled: row ? row.enabled : true,
+          enabled: this.enabledOf(p.identifier, rows),
           position: row ? row.position : this.defaultPosition(p.identifier),
           saved: !!row,
         };
@@ -67,34 +79,53 @@ export class ProviderSettingsService {
       .sort((a, b) => a.position - b.position);
   }
 
+  // Customers can add a provider only when it is on, its app keys are set and
+  // HIDDEN_PROVIDERS doesn't list it. Channels already connected are never
+  // checked against this: they keep publishing, refreshing and reconnecting.
+  private available(identifier: string, enabled: boolean) {
+    return (
+      enabled &&
+      this._credentials.isConfigured(identifier) &&
+      !this._integrationManager.isHiddenProvider(identifier)
+    );
+  }
+
   // For the admin console: no secret values, only env var names, whether they
   // are set and where from (console or env).
   async getAdminProviders() {
+    const focus = focusProviders();
     return (await this.resolved()).map((p) => ({
       ...p,
+      focus: focus.includes(p.identifier),
+      available: this.available(p.identifier, p.enabled),
       hiddenByEnv: this._integrationManager.isHiddenProvider(p.identifier),
       credentials: {
         ...credentialStatus(p.identifier),
+        configured: this._credentials.isConfigured(p.identifier),
         fields: this._credentials.status(p.identifier),
       },
     }));
   }
 
-  async isEnabled(identifier: string) {
-    const row = (await this.rows()).find((r) => r.identifier === identifier);
-    return row ? row.enabled : true;
+  async isAvailable(identifier: string) {
+    return this.available(
+      identifier,
+      this.enabledOf(identifier, await this.rows())
+    );
   }
 
-  // Applied to the "Add channel" list: drop disabled providers and order the rest.
+  // Applied to the "Add channel" list: drop providers customers can't add and
+  // order the rest.
   async apply<T extends { identifier: string }>(list: T[]): Promise<T[]> {
     const resolved = await this.resolved();
     const position = (identifier: string) =>
       resolved.find((r) => r.identifier === identifier)?.position ?? 10_000;
-    const enabled = (identifier: string) =>
-      resolved.find((r) => r.identifier === identifier)?.enabled ?? true;
+    const rows = await this.rows();
 
     return list
-      .filter((p) => enabled(p.identifier))
+      .filter((p) =>
+        this.available(p.identifier, this.enabledOf(p.identifier, rows))
+      )
       .sort((a, b) => position(a.identifier) - position(b.identifier));
   }
 

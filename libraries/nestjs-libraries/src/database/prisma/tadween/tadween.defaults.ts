@@ -1,9 +1,11 @@
 // Tadween super-admin console: registries and defaults.
 //
 // Everything here describes what the instance does when the admin has not saved
-// anything yet. Those defaults equal current Postiz behaviour (all features on,
-// registration driven by env vars, every provider listed in Postiz's order with
-// LinkedIn first), so an empty database changes nothing for existing users.
+// anything yet. Most defaults equal current Postiz behaviour (all features on,
+// registration driven by env vars, LinkedIn first in Postiz's provider order).
+// The exception is the channel list: only the focus networks (FOCUS_PROVIDERS)
+// can be added until the admin chooses otherwise. Channels a workspace already
+// connected are never affected by it.
 import { SubscriptionTier } from '@prisma/client';
 
 // ── Registration ──────────────────────────────────────────────────────────────
@@ -155,6 +157,30 @@ export const PROVIDER_CREDENTIALS: Record<string, ProviderCredentials> = {
 
 // Providers that sort to the top when nothing is saved: Tadween is LinkedIn first.
 export const PROVIDER_PRIORITY = ['linkedin', 'linkedin-page'];
+
+// The networks Tadween focuses on. Until the super admin saves Admin → Channels,
+// only these can be added (and only once their app keys are set). A saved
+// choice always wins; a provider without a saved row (e.g. one added upstream
+// later) falls back to this list.
+export const FOCUS_PROVIDERS = [
+  'linkedin',
+  'linkedin-page',
+  'instagram',
+  'instagram-standalone',
+  'facebook',
+  'threads',
+  'youtube',
+];
+
+// Env override: TADWEEN_ENABLED_PROVIDERS="linkedin,linkedin-page,x" replaces
+// the focus list (same shape as HIDDEN_PROVIDERS).
+export const focusProviders = (): string[] => {
+  const fromEnv = (process.env.TADWEEN_ENABLED_PROVIDERS || '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return fromEnv.length ? fromEnv : FOCUS_PROVIDERS;
+};
 
 export const credentialStatus = (identifier: string) => {
   const spec = PROVIDER_CREDENTIALS[identifier];

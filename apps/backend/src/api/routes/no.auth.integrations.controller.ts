@@ -24,7 +24,10 @@ import {
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
-import { ProviderSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-settings.service';
+import {
+  PROVIDER_NOT_AVAILABLE,
+  ProviderSettingsService,
+} from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-settings.service';
 
 @ApiTags('Integrations')
 @Controller('/integrations')
@@ -40,7 +43,8 @@ export class NoAuthIntegrationsController {
   @Get('/')
   async getIntegrations() {
     const all = await this._integrationManager.getAllIntegrations();
-    // Tadween: hide providers the super admin disabled and apply their order
+    // Tadween: only list providers customers can add (on, with app keys) and
+    // apply the admin's order
     return { ...all, social: await this._providerSettings.apply(all.social) };
   }
 
@@ -190,6 +194,22 @@ export class NoAuthIntegrationsController {
 
     if (!id) {
       throw new NotEnoughScopes('Invalid API key');
+    }
+
+    // Tadween: a channel type customers can't add only accepts the account of a
+    // channel this workspace already has (re-entering its credentials); a
+    // reconnect (refresh) is never blocked.
+    if (
+      !refresh &&
+      !(await this._providerSettings.isAvailable(integration)) &&
+      (
+        await this._integrationService.getIntegrationByInternalId(
+          org.id,
+          String(id)
+        )
+      )?.providerIdentifier !== integration
+    ) {
+      throw new HttpException(PROVIDER_NOT_AVAILABLE, 400);
     }
 
     let validName = name;

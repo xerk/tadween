@@ -770,6 +770,14 @@ export const AddProviderComponent: FC<{
               </div>
             ))}
         </div>
+        {!social.length && !onboarding && (
+          <div className="py-[24px] text-center text-[14px] text-textColor/80">
+            {t(
+              'tdw_add_channel_none',
+              'No channel types are available to add yet. Ask your administrator to set them up.'
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

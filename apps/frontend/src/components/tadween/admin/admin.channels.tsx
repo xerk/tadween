@@ -15,6 +15,7 @@ import {
   IconButton,
   Input,
   Pill,
+  SegmentedControl,
   Switch,
   TableQuery,
   Tooltip,
@@ -29,39 +30,56 @@ import {
 
 const LINKEDIN_FIRST = ['linkedin', 'linkedin-page'];
 
-type ChannelState = 'ready' | 'missing' | 'none' | 'hidden';
+// Why a channel type is or isn't in the customers' Add channel list. Customers
+// see it only when it is on and its keys are set (the server applies the same
+// rule to GET /integrations and to new connects).
+type ChannelState = 'ready' | 'missing' | 'off' | 'hidden';
 
 const stateOf = (p: AdminProvider): ChannelState =>
   p.hiddenByEnv
     ? 'hidden'
-    : !p.credentials.needsCredentials
-    ? 'none'
+    : !p.enabled
+    ? 'off'
     : p.credentials.configured
     ? 'ready'
     : 'missing';
 
 const Status = ({ p }: { p: AdminProvider }) => {
+  const t = useT();
   switch (stateOf(p)) {
     case 'hidden':
       return (
-        <Tooltip label="Listed in HIDDEN_PROVIDERS, so it stays hidden whatever you choose here.">
+        <Tooltip
+          label={t(
+            'tdw_admin_ch_hidden_env_tip',
+            'Listed in HIDDEN_PROVIDERS, so it stays hidden whatever you choose here.'
+          )}
+        >
           <Pill tone="warn" icon="eye">
-            Hidden by env
+            {t('tdw_admin_ch_hidden_env', 'Hidden by env')}
           </Pill>
         </Tooltip>
       );
-    case 'none':
-      return <Pill icon="check">No setup needed</Pill>;
+    case 'off':
+      return <Pill icon="minus">{t('tdw_admin_ch_off', 'Disabled')}</Pill>;
     case 'ready':
       return (
-        <Pill tone="ok" icon="check">
-          Ready
-        </Pill>
+        <Tooltip
+          label={
+            p.credentials.needsCredentials
+              ? t('tdw_admin_ch_ready_tip', 'Customers can add it from Add channel.')
+              : t('tdw_admin_ch_ready_none_tip', 'Needs no app keys: customers connect their own account or server.')
+          }
+        >
+          <Pill tone="ok" icon="check">
+            {t('tdw_admin_ch_ready', 'Ready')}
+          </Pill>
+        </Tooltip>
       );
     default:
       return (
         <Pill tone="bad" icon="triangle-alert">
-          Missing credentials
+          {t('tdw_admin_ch_missing', 'Enabled but missing keys — hidden from customers')}
         </Pill>
       );
   }
@@ -226,8 +244,12 @@ const KeysDrawer: FC<{
 };
 
 // ── Page ────────────────────────────────────────────────────────────────────
+type View = 'focus' | 'all';
+
 export const AdminChannelsPage = () => {
+  const t = useT();
   const { data, error, isLoading, mutate } = useAdminProviders();
+  const [view, setView] = useState<View>('focus');
   const save = useAdminMutation();
   const toast = useToaster();
   const [rows, setRows] = useState<AdminProvider[]>([]);
@@ -293,9 +315,13 @@ export const AdminChannelsPage = () => {
   };
 
   // Reordering only makes sense on the full, unfiltered list.
-  const narrowed = !!query.search || Object.values(query.filters).some(Boolean);
-  const enabledCount = rows.filter((r) => r.enabled).length;
-  const missing = rows.filter((r) => r.enabled && stateOf(r) === 'missing').length;
+  const narrowed =
+    view === 'focus' || !!query.search || Object.values(query.filters).some(Boolean);
+  const shown = view === 'focus' ? rows.filter((r) => r.focus) : rows;
+  const readyCount = rows.filter((r) => stateOf(r) === 'ready').length;
+  const missing = rows.filter((r) => stateOf(r) === 'missing').length;
+  // Nothing saved yet: the focus networks are the default.
+  const usingDefaults = !!data?.length && data.every((r) => !r.saved);
   const keysProvider = rows.find((r) => r.identifier === keysFor) || null;
 
   const columns: DataColumn<AdminProvider>[] = [
@@ -330,7 +356,13 @@ export const AdminChannelsPage = () => {
         </span>
       ),
     },
-    { key: 'status', label: 'Status', title: 'Status', csv: (r) => stateOf(r), render: (r) => <Status p={r} /> },
+    {
+      key: 'status',
+      label: t('tdw_admin_col_status', 'Status'),
+      title: t('tdw_admin_col_status', 'Status'),
+      csv: (r) => stateOf(r),
+      render: (r) => <Status p={r} />,
+    },
     {
       key: 'keys',
       label: 'Keys',
@@ -357,15 +389,15 @@ export const AdminChannelsPage = () => {
     },
     {
       key: 'enabled',
-      label: 'In Add channel',
-      title: 'In Add channel',
+      label: t('tdw_admin_ch_enabled', 'Enabled'),
+      title: t('tdw_admin_ch_enabled', 'Enabled'),
       hideable: false,
       align: 'right',
       csv: (r) => (r.enabled ? 'on' : 'off'),
       render: (r) => (
         <span onClick={(e) => e.stopPropagation()}>
           <Switch
-            aria-label={`Show ${r.name} in Add channel`}
+            aria-label={t('tdw_admin_ch_enable_aria', 'Enable {{name}}', { name: r.name })}
             checked={r.enabled}
             onChange={(v) => toggle(r.identifier, v)}
           />
@@ -389,17 +421,45 @@ export const AdminChannelsPage = () => {
         </div>
       }
     >
+      {usingDefaults ? (
+        <Banner tone="info" icon="sparkles" title={t('tdw_admin_ch_defaults_title', 'Using the default focus networks.')}>
+          {t(
+            'tdw_admin_ch_defaults_body',
+            'Until you save this page, customers can only add {{names}}. Saving here replaces that default.',
+            {
+              names: rows
+                .filter((r) => r.focus)
+                .map((r) => r.name)
+                .join(', '),
+            }
+          )}
+        </Banner>
+      ) : null}
+
       {missing ? (
-        <Banner tone="warning" title={`${missing} enabled channel ${missing === 1 ? 'type is' : 'types are'} missing keys.`}>
-          People will see them in Add channel but connecting will fail until the keys are set here or as env vars.
+        <Banner
+          tone="warning"
+          title={t('tdw_admin_ch_missing_title', 'Enabled channel types missing keys: {{count}}', { count: missing })}
+        >
+          {t(
+            'tdw_admin_ch_missing_body',
+            'Customers don’t see them in Add channel until their keys are set here or as env vars.'
+          )}
         </Banner>
       ) : null}
 
       <div className="flex items-center gap-[8px] flex-wrap">
-        <span className="pz-set-label">{`Channel types · ${enabledCount} of ${rows.length} on`}</span>
+        <span className="pz-set-label">
+          {t('tdw_admin_ch_count', 'Channel types · {{ready}} of {{total}} shown to customers', {
+            ready: readyCount,
+            total: rows.length,
+          })}
+        </span>
         <span className="caption pz-muted">
-          Turning a type off hides it from Add channel and blocks new connections. Channels already connected keep
-          publishing and can still reconnect.
+          {t(
+            'tdw_admin_ch_rule',
+            'Customers see a channel type in Add channel only when it is enabled and its keys are set. Channels already connected keep publishing and can still reconnect.'
+          )}
         </span>
       </div>
 
@@ -407,7 +467,7 @@ export const AdminChannelsPage = () => {
         id="admin-channels"
         mode="client"
         columns={columns}
-        rows={rows}
+        rows={shown}
         rowKey={(r) => r.identifier}
         query={query}
         onQueryChange={(patch) => setQuery((q) => applyQueryPatch(q, patch))}
@@ -422,27 +482,39 @@ export const AdminChannelsPage = () => {
             key: 'state',
             label: 'Status',
             options: [
-              { value: 'ready', label: 'Ready' },
-              { value: 'missing', label: 'Missing keys' },
-              { value: 'none', label: 'No setup needed' },
-              { value: 'hidden', label: 'Hidden by env' },
+              { value: 'ready', label: t('tdw_admin_ch_ready', 'Ready') },
+              { value: 'missing', label: t('tdw_admin_ch_missing_short', 'Missing keys') },
+              { value: 'off', label: t('tdw_admin_ch_off', 'Disabled') },
+              { value: 'hidden', label: t('tdw_admin_ch_hidden_env', 'Hidden by env') },
             ],
             match: (r, v) => stateOf(r) === v,
           },
           {
             key: 'enabled',
-            label: 'In Add channel',
+            label: t('tdw_admin_ch_enabled', 'Enabled'),
             options: [
-              { value: 'on', label: 'On' },
-              { value: 'off', label: 'Off' },
+              { value: 'on', label: t('tdw_admin_ch_yes', 'Yes') },
+              { value: 'off', label: t('tdw_admin_ch_no', 'No') },
             ],
             match: (r, v) => (v === 'on') === r.enabled,
           },
         ]}
         toolbar={
-          <Button size="sm" variant="ghost" icon="arrow-up" onClick={linkedinFirst}>
-            LinkedIn first
-          </Button>
+          <>
+            <SegmentedControl<View>
+              size="sm"
+              label={t('tdw_admin_ch_view', 'Show')}
+              value={view}
+              onChange={setView}
+              options={[
+                { value: 'focus', label: t('tdw_admin_ch_view_focus', 'Focus networks') },
+                { value: 'all', label: t('tdw_admin_ch_view_all', 'All') },
+              ]}
+            />
+            <Button size="sm" variant="ghost" icon="arrow-up" disabled={view === 'focus'} onClick={linkedinFirst}>
+              LinkedIn first
+            </Button>
+          </>
         }
         onRowClick={(r) => r.credentials.fields.length && setKeysFor(r.identifier)}
         activeKey={keysFor}

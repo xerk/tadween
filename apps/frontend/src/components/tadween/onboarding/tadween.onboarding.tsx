@@ -315,6 +315,15 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
         </div>
       )}
 
+      {!!data && !social.length && (
+        <p className="caption pz-muted">
+          {t(
+            'tdw_add_channel_none',
+            'No channel types are available to add yet. Ask your administrator to set them up.'
+          )}
+        </p>
+      )}
+
       {rest.length > 0 && (
         <div className="pz-ob-section">
           <h3 className="caption pz-ob-section-title">

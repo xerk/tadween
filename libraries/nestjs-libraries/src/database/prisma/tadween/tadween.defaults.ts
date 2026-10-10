@@ -186,15 +186,13 @@ export const credentialStatus = (identifier: string) => {
   const spec = PROVIDER_CREDENTIALS[identifier];
   if (!spec) {
     // The user brings their own server or token (Bluesky, Mastodon custom, WordPress…)
-    return { needsCredentials: false, configured: true, env: [] as { name: string; set: boolean }[], note: undefined as string | undefined };
+    return { needsCredentials: false, env: [] as { name: string; set: boolean }[], note: undefined as string | undefined };
   }
   const isSet = (name: string) => !!process.env[name];
   const names = [...spec.required, ...(spec.anyOf || []).flat()];
-  const requiredOk = spec.required.every(isSet);
-  const anyOk = !spec.anyOf || spec.anyOf.some((group) => group.every(isSet));
+  // Whether they are all set: ProviderCredentialsService.isConfigured
   return {
     needsCredentials: true,
-    configured: requiredOk && anyOk,
     env: Array.from(new Set(names)).map((name) => ({ name, set: isSet(name) })),
     note: spec.note,
   };

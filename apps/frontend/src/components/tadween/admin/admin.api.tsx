@@ -59,8 +59,6 @@ export interface AdminProvider {
   saved: boolean;
   // In the focus list (FOCUS_PROVIDERS or TADWEEN_ENABLED_PROVIDERS)
   focus: boolean;
-  // Customers can add it: on, keys set and not in HIDDEN_PROVIDERS
-  available: boolean;
   hiddenByEnv: boolean;
   credentials: {
     needsCredentials: boolean;

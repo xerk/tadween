@@ -127,7 +127,7 @@ All in `AdminConsoleController` (`/admin/console`, `PlatformAdminGuard`) unless 
 | GET | `/admin/console/users` | `page`, `pageSize`, `sort` (`createdAt`, `lastOnline`, `email`, `name`), `order`, `search` (email, name, exact id, workspace name), `status` (`active`/`inactive`), `role` (`superadmin`/`member`) | `{ items, total, page, pageSize, pages }` (was `{ users, … }`) |
 | GET | `/admin/console/users/:id` | | one user, same fields as a list row (opens a drawer for a user not on the current page) |
 | PUT | `/admin/console/users/:id/activation` | `{ activated }` | unchanged |
-| GET / PUT | `/admin/console/providers` | | now includes `credentials.fields`, `focus` (in the focus list) and `available` (customers can add it) |
+| GET / PUT | `/admin/console/providers` | | now includes `credentials.fields`, and `focus` (in the focus list) |
 | PUT | `/admin/console/providers/:identifier/credentials` | `{ values }` | key status list |
 | Postiz GET | `/admin/errors` | `page`, `limit`, `platform`, `email`, `unknownFirst` | `{ items, total, page, limit, hasMore }` |
 

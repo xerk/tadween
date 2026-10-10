@@ -97,7 +97,6 @@ export class ProviderSettingsService {
     return (await this.resolved()).map((p) => ({
       ...p,
       focus: focus.includes(p.identifier),
-      available: this.available(p.identifier, p.enabled),
       hiddenByEnv: this._integrationManager.isHiddenProvider(p.identifier),
       credentials: {
         ...credentialStatus(p.identifier),
@@ -112,6 +111,39 @@ export class ProviderSettingsService {
       identifier,
       this.enabledOf(identifier, await this.rows())
     );
+  }
+
+  // The one connect gate (auth URL and OAuth callback, app and public API).
+  // A provider customers can add always passes. Any other provider passes only
+  // for a channel this workspace already has:
+  // - `refresh`: a reconnect of that channel (it must exist in this workspace,
+  //   on this provider or one that MIGRATE_PROVIDERS moves to it);
+  // - `accountId` (callback): the account of an existing channel, i.e. its
+  //   credentials entered again;
+  // - neither (auth URL): the workspace has a channel of this type, so its
+  //   credentials can be entered again; the callback then checks the account.
+  async canConnect(
+    org: string,
+    identifier: string,
+    refresh?: string,
+    accountId?: string
+  ) {
+    if (await this.isAvailable(identifier)) {
+      return true;
+    }
+    if (refresh) {
+      return !!(await this._repository.findChannel(
+        org,
+        [identifier, ...this._integrationManager.getMigrationSources(identifier)],
+        refresh
+      ));
+    }
+    return !!(await this._repository.findChannel(
+      org,
+      [identifier],
+      accountId,
+      true
+    ));
   }
 
   // Applied to the "Add channel" list: drop providers customers can't add and

@@ -305,8 +305,11 @@ export class PublicIntegrationsController {
     }
 
     // Tadween: only providers the super admin made available (on, with app
-    // keys) can be newly connected; reconnecting (refresh) always works.
-    if (!refresh && !(await this._providerSettings.isAvailable(integration))) {
+    // keys) can be newly connected; channels the workspace already has can
+    // still reconnect.
+    if (
+      !(await this._providerSettings.canConnect(org.id, integration, refresh))
+    ) {
       throw new HttpException({ msg: PROVIDER_NOT_AVAILABLE }, 400);
     }
 

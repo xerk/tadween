@@ -239,16 +239,10 @@ export class IntegrationsController {
     }
 
     // Tadween: only providers the super admin made available (on, with app
-    // keys) can be newly connected. Reconnecting (refresh) works for every
-    // channel, and a workspace that already has a channel of this type can
-    // still re-enter its credentials (the connect callback then only accepts
-    // that same account).
+    // keys) can be newly connected; channels the workspace already has can
+    // still reconnect.
     if (
-      !refresh &&
-      !(await this._providerSettings.isAvailable(integration)) &&
-      !(await this._integrationService.getIntegrationsList(org.id)).some(
-        (p) => p.providerIdentifier === integration
-      )
+      !(await this._providerSettings.canConnect(org.id, integration, refresh))
     ) {
       throw new HttpException(PROVIDER_NOT_AVAILABLE, 400);
     }

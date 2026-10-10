@@ -196,18 +196,15 @@ export class NoAuthIntegrationsController {
       throw new NotEnoughScopes('Invalid API key');
     }
 
-    // Tadween: a channel type customers can't add only accepts the account of a
-    // channel this workspace already has (re-entering its credentials); a
-    // reconnect (refresh) is never blocked.
+    // Tadween: a channel type customers can't add only accepts a reconnect or
+    // the account of a channel this workspace already has.
     if (
-      !refresh &&
-      !(await this._providerSettings.isAvailable(integration)) &&
-      (
-        await this._integrationService.getIntegrationByInternalId(
-          org.id,
-          String(id)
-        )
-      )?.providerIdentifier !== integration
+      !(await this._providerSettings.canConnect(
+        org.id,
+        integration,
+        refresh || undefined,
+        String(id)
+      ))
     ) {
       throw new HttpException(PROVIDER_NOT_AVAILABLE, 400);
     }

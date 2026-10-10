@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ChannelCopy, Dict } from '@/content/types';
-import { AI_CLIENTS, KIND_ICON, MORE_AI_CLIENTS, clientBySlug, type AiClientFacts, type ClientKind } from '@/lib/aiClients';
-import { CHANNELS, MORE_CHANNELS, OTHER_CHANNELS, channelBySlug, type ChannelFacts, type ChannelGroup } from '@/lib/channels';
+import { AI_CLIENTS, KIND_ICON, MCP_ENDPOINTS, MCP_TOOLS, MORE_AI_CLIENTS, clientBySlug, type AiClientFacts, type ClientKind } from '@/lib/aiClients';
+import { CHANNELS, MORE_CHANNELS, OTHER_CHANNELS, channelBySlug, networkBySlug, type ChannelFacts, type ChannelGroup } from '@/lib/channels';
 import { DOCS_API_URL } from '@/lib/config';
 import { FEATURES } from '@/lib/features';
 import { breadcrumbs, faqPage, organization, softwareApplication } from '@/lib/jsonld';
@@ -623,67 +623,248 @@ function ClientsGrid({ t }: { t: Dict }) {
   );
 }
 
-/** One AI client's page: the client chatting with Tadween, how to connect it step by step
-    with the snippets to copy, what to ask, what it can do, the channels it reaches, how
-    access stays safe, questions (FAQPage data), related clients and the call to action. */
+
+/** Where a network's tile links: its page, or its place on the channels overview. */
+const netHref = (t: Dict, slug: string) => localePath(t.lang, channelBySlug(slug) ? channelPath(slug) : `${PATHS.channels}#${slug}`);
+
+/** A network's icon, alt-less: its name is always written next to it or in a label. */
+function NetIcon({ slug, size = 20 }: { slug: string; size?: number }) {
+  return <img src={networkBySlug(slug)!.icon} width={size} height={size} alt="" loading="lazy" />;
+}
+
+/** The channels floating around the chat in an AI client's hero. */
+const HERO_FLOAT = ['linkedin', 'linkedin-page', 'x', 'instagram', 'facebook', 'tiktok'];
+
+/** The orbit: the channels with a page and the main others close in, the rest further out. */
+const ORBIT_INNER = ['linkedin', 'linkedin-page', 'x', 'instagram', 'facebook', 'tiktok', 'threads', 'youtube'];
+const ORBIT_OUTER = OTHER_CHANNELS.map((c) => c.slug).filter((s) => !ORBIT_INNER.includes(s));
+
+/** Every network with an icon, linked ones first, for the channels grid. */
+const ALL_NETS = [...CHANNELS.map((c) => c.slug), ...OTHER_CHANNELS.map((c) => c.slug)];
+
+/** A ring of linked channel icons, placed around the centre by angle. */
+function OrbitRing({ t, slugs, ring }: { t: Dict; slugs: string[]; ring: 'inner' | 'outer' }) {
+  return (
+    <ul className={`pz-orbit-ring is-${ring}`}>
+      {slugs.map((slug, i) => (
+        <li key={slug} style={{ ['--a' as string]: `${(360 / slugs.length) * i + (ring === 'outer' ? 15 : 0)}deg` }}>
+          <a href={netHref(t, slug)} aria-label={networkName(t, slug)} title={networkName(t, slug)}>
+            <NetIcon slug={slug} size={28} />
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** A step card's header: its number, its label and a note on the far side. */
+function StepTop({ t, n, label, meta, live }: { t: Dict; n: number; label: string; meta: string; live?: boolean }) {
+  return (
+    <div className="pz-step-top">
+      <span className="pz-panel-n">{new Intl.NumberFormat(t.numberLocale).format(n)}</span>
+      <strong>{label}</strong>
+      <span className={cx('pz-step-meta', live && 'is-live')}>
+        {live ? <i aria-hidden="true" /> : <Icon name="clock" size={14} />}
+        {meta}
+      </span>
+    </div>
+  );
+}
+
+/** A table cell: addresses are code, always left to right. */
+const CompareCell = ({ text }: { text: string }) =>
+  text.startsWith('{api}') ? (
+    <code dir="ltr" className="pz-inline-code">
+      {withApi(text)}
+    </code>
+  ) : (
+    <>{text}</>
+  );
+
+/** One AI client's page, in the same order as the reference layout studied in
+    docs/tadween/ai-pages-postiz-breakdown.md: a hero with the client chatting to Tadween, the
+    Connect and Ask cards with the numbered steps, a comparison table, the channel orbit, what it
+    can do, the MCP server, example requests, every channel, the client beside its siblings,
+    pricing, security and troubleshooting, questions (FAQPage data), related pages and the call
+    to action. Client names are text with a neutral glyph; no client logo is drawn. */
 export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
   const facts = clientBySlug(slug)!;
   const copy = t.aiClients.items[slug];
   const p = t.aiClients.page;
-  const fill = (s: string) => s.replaceAll('{name}', facts.name).replaceAll('{n}', new Intl.NumberFormat(t.numberLocale).format(facts.methods[0].steps.length));
+  const lead = facts.methods[0];
+  const fill = (s: string) => s.replaceAll('{name}', facts.name).replaceAll('{n}', new Intl.NumberFormat(t.numberLocale).format(lead.steps.length));
   const path = clientPath(slug);
+  const agentHref = `${localePath(t.lang, PATHS.agent)}#clients`;
   const crumbs = trail(t, { name: t.agentPage.eyebrow, href: localePath(t.lang, PATHS.agent) }, { name: facts.name, href: localePath(t.lang, path) });
-  const faq = [...p.sharedFaq.map((f) => ({ title: fill(f.title), content: withApi(fill(f.content)) })), ...copy.faq];
+  const faq = [...copy.faq, ...p.sharedFaq].map((f) => ({ title: fill(f.title), content: withApi(fill(f.content)) }));
+  const leadCode = lead.steps.find((s) => s !== null);
+  const leadWords = copy.methods[lead.auth]!;
+  const versusHref = (href: string) => (href === 'self' ? null : href === 'agent' ? agentHref : localePath(t.lang, clientPath(href)));
   return (
     <Shell t={t} path={path} jsonLd={[faqPage(faq), trailLd(crumbs)]}>
-      <section className="pz-hero" aria-labelledby="client-title">
-        <div className="pz-container pz-hero-grid">
-          <div className="pz-hero-copy">
-            <nav className="pz-crumbs is-start" aria-label={t.nav.breadcrumb}>
-              <ol>
-                {crumbs.map((c, i) => (
-                  <li key={c.href}>{i < crumbs.length - 1 ? <a href={c.href}>{c.name}</a> : <span aria-current="page">{c.name}</span>}</li>
-                ))}
-              </ol>
-            </nav>
-            <span data-hero-in>
-              <Eyebrow icon="plug" smart>
+      <div className="pz-aipage">
+        <section className="pz-aihero" aria-labelledby="client-title">
+          <div className="pz-container pz-hero-grid">
+            <div className="pz-hero-copy">
+              <nav className="pz-crumbs is-start" aria-label={t.nav.breadcrumb}>
+                <ol>
+                  {crumbs.map((c, i) => (
+                    <li key={c.href}>{i < crumbs.length - 1 ? <a href={c.href}>{c.name}</a> : <span aria-current="page">{c.name}</span>}</li>
+                  ))}
+                </ol>
+              </nav>
+              <span className="pz-aichip" data-hero-in>
+                <span className="pz-aichip-ic">
+                  <Icon name={KIND_ICON[facts.kind]} size={16} />
+                </span>
                 {fill(p.eyebrow)}
-              </Eyebrow>
-            </span>
-            <h1 id="client-title" className="display" data-hero-in>
-              {copy.h1}
-            </h1>
-            <p className="t-lead" data-hero-in>
-              {copy.intro}
-            </p>
-            <div data-hero-in>
-              <TrialButtons t={t} primary={p.start} secondaryHref="#connect" secondary={fill(p.stepsLink)} />
+              </span>
+              <h1 id="client-title" className="display" data-hero-in>
+                {copy.h1}
+              </h1>
+              <ul className="pz-aibullets" data-hero-in>
+                {copy.bullets.map((b) => (
+                  <li key={b}>{b}</li>
+                ))}
+              </ul>
+              <div data-hero-in>
+                <TrialButtons t={t} primary={p.start} secondaryHref="#connect" secondary={fill(p.stepsLink)} />
+              </div>
+              <p className="pz-aismall" data-hero-in>
+                {fill(p.smallPrint)} <a href={agentHref}>{p.smallPrintLink}</a>.
+              </p>
+            </div>
+            <div className="pz-aihero-art" data-hero-in>
+              <ul className="pz-float" aria-hidden="true">
+                {HERO_FLOAT.map((s) => (
+                  <li key={s}>
+                    <NetIcon slug={s} size={26} />
+                  </li>
+                ))}
+              </ul>
+              <AgentChat t={t} demo={copy.demo} frame={{ title: facts.name, online: fill(p.frameOnline), icon: KIND_ICON[facts.kind], input: fill(p.frameInput) }} />
             </div>
           </div>
-          <div data-hero-in>
-            <AgentChat t={t} demo={copy.demo} frame={{ title: facts.name, online: fill(p.frameOnline), icon: KIND_ICON[facts.kind], input: fill(p.frameInput) }} />
+        </section>
+
+        <section className="pz-sec" id="connect" aria-labelledby="connect-title">
+          <div className="pz-container">
+            <SectionHead id="connect-title" start title={fill(p.connectTitle)} sub={fill(p.connectSub)} />
+            <div className="pz-pair" data-stagger>
+              <div className="pz-panel pz-step-card">
+                <StepTop t={t} n={1} label={p.connectLabel} meta={p.connectTime} />
+                <h3 className="t-h3">{copy.connect.title}</h3>
+                <p className="t-body">{copy.connect.body}</p>
+                {leadCode ? <Code t={t} label={leadCode.label} code={leadCode.code} /> : null}
+                <ul className="pz-client-notes">
+                  {copy.notes.map((n) => (
+                    <li key={n}>
+                      <Icon name="circle-help" size={16} />
+                      <span>{n}</span>
+                    </li>
+                  ))}
+                  <li>
+                    <Icon name="file-text" size={16} />
+                    <span>
+                      {fill(p.docs)}{' '}
+                      {facts.docs.map((d, i) => (
+                        <span key={d.url}>
+                          {i ? ', ' : null}
+                          <a href={d.url} rel="noopener nofollow" target="_blank" lang="en" dir="ltr">
+                            {d.label}
+                          </a>
+                        </span>
+                      ))}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+              <div className="pz-panel pz-step-card">
+                <StepTop t={t} n={2} label={p.askLabel} meta={p.askLive} live />
+                <h3 className="t-h3">{fill(p.askTitle)}</h3>
+                <p className="t-body">{fill(p.askBody)}</p>
+                <div className="pz-askchat" data-art>
+                  <p className="pz-chat-msg" dir="auto">
+                    {copy.ask.prompt}
+                  </p>
+                  <div className="pz-askchat-reply" data-step style={{ ['--d' as string]: '300ms' }}>
+                    <span className="pz-tile-ic" aria-hidden="true">
+                      <Icon name={KIND_ICON[facts.kind]} size={16} />
+                    </span>
+                    <div>
+                      <p dir="auto">{copy.ask.reply}</p>
+                      <span className="pz-via">
+                        {p.via}
+                        {copy.ask.nets.map((n) => (
+                          <NetIcon key={n} slug={n} size={16} />
+                        ))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="pz-alsotry">
+                  <span className="pz-fine">{p.alsoTry}</span>
+                  <ul className="pz-chips">
+                    {copy.alsoTry.map((s) => (
+                      <li key={s}>{s}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <ol className="pz-steps is-row is-flow" data-stagger aria-label={leadWords.how}>
+              {leadWords.steps.map((s) => (
+                <li key={s}>
+                  <p>{s}</p>
+                </li>
+              ))}
+            </ol>
           </div>
-        </div>
-      </section>
-      <section className="pz-sec" id="connect" aria-labelledby="connect-title">
-        <div className="pz-container">
-          <SectionHead id="connect-title" title={fill(p.connectTitle)} sub={fill(p.connectSub)} />
-          <div className={cx('pz-pair', facts.methods.length === 1 && 'is-single')} data-stagger>
-            {facts.methods.map((m, mi) => {
+        </section>
+
+        <section className="pz-sec is-ruled" aria-labelledby="compare-title">
+          <div className="pz-container">
+            <SectionHead id="compare-title" start title={copy.compare.title} sub={copy.compare.sub} />
+            <div className="pz-compare-scroll" data-reveal>
+              <table className="pz-compare-table is-text">
+                <thead>
+                  <tr>
+                    {copy.compare.head.map((h, i) => (
+                      <th key={i} scope="col">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {copy.compare.rows.map(([label, ...cells]) => (
+                    <tr key={label}>
+                      <th scope="row">{label}</th>
+                      {cells.map((c, i) => (
+                        <td key={i}>
+                          <CompareCell text={c} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="pz-fine pz-aifine">{copy.compare.note}</p>
+            {facts.methods.slice(1).map((m) => {
               const words = copy.methods[m.auth]!;
               return (
-                <div key={m.auth} className="pz-panel">
+                <div key={m.auth} className="pz-panel pz-method-panel" data-reveal>
                   <span className={cx('pz-method', m.auth === 'key' && 'is-key')}>
                     <Icon name={m.auth === 'key' ? 'key' : 'shield-check'} size={14} />
-                    {mi === 0 && facts.methods.length > 1 ? `${words.label} · ${p.recommended}` : words.label}
+                    {words.label}
                   </span>
-                  <h3 className="t-h3">{fill(words.how)}</h3>
+                  <h3 className="t-h3">{p.otherMethod}</h3>
                   <ol className="pz-mini-steps is-code">
                     {m.steps.map((code, i) => (
                       <li key={i}>
                         <div>
-                          <p>{withApi(fill(words.steps[i]))}</p>
+                          <p>{words.steps[i]}</p>
                           {code ? <Code t={t} label={code.label} code={code.code} /> : null}
                         </div>
                       </li>
@@ -693,123 +874,201 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
               );
             })}
           </div>
-          <ul className="pz-client-notes" data-reveal>
-            {copy.notes.map((n) => (
-              <li key={n}>
-                <Icon name="circle-help" size={16} />
-                <span>{withApi(fill(n))}</span>
-              </li>
-            ))}
-            <li>
-              <Icon name="file-text" size={16} />
-              <span>
-                {fill(p.docs)}{' '}
-                {facts.docs.map((d, i) => (
-                  <span key={d.url}>
-                    {i ? ', ' : null}
-                    <a href={d.url} rel="noopener nofollow" target="_blank" lang="en" dir="ltr">
-                      {d.label}
-                    </a>
-                  </span>
-                ))}
+        </section>
+
+        <section className="pz-orbit-band" aria-labelledby="orbit-title">
+          <div className="pz-container">
+            <div className="pz-sec-head" data-reveal>
+              <h2 id="orbit-title" className="t-h2">
+                {p.orbitTitle}
+              </h2>
+              <p className="t-lead">{fill(p.orbitSub)}</p>
+            </div>
+            <div className="pz-orbit" data-reveal>
+              <span className="pz-orbit-core">
+                <img src="/logo.svg" width={64} height={64} alt="Tadween" />
               </span>
-            </li>
-          </ul>
-        </div>
-      </section>
-      <section className="pz-sec is-band" aria-labelledby="prompts-title">
-        <div className="pz-container">
-          <SectionHead id="prompts-title" title={fill(p.promptsTitle)} sub={fill(p.promptsSub)} />
-          <ul className="pz-prompts" data-stagger>
-            {copy.prompts.map((pr) => (
-              <li key={pr.text} lang={pr.lang} dir={pr.lang === 'ar' ? 'rtl' : 'ltr'}>
-                <Icon name="message-square" size={18} />
-                <span>{pr.text}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-      <section className="pz-sec" aria-labelledby="can-title">
-        <div className="pz-container">
-          <SectionHead id="can-title" title={fill(p.canTitle)} sub={fill(p.canSub)} />
-          <ul className="pz-checks" data-stagger>
-            {t.agentPage.can.items.map((c) => (
-              <li key={c.title}>
-                <span className="pz-tile-ic">
-                  <Icon name={c.icon} size={20} />
-                </span>
-                <strong>{c.title}</strong>
-                <p>{c.body}</p>
-              </li>
-            ))}
-          </ul>
-          <p className="pz-note" data-reveal>
-            <Icon name="shield-check" size={18} />
-            {t.agentPage.cannot}
-          </p>
-        </div>
-      </section>
-      <section className="pz-sec is-band" aria-labelledby="nets-title">
-        <div className="pz-container">
-          <SectionHead id="nets-title" title={fill(p.channelsTitle)} sub={fill(p.channelsSub)} />
-          <ul className="pz-chgrid" data-stagger>
-            {CHANNELS.map((c) => (
-              <li key={c.slug}>
-                <a className="pz-chtile is-link" href={localePath(t.lang, channelPath(c.slug))}>
-                  <img src={c.icon} width={28} height={28} alt="" loading="lazy" />
-                  <span>{networkName(t, c.slug)}</span>
+              <OrbitRing t={t} slugs={ORBIT_INNER} ring="inner" />
+              <OrbitRing t={t} slugs={ORBIT_OUTER} ring="outer" />
+            </div>
+          </div>
+        </section>
+
+        <section className="pz-sec" aria-labelledby="can-title">
+          <div className="pz-container">
+            <SectionHead id="can-title" start title={fill(p.canTitle)} sub={p.canSub} />
+            <ul className="pz-fcards" data-stagger>
+              {t.agentPage.can.items.map((c) => (
+                <li key={c.title}>
+                  <span className="pz-tile-ic">
+                    <Icon name={c.icon} size={20} />
+                  </span>
+                  <strong>{c.title}</strong>
+                  <p>{c.body}</p>
+                </li>
+              ))}
+            </ul>
+            <p className="pz-note" data-reveal>
+              <Icon name="shield-check" size={18} />
+              {t.agentPage.cannot}
+            </p>
+          </div>
+        </section>
+
+        <section className="pz-sec is-ruled" aria-labelledby="mcp-title">
+          <div className="pz-container">
+            <SectionHead id="mcp-title" start title={p.mcpTitle} sub={fill(p.mcpSub)} />
+            <div className="pz-panel pz-split" data-reveal>
+              <div className="pz-split-copy">
+                <h3 className="t-h3">{fill(p.mcpCardTitle)}</h3>
+                <p className="t-body">{fill(p.mcpCardBody)}</p>
+                <CheckList items={p.mcpPoints.map(fill)} />
+              </div>
+              <figure className="pz-code is-tools">
+                <figcaption>
+                  <span className="pz-shot-dots" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <span>{p.mcpCodeLabel}</span>
+                </figcaption>
+                <dl>
+                  {facts.methods.map((m) => (
+                    <div key={m.auth} className="is-endpoint">
+                      <dt dir="ltr">{withApi(MCP_ENDPOINTS[m.auth])}</dt>
+                      <dd>{copy.methods[m.auth]!.label}</dd>
+                    </div>
+                  ))}
+                  {MCP_TOOLS.map((tool) => (
+                    <div key={tool}>
+                      <dt dir="ltr">{tool}</dt>
+                      <dd>{p.mcpTools[tool]}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </figure>
+            </div>
+          </div>
+        </section>
+
+        <section className="pz-sec is-ruled" aria-labelledby="prompts-title">
+          <div className="pz-container">
+            <SectionHead id="prompts-title" start title={fill(p.promptsTitle)} sub={fill(p.promptsSub)} />
+            <ul className="pz-pcards" data-stagger>
+              {copy.prompts.map((pr) => (
+                <li key={pr.text}>
+                  <div className="pz-pcard-top">
+                    <span className="pz-kicker">{pr.tag}</span>
+                    <span className="pz-pcard-nets">
+                      {pr.nets.map((n) => (
+                        <NetIcon key={n} slug={n} size={18} />
+                      ))}
+                    </span>
+                  </div>
+                  <h3>{pr.title}</h3>
+                  <p className="pz-pcard-quote" lang={pr.lang} dir={pr.lang === 'ar' ? 'rtl' : 'ltr'}>
+                    {pr.text}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section className="pz-sec is-ruled" aria-labelledby="nets-title">
+          <div className="pz-container">
+            <SectionHead id="nets-title" start title={fill(p.channelsTitle)} sub={fill(p.channelsSub)} />
+            <ul className="pz-chgrid is-dense" data-stagger>
+              {ALL_NETS.map((s) => (
+                <li key={s}>
+                  <a className="pz-chtile is-link" href={netHref(t, s)}>
+                    <NetIcon slug={s} size={24} />
+                    <span>{networkName(t, s)}</span>
+                  </a>
+                </li>
+              ))}
+              {MORE_CHANNELS.map((c) => (
+                <li key={c.name}>
+                  <span className="pz-chtile">
+                    <img src={c.icon} width={24} height={24} alt="" loading="lazy" />
+                    <span lang="en" dir="ltr">
+                      {c.name}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="pz-fine pz-aifine">{fill(p.channelsNote)}</p>
+          </div>
+        </section>
+
+        <section className="pz-sec is-ruled" aria-labelledby="versus-title">
+          <div className="pz-container">
+            <SectionHead id="versus-title" start title={copy.versus.title} sub={copy.versus.sub} />
+            <ul className="pz-fcards is-versus" data-stagger>
+              {copy.versus.items.map((v) => {
+                const href = versusHref(v.href);
+                return (
+                  <li key={v.name} className={cx(!href && 'is-current')}>
+                    {href ? null : <span className="pz-vtag">{p.thisPage}</span>}
+                    <strong lang="en" dir="ltr">
+                      {href ? <a href={href}>{v.name}</a> : v.name}
+                    </strong>
+                    <p>{v.body}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+
+        <section className="pz-sec is-ruled" aria-labelledby="help-title">
+          <div className="pz-container">
+            <SectionHead id="help-title" start title={p.helpTitle} />
+            <ul className="pz-fcards" data-stagger>
+              <li>
+                <h3>{p.costTitle}</h3>
+                <p>{fill(p.costBody)}</p>
+                <a className="pz-more-link" href={localePath(t.lang, PATHS.pricing)}>
+                  {p.costLink}
+                  <Icon name="arrow-right" className="pz-flip-rtl" />
                 </a>
               </li>
-            ))}
-          </ul>
-          <p className="pz-center-text">
-            <a className="pz-more-link" href={localePath(t.lang, PATHS.channels)}>
-              {t.nav.allChannels}
-              <Icon name="arrow-right" className="pz-flip-rtl" />
-            </a>
-          </p>
-        </div>
-      </section>
-      <section className="pz-sec" aria-labelledby="security-title">
-        <div className="pz-container">
-          <SectionHead id="security-title" title={fill(p.securityTitle)} />
-          <ul className="pz-checks" data-stagger>
-            {p.security.map((s) => (
-              <li key={s.title}>
-                <span className="pz-tile-ic">
-                  <Icon name={s.icon} size={20} />
-                </span>
-                <strong>{fill(s.title)}</strong>
-                <p>{fill(s.body)}</p>
+              <li>
+                <h3>{p.securityTitle}</h3>
+                <p>{fill(p.securityBody)}</p>
               </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-      <FaqSection id="faq" title={fill(p.faqTitle)} items={faq} />
-      <section className="pz-sec is-tight" aria-labelledby="related-title">
-        <div className="pz-container">
-          <h2 id="related-title" className="t-h3 pz-group-title">
-            {p.relatedTitle}
-          </h2>
-          <ul className="pz-chcards">
-            {facts.related.map((r) => (
-              <li key={r}>
-                <ClientCard t={t} c={clientBySlug(r)!} />
+              <li>
+                <h3>{p.troubleTitle}</h3>
+                <CheckList items={copy.trouble} />
               </li>
-            ))}
-          </ul>
-          <p className="pz-center-text">
-            <a className="pz-more-link" href={`${localePath(t.lang, PATHS.agent)}#clients`}>
-              {p.allClients}
-              <Icon name="arrow-right" className="pz-flip-rtl" />
-            </a>
-          </p>
-          <p className="pz-fine pz-center-text">{t.agentPage.works.note}</p>
-        </div>
-      </section>
-      <CTA t={t} title={fill(p.ctaTitle)} body={fill(p.ctaBody)} />
+            </ul>
+          </div>
+        </section>
+
+        <FaqSection id="faq" title={fill(p.faqTitle)} items={faq} wide className="is-ruled" />
+
+        <section className="pz-sec is-tight" aria-labelledby="related-title">
+          <div className="pz-container">
+            <h2 id="related-title" className="t-h3 pz-group-title">
+              {p.relatedTitle}
+            </h2>
+            <ul className="pz-chcards">
+              {facts.related.map((r) => (
+                <li key={r}>
+                  <ClientCard t={t} c={clientBySlug(r)!} />
+                </li>
+              ))}
+            </ul>
+            <p className="pz-fine pz-aifine">
+              {p.relatedLabel} <a href={agentHref}>{p.allClients}</a>, <a href={localePath(t.lang, PATHS.channels)}>{t.nav.allChannels}</a>,{' '}
+              <a href={localePath(t.lang, PATHS.pricing)}>{t.nav.pricing}</a>. {p.updated} {t.agentPage.works.note}
+            </p>
+          </div>
+        </section>
+      </div>
+      <CTA t={t} title={fill(p.ctaTitle)} body={fill(p.ctaBody)} visual={<Shot t={t} id="calendar-preview" />} />
     </Shell>
   );
 }

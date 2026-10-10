@@ -399,11 +399,11 @@ export function CheckList({ items }: { items: string[] }) {
 }
 
 /** Questions and answers in the design system's accordion. */
-export function FaqSection({ id, title, items }: { id: string; title: string; items: Faq[] }) {
+export function FaqSection({ id, title, items, wide, className }: { id: string; title: string; items: Faq[]; wide?: boolean; className?: string }) {
   return (
-    <section className="pz-sec" id={id} aria-labelledby={`${id}-title`}>
+    <section className={cx('pz-sec', className)} id={id} aria-labelledby={`${id}-title`}>
       <div className="pz-container">
-        <div className="pz-faq" data-reveal>
+        <div className={cx('pz-faq', wide && 'is-wide')} data-reveal>
           <h2 id={`${id}-title`} className="t-h2">
             {title}
           </h2>
@@ -448,15 +448,18 @@ export function PageHead({ t, title, sub, eyebrow, crumbs, badge, children }: { 
 }
 
 
-export function CTA({ t, title, body }: { t: Dict; title?: string; body?: string }) {
+/** The closing call to action. With `visual`, the copy sits on the reading start and the
+    visual beside it. */
+export function CTA({ t, title, body, visual }: { t: Dict; title?: string; body?: string; visual?: ReactNode }) {
   return (
     <section className="pz-sec is-tight" aria-labelledby="cta-title">
       <div className="pz-container is-wide">
-        <div className="pz-cta" data-cta>
+        <div className={cx('pz-cta', visual ? 'is-split' : null)} data-cta>
           <h2 id="cta-title" className="t-h2">
             {title ?? t.cta.title}
           </h2>
           <p>{body ?? t.cta.body}</p>
+          {visual ? <div className="pz-cta-visual">{visual}</div> : null}
           <div className="pz-cta-row">
             <a className="pz-btn pz-btn-primary pz-btn-lg" href={SIGN_UP_URL}>
               {t.cta.primary}

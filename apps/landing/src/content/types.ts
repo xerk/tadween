@@ -129,50 +129,98 @@ export interface AiClientCopy {
   title: string;
   description: string;
   h1: string;
-  intro: string;
+  /** Three short lines under the H1. */
+  bullets: string[];
   /** What the client is, in a few words, for cards and the menu. */
   blurb: string;
-  /** The text of each step of each connection method, in the order lib/aiClients.ts lists them. */
+  /** The text of each step of each connection method, in the order lib/aiClients.ts lists them.
+      The first method's steps are the numbered row under the Connect card. */
   methods: Partial<Record<ClientAuth, { label: string; how: string; steps: string[] }>>;
+  /** The Connect card: what to do with the snippet it shows. */
+  connect: { title: string; body: string };
   /** The conversation the hero draws inside the client. */
   demo: ChatDemo;
-  /** First things to ask, in English and Egyptian Arabic. */
-  prompts: { lang: Lang; text: string }[];
+  /** The short exchange in the Ask card, and the channel slugs it went to. */
+  ask: { prompt: string; reply: string; nets: string[] };
+  /** "Also try" chips under the Ask card. */
+  alsoTry: string[];
+  /** The comparison table: `head` names the columns, the first being the row labels. */
+  compare: { title: string; sub: string; head: string[]; rows: string[][]; note: string };
+  /** Four example requests, LinkedIn first; `nets` are channel slugs for the icons. */
+  prompts: { tag: string; nets: string[]; title: string; text: string; lang: Lang }[];
+  /** This client beside its siblings. `href` is 'self', 'agent' (the AI agent page) or another
+      client's slug. */
+  versus: { title: string; sub: string; items: { name: string; body: string; href: string }[] };
   /** Notes that apply to this client only (plans, where the setting lives). */
   notes: string[];
+  /** The "Something not working?" checks. */
+  trouble: string[];
   faq: Faq[];
 }
 
 export interface AiClientsDict {
-  /** Labels shared by every client page; "{name}" is the client's name. */
+  /** Labels shared by every client page; "{name}" is the client's name, "{n}" the number of steps. */
   page: {
+    /** "{name} + Tadween": the hero chip, and the eyebrow on the Open Graph card. */
     eyebrow: string;
     start: string;
     stepsLink: string;
-    /** "{n}" is the number of steps. */
+    /** The small print under the hero buttons, then the link to the AI agent page. */
+    smallPrint: string;
+    smallPrintLink: string;
     connectTitle: string;
     connectSub: string;
     /** The client window in the hero: its status line and input placeholder. */
     frameOnline: string;
     frameInput: string;
-    /** Marks the first of two ways to connect. */
-    recommended: string;
+    connectLabel: string;
+    connectTime: string;
+    askLabel: string;
+    askLive: string;
+    askTitle: string;
+    askBody: string;
+    /** Under the reply in the Ask card, before the channel icons. */
+    via: string;
+    alsoTry: string;
     /** Before the links to the vendor's own documentation. */
     docs: string;
-    promptsTitle: string;
-    promptsSub: string;
+    /** Above a second way to connect, under the comparison table. */
+    otherMethod: string;
+    orbitTitle: string;
+    orbitSub: string;
     canTitle: string;
     canSub: string;
+    mcpTitle: string;
+    mcpSub: string;
+    mcpCardTitle: string;
+    mcpCardBody: string;
+    mcpPoints: string[];
+    mcpCodeLabel: string;
+    /** What each MCP tool does, by tool name (lib/aiClients.ts MCP_TOOLS), for the code window. */
+    mcpTools: Record<string, string>;
+    promptsTitle: string;
+    promptsSub: string;
     channelsTitle: string;
     channelsSub: string;
+    channelsNote: string;
+    /** Marks this page's card in the "versus" section. */
+    thisPage: string;
+    helpTitle: string;
+    costTitle: string;
+    costBody: string;
+    costLink: string;
     securityTitle: string;
-    security: { icon: IconName; title: string; body: string }[];
+    securityBody: string;
+    troubleTitle: string;
     faqTitle: string;
     relatedTitle: string;
     allClients: string;
+    /** The related line: its label, and when the steps were last checked. */
+    relatedLabel: string;
+    updated: string;
     ctaTitle: string;
     ctaBody: string;
-    /** Questions every client page answers, before its own. */
+    /** Questions every client page answers, after its own. */
     sharedFaq: Faq[];
   };
   /** Group titles of the "Works with" grid on the AI agent page. */

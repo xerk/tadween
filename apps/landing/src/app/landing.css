@@ -406,7 +406,6 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
 /* The client's own window, drawn generically: its name as text and a neutral glyph.
    Never the client's logo or a screenshot of it. */
 .pz-chat.is-client .pz-chat-top .pz-tile-ic { background: var(--muted); color: var(--foreground); }
-.pz-pair.is-single { grid-template-columns: minmax(0, 760px); justify-content: center; }
 /* Clients without a page, named as text under the grid */
 .pz-also { display: grid; gap: 8px; max-width: 760px; margin: 40px auto 0; text-align: center; }
 .pz-also p { margin: 0; }
@@ -420,10 +419,154 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
 .pz-client-notes li { display: flex; gap: 10px; align-items: flex-start; color: var(--muted-foreground); font-size: 14px; line-height: 21px; }
 .pz-client-notes .pz-icon { flex: none; margin-top: 2px; color: var(--primary); }
 .pz-client-notes a { color: var(--foreground); }
-.pz-prompts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
-.pz-prompts li { display: flex; gap: 12px; align-items: flex-start; padding: 18px 20px; border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm); font-size: 15px; line-height: 23px; text-align: start; }
-.pz-prompts li:lang(ar) { font-family: var(--font-arabic); font-size: 16px; line-height: 26px; }
-.pz-prompts .pz-icon { flex: none; margin-top: 3px; color: var(--primary); }
+/* The page follows docs/tadween/ai-pages-postiz-breakdown.md: a Nile band for the hero, the
+   orbit and the call to action, and hairline-ruled sections in between, headings on the
+   reading start. The band is the same deep Nile in both themes, so its text is always white. */
+.pz-aipage { --sec-y: clamp(56px, 7vw, 104px); --band: linear-gradient(140deg, #0b7062 0%, #075a4f 46%, #04372f 100%); --on-band: #ffffff; --on-band-muted: rgba(255, 255, 255, 0.78); }
+.pz-sec.is-ruled { padding-top: 0; }
+.pz-sec.is-ruled > .pz-container::before { content: ''; display: block; height: 1px; margin-bottom: var(--sec-y); background: var(--border); }
+.pz-aifine { margin-top: 18px; max-width: 760px; }
+.pz-aifine a { color: inherit; }
+
+/* Hero band */
+.pz-aihero { position: relative; padding-block: clamp(40px, 6vw, 88px); background: var(--band); color: var(--on-band); overflow: hidden; isolation: isolate; }
+.pz-aihero::before { content: ''; position: absolute; inset: -30% -10% auto auto; z-index: -1; width: 70%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 255, 255, 0.16), transparent); }
+.pz-aihero .pz-hero-copy { gap: 22px; }
+.pz-aihero .pz-crumbs ol { color: var(--on-band-muted); }
+.pz-aihero .pz-crumbs a:hover { color: var(--on-band); }
+.pz-aihero .pz-btn-primary { background: #fff; color: #0b7062; box-shadow: none; }
+.pz-aihero .pz-btn-primary:hover { background: #e2f3ef; }
+.pz-aihero .pz-btn-secondary { background: transparent; color: var(--on-band); border-color: rgba(255, 255, 255, 0.5); box-shadow: none; }
+.pz-aihero .pz-btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
+.pz-aihero :focus-visible { outline-color: #fff; }
+.pz-aichip { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; line-height: 20px; font-weight: 600; }
+.pz-aichip-ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: #fff; color: #0b7062; }
+.pz-aibullets { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; font-size: 17px; line-height: 25px; }
+.pz-aibullets li { display: flex; gap: 12px; align-items: baseline; }
+.pz-aibullets li::before { content: ''; flex: none; width: 7px; height: 7px; border-radius: 2px; background: #9ee6d6; transform: translateY(-2px); }
+.pz-aismall { margin: 0; max-width: 560px; color: var(--on-band-muted); font-size: 13px; line-height: 19px; }
+.pz-aismall a { color: var(--on-band); }
+.pz-aihero-art { position: relative; padding: 36px 30px; }
+.pz-aihero-art .pz-chat { position: relative; z-index: 1; color: var(--foreground); }
+.pz-float { position: absolute; inset: 0; z-index: 2; margin: 0; padding: 0; list-style: none; pointer-events: none; }
+.pz-float li { position: absolute; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: #fff; box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.5); animation: pz-bob 6s ease-in-out infinite alternate; }
+.pz-float li img { border-radius: 6px; }
+.pz-float li:nth-child(1) { top: 0; inset-inline-start: 0; }
+.pz-float li:nth-child(2) { top: 0; inset-inline-end: 8%; animation-delay: -1s; }
+.pz-float li:nth-child(3) { top: 38%; inset-inline-end: 0; animation-delay: -2s; }
+.pz-float li:nth-child(4) { bottom: 0; inset-inline-end: 14%; animation-delay: -3s; }
+.pz-float li:nth-child(5) { bottom: 4%; inset-inline-start: 0; animation-delay: -4s; }
+.pz-float li:nth-child(6) { top: 46%; inset-inline-start: 0; animation-delay: -5s; }
+@keyframes pz-bob { to { translate: 0 -8px; } }
+
+/* Connect and Ask cards, then the numbered steps */
+.pz-step-card { gap: 14px; }
+.pz-step-top { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.pz-step-meta { display: inline-flex; align-items: center; gap: 6px; margin-inline-start: auto; color: var(--muted-foreground); font-size: 13px; }
+.pz-step-meta.is-live i { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+.pz-askchat { display: grid; gap: 12px; padding: 16px; border-radius: 18px; border: 1px solid var(--border); background: var(--background); }
+.pz-askchat .pz-chat-msg { margin: 0; }
+.pz-askchat-reply { display: flex; gap: 10px; align-items: flex-start; }
+.pz-askchat-reply .pz-tile-ic { flex: none; width: 30px; height: 30px; border-radius: 9px; background: var(--muted); color: var(--foreground); }
+.pz-askchat-reply > div { display: grid; gap: 8px; padding: 12px 14px; border-radius: 18px; border-start-start-radius: 4px; background: var(--card); box-shadow: var(--shadow-sm); }
+.pz-askchat-reply p { margin: 0; font-size: 15px; line-height: 23px; }
+.pz-askchat .pz-chat-msg:lang(ar), .pz-askchat-reply p:lang(ar) { font-family: var(--font-arabic); }
+.pz-via { display: inline-flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: 12px; }
+.pz-via img { border-radius: 4px; }
+.pz-alsotry { display: grid; gap: 8px; }
+.pz-alsotry .pz-chips { margin: 0; }
+.pz-steps.is-flow { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 24px; margin-top: 36px; }
+.pz-steps.is-flow li { gap: 4px; }
+.pz-steps.is-flow li::before { width: 28px; height: 28px; margin: 0; background: var(--primary-soft); color: var(--primary); font-size: 13px; }
+.pz-method-panel { margin-top: 32px; }
+.pz-client-notes { margin: 4px 0 0; max-width: none; }
+.pz-compare-table.is-text th, .pz-compare-table.is-text td { text-align: start; vertical-align: top; line-height: 22px; }
+.pz-compare-table.is-text thead th { color: var(--muted-foreground); font-size: 13px; }
+.pz-inline-code { font-family: var(--font-mono); font-size: 13px; overflow-wrap: anywhere; }
+
+/* The channel orbit: icons on two rings around Tadween's mark, placed by angle */
+.pz-orbit-band { padding-block: clamp(64px, 8vw, 112px); background: var(--band); color: var(--on-band); overflow: hidden; }
+.pz-orbit-band .t-lead { color: var(--on-band-muted); }
+.pz-orbit { position: relative; width: min(100%, 580px); aspect-ratio: 1; margin: 0 auto; container-type: inline-size; }
+.pz-orbit-core { position: absolute; top: 50%; left: 50%; display: grid; place-items: center; width: 26cqw; height: 26cqw; border-radius: 50%; background: #fff; box-shadow: 0 0 0 10cqw rgba(255, 255, 255, 0.04), 0 24px 60px -20px rgba(0, 0, 0, 0.5); transform: translate(-50%, -50%); }
+.pz-orbit-core img { width: 46%; height: auto; border-radius: 22%; }
+.pz-orbit-ring { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; }
+.pz-orbit-ring::before { content: ''; position: absolute; top: 50%; left: 50%; width: calc(var(--r) * 2cqw); height: calc(var(--r) * 2cqw); border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.16); transform: translate(-50%, -50%); }
+.pz-orbit-ring.is-inner { --r: 28; }
+.pz-orbit-ring.is-outer { --r: 44; }
+.pz-orbit-ring li { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(var(--a)) translateY(calc(var(--r) * -1cqw)) rotate(calc(-1 * var(--a))); }
+.pz-orbit-ring a { display: grid; place-items: center; width: clamp(34px, 10cqw, 54px); height: clamp(34px, 10cqw, 54px); border-radius: 50%; background: #fff; box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.55); transition: transform var(--duration-base) var(--ease-out); }
+.pz-orbit-ring a:hover { transform: scale(1.1); }
+.pz-orbit-ring img { width: 54%; height: auto; border-radius: 5px; }
+
+/* Cards: what it can do, the siblings, pricing and help */
+.pz-fcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+.pz-fcards > li { position: relative; display: grid; gap: 10px; align-content: start; padding: 24px; border-radius: var(--radius-xl); border: 1px solid var(--border); background: var(--card); }
+.pz-fcards strong, .pz-fcards h3 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 600; }
+.pz-fcards p { margin: 0; color: var(--muted-foreground); font-size: 15px; line-height: 23px; }
+.pz-fcards .pz-tile-ic { width: 40px; height: 40px; border-radius: 11px; }
+.pz-fcards .pz-plan-list { font-size: 14px; line-height: 21px; }
+.pz-fcards.is-versus strong a { color: var(--foreground); text-decoration: underline; text-decoration-color: var(--border); }
+.pz-fcards.is-versus strong a:hover { color: var(--primary); text-decoration-color: currentColor; }
+.pz-fcards > li.is-current { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.pz-vtag { justify-self: start; padding: 2px 10px; border-radius: var(--radius-full); background: var(--primary-soft); color: var(--primary); font-size: 12px; font-weight: 600; line-height: 18px; }
+
+/* The MCP server: how the client uses it beside the tool list */
+.pz-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 48px); align-items: start; border: 1px solid var(--border); box-shadow: none; }
+.pz-split-copy { display: grid; gap: 14px; align-content: start; }
+.pz-code.is-tools dl { display: grid; gap: 2px; margin: 0; padding: 14px 18px 18px; font-size: 13px; line-height: 20px; }
+.pz-code.is-tools dl > div { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 4px 14px; }
+.pz-code.is-tools dl > div.is-endpoint { grid-template-columns: minmax(0, 1fr); gap: 0; margin-bottom: 10px; }
+.pz-code.is-tools dt { color: #9ee6d6; font-family: var(--font-mono); text-align: left; overflow-wrap: anywhere; }
+.pz-code.is-tools dd { margin: 0; color: #a0a0a7; }
+.pz-code.is-tools .is-endpoint dt { color: #e9e9ee; }
+.pz-code.is-tools figcaption { font-family: inherit; }
+[dir='rtl'] .pz-code.is-tools dt { text-align: right; }
+
+/* Example requests */
+.pz-pcards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.pz-pcards > li { display: grid; gap: 10px; align-content: start; padding: 20px; border-radius: var(--radius-xl); border: 1px solid var(--border); background: var(--card); }
+.pz-pcard-top { display: flex; align-items: center; gap: 8px; }
+.pz-pcard-top .pz-kicker { font-size: 12px; line-height: 16px; }
+.pz-pcard-nets { display: inline-flex; gap: 4px; margin-inline-start: auto; }
+.pz-pcard-nets img { border-radius: 4px; }
+.pz-pcards h3 { margin: 0; font-size: 17px; line-height: 23px; font-weight: 600; }
+.pz-pcard-quote { margin: 4px 0 0; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--background); font-size: 14px; line-height: 21px; text-align: start; }
+.pz-pcard-quote:lang(ar) { font-family: var(--font-arabic); font-size: 15px; line-height: 24px; }
+.pz-chgrid.is-dense { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+
+/* A wide FAQ, heading on the reading start */
+.pz-faq.is-wide { max-width: none; }
+.pz-faq.is-wide > h2 { text-align: start; }
+
+/* The call to action with a visual beside the copy */
+.pz-cta.is-split { grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr); grid-template-areas: 'title visual' 'body visual' 'row visual'; justify-items: start; align-content: center; column-gap: clamp(24px, 4vw, 64px); padding-inline: clamp(24px, 5vw, 72px); text-align: start; }
+.pz-cta.is-split > h2 { grid-area: title; }
+.pz-cta.is-split > p { grid-area: body; }
+.pz-cta.is-split > .pz-cta-row { grid-area: row; }
+.pz-cta-visual { grid-area: visual; align-self: center; width: 100%; max-width: 420px; justify-self: end; }
+.pz-cta-visual .pz-shot { box-shadow: 0 30px 60px -24px rgba(0, 0, 0, 0.5); }
+.pz-aipage .pz-panel { border: 1px solid var(--border); box-shadow: none; }
+@media (max-width: 960px) {
+  .pz-fcards, .pz-pcards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pz-split { grid-template-columns: minmax(0, 1fr); }
+  .pz-cta.is-split { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'title' 'body' 'row' 'visual'; row-gap: 18px; }
+  .pz-cta-visual { justify-self: center; margin-top: 12px; }
+  .pz-aihero-art { max-width: 620px; }
+}
+@media (max-width: 640px) {
+  .pz-fcards, .pz-pcards { grid-template-columns: minmax(0, 1fr); }
+  .pz-aihero-art { padding: 22px 8px; }
+  .pz-float li { width: 38px; height: 38px; border-radius: 11px; }
+  .pz-float li img { width: 20px; height: 20px; }
+  .pz-steps.is-flow { grid-template-columns: minmax(0, 1fr); }
+  .pz-chgrid.is-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pz-code.is-tools dl > div { grid-template-columns: minmax(0, 1fr); gap: 0; margin-bottom: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pz-float li { animation: none !important; }
+  .pz-orbit-ring a { transition: none; }
+}
 .pz-chtile.is-link { text-decoration: none; transition: box-shadow var(--duration-base) ease; }
 .pz-chtile.is-link:hover { box-shadow: var(--shadow-md); }
 .pz-chcard > .pz-tile-ic { flex: none; width: 40px; height: 40px; border-radius: 10px; color: var(--primary); }

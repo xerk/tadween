@@ -53,6 +53,26 @@ const EXPORT_KEY = { label: 'Terminal', code: `export TADWEEN_API_KEY="${KEY}"` 
 /** A neutral glyph per kind of client; product logos are never drawn. */
 export const KIND_ICON: Record<ClientKind, IconName> = { assistant: 'message-circle', coding: 'terminal' };
 
+/** The MCP tools a client sees on {api}/mcp-oauth-dynamic and {api}/mcp, as the backend names
+    them (libraries/nestjs-libraries/src/chat/tools). Clipping is left out: it depends on the
+    server's configuration. What each one does is in the copy (page.mcpTools). */
+export const MCP_TOOLS = [
+  'integrationList',
+  'groupList',
+  'integrationSchema',
+  'triggerTool',
+  'integrationSchedulePostTool',
+  'postsListTool',
+  'postSettingsTool',
+  'uploadFromUrlTool',
+  'generateImageTool',
+  'generateVideoTool',
+] as const;
+
+/** The addresses the code window lists: sign-in for every client, a key in a header for
+    clients that take one. */
+export const MCP_ENDPOINTS: Record<ClientAuth, string> = { oauth: OAUTH_URL, key: MCP_URL };
+
 const CLAUDE_DOCS = [
   { label: 'Claude Help Center: custom connectors using remote MCP', url: 'https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp' },
 ];
@@ -82,7 +102,7 @@ export const AI_CLIENTS: AiClientFacts[] = [
     name: 'Cursor',
     kind: 'coding',
     methods: [
-      { auth: 'oauth', steps: [{ label: '~/.cursor/mcp.json', code: json({ mcpServers: { tadween: { url: OAUTH_URL } } }) }, null] },
+      { auth: 'oauth', steps: [{ label: '~/.cursor/mcp.json', code: json({ mcpServers: { tadween: { url: OAUTH_URL } } }) }, null, null] },
       {
         auth: 'key',
         steps: [EXPORT_KEY, { label: '~/.cursor/mcp.json', code: json({ mcpServers: { tadween: { url: MCP_URL, headers: { Authorization: 'Bearer ${env:TADWEEN_API_KEY}' } } } }) }, null],

@@ -137,6 +137,7 @@ export const legalEn: LegalCopy = {
           'The Service connects to third-party platforms that we do not control, including LinkedIn, Meta (Facebook, Instagram and Threads), Google (YouTube) and others you choose to connect. Your use of each platform is governed by that platform’s own terms and policies, for example the {linkedinTerms} and the {metaTerms}. You are responsible for following them.',
           'YouTube. Tadween uses YouTube API Services to upload and manage videos on YouTube channels you connect. By connecting a YouTube channel or using Tadween’s YouTube features, you agree to be bound by the {youtubeTerms}. Google’s handling of your data is described in the {googlePrivacy}.',
           'Platforms can change or limit their APIs, rate limits, features or approval of apps like ours at any time. When that happens, some features may stop working or a post may fail to publish. We will try to tell you when a post fails, but we are not responsible for actions taken by a platform, including removing content or restricting your account there.',
+          'Trademarks. LinkedIn, Facebook, Instagram, Threads, YouTube and other platform names, and Claude (Anthropic), ChatGPT (OpenAI) and Cursor (Anysphere), are trademarks of their respective owners. We use these names and logos only to describe what Tadween works with; Tadween is not affiliated with, sponsored by or endorsed by them.',
         ],
       },
       {

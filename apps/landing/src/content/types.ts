@@ -457,7 +457,5 @@ export interface Dict {
     channelsTitle: string;
     columns: { title: string; links: { href: string; label: string; external?: boolean }[] }[];
     copyright: string;
-    /** Third-party product names and marks shown on the AI pages. */
-    trademarks: string;
   };
 }

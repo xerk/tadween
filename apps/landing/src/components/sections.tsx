@@ -495,7 +495,6 @@ export function Footer({ t }: { t: Dict }) {
         </div>
         <p className="pz-foot-legal">
           <span>{t.footer.copyright}</span>
-          <span>{t.footer.trademarks}</span>
         </p>
       </div>
     </footer>

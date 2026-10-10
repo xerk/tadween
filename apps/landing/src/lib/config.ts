@@ -24,8 +24,8 @@ export const SIGN_UP_URL = `${APP_URL}/auth`;
 export const SIGN_IN_URL = `${APP_URL}/auth/login`;
 
 /** Tadween is built on Postiz (AGPL-3.0); the footer credit links to its source. */
-export const SOURCE_URL = 'https://github.com/gitroomhq/postiz-app';
-export const LICENSE_URL = 'https://www.gnu.org/licenses/agpl-3.0.html';
+/** Tadween's own source (AGPL-3.0 asks that users of the hosted app can get the source). */
+export const SOURCE_URL = 'https://github.com/xerk/tadween';
 
 // ── Legal pages (/terms, /privacy, /refund, /contact) ──────────────────────────────────
 // The company details the legal pages name. One left unset shows as a marked placeholder

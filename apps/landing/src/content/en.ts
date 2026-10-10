@@ -1,4 +1,4 @@
-import { LICENSE_URL, SIGN_IN_URL, SIGN_UP_URL, SOURCE_URL } from '@/lib/config';
+import { SIGN_IN_URL, SIGN_UP_URL, SOURCE_URL } from '@/lib/config';
 import { aiClientsEn } from './aiClients.en';
 import { channelsEn } from './channels.en';
 import { featuresEn } from './features.en';
@@ -348,19 +348,13 @@ export const en: Dict = {
         ],
       },
       {
-        title: 'Open source',
-        links: [
-          { href: SOURCE_URL, label: 'Source code', external: true },
-          { href: LICENSE_URL, label: 'AGPL-3.0 license', external: true },
-        ],
-      },
-      {
         title: 'Legal',
         links: [
           { href: '/terms', label: 'Terms of Service' },
           { href: '/privacy', label: 'Privacy Policy' },
           { href: '/refund', label: 'Refund Policy' },
           { href: '/contact', label: 'Contact' },
+          { href: SOURCE_URL, label: 'Source code', external: true },
         ],
       },
     ],

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { ChatDemo, Dict, Faq } from '@/content/types';
 import { AI_CLIENTS } from '@/lib/aiClients';
 import { CHANNELS, channelBySlug, networkBySlug } from '@/lib/channels';
-import { LICENSE_URL, SIGN_IN_URL, SIGN_UP_URL, SOURCE_URL } from '@/lib/config';
+import { SIGN_IN_URL, SIGN_UP_URL } from '@/lib/config';
 import { FEATURE_MENU, featureRefIcon, featureRefPath, type FeatureRef } from '@/lib/features';
 import { PATHS, channelPath, clientPath, localePath } from '@/lib/routes';
 import type { ShotId } from '@/lib/shots';
@@ -496,16 +496,6 @@ export function Footer({ t }: { t: Dict }) {
         <p className="pz-foot-legal">
           <span>{t.footer.copyright}</span>
           <span>{t.footer.trademarks}</span>
-          <span lang="en" dir="ltr">
-            <a href={SOURCE_URL} rel="noopener" target="_blank">
-              Built on Postiz
-            </a>
-            , open source under{' '}
-            <a href={LICENSE_URL} rel="noopener" target="_blank">
-              AGPL-3.0
-            </a>
-            .
-          </span>
         </p>
       </div>
     </footer>

@@ -18,6 +18,10 @@ const PAGES: Record<string, { eyebrow: string; title: string }> = {
   features: { eyebrow: 'Features', title: en.featuresIndex.title },
   'ai-agent': { eyebrow: 'AI agent', title: en.agentPage.title },
   channels: { eyebrow: 'Channels', title: en.channels.index.title },
+  terms: { eyebrow: 'Legal', title: en.legal.terms.title },
+  privacy: { eyebrow: 'Legal', title: en.legal.privacy.title },
+  refund: { eyebrow: 'Legal', title: en.legal.refund.title },
+  contact: { eyebrow: 'Contact', title: 'Questions about your account, billing or privacy? Write to us.' },
 };
 
 export function generateStaticParams() {

@@ -600,6 +600,47 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
 .pz-crumbs a { color: inherit; text-decoration: none; } .pz-crumbs a:hover { color: var(--foreground); }
 .pz-crumbs.is-start ol { justify-content: flex-start; }
 
+/* ── Legal pages (/terms, /privacy, /refund, /contact) ─ */
+/* Long-form text in the reading column: the last-updated line, a table of contents card,
+   then numbered sections. Section anchors clear the sticky bar (html scroll-padding-top). */
+.pz-legal { max-width: calc(var(--container-narrow) + 2 * var(--gutter)); }
+.pz-legal-updated { margin: 0 0 20px; color: var(--muted-foreground); font-size: 14px; line-height: 20px; }
+.pz-legal-note { margin: 0 0 24px; padding: 14px 18px; border-radius: var(--radius-lg); background: var(--muted); font-size: 15px; line-height: 24px; }
+.pz-legal-toc { margin: 0 0 48px; padding: 22px 24px; border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); }
+.pz-legal-toc h2 { margin: 0 0 12px; font-size: 13px; line-height: 18px; font-weight: 600; color: var(--muted-foreground); }
+.pz-legal-toc ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px; margin: 0; padding: 0; list-style: none; font-size: 15px; line-height: 22px; }
+.pz-legal-toc a { color: var(--foreground); text-decoration: none; }
+.pz-legal-toc a:hover { color: var(--primary); text-decoration: underline; }
+.pz-legal-body { font-size: 16px; line-height: 27px; overflow-wrap: anywhere; }
+.pz-legal-body > section + section { margin-top: 40px; }
+.pz-legal-body h2 { margin: 0 0 12px; font-size: var(--fs-h3); line-height: var(--lh-h3); font-weight: 600; letter-spacing: -0.02em; }
+.pz-legal-body p { margin: 0 0 14px; }
+.pz-legal-body ul { margin: 0 0 14px; padding-inline-start: 22px; display: grid; gap: 8px; }
+.pz-legal-body li::marker { color: var(--muted-foreground); }
+.pz-legal-body.is-contact > section { padding: 22px 24px; border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); }
+.pz-legal-body.is-contact > section + section { margin-top: 16px; }
+.pz-legal-body.is-contact h2 { font-size: 17px; line-height: 24px; }
+.pz-legal-body.is-contact p:last-child { margin-bottom: 0; }
+.is-ar .pz-legal-body h2 { font-family: var(--font-arabic); letter-spacing: 0; font-weight: 700; line-height: 1.4; }
+.is-ar .pz-legal-body, .is-ar .pz-legal-note { line-height: 1.85; }
+@media (max-width: 640px) {
+  .pz-legal-toc ol { grid-template-columns: minmax(0, 1fr); }
+  .pz-legal-toc, .pz-legal-body.is-contact > section { padding: 18px; }
+}
+
+/* Printing a legal page: just the document, black on white, with link targets spelled out. */
+@media print {
+  .pz-nav, .pz-sheet, .pz-skip, .pz-foot, .pz-legal-toc, .pz-crumbs { display: none !important; }
+  .pz-landing, body { background: #fff !important; color: #000 !important; }
+  .pz-phead { padding-top: 0; }
+  .pz-phead + .pz-sec { padding-top: 16px; }
+  .pz-sec { padding-block: 0; }
+  .pz-legal-body h2 { break-after: avoid; }
+  .pz-legal-body a[href^='http']::after { content: ' (' attr(href) ')'; font-size: 0.85em; }
+  .pz-legal-body a { color: #000; }
+  [data-hero-in] { opacity: 1 !important; transform: none !important; }
+}
+
 /* ── Channels ────────────────────────────────────────── */
 .pz-group-title { margin: 0 0 18px; }
 .pz-group-sub { margin: -8px 0 18px; }
@@ -633,7 +674,7 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
 .pz-cta .pz-btn-ghost { color: var(--primary-foreground); }
 .pz-cta .pz-btn-ghost:hover { background: color-mix(in oklab, var(--primary-foreground) 12%, transparent); }
 .pz-foot { padding-block: 72px 40px; border-top: 1px solid var(--border); }
-.pz-foot-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(4, minmax(0, 1fr)); gap: 32px; }
+.pz-foot-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(5, minmax(0, 1fr)); gap: 32px; }
 .pz-foot-brand { display: grid; gap: 14px; align-content: start; justify-items: start; }
 .pz-foot-brand p { margin: 0; max-width: 300px; color: var(--muted-foreground); font-size: 14px; line-height: 21px; }
 .pz-foot-col { display: grid; gap: 10px; align-content: start; }
@@ -681,7 +722,7 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
 @media (max-width: 1100px) {
   .pz-tiers { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 28px; }
 
-  .pz-foot-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .pz-foot-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .pz-foot-brand { grid-column: 1 / -1; }
   .pz-nav-link { padding: 0 9px; }
   .pz-showcase .pz-callout.is-a { inset-inline-start: 12px; }
@@ -701,6 +742,7 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
   .pz-pair, .pz-clients { grid-template-columns: minmax(0, 1fr); }
   .pz-chcards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pz-callout { display: none; }
+  .pz-foot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
   .pz-nav .pz-btn-primary { padding: 0 12px; }

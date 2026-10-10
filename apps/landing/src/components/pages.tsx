@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react';
-import type { ChannelCopy, Dict } from '@/content/types';
+import type { ChannelCopy, Dict, LegalBlock, LegalValueKey } from '@/content/types';
 import { AI_CLIENTS, KIND_ICON, MCP_ENDPOINTS, MCP_TOOLS, MORE_AI_CLIENTS, clientBySlug, type AiClientFacts, type ClientKind } from '@/lib/aiClients';
 import { CHANNELS, MORE_CHANNELS, OTHER_CHANNELS, channelBySlug, networkBySlug, type ChannelFacts } from '@/lib/channels';
-import { DOCS_API_URL } from '@/lib/config';
+import { DOCS_API_URL, LEGAL, LEGAL_UPDATED, POLICY_URLS, REFUND_MODE } from '@/lib/config';
 import { FEATURES } from '@/lib/features';
 import { breadcrumbs, faqPage, organization, softwareApplication } from '@/lib/jsonld';
 import { loadPlans } from '@/lib/plans';
-import { FEATURE_SLUGS, PATHS, channelPath, clientPath, localePath } from '@/lib/routes';
+import { FEATURE_SLUGS, LEGAL_PAGES, PATHS, channelPath, clientPath, localePath, type LegalPageKey } from '@/lib/routes';
 import { CHANNEL_SHOT, CHANNEL_SHOT_SLUGS, channelShotSrc } from '@/lib/shots';
 import { CopyButton } from './CopyButton';
 import { Icon, cx } from './Icon';
@@ -83,7 +83,7 @@ export async function LandingPage({ t }: { t: Dict }) {
       <AllFeatures t={t} more />
       <Steps t={t} title={t.steps.title} items={t.steps.items} />
       <PricingSection t={t}>
-        <PricingTable p={t.pricing} lang={t.lang} numberLocale={t.numberLocale} plans={plans} compare={false} faq={false} compareHref={localePath(t.lang, PATHS.pricing)} />
+        <PricingTable p={t.pricing} lang={t.lang} numberLocale={t.numberLocale} plans={plans} agree={legalText(t, t.legal.pricingAgree)} compare={false} faq={false} compareHref={localePath(t.lang, PATHS.pricing)} />
       </PricingSection>
       <FaqSection id="faq" title={t.homeFaq.title} items={t.homeFaq.items} />
       <CTA t={t} />
@@ -100,7 +100,7 @@ export async function PricingPage({ t }: { t: Dict }) {
       <PageHead t={t} title={t.pricing.pageTitle} sub={t.pricing.pageSub} />
       <section className="pz-sec" aria-label={t.pricing.pageTitle}>
         <div className="pz-container">
-          <PricingTable p={t.pricing} lang={t.lang} numberLocale={t.numberLocale} plans={plans} />
+          <PricingTable p={t.pricing} lang={t.lang} numberLocale={t.numberLocale} plans={plans} agree={legalText(t, t.legal.pricingAgree)} />
         </div>
       </section>
       <CTA t={t} />
@@ -1068,6 +1068,88 @@ export function AiClientPage({ t, slug }: { t: Dict; slug: string }) {
         </section>
         <CTA t={t} title={fill(p.ctaTitle)} body={fill(p.ctaBody)} visual={<Shot t={t} id="calendar-preview" />} />
       </div>
+    </Shell>
+  );
+}
+
+/** Fills a legal text: {company} and the other company values from NEXT_PUBLIC_LEGAL_*
+    (a marked placeholder until set), {email} as a mailto link, {date} as the last-updated
+    date, and {terms}, {privacy}, {refund}, {contact} and the platform policies as links. */
+function legalText(t: Dict, s: string): ReactNode {
+  return s.split(/\{(\w+)\}/).map((part, i) => {
+    if (i % 2 === 0) return part;
+    if (part === 'date') return new Intl.DateTimeFormat(t.numberLocale, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(LEGAL_UPDATED));
+    if (part in LEGAL) {
+      const key = part as LegalValueKey;
+      const value = LEGAL[key];
+      if (!value) return <bdi key={i} className="pz-placeholder">{t.legal.placeholders[key]}</bdi>;
+      if (key === 'email') return <a key={i} href={`mailto:${value}`}><bdi>{value}</bdi></a>;
+      if (key === 'refundDays') return new Intl.NumberFormat(t.numberLocale).format(Number(value));
+      return <bdi key={i}>{value}</bdi>;
+    }
+    if ((LEGAL_PAGES as readonly string[]).includes(part)) {
+      const key = part as LegalPageKey;
+      return <a key={i} href={localePath(t.lang, PATHS[key])}>{t.legal.links[key]}</a>;
+    }
+    if (part in POLICY_URLS) {
+      const key = part as keyof typeof POLICY_URLS;
+      return <a key={i} href={POLICY_URLS[key]} rel="noopener" target="_blank">{t.legal.links[key]}</a>;
+    }
+    throw new Error(`Unknown token {${part}} in the legal copy.`);
+  });
+}
+
+/** /terms, /privacy, /refund and /contact: a long-form document in the reading column, with
+    its last-updated date and a table of contents (the Arabic pages also say the English text
+    prevails). No motion on the text, so it reads and prints without scripts. */
+export function LegalPage({ t, page }: { t: Dict; page: LegalPageKey }) {
+  const doc = t.legal[page];
+  const isDoc = page !== 'contact';
+  const crumbs = trail(t, { name: doc.title, href: localePath(t.lang, PATHS[page]) });
+  // The Refund Policy keeps only the blocks of the chosen refund wording.
+  const keep = (b: LegalBlock) => typeof b === 'string' || !b.when || b.when === REFUND_MODE;
+  const sections = doc.sections.map((s) => ({ ...s, body: s.body.filter(keep) })).filter((s) => s.body.length);
+  return (
+    <Shell t={t} path={PATHS[page]} jsonLd={[trailLd(crumbs)]}>
+      <PageHead t={t} crumbs={crumbs} title={doc.title} sub={legalText(t, doc.sub)} />
+      <section className="pz-sec pz-legal-sec" aria-label={doc.title}>
+        <div className="pz-container pz-legal">
+          {isDoc ? <p className="pz-legal-updated">{legalText(t, t.legal.updated)}</p> : null}
+          {isDoc && t.legal.prevails ? <p className="pz-legal-note">{t.legal.prevails}</p> : null}
+          {isDoc ? (
+            <nav className="pz-legal-toc" aria-labelledby="legal-toc">
+              <h2 id="legal-toc">{t.legal.toc}</h2>
+              <ol>
+                {sections.map((s) => (
+                  <li key={s.id}>
+                    <a href={`#${s.id}`}>{s.title}</a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          ) : null}
+          <div className={cx('pz-legal-body', !isDoc && 'is-contact')}>
+            {sections.map((s) => (
+              <section key={s.id} id={s.id} aria-labelledby={`${s.id}-title`}>
+                <h2 id={`${s.id}-title`}>{s.title}</h2>
+                {s.body.map((b, i) =>
+                  typeof b === 'string' ? (
+                    <p key={i}>{legalText(t, b)}</p>
+                  ) : 'text' in b ? (
+                    <p key={i}>{legalText(t, b.text)}</p>
+                  ) : (
+                    <ul key={i}>
+                      {b.list.map((item, j) => (
+                        <li key={j}>{legalText(t, item)}</li>
+                      ))}
+                    </ul>
+                  ),
+                )}
+              </section>
+            ))}
+          </div>
+        </div>
+      </section>
     </Shell>
   );
 }

@@ -9,7 +9,15 @@ export const PATHS = {
   channels: '/channels',
   agent: '/ai-agent',
   pricing: '/pricing',
+  terms: '/terms',
+  privacy: '/privacy',
+  refund: '/refund',
+  contact: '/contact',
 } as const;
+
+/** The legal pages, in the order the footer lists them. */
+export const LEGAL_PAGES = ['terms', 'privacy', 'refund', 'contact'] as const;
+export type LegalPageKey = (typeof LEGAL_PAGES)[number];
 
 /** The tools, in the order /features and the home page list them. Each is a section of
     /features (anchor #<slug>); the AI agent has its own page at /ai-agent. */
@@ -35,4 +43,5 @@ export const ALL_PAGES: { path: string; priority: number }[] = [
   { path: PATHS.channels, priority: 0.8 },
   ...CHANNELS.map((c) => ({ path: channelPath(c.slug), priority: c.group === 'professional' ? 0.8 : 0.6 })),
   ...AI_CLIENTS.map((c) => ({ path: clientPath(c.slug), priority: 0.7 })),
+  ...LEGAL_PAGES.map((key) => ({ path: PATHS[key], priority: 0.3 })),
 ];

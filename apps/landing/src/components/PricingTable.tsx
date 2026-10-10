@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { Dict } from '@/content/types';
 import { SIGN_UP_URL } from '@/lib/config';
 import { TIER_LIMITS, type PlanView } from '@/lib/plans';
@@ -35,6 +35,7 @@ export function PricingTable({
   compare = true,
   faq = true,
   compareHref,
+  agree,
 }: {
   p: Dict['pricing'];
   lang: Dict['lang'];
@@ -43,6 +44,8 @@ export function PricingTable({
   compare?: boolean;
   faq?: boolean;
   compareHref?: string;
+  /** "By subscribing you agree to the Terms and the Refund Policy", with its links. */
+  agree?: ReactNode;
 }) {
   const [period, setPeriod] = useState<Period>('monthly');
   const fmt = new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 2 });
@@ -128,7 +131,9 @@ export function PricingTable({
           );
         })}
       </div>
-      <p className="caption pz-muted pz-pricing-note">{p.note}</p>
+      <p className="caption pz-muted pz-pricing-note">
+        {p.note} {agree}
+      </p>
       {compare ? (
         <div className="pz-compare" id="compare">
           <h3 className="title-2">{p.compareTitle}</h3>

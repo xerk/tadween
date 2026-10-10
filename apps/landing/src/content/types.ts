@@ -23,6 +23,63 @@ export interface CompareRow {
   values?: Record<string, boolean | string>;
 }
 
+/** Which refund wording the Refund Policy shows: a refund window on the first payment, or no
+    refunds except where the law requires (NEXT_PUBLIC_REFUND_DAYS=0). See lib/config.ts. */
+export type RefundMode = 'window' | 'none';
+
+/** A paragraph or a bulleted list of a legal document. `{token}` marks a company value or a
+    link (lib/config.ts); `when` keeps the block only for one refund wording. */
+export type LegalBlock = string | { text: string; when?: RefundMode } | { list: string[]; when?: RefundMode };
+
+export interface LegalSection {
+  /** The anchor, the same in both languages. */
+  id: string;
+  title: string;
+  body: LegalBlock[];
+}
+
+export interface LegalDoc {
+  metaTitle: string;
+  metaDescription: string;
+  title: string;
+  sub: string;
+  sections: LegalSection[];
+}
+
+/** The company values the legal pages read from NEXT_PUBLIC_LEGAL_* (lib/config.ts). */
+export type LegalValueKey = 'company' | 'state' | 'address' | 'email' | 'law' | 'venue' | 'refundDays' | 'aiProviders' | 'emailProvider' | 'hostingProvider' | 'analytics';
+/** Links a legal text can name: the legal pages themselves and the platform policies. */
+export type LegalLinkKey =
+  | 'terms'
+  | 'privacy'
+  | 'refund'
+  | 'contact'
+  | 'youtubeTerms'
+  | 'googlePrivacy'
+  | 'googleUserData'
+  | 'googlePermissions'
+  | 'linkedinTerms'
+  | 'metaTerms'
+  | 'stripePrivacy';
+
+export interface LegalCopy {
+  crumb: string;
+  /** "{date}" is the last-updated date. */
+  updated: string;
+  toc: string;
+  /** Arabic only: the English version prevails. */
+  prevails?: string;
+  /** Shown, marked, where a company value isn't set yet. */
+  placeholders: Record<LegalValueKey, string>;
+  links: Record<LegalLinkKey, string>;
+  /** Under the pricing table: "{terms}" and "{refund}" become links. */
+  pricingAgree: string;
+  terms: LegalDoc;
+  privacy: LegalDoc;
+  refund: LegalDoc;
+  contact: LegalDoc;
+}
+
 export interface Faq {
   title: string;
   content: string;
@@ -394,6 +451,7 @@ export interface Dict {
   };
   channels: ChannelsDict;
   aiClients: AiClientsDict;
+  legal: LegalCopy;
   footer: {
     tagline: string;
     channelsTitle: string;

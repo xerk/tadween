@@ -2,6 +2,7 @@ import { LICENSE_URL, SIGN_IN_URL, SIGN_UP_URL, SOURCE_URL } from '@/lib/config'
 import { aiClientsAr } from './aiClients.ar';
 import { channelsAr } from './channels.ar';
 import { featuresAr } from './features.ar';
+import { legalAr } from './legal.ar';
 import type { Dict } from './types';
 
 // Arabic copy, written in Modern Standard Arabic for readers in Egypt and the Gulf
@@ -330,6 +331,7 @@ export const ar: Dict = {
   },
   channels: channelsAr,
   aiClients: aiClientsAr,
+  legal: legalAr,
   footer: {
     tagline: 'جدولة منشورات لينكدإن للأفراد والعلامات التجارية في مصر والمنطقة.',
     channelsTitle: 'القنوات',
@@ -350,6 +352,15 @@ export const ar: Dict = {
         links: [
           { href: SOURCE_URL, label: 'الشيفرة المصدرية', external: true },
           { href: LICENSE_URL, label: 'رخصة AGPL-3.0', external: true },
+        ],
+      },
+      {
+        title: 'قانوني',
+        links: [
+          { href: '/ar/terms', label: 'شروط الخدمة' },
+          { href: '/ar/privacy', label: 'سياسة الخصوصية' },
+          { href: '/ar/refund', label: 'سياسة الاسترداد' },
+          { href: '/ar/contact', label: 'تواصل معنا' },
         ],
       },
     ],

@@ -1,4 +1,6 @@
 // Public URLs, read at build time. NEXT_PUBLIC_* values are inlined into the bundle.
+import type { LegalValueKey, RefundMode } from '@/content/types';
+
 const trim = (u: string) => u.replace(/\/+$/, '');
 
 /** The Tadween app (sign-up and sign-in live there). */
@@ -24,3 +26,42 @@ export const SIGN_IN_URL = `${APP_URL}/auth/login`;
 /** Tadween is built on Postiz (AGPL-3.0); the footer credit links to its source. */
 export const SOURCE_URL = 'https://github.com/gitroomhq/postiz-app';
 export const LICENSE_URL = 'https://www.gnu.org/licenses/agpl-3.0.html';
+
+// ── Legal pages (/terms, /privacy, /refund, /contact) ──────────────────────────────────
+// The company details the legal pages name. One left unset shows as a marked placeholder
+// ("[Company legal name]") on the page, so nothing is invented; set them all before the site
+// goes live. docs/tadween/legal.md lists them.
+const env = (v: string | undefined) => (v || '').trim();
+export const LEGAL: Record<LegalValueKey, string> = {
+  company: env(process.env.NEXT_PUBLIC_LEGAL_COMPANY),
+  state: env(process.env.NEXT_PUBLIC_LEGAL_STATE),
+  address: env(process.env.NEXT_PUBLIC_LEGAL_ADDRESS),
+  email: env(process.env.NEXT_PUBLIC_SUPPORT_EMAIL),
+  // The state whose law governs the Terms: the state of formation unless set.
+  law: env(process.env.NEXT_PUBLIC_LEGAL_GOVERNING_LAW) || env(process.env.NEXT_PUBLIC_LEGAL_STATE),
+  venue: env(process.env.NEXT_PUBLIC_LEGAL_VENUE),
+  refundDays: env(process.env.NEXT_PUBLIC_REFUND_DAYS),
+  aiProviders: env(process.env.NEXT_PUBLIC_LEGAL_AI_PROVIDERS),
+  emailProvider: env(process.env.NEXT_PUBLIC_LEGAL_EMAIL_PROVIDER),
+  hostingProvider: env(process.env.NEXT_PUBLIC_LEGAL_HOSTING_PROVIDER),
+  analytics: env(process.env.NEXT_PUBLIC_LEGAL_ANALYTICS),
+};
+
+/** NEXT_PUBLIC_REFUND_DAYS=0 switches the Refund Policy to "no refunds except where the law
+    requires"; any other value (or none, shown as a placeholder) keeps the refund window on
+    the first payment. */
+export const REFUND_MODE: RefundMode = LEGAL.refundDays === '0' ? 'none' : 'window';
+
+/** The "Last updated" date of the legal pages. Change it whenever their text changes. */
+export const LEGAL_UPDATED = '2026-10-11';
+
+/** Third-party policies the legal pages link to. */
+export const POLICY_URLS = {
+  youtubeTerms: 'https://www.youtube.com/t/terms',
+  googlePrivacy: 'https://policies.google.com/privacy',
+  googleUserData: 'https://developers.google.com/terms/api-services-user-data-policy',
+  googlePermissions: 'https://myaccount.google.com/permissions',
+  linkedinTerms: 'https://www.linkedin.com/legal/user-agreement',
+  metaTerms: 'https://developers.facebook.com/terms/',
+  stripePrivacy: 'https://stripe.com/privacy',
+} as const;

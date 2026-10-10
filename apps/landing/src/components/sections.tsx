@@ -410,7 +410,7 @@ export function FaqSection({ id, title, items, wide, className }: { id: string; 
 
 /** The header of an inner page: breadcrumb, then an optional badge or eyebrow, the H1, its
     lead and anything after it (CTAs). The breadcrumb matches the page's BreadcrumbList. */
-export function PageHead({ t, title, sub, eyebrow, crumbs, badge, children }: { t: Dict; title: string; sub: string; eyebrow?: ReactNode; crumbs?: { name: string; href: string }[]; badge?: ReactNode; children?: ReactNode }) {
+export function PageHead({ t, title, sub, eyebrow, crumbs, badge, children }: { t: Dict; title: string; sub: ReactNode; eyebrow?: ReactNode; crumbs?: { name: string; href: string }[]; badge?: ReactNode; children?: ReactNode }) {
   return (
     <header className="pz-phead">
       <div className="pz-container">

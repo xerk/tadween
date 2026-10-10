@@ -205,11 +205,6 @@ export const featuresEn: Record<FeatureSlug, FeatureCopy> = {
         body: 'For LinkedIn pages, Facebook, Instagram, Threads, X, TikTok, YouTube, Pinterest and Google Business Profile, Tadween reads the figures the network shares, over 7, 30 or 90 days where it allows.',
         shot: 'analytics-channel',
       },
-      {
-        title: 'Results per post',
-        body: 'Open a published post on the calendar and choose Post statistics to see how that one post did, on the networks that report it.',
-        shot: 'calendar-preview',
-      },
     ],
     steps: [
       { title: 'Connect channels', body: 'Analytics appear for the networks that share numbers.' },
@@ -219,6 +214,7 @@ export const featuresEn: Record<FeatureSlug, FeatureCopy> = {
     faq: [
       { title: 'Does LinkedIn analytics work for personal profiles?', content: 'LinkedIn shares page analytics with apps like Tadween, not profile analytics. For profiles you still get “Published from Tadween”.' },
       { title: 'How far back does it go?', content: 'Network numbers cover 7, 30 or 90 days, depending on what each network allows. “Published from Tadween” covers up to a year.' },
+      { title: 'Can I see how one post did?', content: 'Yes. On the calendar, a published post offers Post statistics, which shows that post’s results on the networks that report them.' },
       { title: 'Can I get the numbers through the API?', content: 'Yes. The public API returns each channel’s network analytics, so you can build your own reports.' },
     ],
   },

@@ -203,7 +203,7 @@ a { color: var(--primary); text-underline-offset: 3px; }
 .pz-mega-chan:hover, .pz-mega-chan[aria-current] { background: var(--card); box-shadow: var(--shadow-sm); }
 .pz-mega-chan img { border-radius: 6px; }
 .pz-mega-feature { display: grid; gap: 12px; align-content: start; padding: 16px; border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); color: var(--foreground); text-decoration: none; }
-.pz-mega-feature img { display: block; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 0 0 1px var(--border); }
+.pz-mega-feature .pz-shot { display: block; border-radius: 10px; box-shadow: 0 0 0 1px var(--border); }
 .pz-mega-feature strong { font-size: 15px; }
 .pz-mega-feature span { color: var(--muted-foreground); font-size: 13px; line-height: 19px; }
 .pz-mega-foot { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin-top: 12px; padding: 14px 12px 0; border-top: 1px solid var(--border); font-size: 14px; }

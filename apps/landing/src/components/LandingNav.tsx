@@ -96,7 +96,11 @@ export function LandingNav({ t, altHref, current }: { t: Dict; altHref: string; 
             </div>
           </div>
           <a className="pz-mega-feature" href={lp(`${PATHS.features}/board`)}>
-            <img src={shotSrc('board', t.lang, 'light')} width={2400} height={1500} alt="" loading="lazy" />
+            <span className="pz-shot is-bare">
+              {(['light', 'dark'] as const).map((theme) => (
+                <img key={theme} className={`is-${theme}`} src={shotSrc('board', t.lang, theme)} width={2400} height={1500} alt="" loading="lazy" />
+              ))}
+            </span>
             <strong>{t.nav.spotlight.title}</strong>
             <span>{t.nav.spotlight.body}</span>
           </a>

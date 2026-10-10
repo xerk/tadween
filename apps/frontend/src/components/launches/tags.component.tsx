@@ -295,7 +295,9 @@ export const TagsComponentInner: FC<{
         </div>
         <div className="cursor-pointer flex gap-[4px]">
           {tagValue.length === 0 ? (
-            t('add_new_tag', 'Add New Tag')
+            <span className="tdw-foot-label">
+              {t('add_new_tag', 'Add New Tag')}
+            </span>
           ) : (
             <>
               <div

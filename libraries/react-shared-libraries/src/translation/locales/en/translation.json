@@ -1803,5 +1803,13 @@
   "authorized_on": "Authorized on",
   "revoke": "Revoke",
   "tdw_set_oauth_apps": "OAuth apps",
-  "tdw_set_oauth_apps_desc": "Build an app that other people connect with their own account."
+  "tdw_set_oauth_apps_desc": "Build an app that other people connect with their own account.",
+  "tdw_cm_show_preview": "Show preview",
+  "tdw_cm_hide_preview": "Hide preview",
+  "tdw_cm_full_screen": "Full screen",
+  "tdw_cm_side_panel": "Side panel",
+  "tdw_cm_preview_size": "Preview size",
+  "tdw_cm_desktop": "Desktop",
+  "tdw_cm_mobile": "Mobile",
+  "tdw_choose_a_channel": "Choose a channel"
 }

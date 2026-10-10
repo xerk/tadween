@@ -177,8 +177,9 @@ const FirstStep: FC = (props) => {
         setShowStep('');
         modal.openModal({
           id: 'add-edit-modal',
-          closeOnClickOutside: false,
+          closeOnClickOutside: true,
           removeLayout: true,
+          drawer: true,
           closeOnEscape: false,
           withCloseButton: false,
           askClose: hasUnsavedPostChanges,

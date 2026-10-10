@@ -1839,5 +1839,13 @@
   "authorized_on": "اعتُمد في",
   "revoke": "إلغاء الوصول",
   "tdw_set_oauth_apps": "تطبيقات OAuth",
-  "tdw_set_oauth_apps_desc": "أنشئ تطبيقًا يربطه الآخرون بحساباتهم."
+  "tdw_set_oauth_apps_desc": "أنشئ تطبيقًا يربطه الآخرون بحساباتهم.",
+  "tdw_cm_show_preview": "إظهار المعاينة",
+  "tdw_cm_hide_preview": "إخفاء المعاينة",
+  "tdw_cm_full_screen": "ملء الشاشة",
+  "tdw_cm_side_panel": "لوحة جانبية",
+  "tdw_cm_preview_size": "حجم المعاينة",
+  "tdw_cm_desktop": "سطح المكتب",
+  "tdw_cm_mobile": "الجوال",
+  "tdw_choose_a_channel": "اختر قناة"
 }

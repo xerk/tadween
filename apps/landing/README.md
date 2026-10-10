@@ -1,6 +1,6 @@
 # Tadween marketing site
 
-The public site for Tadween, in English and in Arabic (under `/ar`, right to left): the landing page (`/`), features (`/features`, one section per tool), channels (`/channels`, with a page for each main network at `/channels/<slug>`), the AI agent (`/ai-agent`), a page for each main AI client (`/chatgpt`, `/claude`, `/cursor`) pricing (`/pricing`) and the legal pages (`/terms`, `/privacy`, `/refund`, `/contact`). Pages the site used to have redirect (308) to the page that replaced them; see `src/lib/redirects.ts`. It's a separate Next.js app (Next 16, App Router) so that syncing upstream Postiz into `apps/frontend` never touches it.
+The public site for Tadween, in English and in Arabic (under `/ar`, right to left): the landing page (`/`), features (`/features`, one section per tool), channels (`/channels`, with a page for each main network at `/channels/<slug>`), the AI agent (`/ai-agent`), a page for each main AI client (`/chatgpt`, `/claude`, `/cursor`), pricing (`/pricing`) and the legal pages (`/terms`, `/privacy`, `/refund`, `/contact`). Pages the site used to have redirect (308) to the page that replaced them; see `src/lib/redirects.ts`. It's a separate Next.js app (Next 16, App Router) so that syncing upstream Postiz into `apps/frontend` never touches it.
 
 The design is ported from the Tadween design system: tokens, the landing sections and copy, the LinkedIn preview and pricing table, and the motion engine (a three.js 3D hero, GSAP scroll effects and a pinned write → preview → schedule section).
 

@@ -50,7 +50,9 @@ export const LEGAL: Record<LegalValueKey, string> = {
 /** NEXT_PUBLIC_REFUND_DAYS=0 switches the Refund Policy to "no refunds except where the law
     requires"; any other value (or none, shown as a placeholder) keeps the refund window on
     the first payment. */
-export const REFUND_MODE: RefundMode = LEGAL.refundDays === '0' ? 'none' : 'window';
+export const REFUND_MODE: RefundMode = LEGAL.refundDays && Number(LEGAL.refundDays) === 0 ? 'none' : 'window';
+// A typo here would publish "within NaN days" in the Refund Policy; fail the build instead.
+if (LEGAL.refundDays && !/^\d+$/.test(LEGAL.refundDays)) throw new Error(`NEXT_PUBLIC_REFUND_DAYS must be a whole number of days, got "${LEGAL.refundDays}".`);
 
 /** The "Last updated" date of the legal pages. Change it whenever their text changes. */
 export const LEGAL_UPDATED = '2026-10-11';

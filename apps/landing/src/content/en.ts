@@ -359,7 +359,7 @@ export const en: Dict = {
         links: [
           { href: '/terms', label: 'Terms of Service' },
           { href: '/privacy', label: 'Privacy Policy' },
-          { href: '/refund', label: 'Refund policy' },
+          { href: '/refund', label: 'Refund Policy' },
           { href: '/contact', label: 'Contact' },
         ],
       },

@@ -1079,7 +1079,7 @@ function legalText(t: Dict, s: string): ReactNode {
   return s.split(/\{(\w+)\}/).map((part, i) => {
     if (i % 2 === 0) return part;
     if (part === 'date') return new Intl.DateTimeFormat(t.numberLocale, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(LEGAL_UPDATED));
-    if (part in LEGAL) {
+    if (Object.hasOwn(LEGAL, part)) {
       const key = part as LegalValueKey;
       const value = LEGAL[key];
       if (!value) return <bdi key={i} className="pz-placeholder">{t.legal.placeholders[key]}</bdi>;
@@ -1091,7 +1091,7 @@ function legalText(t: Dict, s: string): ReactNode {
       const key = part as LegalPageKey;
       return <a key={i} href={localePath(t.lang, PATHS[key])}>{t.legal.links[key]}</a>;
     }
-    if (part in POLICY_URLS) {
+    if (Object.hasOwn(POLICY_URLS, part)) {
       const key = part as keyof typeof POLICY_URLS;
       return <a key={i} href={POLICY_URLS[key]} rel="noopener" target="_blank">{t.legal.links[key]}</a>;
     }
@@ -1112,8 +1112,8 @@ export function LegalPage({ t, page }: { t: Dict; page: LegalPageKey }) {
   return (
     <Shell t={t} path={PATHS[page]} jsonLd={[trailLd(crumbs)]}>
       <PageHead t={t} crumbs={crumbs} title={doc.title} sub={legalText(t, doc.sub)} />
-      <section className="pz-sec pz-legal-sec" aria-label={doc.title}>
-        <div className="pz-container pz-legal">
+      <section className="pz-sec" aria-label={doc.title}>
+        <div className="pz-container is-narrow">
           {isDoc ? <p className="pz-legal-updated">{legalText(t, t.legal.updated)}</p> : null}
           {isDoc && t.legal.prevails ? <p className="pz-legal-note">{t.legal.prevails}</p> : null}
           {isDoc ? (

@@ -21,7 +21,7 @@ const PAGES: Record<string, { eyebrow: string; title: string }> = {
   terms: { eyebrow: 'Legal', title: en.legal.terms.title },
   privacy: { eyebrow: 'Legal', title: en.legal.privacy.title },
   refund: { eyebrow: 'Legal', title: en.legal.refund.title },
-  contact: { eyebrow: 'Contact', title: 'Questions about your account, billing or privacy? Write to us.' },
+  contact: { eyebrow: 'Contact', title: en.legal.contact.sub },
 };
 
 export function generateStaticParams() {

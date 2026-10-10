@@ -35,7 +35,7 @@ build time, so rebuild after changing them.
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_LEGAL_COMPANY` | [Company legal name] | `Tadween LLC` | All pages: who operates the Service, contact blocks |
 | `NEXT_PUBLIC_LEGAL_STATE` | [US state of formation] | `Delaware` | Terms §1 |
-| `NEXT_PUBLIC_LEGAL_ADDRESS` | [Registered business address] | `1209 Orange St, Wilmington, DE 19801, USA` | Terms §1/§18, Privacy §1/§14, Refund §8, Contact |
+| `NEXT_PUBLIC_LEGAL_ADDRESS` | [Registered business address] | your real business or mailing address (not a registered-agent address) | Terms §1/§18, Privacy §1/§14, Refund §8, Contact |
 | `NEXT_PUBLIC_SUPPORT_EMAIL` | [Support email] | `support@example.com` | Everywhere people are told to contact you (rendered as a `mailto:` link) |
 | `NEXT_PUBLIC_LEGAL_GOVERNING_LAW` | [Governing law state] | `Delaware` | Terms §16. Optional: falls back to `NEXT_PUBLIC_LEGAL_STATE` |
 | `NEXT_PUBLIC_LEGAL_VENUE` | [Court venue, e.g. county and state] | `New Castle County, Delaware` | Terms §16 |
@@ -80,6 +80,35 @@ Alternatives:
   plan within 30 days of renewal): not built in; edit the `refunds` section of `legal.en.ts` and
   `legal.ar.ts`.
 
+## Production must-haves
+
+The policies describe a deployment configured as below. If production differs, either change the
+configuration or update the text (both languages) before Stripe or Google reviews it.
+
+1. **Keep `CHATBASE_TOKEN` unset.** With it set, the app shows the Chatbase support widget and
+   enables `POST /billing/chatbase-refund`, a self-serve refund that refunds within 60 days, caps
+   yearly plans at one month and lets any workspace member trigger it. That contradicts the Refund
+   Policy and Chatbase isn't listed as a processor.
+2. **Keep `BEEHIIVE_API_KEY` and `LISTMONK_API_KEY` unset.** With either set, every new user's
+   email is added to a Beehiiv or Listmonk newsletter list. The Privacy Policy does not mention
+   marketing email or those processors.
+3. **Short links**: if a short-link provider is configured (short.io, LinkDrip and the others
+   under `libraries/nestjs-libraries/src/short-linking/`), add it to
+   `NEXT_PUBLIC_LEGAL_HOSTING_PROVIDER` or the policy text; otherwise leave it unconfigured.
+4. **Turn on Stripe customer emails** (Dashboard → Settings → Billing → Subscriptions and emails,
+   and Settings → Emails): successful-payment receipts (the Terms say Stripe sends a receipt for
+   each payment), trial-ending reminders and upcoming-renewal reminders (card-network rules and
+   US auto-renewal laws such as California's expect them, especially for yearly plans).
+5. **Use a real business address** for `NEXT_PUBLIC_LEGAL_ADDRESS`; Stripe and Google prefer a real
+   business or mailing address over a registered agent's.
+6. **Set every `NEXT_PUBLIC_LEGAL_*` value** before the build used for review, or the pages show
+   the orange placeholders.
+7. **Optional code follow-ups** (not in this PR): clear the OAuth tokens when a channel is
+   disconnected (today `deleteChannel` only sets `deletedAt`, so the policy says tokens are kept
+   until the channel or account is deleted or the user asks); drop the `youtubepartner` scope from
+   `youtube.provider.ts`, which is hard to justify in Google's OAuth verification; if Chatbase is
+   wanted later, align its refund endpoint with the Refund Policy and restrict it to admins.
+
 ## Commitments the text makes that you must honour by hand
 
 The pages describe only what the app does today. A few sentences are promises that the app does
@@ -99,14 +128,17 @@ not automate, so someone has to do them:
   revoked, delete that channel's data.
 - **Privacy requests** (access, copy, deletion, correction) arrive at the support email. There is
   no self-service data export in the app, so answer access/copy requests by hand. Account deletion
-  exists in the app (Settings), which removes the user's workspaces, channels and posts and
-  de-identifies the user record.
+  exists in the app (Settings): it soft-deletes the user's workspaces, channels and posts (they get a
+  `deletedAt` and are no longer accessible), hashes the channel tokens and de-identifies the user
+  record. The rows stay in the database, so the policy offers permanent erasure on request: do it
+  by hand when asked.
+- **Support replies**: the Contact page and Refund Policy say "within two business days".
 
 Things deliberately **not** claimed: trial-ending reminder emails, data export, SOC 2 or other
-certifications, uptime guarantees, or any feature the app does not have. Stripe can send
-trial-ending and renewal reminder emails for you (Stripe Dashboard → Settings → Billing →
-Subscriptions and emails); turning them on is recommended, and if you do, you may add a sentence
-about them to the Refund Policy.
+certifications, uptime guarantees, or any feature the app does not have. The one email the text
+does promise is the payment receipt, which Stripe sends once receipts are on (must-have 4). Once
+the trial-ending and renewal reminders are on too, you may add a sentence about them to the Terms
+§5 and the Refund Policy.
 
 ## Stripe review checklist
 

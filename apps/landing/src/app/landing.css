@@ -603,7 +603,7 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
 /* ── Legal pages (/terms, /privacy, /refund, /contact) ─ */
 /* Long-form text in the reading column: the last-updated line, a table of contents card,
    then numbered sections. Section anchors clear the sticky bar (html scroll-padding-top). */
-.pz-legal { max-width: calc(var(--container-narrow) + 2 * var(--gutter)); }
+.pz-container.is-narrow { max-width: calc(var(--container-narrow) + 2 * var(--gutter)); }
 .pz-legal-updated { margin: 0 0 20px; color: var(--muted-foreground); font-size: 14px; line-height: 20px; }
 .pz-legal-note { margin: 0 0 24px; padding: 14px 18px; border-radius: var(--radius-lg); background: var(--muted); font-size: 15px; line-height: 24px; }
 .pz-legal-toc { margin: 0 0 48px; padding: 22px 24px; border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); }

@@ -57,6 +57,7 @@ export const legalEn: LegalCopy = {
         body: [
           'Tadween is a social media scheduling tool. It lets you connect social media accounts, write and preview posts, schedule them on a calendar, publish them at the time you choose, work with your team, store media for your posts and see analytics where the social platform provides them.',
           'Tadween publishes to social platforms such as LinkedIn, Instagram, Facebook, Threads and YouTube through their official APIs, using access you grant through each platform’s own sign-in (OAuth) screen. We do not ask for or store your social media passwords.',
+          'The Service is delivered online: you get access in your browser right after you sign up or pay, and nothing is shipped.',
           'We keep improving the Service, so features may be added, changed or removed over time. If we remove a feature that is a material part of a paid plan, we will tell you in advance where reasonably possible.',
         ],
       },
@@ -94,11 +95,12 @@ export const legalEn: LegalCopy = {
           {
             list: [
               'Payment processing. Payments are processed by Stripe. Your card details are entered with and stored by Stripe; we do not store full card numbers. You authorise us, through Stripe, to charge your payment method for each billing period.',
-              'Free trial. New subscriptions may start with a free trial (currently 7 days), as shown at checkout. A payment method is collected when the trial starts. Unless you cancel before the trial ends, the subscription starts automatically and your payment method is charged the plan price at the end of the trial.',
-              'Automatic renewal. Your subscription renews automatically at the end of each billing period (monthly or yearly) for the same period, at the then-current price, until you cancel. The renewal date and price are shown in Settings → Billing.',
-              'Plan changes. If you upgrade or downgrade, the new price applies as shown at the time of the change, in the app or in the billing portal provided by Stripe.',
+              'Free trial. New subscriptions may start with a free trial (currently 7 days), as shown at checkout. A payment method is collected when the trial starts, and we may place a temporary authorisation (for example US$1) on your card to check that it is valid; it is released and not charged. Unless you cancel before the trial ends, the subscription starts automatically and your payment method is charged the plan price at the end of the trial.',
+              'Automatic renewal. Your subscription renews automatically at the end of each billing period (monthly or yearly) for the same period, at the then-current price, until you cancel. You can see your plan and billing details in Settings → Billing or in the billing portal provided by Stripe.',
+              'Plan changes. Upgrades take effect immediately and you are charged the prorated difference at once; downgrades may result in a prorated credit toward future payments, as shown at the time of the change.',
               'Price changes. We may change our prices. A price change will not affect a billing period you have already paid for. We will tell you by email or in the app before a new price applies to your next renewal, so you can cancel before then if you do not accept it.',
               'Failed payments. If a payment fails, we may retry it and may limit or suspend paid features until the balance is paid.',
+              'Receipts. A receipt for each payment is sent to your billing email by Stripe on our behalf.',
             ],
           },
         ],
@@ -166,7 +168,7 @@ export const legalEn: LegalCopy = {
         title: '13. Limitation of liability',
         body: [
           'To the fullest extent permitted by law, we will not be liable for any indirect, incidental, special, consequential or punitive damages, or for any loss of profits, revenue, data, goodwill or business opportunities, arising out of or related to the Service or these Terms, even if we were told such damages were possible.',
-          'To the fullest extent permitted by law, our total liability for all claims arising out of or related to the Service or these Terms is limited to the amount you paid us for the Service in the 12 months before the event giving rise to the claim.',
+          'To the fullest extent permitted by law, our total liability for all claims arising out of or related to the Service or these Terms is limited to the greater of (a) the amount you paid us for the Service in the 12 months before the event giving rise to the claim and (b) US$100.',
           'Nothing in these Terms excludes or limits liability that cannot be excluded or limited under applicable law.',
         ],
       },
@@ -181,9 +183,9 @@ export const legalEn: LegalCopy = {
         id: 'termination',
         title: '15. Suspension and termination',
         body: [
-          'You can stop using the Service at any time, and you can delete your account in the app’s settings. Deleting your account also cancels the subscriptions of the workspaces you own, and access ends immediately.',
+          'You can stop using the Service at any time, and you can delete your account in the app’s settings. Deleting your account also cancels the subscriptions of the workspaces you own, and access ends immediately. Deleting your account does not by itself refund any payment; if you may be eligible for a refund under our {refund}, request it before you delete your account.',
           'We may suspend or end your access if you seriously or repeatedly break these Terms, if you do not pay, or if we must do so to comply with the law or a platform’s requirements. Where reasonable, we will give notice first. If we end the Service for reasons other than your breach, we will refund the unused part of any prepaid period.',
-          'Sections that by their nature should survive termination (such as Your Content licences ending, disclaimers, limitation of liability, indemnity and governing law) will continue to apply.',
+          'Sections that by their nature should survive termination (such as Your Content (section 7), disclaimers, limitation of liability, indemnity and governing law) will continue to apply.',
         ],
       },
       {
@@ -250,7 +252,7 @@ export const legalEn: LegalCopy = {
             list: [
               'provide the Service: create your account, store and schedule your content, publish it to the platforms you choose, show previews and analytics, and run team features (legal basis: performance of our contract with you);',
               'process payments and manage subscriptions, trials and refunds (contract, and legal obligations such as tax and accounting rules);',
-              'send service emails, such as sign-up confirmation, password resets, invitations, billing notices and important changes (contract and legitimate interests);',
+              'send service emails, such as sign-up confirmation, password resets, invitations, billing notices (some sent by Stripe on our behalf) and important changes (contract and legitimate interests);',
               'provide AI features when you choose to use them (contract);',
               'keep the Service secure, prevent abuse and fraud, fix errors and understand how the Service is used so we can improve it (legitimate interests);',
               'comply with the law and respond to lawful requests (legal obligation).',
@@ -264,17 +266,17 @@ export const legalEn: LegalCopy = {
         title: '4. Connected social accounts',
         body: [
           'You connect each social account yourself, through that platform’s own sign-in and consent screen. We use the tokens and data we receive only to do what you ask in the Service: publish and schedule your posts, add first comments, read the information needed to show your accounts and previews, and fetch analytics. We do not use them for any other purpose, and we do not share them except with the service providers that host and run the Service for us (section 6).',
-          'You can disconnect a channel in the app at any time. You can also remove Tadween’s access in the security or connected-apps settings of the platform itself. After you disconnect or remove access, we stop accessing that platform on your behalf. To have the remaining data from that platform deleted, delete your account or contact us at {email}.',
+          'You can disconnect a channel in the app at any time. You can also remove Tadween’s access in the security or connected-apps settings of the platform itself. After you disconnect or remove access, we stop accessing that platform on your behalf. Disconnecting does not by itself erase the tokens and account data we stored for that channel; to have them deleted, delete your account or contact us at {email}.',
         ],
       },
       {
         id: 'google-youtube',
         title: '5. YouTube and Google user data',
         body: [
-          'Tadween uses YouTube API Services. When you connect a YouTube channel, you authorise Tadween through Google to access your channel so that we can upload the videos you schedule, set their titles, descriptions, thumbnails and privacy settings, and show your channel and video statistics in the app. We store the access tokens Google issues and the channel and video information needed for those features, for as long as the channel stays connected.',
+          'Tadween uses YouTube API Services. When you connect a YouTube channel, you authorise Tadween through Google to access your Google account name, email address and profile picture, and to manage your YouTube channel, so that we can upload the videos you schedule, set their titles, descriptions, thumbnails and privacy settings, read your channel and video details, and show statistics from YouTube Analytics reports in the app. We store the access and refresh tokens Google issues and the channel and video information needed for those features until you delete the channel or your account, or ask us to delete them.',
           'By using Tadween’s YouTube features, you agree to the {youtubeTerms}. Google’s use of data is described in the {googlePrivacy}.',
-          'Tadween’s use and transfer to any other app of information received from Google APIs will adhere to the {googleUserData}, including the Limited Use requirements. In particular, we use Google user data only to provide and improve the user-facing features described above; we do not transfer it to others except as needed to provide those features, for security, to comply with law, or as part of a merger or acquisition with your prior consent; we do not use it for advertising; and our staff do not read it unless you ask us to (for example for support), it is needed for security, or the law requires it.',
-          'In addition to disconnecting the channel in Tadween, you can revoke Tadween’s access to your Google data at any time in the {googlePermissions}. When access is revoked, we delete the YouTube data we stored under that permission within 7 days of learning about it. For questions or complaints about how we handle Google user data, contact us at {email}.',
+          'Tadween’s use and transfer to any other app of information received from Google APIs will adhere to the {googleUserData}, including the Limited Use requirements. In particular, we use Google user data only to provide and improve the user-facing features described above; we do not transfer it to others except as needed to provide those features, for security, to comply with law, or as part of a merger or acquisition with your prior consent; we do not use it for advertising; and our staff do not read it unless you ask us to (for example for support), it is needed for security, or the law requires it. We do not use Google user data to develop, improve or train generalised artificial intelligence or machine-learning models, and we do not transfer it to AI providers for that purpose.',
+          'In addition to disconnecting the channel in Tadween, you can revoke Tadween’s access to your Google data at any time in the {googlePermissions}. When access is revoked, we delete the YouTube data we stored under that permission within 7 days of learning about it. The Tadween app also stores and reads cookies on your device, as described in section 7. For questions or complaints about how we handle Google user data, contact us at {email}.',
         ],
       },
       {
@@ -305,7 +307,7 @@ export const legalEn: LegalCopy = {
         id: 'retention',
         title: '8. How long we keep data',
         body: [
-          'We keep your account data and content for as long as your account is active. You can delete your account in the app’s settings. When you do, your workspaces, connected channels and posts are removed from the Service and the personal identifiers on your user record are deleted or de-identified. Copies may remain in backups for a limited period until they are overwritten.',
+          'We keep your account data and content for as long as your account is active. You can delete your account in the app’s settings. When you do, your workspaces, connected channels and posts are removed from your account and can no longer be accessed, the tokens of connected channels are destroyed, and your user record is de-identified. Some content may remain in our database and backups for a limited time; to have it permanently erased, contact us at {email}.',
           'We keep billing records for as long as tax and accounting laws require. We keep logs for a limited period for security and troubleshooting. If you want data deleted sooner, or have a question about a specific type of data, contact us at {email}.',
         ],
       },
@@ -325,7 +327,7 @@ export const legalEn: LegalCopy = {
             list: [
               'access the personal data we hold about you and get a copy of it;',
               'correct inaccurate data (you can update most account details yourself in the app);',
-              'delete your data (you can delete your account in the app’s settings);',
+              'delete your data (you can delete your account in the app’s settings, and ask us to permanently erase what remains);',
               'object to or restrict certain processing, and withdraw consent where we rely on it;',
               'receive your data in a portable format;',
               'complain to your local data protection authority.',
@@ -345,7 +347,7 @@ export const legalEn: LegalCopy = {
         id: 'children',
         title: '12. Children',
         body: [
-          'The Service is not intended for children and you must be at least 18 to create an account. We do not knowingly collect personal data from children under 16. If you believe a child has given us personal data, contact us and we will delete it.',
+          'The Service is not intended for children and you must be at least 18 to create an account. We do not knowingly collect personal data from anyone under 18. If you believe a child has given us personal data, contact us and we will delete it.',
         ],
       },
       {
@@ -395,7 +397,7 @@ export const legalEn: LegalCopy = {
         id: 'trial',
         title: '3. Free trial',
         body: [
-          'New subscriptions may start with a free trial (currently 7 days), as shown at checkout. We collect a payment method when the trial starts, but you are not charged during the trial. If you cancel before the trial ends, you will not be charged at all. If you do not cancel, your subscription starts automatically at the end of the trial and your payment method is charged the price of the plan and billing period you chose.',
+          'New subscriptions may start with a free trial (currently 7 days), as shown at checkout. We collect a payment method when the trial starts, but you are not charged during the trial. We may place a temporary authorisation (for example US$1) on your card to check that it is valid; it is released and not charged. If you cancel before the trial ends, you will not be charged at all. If you do not cancel, your subscription starts automatically at the end of the trial and your payment method is charged the price of the plan and billing period you chose.',
         ],
       },
       {
@@ -404,7 +406,7 @@ export const legalEn: LegalCopy = {
         body: [
           { when: 'window', text: 'First payment. If you are not satisfied, you can request a full refund of the first payment for a new subscription within {refundDays} days of that payment. This applies once per customer. When we refund it, we also cancel the subscription.' },
           { when: 'window', text: 'Renewals. Renewal payments (monthly or yearly) are not refundable, except where the law requires otherwise. Cancel before your renewal date to avoid the next charge. If you were charged for a renewal you did not intend to keep and have not used the Service since, contact us and we will review your request.' },
-          { when: 'none', text: 'Because you can try Tadween free before you are charged and cancel at any time, payments are not refundable, except where the law requires a refund.' },
+          { when: 'none', text: 'Because new subscriptions usually include a free trial and you can cancel at any time, payments are not refundable, except where the law requires a refund.' },
           'Billing errors. If you were charged in error, for example twice for the same period, we will refund the incorrect charge.',
           { when: 'window', text: 'Partial periods. Except as described above or required by law, we do not give refunds or credits for unused time in a billing period, for downgrades, or for features you did not use.' },
           { when: 'none', text: 'Partial periods. We do not give refunds or credits for unused time in a billing period, for downgrades, or for features you did not use, except where the law requires it.' },
@@ -414,7 +416,7 @@ export const legalEn: LegalCopy = {
         id: 'request',
         title: '5. How to request a refund',
         body: [
-          'Email {email} from the address on your account. Include the email of the account, the date and amount of the charge, and the reason for your request. We aim to reply within a few business days.',
+          'Email {email} from the address on your account. Include the email of the account, the date and amount of the charge, and the reason for your request. We aim to reply within two business days.',
           'Approved refunds are made to the original payment method through Stripe. Depending on your bank or card issuer, it can take 5 to 10 business days for the refund to appear on your statement.',
         ],
       },
@@ -449,7 +451,7 @@ export const legalEn: LegalCopy = {
       {
         id: 'email',
         title: 'Email',
-        body: ['{email}', 'We aim to reply within one to two business days. For billing or refund questions, please write from the email address on your account and include the date of the charge.'],
+        body: ['{email}', 'We aim to reply within two business days. For billing or refund questions, please write from the email address on your account and include the date of the charge.'],
       },
       {
         id: 'company',

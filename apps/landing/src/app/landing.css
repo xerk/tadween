@@ -354,6 +354,10 @@ a { color: var(--primary); text-underline-offset: 3px; }
 .pz-row-copy { display: grid; gap: 20px; justify-items: start; }
 .pz-row-copy .pz-plan-list { margin-top: 4px; }
 .pz-row-media { min-width: 0; }
+/* Crops and phones sit on a soft tile instead of filling the column */
+.pz-row-media:has(> .pz-shot.is-bare, > .pz-shot.is-phone) { display: grid; place-items: center; padding: clamp(24px, 4vw, 48px); border-radius: 28px; background: color-mix(in oklab, var(--primary-soft) 60%, var(--muted)); }
+.pz-row-media > .pz-shot.is-bare { width: min(100%, 440px); box-shadow: var(--shadow-lg); }
+.pz-row-media > .pz-shot.is-phone { width: min(100%, 300px); }
 
 /* A big shot under a section head */
 .pz-showcase { position: relative; }

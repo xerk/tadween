@@ -673,6 +673,7 @@
   "tdw_admin_ch_view": "عرض",
   "tdw_admin_ch_view_all": "الكل",
   "tdw_admin_ch_view_focus": "الشبكات الأساسية",
+  "tdw_admin_ch_view_hint": "انتقل إلى «الكل» لتغيير الترتيب.",
   "tdw_admin_ch_yes": "نعم",
   "tdw_admin_col_billing": "الفوترة",
   "tdw_admin_col_channels": "القنوات",

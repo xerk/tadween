@@ -460,6 +460,7 @@ export const AdminChannelsPage = () => {
             'tdw_admin_ch_rule',
             'Customers see a channel type in Add channel only when it is enabled and its keys are set. Channels already connected keep publishing and can still reconnect.'
           )}
+          {view === 'focus' ? ` ${t('tdw_admin_ch_view_hint', 'Switch to All to reorder.')}` : null}
         </span>
       </div>
 

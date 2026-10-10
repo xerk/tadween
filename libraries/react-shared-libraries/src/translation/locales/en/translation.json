@@ -675,6 +675,7 @@
   "tdw_admin_ch_view": "Show",
   "tdw_admin_ch_view_all": "All",
   "tdw_admin_ch_view_focus": "Focus networks",
+  "tdw_admin_ch_view_hint": "Switch to All to reorder.",
   "tdw_admin_ch_yes": "Yes",
   "tdw_admin_col_billing": "Billing",
   "tdw_admin_col_channels": "Channels",

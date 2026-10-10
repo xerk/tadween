@@ -8,12 +8,20 @@ const STORAGE_KEY = 'refreshEntries';
 
 const ALLOWED_ORIGIN_PATTERNS = [
   /^https?:\/\/localhost(:\d+)?$/,
-  /^https?:\/\/([a-z0-9-]+\.)*postiz\.com$/,
 ];
+
+// Tadween: the app origin baked into externally_connectable at build time
+// (FRONTEND_URL), instead of a hard-coded postiz.com
+const MANIFEST_ORIGINS = (
+  chrome.runtime.getManifest().externally_connectable?.matches || []
+).map((match) => match.replace(/\/\*$/, ''));
 
 function isOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return false;
-  return ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));
+  return (
+    ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin)) ||
+    MANIFEST_ORIGINS.includes(origin)
+  );
 }
 
 async function extractCookies(provider: CookieProvider): Promise<GetCookiesResponse> {

@@ -1,12 +1,14 @@
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 export const ChromeExtensionComponent = () => {
-  const { billingEnabled } = useVariables();
-  if (!billingEnabled) {
+  // Tadween: the store listing of our own extension (CHROME_EXTENSION_URL);
+  // Postiz's listing only talks to postiz.com, so nothing is shown without it.
+  const { chromeExtensionUrl } = useVariables();
+  if (!chromeExtensionUrl) {
     return null;
   }
   return (
     <a
-      href="https://chromewebstore.google.com/detail/postiz/cidhffagahknaeodkplfbcpfeielnkjl"
+      href={chromeExtensionUrl}
       target="_blank"
       className="hover:text-newTextColor"
     >

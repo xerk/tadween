@@ -1,5 +1,5 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import { Plan } from '@prisma/client';
+import { Plan, SubscriptionTier } from '@prisma/client';
 import { PlansRepository } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.repository';
 import { PlanDto } from '@gitroom/nestjs-libraries/dtos/tadween/admin.console.dto';
 import {
@@ -29,11 +29,16 @@ export interface PublicPlan {
   features: string[];
 }
 
+type PlanLimits = Pick<
+  Plan,
+  'monthlyPriceUsd' | 'yearlyPriceUsd' | 'channels' | 'teamMembers' | 'postsPerMonth' | 'aiCredits'
+>;
+
 // Overlay one DB plan onto the static Postiz entry for its tier. Fields the plan
 // does not model (webhooks, autoPost, videos…) keep Postiz's values.
 const overlay = (
   base: PricingInnerInterface,
-  plan: Plan
+  plan: PlanLimits
 ): PricingInnerInterface => ({
   ...base,
   month_price: plan.monthlyPriceUsd,
@@ -45,6 +50,21 @@ const overlay = (
   image_generation_count:
     plan.aiCredits < 0 ? UNLIMITED : plan.aiCredits,
 });
+
+// The entitlements a plan overlays, and how to tell that one is lower.
+const LIMITS: Array<{
+  label: string;
+  lower: (next: PricingInnerInterface, now: PricingInnerInterface) => boolean;
+}> = [
+  { label: 'channels', lower: (n, c) => (n.channel ?? 0) < (c.channel ?? 0) },
+  { label: 'team members', lower: (n, c) => c.team_members && !n.team_members },
+  { label: 'posts per month', lower: (n, c) => n.posts_per_month < c.posts_per_month },
+  { label: 'AI', lower: (n, c) => c.ai && !n.ai },
+  {
+    label: 'AI credits',
+    lower: (n, c) => n.image_generation_count < c.image_generation_count,
+  },
+];
 
 @Injectable()
 export class PlansService {
@@ -105,6 +125,34 @@ export class PlansService {
     return this._repository.list(false);
   }
 
+  // Paying workspaces must never lose limits because of a plan change: their
+  // tier's limits apply to them at once (team members, AI) or at the next Stripe
+  // renewal (channels). Refuse any change that would make the effective limits
+  // of a tier lower while subscriptions exist on it. Raising is always allowed.
+  private async assertNoLowerLimits(
+    tier: SubscriptionTier,
+    next: PricingInnerInterface
+  ) {
+    const current = (await this._repository.list(true)).find(
+      (p) => p.tier === tier
+    );
+    const now = current ? overlay(pricing[tier], current) : pricing[tier];
+    const lowered = LIMITS.filter((l) => l.lower(next, now)).map((l) => l.label);
+    if (!lowered.length) {
+      return;
+    }
+    const paying = await this._repository.countSubscriptions(tier);
+    if (!paying) {
+      return;
+    }
+    throw new HttpException(
+      `This would lower ${lowered.join(', ')} for ${paying} workspace${
+        paying === 1 ? '' : 's'
+      } already subscribed to the ${tier} tier. Existing subscribers keep their limits: keep the values at least at today's, or sell the smaller plan on a tier nobody is subscribed to.`,
+      400
+    );
+  }
+
   // Checkout is keyed by Postiz tier, so only one active plan may sell a tier.
   private async assertTierFree(body: PlanDto, id?: string) {
     if (!body.active) {
@@ -131,6 +179,9 @@ export class PlansService {
   async create(body: PlanDto) {
     await this.assertKeyFree(body.key);
     await this.assertTierFree(body);
+    if (body.active) {
+      await this.assertNoLowerLimits(body.tier, overlay(pricing[body.tier], body));
+    }
     const plan = await this._repository.create(body);
     if (plan.mostPopular) {
       await this._repository.clearMostPopular(plan.id);
@@ -140,11 +191,20 @@ export class PlansService {
   }
 
   async update(id: string, body: PlanDto) {
-    if (!(await this._repository.getById(id))) {
+    const existing = await this._repository.getById(id);
+    if (!existing) {
       throw new HttpException('Plan not found', 404);
     }
     await this.assertKeyFree(body.key, id);
     await this.assertTierFree(body, id);
+    // Hiding the plan or moving it to another tier hands its old tier back to
+    // Postiz's static limits
+    if (existing.active && (!body.active || existing.tier !== body.tier)) {
+      await this.assertNoLowerLimits(existing.tier, pricing[existing.tier]);
+    }
+    if (body.active) {
+      await this.assertNoLowerLimits(body.tier, overlay(pricing[body.tier], body));
+    }
     const plan = await this._repository.update(id, body);
     if (plan.mostPopular) {
       await this._repository.clearMostPopular(plan.id);
@@ -154,8 +214,12 @@ export class PlansService {
   }
 
   async remove(id: string) {
-    if (!(await this._repository.getById(id))) {
+    const existing = await this._repository.getById(id);
+    if (!existing) {
       throw new HttpException('Plan not found', 404);
+    }
+    if (existing.active) {
+      await this.assertNoLowerLimits(existing.tier, pricing[existing.tier]);
     }
     await this._repository.remove(id);
     this.invalidate();
@@ -163,12 +227,17 @@ export class PlansService {
   }
 
   // Creates the four Tadween plans (placeholder prices) when there are none.
+  // Their limits equal Postiz's for each tier, so this never lowers what paying
+  // workspaces have; the check below keeps it that way if the defaults change.
   async seedDefaults() {
     if ((await this._repository.list(false)).length) {
       throw new HttpException(
         'Plans already exist. Edit them instead of loading the defaults.',
         400
       );
+    }
+    for (const plan of DEFAULT_PLANS) {
+      await this.assertNoLowerLimits(plan.tier, overlay(pricing[plan.tier], plan));
     }
     for (const plan of DEFAULT_PLANS) {
       await this._repository.create({ ...plan, active: true });

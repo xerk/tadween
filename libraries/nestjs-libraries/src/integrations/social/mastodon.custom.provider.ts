@@ -1,3 +1,4 @@
+import { brandNameFromEnv } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import {
   ClientInformation,
   PostDetails,
@@ -17,7 +18,7 @@ export class MastodonCustomProvider extends MastodonProvider {
 
   async externalUrl(url: string) {
     const form = new FormData();
-    form.append('client_name', 'Postiz');
+    form.append('client_name', brandNameFromEnv());
     form.append(
       'redirect_uris',
       `${process.env.FRONTEND_URL}/integrations/social/mastodon`

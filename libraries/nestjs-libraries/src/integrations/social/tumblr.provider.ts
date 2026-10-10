@@ -1,3 +1,4 @@
+import { brandUserAgent } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import {
   AuthTokenDetails,
   PostDetails,
@@ -17,7 +18,6 @@ import { lookup } from 'mime-types';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 
 const TUMBLR_API_URL = 'https://api.tumblr.com/v2';
-const TUMBLR_USER_AGENT = 'Postiz/1.0 (+https://postiz.com)';
 const TUMBLR_TEXT_BLOCK_LIMIT = 4096;
 const TUMBLR_DEFAULT_VIDEO_WIDTH = 540;
 const TUMBLR_DEFAULT_VIDEO_HEIGHT = 405;
@@ -465,7 +465,7 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': TUMBLR_USER_AGENT,
+          'User-Agent': brandUserAgent(),
         },
         body,
       })
@@ -477,7 +477,7 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
       await this.fetch(`${TUMBLR_API_URL}/user/info`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'User-Agent': TUMBLR_USER_AGENT,
+          'User-Agent': brandUserAgent(),
         },
       })
     ).json()) as TumblrUserInfo;
@@ -496,7 +496,7 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
-            'User-Agent': TUMBLR_USER_AGENT,
+            'User-Agent': brandUserAgent(),
           },
           body: JSON.stringify(payload),
         }
@@ -539,7 +539,7 @@ export class TumblrProvider extends SocialAbstract implements SocialProvider {
           headers: {
             ...formData.getHeaders(),
             Authorization: `Bearer ${accessToken}`,
-            'User-Agent': TUMBLR_USER_AGENT,
+            'User-Agent': brandUserAgent(),
           },
         }
       );

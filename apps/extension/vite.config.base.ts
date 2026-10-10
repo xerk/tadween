@@ -15,14 +15,33 @@ const localize = false;
 
 const merge = isDev ? devManifest : ({} as ManifestV3Export);
 
+// The Tadween app origin this build talks to (FRONTEND_URL), shared by
+// host_permissions and externally_connectable
+const frontendUrl: string =
+  import.meta.env?.FRONTEND_URL || process?.env?.FRONTEND_URL || '';
+const frontendOrigin = (() => {
+  try {
+    return frontendUrl ? new URL(frontendUrl).origin : '';
+  } catch (e) {
+    return '';
+  }
+})();
+
 export const baseManifest = {
   ...manifest,
   host_permissions: [
-    import.meta.env?.FRONTEND_URL || process?.env?.FRONTEND_URL + '/*',
+    frontendUrl + '/*',
     (import.meta.env?.NEXT_PUBLIC_BACKEND_URL || process?.env?.NEXT_PUBLIC_BACKEND_URL || '') + '/*',
     ...providers.map(p => p.hostPermission)
   ],
   permissions: [...(manifest.permissions || [])],
+  // Tadween: only this instance's app may talk to the extension (was *.postiz.com)
+  externally_connectable: {
+    matches: [
+      ...manifest.externally_connectable.matches,
+      ...(frontendOrigin ? [frontendOrigin + '/*'] : []),
+    ],
+  },
   version: pkg.version,
   ...merge,
   ...(localize

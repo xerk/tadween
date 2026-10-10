@@ -152,9 +152,17 @@ html[dir='rtl'] .tdw-acct-menu.tdw-side-switch-menu {
 }
 
 .tdw-side-switch-name {
+  flex: 1;
   min-width: 0;
+  text-align: start;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.tdw-side-switch-role {
+  flex: none;
+  font-size: 12px;
+  color: var(--tdw-muted-foreground);
 }
 
 .tdw-side-ws-name {
@@ -294,6 +302,22 @@ html[dir='rtl'] .tdw-side-toggle svg {
   }
 }
 
+// Upgrade, above Settings (tadween/billing/upgrade.link.tsx): a brand tint
+// that stands out without shouting
+.tdw-side .tdw-side-item.is-upgrade {
+  color: var(--tdw-primary);
+  background: color-mix(in srgb, var(--tdw-primary-soft) 70%, transparent);
+
+  &:hover {
+    color: var(--tdw-primary);
+    background: var(--tdw-primary-soft);
+  }
+
+  .tdw-side-icon {
+    color: var(--tdw-primary);
+  }
+}
+
 @media #{$tdw-desktop} {
   .tdw-side.is-collapsed .tdw-side-item {
     justify-content: center;
@@ -390,7 +414,7 @@ html[dir='rtl'] .tdw-side-toggle svg {
 
 .tdw-acct-menu {
   position: fixed;
-  z-index: 500;
+  z-index: var(--tdw-z-popover);
   display: none;
   padding: 6px;
   border-radius: var(--tdw-radius-lg);
@@ -484,7 +508,7 @@ html[dir='rtl'] .tdw-acct-host.is-danger svg {
 
 // ── Rail labels (react-tooltip `tdw-rail`) ──────────────────────────────────
 .tdw-railtip.tdw-railtip {
-  z-index: 600;
+  z-index: var(--tdw-z-tooltip);
   padding: 5px 9px;
   border-radius: 7px;
   background: var(--tdw-foreground);

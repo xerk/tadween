@@ -23,6 +23,18 @@
   --tdw-radius-md: 10px;
   --tdw-radius-lg: 14px;
   --tdw-radius-xl: 20px;
+  // Layers, low to high. Page chrome that sticks (calendar bar, admin bar);
+  // modals and the composer drawer (new-modal.tsx adds the stack index); the
+  // phone's slide-in menu; menus anchored to a trigger (top bar, account,
+  // workspace), portalled to <body> so no page layer can cover them; bottom
+  // sheets; toasts; tooltips.
+  --tdw-z-sticky: 30;
+  --tdw-z-modal: 200;
+  --tdw-z-nav: 490;
+  --tdw-z-popover: 500;
+  --tdw-z-sheet: 600;
+  --tdw-z-toast: 900;
+  --tdw-z-tooltip: 1000;
 
   .light {
     --tdw-background: #f5f5f7;

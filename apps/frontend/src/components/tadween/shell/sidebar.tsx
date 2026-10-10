@@ -108,7 +108,20 @@ const WorkspaceSwitcher: FC = () => {
   const [style, setStyle] = useState<CSSProperties>({});
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
-  const list: { id: string; name: string }[] = Array.isArray(data) ? data : [];
+  const list: {
+    id: string;
+    name: string;
+    users?: { role: 'SUPERADMIN' | 'ADMIN' | 'USER' }[];
+  }[] = Array.isArray(data) ? data : [];
+  // the role in each workspace, as the old top-bar switcher listed it
+  const roleLabel = (role?: string) =>
+    role === 'SUPERADMIN'
+      ? t('tdw_role_owner', 'Owner')
+      : role === 'ADMIN'
+      ? t('tdw_role_admin', 'Admin')
+      : role
+      ? t('tdw_role_member', 'Member')
+      : '';
   const current = list.find((d) => d.id === user?.orgId);
 
   const changeOrg = useCallback(
@@ -237,6 +250,9 @@ const WorkspaceSwitcher: FC = () => {
                 )}
               </span>
               <span className="tdw-side-switch-name">{org.name}</span>
+              <span className="tdw-side-switch-role">
+                {roleLabel(org.users?.[0]?.role)}
+              </span>
             </button>
           ))}
         </div>,

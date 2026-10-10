@@ -668,6 +668,11 @@ export class PostsService {
     return list;
   }
 
+  async getPublishedDates(orgId: string, query: GetPostsDto) {
+    const list = await this._postRepository.getPublishedDates(orgId, query);
+    return list.map((p) => p.publishDate);
+  }
+
   async getOldPosts(orgId: string, date: string) {
     return this._postRepository.getOldPosts(orgId, date);
   }

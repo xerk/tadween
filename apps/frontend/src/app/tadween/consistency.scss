@@ -27,9 +27,8 @@
   from { transform: scale(0.4); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
-@keyframes tdw-fade-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
+@keyframes tdw-topbar-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
 }
 
 // ── Button ──────────────────────────────────────────────────────────────────
@@ -231,7 +230,7 @@ body {
     > .w-\[1px\] + .contents:empty + .w-\[1px\],
     > .w-\[1px\]:first-child + .contents:empty + .w-\[1px\] { display: none; }
     // every icon in the cluster gets the same 36px hit area and hover tile
-    > a, > button, .tdw-topbar-icon, .tdw-org-switch > .group > .flex {
+    > a, > button, .tdw-topbar-icon {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -243,18 +242,18 @@ body {
       color: var(--tdw-muted-foreground);
       transition: background-color 180ms ease, color 180ms ease;
     }
-    > a:hover, > button:hover, .tdw-topbar-icon:hover, .tdw-topbar-icon.is-open, .tdw-org-switch:hover > .group > .flex {
+    > a:hover, > button:hover, .tdw-topbar-icon:hover, .tdw-topbar-icon.is-open {
       background: var(--tdw-accent);
       color: var(--tdw-foreground);
     }
-    > a svg, > button svg, .tdw-topbar-icon svg, .tdw-org-switch > .group > .flex > svg { width: 20px; height: 20px; }
-    .tdw-org-switch > .group > .flex { font-size: 13px; font-weight: 500; }
+    > a svg, > button svg, .tdw-topbar-icon svg { width: 20px; height: 20px; }
   }
   // Today / Calendar: no title, so the bar is a thin, borderless strip that
   // melts into the page and only carries the tools
   .tdw-topbar.is-bare { position: relative; z-index: 1; margin-bottom: -1px; background: var(--tdw-background); }
   // streak: a small Papyrus pill (amber is Tadween's "smart/progress" colour)
-  .tdw-streak {
+  .tdw-topbar-actions > .tdw-streak {
+    min-width: 0;
     height: 28px;
     padding: 0 10px 0 8px;
     border-radius: 9999px;
@@ -264,8 +263,100 @@ body {
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     gap: 5px;
+    cursor: pointer;
+    svg { width: 14px; height: 17px; }
   }
-  // org switcher + notifications popovers
+  .tdw-topbar-actions > .tdw-streak:hover,
+  .tdw-topbar-actions > .tdw-streak.is-open {
+    background: var(--tdw-smart-soft);
+    color: var(--tdw-smart);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tdw-smart) 30%, transparent);
+  }
+  // the streak's posting days (layout/streak.component.tsx)
+  .tdw-streak-popover { width: 320px; }
+  .tdw-streak-head { margin: 0; padding: 14px 16px 0; font-size: 15px; line-height: 20px; font-weight: 600; }
+  .tdw-streak-body { display: grid; gap: 14px; padding: 12px 16px 16px; }
+  .tdw-streak-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tdw-streak-stat {
+    display: grid;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: var(--tdw-radius-md);
+    background: var(--tdw-muted);
+    span { font-size: 12px; line-height: 16px; color: var(--tdw-muted-foreground); }
+    b { font-size: 17px; line-height: 22px; font-weight: 600; color: var(--tdw-foreground); font-variant-numeric: tabular-nums; }
+    &.is-current { background: var(--tdw-smart-soft); }
+    &.is-current b { color: var(--tdw-smart); }
+  }
+  .tdw-streak-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+    em { padding-bottom: 2px; font-style: normal; font-size: 11px; color: var(--tdw-muted-foreground); }
+    span {
+      display: grid;
+      place-items: center;
+      height: 32px;
+      border-radius: 9px;
+      background: var(--tdw-muted);
+      color: var(--tdw-muted-foreground);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+    span.is-posted { background: var(--tdw-primary-soft); color: var(--tdw-primary); font-weight: 600; }
+    span.is-today { box-shadow: inset 0 0 0 1.5px var(--tdw-primary); color: var(--tdw-foreground); font-weight: 600; }
+    span.is-posted.is-today { background: var(--tdw-primary-strong); color: #fff; box-shadow: none; }
+    span.is-future { background: transparent; opacity: 0.45; }
+  }
+  .tdw-streak-how { margin: 0; font-size: 12px; line-height: 17px; color: var(--tdw-muted-foreground); }
+  // Upgrade (tadween/billing/upgrade.link.tsx): a soft brand pill, the icon alone on phones
+  .tdw-topbar-actions > .tdw-upgrade-pill {
+    min-width: 0;
+    height: 28px;
+    padding: 0 12px 0 10px;
+    border-radius: 9999px;
+    background: var(--tdw-primary-soft);
+    color: var(--tdw-primary);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    svg { width: 16px; height: 16px; }
+  }
+  .tdw-topbar-actions > .tdw-upgrade-pill:hover {
+    background: var(--tdw-primary-soft);
+    color: var(--tdw-primary);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tdw-primary) 35%, transparent);
+  }
+  @media (max-width: 640px) {
+    .tdw-topbar-actions > .tdw-upgrade-pill { width: 36px; padding: 0; justify-content: center; }
+    .tdw-upgrade-label { display: none; }
+  }
+  // Panels under the top bar's triggers (tadween/shell/topbar.popover.tsx):
+  // fixed to the trigger, on the popover layer, outside the top bar's own
+  // stacking context (the bare bar is z-index 1, which trapped them under the page)
+  .tdw-topbar-popover {
+    position: fixed;
+    z-index: var(--tdw-z-popover);
+    display: flex;
+    flex-direction: column;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - 96px);
+    border-radius: var(--tdw-radius-lg);
+    background: var(--tdw-popover);
+    color: var(--tdw-foreground);
+    box-shadow: var(--tdw-shadow-lg);
+    overflow: hidden;
+    cursor: default;
+    user-select: text;
+    transform-origin: top right;
+    animation: tdw-topbar-pop 220ms var(--tdw-ease-spring) both;
+  }
+  html[dir='rtl'] & .tdw-topbar-popover { transform-origin: top left; }
+  @media (prefers-reduced-motion: reduce) {
+    .tdw-topbar-popover { animation: none; }
+  }
+  // org switcher (billing pages) + notifications popovers
   .tdw-org-menu {
     gap: 2px;
     padding: 6px;
@@ -274,7 +365,7 @@ body {
     border: 0;
     background: var(--tdw-popover);
     box-shadow: var(--tdw-shadow-lg);
-    z-index: 600;
+    z-index: var(--tdw-z-popover);
     font-size: 13px;
   }
   .tdw-org-item { padding: 8px 10px; border-radius: 8px; color: var(--tdw-foreground); }
@@ -295,7 +386,7 @@ body {
 body {
   .tdw-adminbar {
     position: relative;
-    z-index: 30;
+    z-index: var(--tdw-z-sticky);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -363,32 +454,18 @@ body {
   }
   .tdw-adminbar-pill:hover, .tdw-adminbar-pill[aria-expanded='true'] { filter: brightness(0.97); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tdw-smart) 30%, transparent); }
   .tdw-adminbar-pill[aria-expanded='true'] svg { transform: rotate(180deg); }
+  // placed and layered by .tdw-topbar-popover (TopbarPopover)
   .tdw-adminbar-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    inset-inline-start: 0;
-    z-index: 999;
     display: grid;
     gap: 1px;
     width: 340px;
-    max-width: calc(100vw - 24px);
-    color: var(--tdw-foreground);
     padding: 6px;
-    border-radius: var(--tdw-radius-lg);
-    background: var(--tdw-popover);
-    box-shadow: var(--tdw-shadow-lg);
-    animation: tdw-fade-up 180ms ease both;
     .tdw-adminbar-item { justify-content: flex-start; background: transparent; width: 100%; }
     .tdw-adminbar-item:hover { background: var(--tdw-accent); box-shadow: none; }
     // impersonation search sits at the top, its matches listed under it
     .tdw-adminbar-menu-search { display: grid; gap: 4px; padding: 4px; }
     .tdw-adminbar-results { margin: 0; padding: 0; max-height: 280px; background: transparent; box-shadow: none; border-radius: 0; }
     .tdw-adminbar-result { white-space: normal; }
-  }
-  // in the top bar the pill sits at the end, so the menu opens towards the start
-  .tdw-topbar-actions .tdw-adminbar-menu { inset-inline-start: auto; inset-inline-end: 0; }
-  @media (max-width: 640px) {
-    .tdw-topbar-actions .tdw-adminbar-menu { position: fixed; top: 64px; inset-inline: 12px; width: auto; }
   }
   .tdw-adminbar-menu-sep { height: 1px; margin: 4px 6px; background: var(--tdw-border); }
   .tdw-adminbar-scrim { background: transparent; }

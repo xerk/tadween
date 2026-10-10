@@ -91,7 +91,7 @@ $tdw-ws-side: '(max-width: 1099px)';
 // it the containing block of Postiz's position:fixed menus inside it.
 .tdw-ws-bar {
   position: relative;
-  z-index: 30;
+  z-index: var(--tdw-z-sticky);
   margin: 12px 16px 0;
   padding: 10px 10px 10px 18px;
   border-radius: 18px;

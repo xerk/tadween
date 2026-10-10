@@ -1087,5 +1087,16 @@
   "tdw_cm_preview_size": "حجم المعاينة",
   "tdw_cm_desktop": "سطح المكتب",
   "tdw_cm_mobile": "الجوال",
-  "tdw_choose_a_channel": "اختر قناة"
+  "tdw_choose_a_channel": "اختر قناة",
+  "feedback": "ملاحظات",
+  "tdw_upgrade": "ترقية",
+  "tdw_upgrade_days_left": "ترقية · الأيام المتبقية: {{n}}",
+  "tdw_streak_title": "سلسلة النشر",
+  "tdw_streak_current": "السلسلة الحالية",
+  "tdw_streak_best": "الأفضل خلال 12 شهرًا",
+  "tdw_streak_one_day": "يوم واحد",
+  "tdw_streak_n_days": "{{n}} يوم",
+  "tdw_streak_days_label": "أيام فيها منشور تم نشره",
+  "tdw_streak_posted": "تم النشر",
+  "tdw_streak_how": "سلسلة مساحة العمل تزيد كل يوم يُنشر فيه منشور، وتنتهي بعد 24 ساعة من غير نشر."
 }

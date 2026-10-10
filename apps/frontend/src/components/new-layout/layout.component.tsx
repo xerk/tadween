@@ -36,12 +36,10 @@ import {
   Title,
 } from '@gitroom/frontend/components/layout/title';
 import { TopMenu } from '@gitroom/frontend/components/layout/top.menu';
-import { ChromeExtensionComponent } from '@gitroom/frontend/components/layout/chrome.extension.component';
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
-import { OrganizationSelector } from '@gitroom/frontend/components/layout/organization.selector';
 import { StreakComponent } from '@gitroom/frontend/components/layout/streak.component';
+import { UpgradeButton } from '@gitroom/frontend/components/tadween/billing/upgrade.link';
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
-import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
 import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
 import { TrialTracker } from '@gitroom/frontend/components/layout/gtm.component';
 import { setSentryUser } from '@gitroom/react/sentry/initialize.sentry.client';
@@ -53,7 +51,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
 
   const { backendUrl, billingEnabled, isGeneral } = useVariables();
 
-  // Feedback icon component attaches Sentry feedback to a top-bar icon when DSN is present
+  // The Sentry feedback button lives in the account menu (tadween/shell/account.menu.tsx)
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -128,13 +126,13 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                     <Support />
                     {menuOpen && (
                       <div
-                        className="hidden mobile:block fixed inset-0 bg-newBackdrop opacity-60 z-[490]"
+                        className="hidden mobile:block fixed inset-0 bg-newBackdrop opacity-60 z-[var(--tdw-z-nav)]"
                         onClick={() => setMenuOpen(false)}
                       />
                     )}
                     <div
                       className={clsx(
-                        'tdw-side flex flex-col bg-newBgColorInner rounded-[12px] mobile:fixed mobile:top-0 mobile:bottom-0 mobile:start-0 mobile:z-[491] mobile:rounded-none mobile:overflow-y-auto mobile:overflow-x-hidden',
+                        'tdw-side flex flex-col bg-newBgColorInner rounded-[12px] mobile:fixed mobile:top-0 mobile:bottom-0 mobile:start-0 mobile:z-[calc(var(--tdw-z-nav)+1)] mobile:rounded-none mobile:overflow-y-auto mobile:overflow-x-hidden',
                         !menuOpen && 'mobile:hidden',
                         sidebar.collapsed && 'is-collapsed'
                       )}
@@ -193,16 +191,8 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                         </div>
                         <div className="tdw-topbar-actions flex items-center gap-[6px] text-textItemBlur">
                           {user?.admin && !user?.impersonate ? <Impersonate /> : null}
+                          <UpgradeButton />
                           <StreakComponent />
-                          <div className="w-[1px] h-[20px] bg-blockSeparator mobile:hidden" />
-                          <OrganizationSelector />
-                          <div className="contents mobile:hidden">
-                            <ChromeExtensionComponent />
-                          </div>
-                          <div className="w-[1px] h-[20px] bg-blockSeparator mobile:hidden" />
-                          <div className="contents mobile:hidden">
-                            <AttachToFeedbackIcon />
-                          </div>
                           <NotificationComponent />
                         </div>
                       </div>

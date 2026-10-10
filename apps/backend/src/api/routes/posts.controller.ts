@@ -168,6 +168,14 @@ export class PostsController {
     return this._postsService.getOldPosts(org.id, date);
   }
 
+  @Get('/published-dates')
+  getPublishedDates(
+    @GetOrgFromRequest() org: Organization,
+    @Query() query: GetPostsDto
+  ) {
+    return this._postsService.getPublishedDates(org.id, query);
+  }
+
   @Get('/group/:group/debug-export')
   async getPostGroupDebugExport(
     @GetOrgFromRequest() org: Organization,

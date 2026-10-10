@@ -3,10 +3,9 @@
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { TadweenNotifications } from '@gitroom/frontend/components/tadween/notifications/notifications.panel';
 import useSWR from 'swr';
-import { FC, useCallback, useState } from 'react';
+import { FC, useCallback, useRef, useState } from 'react';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
-import { useClickAway } from '@uidotdev/usehooks';
 import ReactLoading from '@gitroom/frontend/components/layout/loading';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
@@ -112,6 +111,7 @@ export const NotificationOpenComponent = () => {
 };
 const NotificationComponent = () => {
   const fetch = useFetch();
+  const t = useT();
   const [show, setShow] = useState(false);
   const loadNotifications = useCallback(async () => {
     return await (await fetch('/notifications')).json();
@@ -129,11 +129,16 @@ const NotificationComponent = () => {
     );
     setShow(!show);
   }, [show, data]);
-  const ref = useClickAway<HTMLDivElement>(() => setShow(false));
+  const ref = useRef<HTMLButtonElement>(null);
+  const close = useCallback(() => setShow(false), []);
   return (
-    <div className="relative cursor-pointer select-none" ref={ref}>
-      <div
+    <div className="relative cursor-pointer select-none">
+      <button
+        ref={ref}
+        type="button"
         onClick={changeShow}
+        aria-expanded={show}
+        aria-label={t('notifications', 'Notifications')}
         className={clsx('tdw-topbar-icon', show && 'is-open')}
       >
         <svg
@@ -162,8 +167,8 @@ const NotificationComponent = () => {
             />
           )}
         </svg>
-      </div>
-      <TadweenNotifications open={show} onClose={() => setShow(false)} />
+      </button>
+      <TadweenNotifications open={show} onClose={close} anchor={ref} />
     </div>
   );
 };

@@ -28,7 +28,7 @@ body {
     --tdw-sheet-fill: color-mix(in srgb, var(--tdw-foreground) 5%, transparent);
     position: fixed;
     inset: 0;
-    z-index: 600;
+    z-index: var(--tdw-z-sheet);
     display: flex;
     flex-direction: column;
     justify-content: flex-end;

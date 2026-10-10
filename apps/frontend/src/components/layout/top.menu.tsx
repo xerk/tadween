@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, ReactNode, useCallback } from 'react';
+import { FC, Fragment, ReactNode, useCallback } from 'react';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
@@ -9,6 +9,7 @@ import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { AgentMediaModal } from '@gitroom/frontend/components/layout/agent.media.modal';
 import { useFeatures } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { AdminMenuIcon } from '@gitroom/frontend/components/tadween/admin/admin.menu.icon';
+import { UpgradeMenuItem } from '@gitroom/frontend/components/tadween/billing/upgrade.link';
 
 interface MenuItemInterface {
   name: string;
@@ -402,13 +403,15 @@ export const TopMenu: FC = () => {
             return true;
           })
           .map((item, index) => (
-            <MenuItem
-              path={item.path}
-              label={item.name}
-              icon={item.icon}
-              key={item.name}
-              onClick={item.onClick}
-            />
+            <Fragment key={item.name}>
+              {item.path === '/settings' && <UpgradeMenuItem />}
+              <MenuItem
+                path={item.path}
+                label={item.name}
+                icon={item.icon}
+                onClick={item.onClick}
+              />
+            </Fragment>
           ))}
       </div>
     </>

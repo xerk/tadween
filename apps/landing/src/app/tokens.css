@@ -111,7 +111,7 @@
   --blur-regular: 20px;
   --blur-thick: 32px;
   /* next/font exposes the faces as --font-geist, --font-geist-mono and --font-tajawal */
-  --font-sans: var(--font-geist), var(--font-tajawal), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Geist', var(--font-tajawal), var(--font-geist), system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-arabic: var(--font-tajawal), var(--font-geist), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
 }

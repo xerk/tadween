@@ -854,12 +854,12 @@ html[dir='rtl'] .tdw-acct-host.is-danger svg {
 // spring curve. Only below the phone breakpoint; the sidebar is above it.
 @media #{$tdw-mobile} {
   // page content clears the dock (not on the paywall, which has none)
-  body:has(.tdw-dock) .tdw-shell.tdw-shell {
+  body:has(.tdw-dock:not(.is-off)) .tdw-shell.tdw-shell {
     padding-bottom: calc(var(--tdw-dock-space) + 8px);
   }
 
   // toasts rise above the dock while it shows
-  body:has(.tdw-dock:not(.is-hidden, .is-away)) .tdw-toaster {
+  body:has(.tdw-dock:not(.is-hidden, .is-away, .is-off)) .tdw-toaster {
     bottom: calc(var(--tdw-dock-space) + 4px);
   }
 
@@ -916,6 +916,8 @@ html[dir='rtl'] .tdw-acct-host.is-danger svg {
 
 // steps aside: scrolling down, a modal or sheet, or typing (the keyboard).
 // A closed sheet kept in the DOM (data-present false) doesn't count.
+// `is-off`: a full-height chat page (dock.tsx DOCKLESS_PATHS).
+.tdw-dock.is-off,
 .tdw-dock.is-away,
 .tdw-dock.is-hidden,
 body:has([aria-modal='true']:not(.tdw-sheet[data-present='false'] *)) .tdw-dock,
@@ -1203,6 +1205,7 @@ html[dir='rtl'] .tdw-dock-sheet .tdw-sheet-host.is-destructive svg {
     transition: opacity 150ms ease !important;
   }
 
+  .tdw-dock.is-off,
   .tdw-dock.is-away,
   .tdw-dock.is-hidden,
   body:has([aria-modal='true']:not(.tdw-sheet[data-present='false'] *)) .tdw-dock,

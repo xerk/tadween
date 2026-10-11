@@ -247,9 +247,6 @@ const toParagraphs = (text: string, start: number, end: number) => {
   });
 };
 
-// the first letter is Arabic, Hebrew, Persian...
-const RTL_START = /^[^A-Za-z\u0590-\u08FF]*[\u0590-\u08FF]/;
-
 const Paragraphs: FC<{ paragraphs: string[] }> = ({ paragraphs }) => (
   <>
     {paragraphs.map((html, index) => (
@@ -271,6 +268,7 @@ export const LinkedinPreview: FC<{
   // "…more": the post shows three lines until it is opened, like the feed
   const bodyRef = useRef<HTMLDivElement>(null);
   const [clamped, setClamped] = useState(false);
+  const [moreRtl, setMoreRtl] = useState(false);
   const mediaDir = useMediaDirectory();
 
   const renderContent = topValue.map((p) => {
@@ -302,8 +300,14 @@ export const LinkedinPreview: FC<{
     if (!el) {
       return;
     }
-    const measure = () =>
+    const measure = () => {
       setClamped(!expanded && el.scrollHeight > el.clientHeight + 1);
+      // "…more" goes at the end of the last visible line, in that line's
+      // direction (an Arabic line ends on the left)
+      const lines = Array.from(el.children) as HTMLElement[];
+      const last = lines.filter((p) => p.offsetTop < el.clientHeight).pop();
+      setMoreRtl(!!last && getComputedStyle(last).direction === 'rtl');
+    };
     measure();
     // the inspector and the phone frame change width without a render
     const observer = new ResizeObserver(measure);
@@ -348,15 +352,7 @@ export const LinkedinPreview: FC<{
           <LinkedinMore />
         </div>
       </div>
-      <div
-        // "…more" sits at the end of the post's own first line direction
-        className={clsx(
-          'px-[16px] relative text-[14px] leading-[20px]',
-          RTL_START.test(paragraphs.join(' ').replace(/<[^>]*>/g, ''))
-            ? '[direction:rtl]'
-            : '[direction:ltr]'
-        )}
-      >
+      <div className="px-[16px] relative text-[14px] leading-[20px]">
         <div
           ref={bodyRef}
           className={clsx('break-words', !expanded && 'line-clamp-3')}
@@ -367,7 +363,11 @@ export const LinkedinPreview: FC<{
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="absolute bottom-0 end-[16px] ps-[4px] [direction:ltr] [unicode-bidi:isolate] bg-bgLinkedin text-textLinkedin hover:text-[#0a66c2] hover:underline select-none"
+            className={clsx(
+              'absolute bottom-0 [direction:ltr] [unicode-bidi:isolate] bg-bgLinkedin text-textLinkedin hover:text-[#0a66c2] hover:underline select-none',
+              // physical sides: the app's RTL stylesheet flips logical ones
+              moreRtl ? 'left-[16px] pr-[4px]' : 'right-[16px] pl-[4px]'
+            )}
           >
             …more
           </button>
@@ -417,7 +417,7 @@ export const LinkedinPreview: FC<{
                 )}
               />
               <div className="flex-1 min-w-0 flex flex-col">
-                <div className="bg-bgCommentLinkedin rounded-[8px] rounded-ss-none px-[12px] pt-[8px] pb-[12px]">
+                <div className="bg-bgCommentLinkedin rounded-[8px] rounded-tl-none px-[12px] pt-[8px] pb-[12px]">
                   <div className="flex items-center gap-[4px] text-[12px] leading-[16px] text-textLinkedin">
                     <span className="text-[14px] leading-[20px] font-[600] text-textLinkedinInk truncate">
                       {integration?.name}
@@ -432,7 +432,7 @@ export const LinkedinPreview: FC<{
                     <Paragraphs paragraphs={value.paragraphs} />
                   </div>
                 </div>
-                <div className="flex items-center gap-[4px] ps-[8px] pt-[4px] text-[12px] leading-[16px] font-[600] text-textLinkedin select-none">
+                <div className="flex items-center gap-[4px] pl-[8px] pt-[4px] text-[12px] leading-[16px] font-[600] text-textLinkedin select-none">
                   <span>Like</span>
                   <span className="font-[400]" aria-hidden="true">
                     |

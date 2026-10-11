@@ -853,8 +853,8 @@ html[dir='rtl'] .tdw-acct-host.is-danger svg {
 // inside, a soft shadow below. The lens under the current item slides on the
 // spring curve. Only below the phone breakpoint; the sidebar is above it.
 @media #{$tdw-mobile} {
-  // page content clears the dock
-  .tdw-shell.tdw-shell {
+  // page content clears the dock (not on the paywall, which has none)
+  body:has(.tdw-dock) .tdw-shell.tdw-shell {
     padding-bottom: calc(var(--tdw-dock-space) + 8px);
   }
 

@@ -161,7 +161,16 @@ export const MobileDock: FC = () => {
     }
     const observer = new ResizeObserver(measure);
     observer.observe(bar.current);
-    return () => observer.disconnect();
+    // switching to or from Arabic mirrors the items without a reload
+    const direction = new MutationObserver(measure);
+    direction.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['dir'],
+    });
+    return () => {
+      observer.disconnect();
+      direction.disconnect();
+    };
   }, [measure]);
 
   const go = useCallback(
@@ -249,6 +258,9 @@ export const MobileDock: FC = () => {
         onClose={() => setMore(false)}
         title={moreLabel}
         className="tdw-dock-sheet"
+        // full height: Postiz's channel menu places itself in screen
+        // coordinates, which only match a sheet resting at the top
+        detent="large"
         keepMounted={true}
       >
         {rest.length ? (

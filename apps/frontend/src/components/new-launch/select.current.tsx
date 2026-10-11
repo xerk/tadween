@@ -235,3 +235,57 @@ export const IsGlobal: FC<{ id: string }> = ({ id }) => {
     </span>
   );
 };
+
+// While editing "All channels" the inspector previews one selected channel at
+// a time; with several selected, one avatar tab each picks which (styles:
+// .tdw-scope-strip.is-compact in app/tadween/editor.scss).
+export const SelectPreview: FC<{
+  value?: string;
+  onChange: (id: string) => void;
+}> = ({ value, onChange }) => {
+  const t = useT();
+  const selectedIntegrations = useLaunchStore(
+    (state) => state.selectedIntegrations
+  );
+
+  if (selectedIntegrations.length < 2) {
+    return null;
+  }
+
+  const shown =
+    selectedIntegrations.find((p) => p.integration.id === value) ||
+    selectedIntegrations[0];
+
+  return (
+    <div
+      role="tablist"
+      aria-label={t('tdw_preview_as', 'Preview as')}
+      className="tdw-scope-strip is-compact select-none"
+    >
+      {selectedIntegrations.map(({ integration }) => (
+        <button
+          key={integration.id}
+          type="button"
+          role="tab"
+          aria-selected={shown.integration.id === integration.id}
+          aria-label={integration.name}
+          onClick={() => onChange(integration.id)}
+          {...{
+            'data-tooltip-id': 'tooltip',
+            'data-tooltip-content': integration.name,
+          }}
+          className={clsx(
+            'tdw-scope tdw-scope-ch',
+            shown.integration.id === integration.id && 'is-on'
+          )}
+        >
+          <TadweenChannelAvatar
+            integration={integration}
+            size={26}
+            dot={<IsGlobal id={integration.id} />}
+          />
+        </button>
+      ))}
+    </div>
+  );
+};

@@ -59,7 +59,8 @@ export const withProvider = function <T extends object>(params: {
     maximumCharacters,
   } = params;
 
-  const Wrapped = forwardRef((props: { id: string }, ref) => {
+  // previewed: the channel the inspector shows while editing "All channels"
+  const Wrapped = forwardRef((props: { id: string; previewed?: boolean }, ref) => {
     const t = useT();
     const fetch = useFetch();
     const {
@@ -164,6 +165,10 @@ export const withProvider = function <T extends object>(params: {
       }
     );
 
+    // its own preview: its tab is open, or it is the one previewed while
+    // editing "All channels"
+    const shown = current || (isGlobal && !!props.previewed);
+
     const value = useMemo(() => {
       if (internal?.integrationValue?.length) {
         return internal.integrationValue;
@@ -260,10 +265,10 @@ export const withProvider = function <T extends object>(params: {
           <div
             className={clsx(
               'border border-borderPreview rounded-[12px] shadow-previewShadow',
-              !current && 'hidden'
+              !shown && 'hidden'
             )}
           >
-            {current &&
+            {shown &&
               (tab === 0 ||
                 (!SettingsComponent && !data?.internalPlugs?.length)) &&
               !value?.[0]?.content?.length && (
@@ -274,7 +279,7 @@ export const withProvider = function <T extends object>(params: {
                   )}
                 </div>
               )}
-            {current &&
+            {shown &&
               (tab === 0 ||
                 (!SettingsComponent && !data?.internalPlugs?.length)) &&
               !!value?.[0]?.content?.length &&

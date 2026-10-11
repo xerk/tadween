@@ -897,6 +897,7 @@
   "tdw_agent_unavailable": "الوصول للمساعدين غير متاح في خطتك أو دورك الحالي. يمكنك إعداده لاحقًا من الإعدادات، المطورون.",
   "tdw_all_channels": "كل الحسابات",
   "tdw_editing": "التحرير",
+  "tdw_preview_as": "معاينة باسم",
   "tdw_remove_channel": "إزالة الحساب",
   "tdw_remove_channel_name": "إزالة {{name}}",
   "tdw_use_the_shared_post": "استخدم المنشور المشترك",

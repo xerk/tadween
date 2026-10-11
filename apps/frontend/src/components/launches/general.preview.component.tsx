@@ -5,10 +5,8 @@ import { VideoOrImage } from '@gitroom/react/helpers/video.or.image';
 import { FC } from 'react';
 import { textSlicer } from '@gitroom/helpers/utils/count.length';
 import SafeImage from '@gitroom/react/helpers/safe.image';
-import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { useShallow } from 'zustand/react/shallow';
 import {
   TadweenAvatarImage,
   TadweenGlobalAvatar,
@@ -17,16 +15,14 @@ import {
 
 export const GeneralPreviewComponent: FC<{
   maximumCharacters?: number;
+  // the shared post with no channel to show it as ("All channels")
+  global?: boolean;
 }> = (props) => {
-  const { value: topValue, integration } = useIntegration();
-  const current = useLaunchStore((state) => state.current);
+  const { value: topValue, integration, allIntegrations } = useIntegration();
+  const isGlobal = !!props.global;
   // the networks the shared post goes to, one mark each
-  const networks = useLaunchStore(
-    useShallow((state) =>
-      Array.from(
-        new Set(state.selectedIntegrations.map((p) => p.integration.identifier))
-      )
-    )
+  const networks = Array.from(
+    new Set(allIntegrations.map((p) => p.identifier))
   );
   const mediaDir = useMediaDirectory();
   const t = useT();
@@ -78,7 +74,7 @@ export const GeneralPreviewComponent: FC<{
           >
             <div className="min-w-[40px] h-[40px] min-h-[40px] w-[40px] flex flex-col items-center">
               <div className="relative">
-                {current === 'global' ? (
+                {isGlobal ? (
                   <TadweenGlobalAvatar size={40} />
                 ) : (
                   <TadweenAvatarImage
@@ -89,7 +85,7 @@ export const GeneralPreviewComponent: FC<{
                   />
                 )}
 
-                {current !== 'global' && (
+                {!isGlobal && (
                   <SafeImage
                     src={`/icons/platforms/${integration?.identifier}.png`}
                     className="min-w-[20px] min-h-[20px] rounded-full absolute z-10 -bottom-[5px] -end-[5px] border border-fifth"
@@ -106,7 +102,7 @@ export const GeneralPreviewComponent: FC<{
             <div className="flex-1 flex flex-col gap-[4px]">
               <div className="flex">
                 <div className="h-[22px] text-[15px] font-[700]">
-                  {current === 'global'
+                  {isGlobal
                     ? t('tdw_all_channels', 'All channels')
                     : integration?.name}
                 </div>
@@ -124,7 +120,7 @@ export const GeneralPreviewComponent: FC<{
                   </svg>
                 </div>
                 <div className="text-[15px] font-[400] text-customColor27 ms-[4px]">
-                  {current === 'global' ? (
+                  {isGlobal ? (
                     <TadweenNetworkMarks identifiers={networks} />
                   ) : (
                     integration?.display || '@username'

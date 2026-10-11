@@ -4,6 +4,7 @@
 //   · channel avatar with network badge      (tadween/editor/channel.avatar.tsx)
 //   · scope strip: All channels + one avatar tab per channel (new-launch/select.current.tsx)
 //   · "All channels" identity in the shared preview (launches/general.preview.component.tsx)
+//   · "preview as" avatar row in the inspector  (new-launch/select.current.tsx)
 //   · lock card and "own version" note       (tadween/editor/scope.tsx)
 //   · character counter + per-channel list   (launches/information.component.tsx)
 //   · checks chip                            (tadween/editor/checks.tsx)
@@ -149,6 +150,12 @@ body {
     &.is-on .tdw-avatar-initials {
       box-shadow: 0 0 0 2px var(--tdw-card), 0 0 0 3.5px var(--tdw-primary);
     }
+  }
+  // the inspector's "preview as" row: as wide as its avatars, centred
+  .tdw-scope-strip.is-compact {
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto 12px;
   }
   .tdw-scope-sep {
     flex: none;

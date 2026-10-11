@@ -855,6 +855,7 @@
   "some_files_failed_to_upload": "Some files failed to upload, please try again",
   "tdw_all_channels": "All channels",
   "tdw_editing": "Editing",
+  "tdw_preview_as": "Preview as",
   "tdw_remove_channel": "Remove channel",
   "tdw_remove_channel_name": "Remove {{name}}",
   "tdw_use_the_shared_post": "Use the shared post",

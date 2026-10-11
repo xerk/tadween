@@ -183,7 +183,12 @@ export const Providers = [
     component: TumblrProvider,
   },
 ];
-export const ShowAllProviders = forwardRef((props, ref) => {
+// previewIntegration: the channel the inspector shows while editing "All
+// channels" (the first selected one when unset)
+export const ShowAllProviders = forwardRef<
+  unknown,
+  { previewIntegration?: string }
+>((props, ref) => {
   const { date, current, global, selectedIntegrations, allIntegrations } =
     useLaunchStore(
       useShallow((state) => ({
@@ -196,6 +201,10 @@ export const ShowAllProviders = forwardRef((props, ref) => {
     );
 
   const t = useT();
+  const previewed =
+    selectedIntegrations.find(
+      (p) => p.integration.id === props.previewIntegration
+    ) || selectedIntegrations[0];
 
   useImperativeHandle(ref, () => ({
     checkAllValid: async () => {
@@ -217,7 +226,7 @@ export const ShowAllProviders = forwardRef((props, ref) => {
 
   return (
     <div className="w-full flex flex-col flex-1">
-      {current === 'global' && (
+      {current === 'global' && !selectedIntegrations.length && (
         <IntegrationContext.Provider
           value={{
             date,
@@ -240,7 +249,7 @@ export const ShowAllProviders = forwardRef((props, ref) => {
             </div>
           ) : (
             <div className="border border-borderPreview rounded-[12px] shadow-previewShadow">
-              <GeneralPreviewComponent maximumCharacters={100000000} />
+              <GeneralPreviewComponent maximumCharacters={100000000} global />
             </div>
           )}
         </IntegrationContext.Provider>
@@ -258,6 +267,10 @@ export const ShowAllProviders = forwardRef((props, ref) => {
             ref={integration.ref}
             key={integration.integration.id}
             id={integration.integration.id}
+            previewed={
+              current === 'global' &&
+              previewed?.integration.id === integration.integration.id
+            }
           />
         );
       })}

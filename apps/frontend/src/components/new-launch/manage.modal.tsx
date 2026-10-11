@@ -14,7 +14,10 @@ import clsx from 'clsx';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { PicksSocialsComponent } from '@gitroom/frontend/components/new-launch/picks.socials.component';
 import { EditorWrapper } from '@gitroom/frontend/components/new-launch/editor';
-import { SelectCurrent } from '@gitroom/frontend/components/new-launch/select.current';
+import {
+  SelectCurrent,
+  SelectPreview,
+} from '@gitroom/frontend/components/new-launch/select.current';
 import {
   Providers,
   ShowAllProviders,
@@ -83,6 +86,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   const modal = useModals();
   const [showSettings, setShowSettings] = useState(false);
   const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit');
+  // the channel previewed while editing "All channels"
+  const [previewIntegration, setPreviewIntegration] = useState<string>();
   const [mobileSheet, setMobileSheet] = useState<
     'channels' | 'settings' | 'tags' | 'repeat' | 'date' | null
   >(null);
@@ -939,8 +944,17 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 scrollClasses="!pe-[20px]"
                 className="absolute mobile:static top-0 p-[20px] pe-[8px] mobile:p-[16px] left-0 w-full h-full mobile:h-auto overflow-x-hidden overflow-y-scroll mobile:overflow-y-visible scrollbar scrollbar-thumb-newColColor scrollbar-track-newBgColorInner"
               >
+                {current === 'global' && (
+                  <SelectPreview
+                    value={previewIntegration}
+                    onChange={setPreviewIntegration}
+                  />
+                )}
                 <div className="tdw-cm-stage" data-device={device}>
-                  <ShowAllProviders ref={ref} />
+                  <ShowAllProviders
+                    ref={ref}
+                    previewIntegration={previewIntegration}
+                  />
                 </div>
               </Scrollable>
             </div>

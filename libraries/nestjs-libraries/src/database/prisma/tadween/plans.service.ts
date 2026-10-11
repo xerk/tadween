@@ -232,23 +232,23 @@ export class PlansService {
   }
 
   // Whether checkout charges founder prices now: the window has a cap, has
-  // not ended, and fewer paying workspaces than the cap subscribed in it. The
-  // count comes from the database (Subscription.status from Stripe webhooks).
+  // not ended, and fewer workspaces than the cap took a founder spot in it
+  // (FounderSpot rows: trials included, cancelled founders still counted).
   async getFounderOffer(): Promise<FounderOffer> {
     if (this._founderCache && Date.now() - this._founderCache.at < TTL_MS) {
       return this._founderCache.offer;
     }
     const window = await this._settings.getFounderWindow();
-    let paying = 0;
+    let taken = 0;
     try {
-      paying = await this._repository.countPayingSubscriptions(
+      taken = await this._repository.countFounderSpots(
         window.startsAt ? new Date(window.startsAt) : null
       );
     } catch (e) {
-      // Columns not pushed yet: no founder offer rather than a broken checkout
-      paying = window.cap;
+      // Table not pushed yet: no founder offer rather than a broken checkout
+      taken = window.cap;
     }
-    const spotsLeft = Math.max(0, window.cap - paying);
+    const spotsLeft = Math.max(0, window.cap - taken);
     const offer: FounderOffer = {
       open:
         spotsLeft > 0 &&
@@ -354,6 +354,33 @@ export class PlansService {
   async getTrialDays(tier: string) {
     const plan = (await this.activePlans()).find((p) => p.tier === tier);
     return plan ? plan.trialDays : 7;
+  }
+
+  // A subscription the provider reports at this tier's founder price takes a
+  // founder spot. Reached from payment webhooks: logs, never throws.
+  async recordFounderSpot(
+    customerId: string,
+    tier: string,
+    priceCents: number | null
+  ): Promise<void> {
+    try {
+      const plan = await this.getActivePlan(tier);
+      if (!plan || plan.founderMonthlyPriceUsd === null || priceCents === null) {
+        return;
+      }
+      const discount = await this._settings.getYearlyDiscountPercent();
+      const founderCents = [
+        plan.founderMonthlyPriceUsd * 100,
+        yearlyPriceFrom(plan.founderMonthlyPriceUsd, discount) * 100,
+      ];
+      if (!founderCents.includes(priceCents)) {
+        return;
+      }
+      await this._repository.claimFounderSpot(customerId);
+      this._founderCache = null;
+    } catch (e) {
+      console.error('Error recording founder spot:', e);
+    }
   }
 
   async listForAdmin() {
@@ -524,19 +551,40 @@ export class PlansService {
   // lose anything.
   async seedDefaults(userId: string) {
     const warnings: string[] = [];
-    await this._settings.setYearlyDiscountPercent(
-      DEFAULT_YEARLY_DISCOUNT_PERCENT,
-      userId
-    );
+    // Reprices every plan's yearly price, like saving the discount does
+    await this.setYearlyDiscount(DEFAULT_YEARLY_DISCOUNT_PERCENT, userId);
     const discount = DEFAULT_YEARLY_DISCOUNT_PERCENT;
+    // The founder window starts counting when the founder prices are loaded
+    const window = await this._settings.getFounderWindow();
+    if (!window.startsAt) {
+      await this._settings.setFounderWindow(
+        { ...window, startsAt: new Date().toISOString() },
+        userId
+      );
+    }
     const existing = await this._repository.list(false);
 
-    const targets = DEFAULT_PLANS.map((plan) => ({
-      plan,
-      current:
-        existing.find((p) => p.active && p.tier === plan.tier) ||
-        existing.find((p) => p.key === plan.key),
-    }));
+    // Tier matches first, so a plan selling a default's tier is never taken
+    // by another default through its key
+    const claimed = new Set<string>();
+    const byTier = DEFAULT_PLANS.map((plan) => {
+      const current = existing.find(
+        (p) => p.active && p.tier === plan.tier && !claimed.has(p.id)
+      );
+      if (current) {
+        claimed.add(current.id);
+      }
+      return current;
+    });
+    const targets = DEFAULT_PLANS.map((plan, i) => {
+      const current =
+        byTier[i] ||
+        existing.find((p) => p.key === plan.key && !claimed.has(p.id));
+      if (current) {
+        claimed.add(current.id);
+      }
+      return { plan, current };
+    });
     const targetIds = targets.map((t) => t.current?.id).filter(Boolean);
 
     for (const plan of existing.filter(

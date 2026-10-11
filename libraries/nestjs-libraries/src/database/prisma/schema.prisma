@@ -20,6 +20,9 @@ model Organization {
   deletedAt           DateTime?
   allowTrial          Boolean              @default(false)
   isTrailing          Boolean              @default(false)
+  /// Tadween: when the workspace first subscribed at a founder price (null =
+  /// never). Kept after cancelling, so the founder cap counts the first N.
+  founderSince        DateTime?
   shortlink           ShortLinkPreference  @default(ASK)
   autoPost            AutoPost[]
   Comments            Comments[]
@@ -50,6 +53,7 @@ model Organization {
   @@index([streakSince])
   @@index([paymentId])
   @@index([deletedAt])
+  @@index([founderSince])
 }
 
 model Tags {

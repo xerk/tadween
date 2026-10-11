@@ -1308,8 +1308,8 @@
   "tdw_admin_stripe_status": "حالة Stripe",
   "tdw_founder_price": "سعر المؤسسين",
   "tdw_founder_price_locked": "سعر المؤسسين · ثابت ما دمت مشتركًا",
-  "tdw_founder_regular_month": "السعر المعتاد {{amount}}/شهريًا بعد أول {{cap}} عميل",
-  "tdw_founder_regular_year": "السعر المعتاد {{amount}}/سنويًا بعد أول {{cap}} عميل",
+  "tdw_founder_regular_month": "السعر المعتاد {{amount}} شهريًا بعد أول {{cap}} عميل",
+  "tdw_founder_regular_year": "السعر المعتاد {{amount}} سنويًا بعد أول {{cap}} عميل",
   "tdw_founder_spot_left": "بقي مكان واحد",
   "tdw_founder_spots_left": "بقي {{n}} مكانًا"
 }

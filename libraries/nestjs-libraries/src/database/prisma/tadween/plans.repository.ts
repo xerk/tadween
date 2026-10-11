@@ -32,7 +32,8 @@ const toData = (body: PlanDto) => ({
 export class PlansRepository {
   constructor(
     private _plans: PrismaRepository<'plan'>,
-    private _subscriptions: PrismaRepository<'subscription'>
+    private _subscriptions: PrismaRepository<'subscription'>,
+    private _organizations: PrismaRepository<'organization'>
   ) {}
 
   // Workspaces whose limits come from this tier (lifetime and cancelling ones
@@ -108,18 +109,20 @@ export class PlansRepository {
     });
   }
 
-  // Paying workspaces for the founder offer's cap: live Stripe subscriptions
-  // whose renewals are being paid (trials, admin grants and lifetime deals
-  // don't count), subscribed since the window started.
-  countPayingSubscriptions(since: Date | null) {
-    return this._subscriptions.model.subscription.count({
-      where: {
-        provider: 'stripe',
-        isLifetime: false,
-        deletedAt: null,
-        status: { in: ['active', 'past_due'] },
-        ...(since ? { createdAt: { gte: since } } : {}),
-      },
+  // Founder spots taken since the window started (cancelled founders
+  // included: Organization.founderSince is never cleared)
+  countFounderSpots(since: Date | null) {
+    return this._organizations.model.organization.count({
+      where: { founderSince: since ? { gte: since } : { not: null } },
+    });
+  }
+
+  // The workspace paying through this provider customer takes a founder spot,
+  // once (a later subscription of the same workspace keeps the first date)
+  claimFounderSpot(customerId: string) {
+    return this._organizations.model.organization.updateMany({
+      where: { paymentId: customerId, founderSince: null },
+      data: { founderSince: new Date() },
     });
   }
 

@@ -325,6 +325,8 @@ export class StripeService extends PaymentProviderAbstract {
       if (!customer) {
         return;
       }
+      const priceCents =
+        subscription.items?.data?.[0]?.price?.unit_amount ?? null;
       await this._subscriptionService.updateProviderState(
         customer,
         STRIPE_PROVIDER,
@@ -333,12 +335,40 @@ export class StripeService extends PaymentProviderAbstract {
           trialEndsAt: subscription.trial_end
             ? new Date(subscription.trial_end * 1000)
             : null,
-          priceCents: subscription.items?.data?.[0]?.price?.unit_amount ?? null,
+          priceCents,
         }
       );
+      // A subscription at a founder price takes a founder spot (trials too)
+      if (
+        subscription.metadata?.billing &&
+        ['trialing', 'active', 'past_due'].includes(subscription.status)
+      ) {
+        await this._plans.recordFounderSpot(
+          customer,
+          subscription.metadata.billing,
+          priceCents
+        );
+      }
     } catch (err) {
       console.error('stripe_subscription_state_not_saved', {
         stripe_subscription_id: subscription?.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  async refreshSubscriptionState(organizationId: string): Promise<void> {
+    try {
+      const org = await this._organizationService.getOrgById(organizationId);
+      const [subscription] = await this.getLiveSubscriptions(
+        this.stripeCustomerId(org)
+      );
+      if (subscription) {
+        await this.saveProviderState(subscription);
+      }
+    } catch (err) {
+      console.error('stripe_subscription_state_not_refreshed', {
+        organization_id: organizationId,
         error: err instanceof Error ? err.message : String(err),
       });
     }

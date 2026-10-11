@@ -41,15 +41,21 @@ export class SubscriptionService {
   }
 
   // On a real free trial: isTrailing, unless the subscription's last payment
-  // failed. Organizations loaded without their subscription keep isTrailing.
-  isOnTrial(org: {
+  // failed. Organizations loaded without their subscription status (API key
+  // requests) read it from the subscription row.
+  async isOnTrial(org: {
+    id: string;
     isTrailing: boolean;
     subscription?: { status?: string | null } | null;
-  }) {
-    return (
-      org.isTrailing &&
-      !PAYMENT_FAILED_STATUSES.includes(org.subscription?.status || '')
-    );
+  }): Promise<boolean> {
+    if (!org.isTrailing) {
+      return false;
+    }
+    const status =
+      org.subscription?.status !== undefined
+        ? org.subscription.status
+        : (await this._subscriptionRepository.getSubscription(org.id))?.status;
+    return !PAYMENT_FAILED_STATUSES.includes(status || '');
   }
 
   // Customer-keyed flows must never touch a subscription owned by another provider

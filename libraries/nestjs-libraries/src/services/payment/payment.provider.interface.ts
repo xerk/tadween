@@ -71,6 +71,12 @@ export abstract class PaymentProviderAbstract {
     return this.notSupported();
   }
 
+  // Store the provider's status, trial end and price on the subscription row
+  // (for rows written before the provider reported them). No-op by default.
+  async refreshSubscriptionState(organizationId: string): Promise<void> {
+    return;
+  }
+
   // Trial end date and whether a payment method is on file (null: no trial)
   async getTrialInfo(
     organizationId: string

@@ -401,6 +401,7 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
 .is-ar .pz-mini-steps li::before { content: counter(m, arabic-indic); font-family: var(--font-arabic); }
 
 /* ── Agent chat mock (built on the app's chat look) ───── */
+/* ── Agent teaser: the AI tools that connect ───────── */
 /* "Works with" under the agent teaser: single-colour marks (CSS masks of public/logos) that
    take the text colour and turn to the brand's on hover */
 .pz-works { display: grid; gap: 12px; }
@@ -638,8 +639,7 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
 .cd-scroll { height: 100%; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; container-type: inline-size; }
 .cd-scroll::-webkit-scrollbar { display: none; }
 .cd-grid { position: relative; display: grid; grid-template-columns: var(--cd-hw) repeat(5, minmax(0, 1fr)); grid-template-rows: var(--cd-head) repeat(6, var(--cd-row)); min-height: 100%; }
-.cd-hour { position: sticky; inset-inline-start: 0; z-index: 5; grid-column: 1; padding: 8px 10px 0 0; background: var(--card); color: var(--muted-foreground); font-family: var(--font-mono); font-size: 12px; line-height: 16px; text-align: end; font-variant-numeric: tabular-nums; }
-[dir='rtl'] .cd-hour { padding: 8px 0 0 10px; }
+.cd-hour { position: sticky; inset-inline-start: 0; z-index: 5; grid-column: 1; padding-block-start: 8px; padding-inline: 0 10px; background: var(--card); color: var(--muted-foreground); font-family: var(--font-mono); font-size: 12px; line-height: 16px; text-align: end; font-variant-numeric: tabular-nums; }
 .cd-corner { grid-row: 1; padding: 0; }
 .cd-dayhead { grid-row: 1; display: flex; align-items: center; justify-content: center; gap: 8px; border-inline-start: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: 14px; font-weight: 500; color: var(--muted-foreground); scroll-snap-align: start; }
 .cd-dayhead.is-today { color: var(--primary); font-weight: 600; }
@@ -653,9 +653,8 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
 .cd-now i { position: absolute; inset-inline: 0; top: calc(var(--now) * 100%); height: 2px; background: var(--destructive); }
 .cd-now i::before { content: ''; position: absolute; inset-inline-start: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--destructive); }
 
-.cd-chip { position: relative; z-index: 4; display: grid; align-content: start; gap: 6px; min-width: 0; margin: 6px; padding: 9px 10px 9px 12px; border: 0; border-inline-start: 3px solid var(--primary); border-radius: 10px; background: var(--popover); box-shadow: var(--shadow-md); color: var(--foreground); font: inherit; text-align: start; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+.cd-chip { position: relative; z-index: 4; display: grid; align-content: start; gap: 6px; min-width: 0; margin: 6px; padding-block: 9px; padding-inline: 12px 10px; border: 0; border-inline-start: 3px solid var(--primary); border-radius: 10px; background: var(--popover); box-shadow: var(--shadow-md); color: var(--foreground); font: inherit; text-align: start; cursor: grab; touch-action: pan-x pan-y; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
   transition: translate var(--duration-spring) var(--ease-spring), opacity var(--duration-base) ease, scale var(--duration-base) var(--ease-out), box-shadow var(--duration-fast) ease, visibility 0s; }
-[dir='rtl'] .cd-chip { padding: 9px 12px 9px 10px; }
 .cd-chip:hover, .cd-chip[aria-expanded='true'] { box-shadow: var(--shadow-lg); }
 .cd-chip.is-published { border-inline-start-color: var(--success); }
 .cd-chip.is-draft { border-inline-start-color: var(--input); background: color-mix(in oklab, var(--popover) 70%, var(--muted)); }
@@ -749,7 +748,7 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
   .cd-scroll { scroll-snap-type: x mandatory; scroll-padding-inline-start: var(--cd-hw); }
   .cd-grid { grid-template-columns: var(--cd-hw) repeat(5, calc((100cqw - var(--cd-hw)) / 3)); }
   .cd-hour { padding-inline-end: 6px; font-size: 11px; }
-  .cd-chip { margin: 4px; padding: 7px 8px 7px 9px; }
+  .cd-chip { margin: 4px; padding-block: 7px; padding-inline: 9px 8px; }
   .cd-chip-top { gap: 6px; }
   .cd-chip-top .sc-avatar { display: none; }
   .cd-chip-text { font-size: 13px; line-height: 18px; }

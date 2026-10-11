@@ -96,7 +96,7 @@ export const ar: Dict = {
     calloutB: 'اسحب لتغيّر الموعد',
     demo: {
       label: 'نموذج تجريبي للتقويم',
-      keyboardHint: 'اضغط Enter لقراءة المنشور، وأسهم لوحة المفاتيح لنقله.',
+      keyboardHint: 'اضغط Enter لقراءة المنشور، واستخدم الأسهم لنقله.',
       range: '١٢ – ١٦ أكتوبر ٢٠٢٦',
       month: 'أكتوبر ٢٠٢٦',
       views: { label: 'طريقة العرض', week: 'أسبوع', month: 'شهر', board: 'لوحة' },
@@ -113,7 +113,7 @@ export const ar: Dict = {
       now: 'الآن',
       status: { draft: 'مسودة', scheduled: 'مجدول', published: 'نُشر' },
       upNext: 'التالي',
-      actions: { edit: 'تعديل', duplicate: 'نسخ', preview: 'معاينة', delete: 'حذف' },
+      actions: { edit: 'تعديل', duplicate: 'تكرار', preview: 'معاينة', delete: 'حذف' },
       more: '+{n} أخرى',
       moved: 'نُقل إلى {when}',
       refusedPast: 'هذا الموعد مضى',

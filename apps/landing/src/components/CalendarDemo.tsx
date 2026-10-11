@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
 import type { CalendarDemoCopy } from '@/content/types';
 import { Icon, cx } from './Icon';
 import { Segmented } from './Segmented';
@@ -102,8 +102,10 @@ export function CalendarDemo({ c, calloutA, calloutB, numberLocale, netNames }: 
   const rootRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const timers = useRef<{ open?: number; close?: number; note?: number }>({});
-  const drag = useRef<{ id: string; x: number; y: number; moved: boolean; el: HTMLElement; touch: boolean } | null>(null);
+  const timers = useRef<{ open?: number; close?: number; note?: number; hold?: number }>({});
+  /** The post being pressed: where the press started, whether it has moved (a drag, not a
+      tap), whether a touch has been held long enough to drag, and the cell under it. */
+  const drag = useRef<{ id: string; x: number; y: number; moved: boolean; armed: boolean; el: HTMLElement; touch: boolean; target: { day: number; hour: number } | null } | null>(null);
   const flip = useRef<{ id: string; left: number; top: number } | null>(null);
 
   const num = new Intl.NumberFormat(numberLocale, { minimumIntegerDigits: 2, useGrouping: false });
@@ -228,7 +230,22 @@ export function CalendarDemo({ c, calloutA, calloutB, numberLocale, netNames }: 
     s.scrollLeft = rtl ? -(s.querySelector<HTMLElement>('[data-day="0"]')!.offsetWidth) : col.offsetLeft - s.querySelector<HTMLElement>('.cd-hour')!.offsetWidth;
   }, [view]);
 
-  useEffect(() => () => Object.values(timers.current).forEach((t) => window.clearTimeout(t)), []);
+  useEffect(() => {
+    const t = timers.current;
+    return () => Object.values(t).forEach((id) => window.clearTimeout(id));
+  }, []);
+
+  // A touch that has been held keeps the page from scrolling while it drags (the chips allow
+  // panning, so a quick swipe over a post still scrolls). Touch listeners in React are passive.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const hold = (e: TouchEvent) => {
+      if (drag.current?.armed) e.preventDefault();
+    };
+    root.addEventListener('touchmove', hold, { passive: false });
+    return () => root.removeEventListener('touchmove', hold);
+  }, []);
 
   const hoverIn = (id: string) => {
     window.clearTimeout(timers.current.close);
@@ -244,8 +261,19 @@ export function CalendarDemo({ c, calloutA, calloutB, numberLocale, netNames }: 
 
   const onDown = (e: PointerEvent<HTMLElement>, post: DemoPost) => {
     if (e.button !== 0) return;
-    drag.current = { id: post.id, x: e.clientX, y: e.clientY, moved: false, el: e.currentTarget, touch: e.pointerType !== 'mouse' };
+    const touch = e.pointerType !== 'mouse';
+    const d = { id: post.id, x: e.clientX, y: e.clientY, moved: false, armed: !touch, el: e.currentTarget, touch, target: null };
+    drag.current = d;
     e.currentTarget.setPointerCapture(e.pointerId);
+    // On touch, a post lifts after a short hold; moving before that is a scroll.
+    if (touch && view === 'week') {
+      window.clearTimeout(timers.current.hold);
+      timers.current.hold = window.setTimeout(() => {
+        if (drag.current !== d) return;
+        d.armed = true;
+        d.el.dataset.drag = '';
+      }, 220);
+    }
   };
 
   const onMove = (e: PointerEvent<HTMLElement>, post: DemoPost) => {
@@ -255,6 +283,11 @@ export function CalendarDemo({ c, calloutA, calloutB, numberLocale, netNames }: 
     const dy = e.clientY - d.y;
     if (!d.moved) {
       if (Math.hypot(dx, dy) < 5 || view !== 'week') return;
+      if (!d.armed) {
+        window.clearTimeout(timers.current.hold);
+        drag.current = null;
+        return;
+      }
       d.moved = true;
       d.el.dataset.drag = '';
       window.clearTimeout(timers.current.open);
@@ -264,6 +297,7 @@ export function CalendarDemo({ c, calloutA, calloutB, numberLocale, netNames }: 
     // The chip is under the pointer, so look through it for the cell.
     const cell = document.elementsFromPoint(e.clientX, e.clientY).find((n): n is HTMLElement => n instanceof HTMLElement && 'cell' in n.dataset);
     const next = cell ? { day: Number(cell.dataset.d), hour: Number(cell.dataset.h) } : null;
+    d.target = next;
     setTarget((t) => {
       if (!next) return null;
       if (t && t.day === next.day && t.hour === next.hour) return t;
@@ -274,8 +308,10 @@ export function CalendarDemo({ c, calloutA, calloutB, numberLocale, netNames }: 
   const onUp = (e: PointerEvent<HTMLElement>, post: DemoPost, cancel?: boolean) => {
     const d = drag.current;
     drag.current = null;
+    window.clearTimeout(timers.current.hold);
     if (!d || d.id !== post.id) return;
     if (!d.moved) {
+      delete d.el.dataset.drag;
       if (cancel) return;
       // A tap opens or closes the card; a mouse click keeps it open (hover already opened it).
       window.clearTimeout(timers.current.open);
@@ -283,18 +319,13 @@ export function CalendarDemo({ c, calloutA, calloutB, numberLocale, netNames }: 
       return;
     }
     delete d.el.dataset.drag;
-    const t = target;
+    const t = d.target;
     setTarget(null);
     if (!cancel && t && moveTo(post, t.day, t.hour)) return;
     d.el.style.translate = '';
   };
 
   const onKey = (e: KeyboardEvent<HTMLElement>, post: DemoPost) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      setOpen((o) => (o === post.id ? null : post.id));
-      return;
-    }
     if (view !== 'week') return;
     const rtl = getComputedStyle(e.currentTarget).direction === 'rtl';
     const step: Record<string, [number, number]> = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [rtl ? 1 : -1, 0], ArrowRight: [rtl ? -1 : 1, 0] };
@@ -318,6 +349,11 @@ export function CalendarDemo({ c, calloutA, calloutB, numberLocale, netNames }: 
     tabIndex: visible(post) ? 0 : -1,
     'aria-hidden': visible(post) ? undefined : true,
     'aria-expanded': open === post.id,
+    'aria-controls': open === post.id ? 'cd-pop' : undefined,
+    'aria-describedby': open === post.id ? 'cd-pop cd-hint' : 'cd-hint',
+    // Enter, Space and screen readers send a click with no pointer behind it (detail 0);
+    // pointer presses are handled above.
+    onClick: (e: MouseEvent<HTMLElement>) => e.detail === 0 && setOpen((o) => (o === post.id ? null : post.id)),
     'aria-label': `${post.brand}, ${netNames[post.net]}, ${when(post)}, ${c.status[post.status]}`,
     onPointerEnter: (e: PointerEvent<HTMLElement>) => e.pointerType === 'mouse' && hoverIn(post.id),
     onPointerLeave: (e: PointerEvent<HTMLElement>) => e.pointerType === 'mouse' && hoverOut(),
@@ -342,7 +378,7 @@ export function CalendarDemo({ c, calloutA, calloutB, numberLocale, netNames }: 
 
   const week = (
     <div className="cd-scroll" ref={scrollRef}>
-      <div className="cd-grid" role="group" aria-label={c.range} aria-describedby="cd-hint">
+      <div className="cd-grid" role="group" aria-label={c.range}>
         <span className="cd-corner cd-hour" aria-hidden="true" />
         {c.days.map((d, i) => (
           <span key={i} className={cx('cd-dayhead', i === TODAY && 'is-today')} data-day={i} style={{ gridColumn: i + 2 }} aria-hidden="true">
@@ -507,13 +543,16 @@ export function CalendarDemo({ c, calloutA, calloutB, numberLocale, netNames }: 
         <p id="cd-hint" className="cd-sr">
           {c.keyboardHint}
         </p>
+        <p className="cd-sr" aria-live="polite">
+          {note?.text}
+        </p>
       </div>
-      <span className={cx('pz-callout is-b is-smart', note && 'is-note', note && !note.ok && 'is-refused')} aria-live="polite">
+      <span className={cx('pz-callout is-b is-smart', note && 'is-note', note && !note.ok && 'is-refused')} aria-hidden="true">
         <Icon name={note ? (note.ok ? 'circle-check' : 'circle-alert') : 'mouse-pointer-2'} size={16} />
         {note ? note.text : calloutB}
       </span>
       {openPost ? (
-        <div className="cd-pop" ref={popRef} style={pop} role="dialog" aria-label={openPost.brand} onPointerEnter={(e) => e.pointerType === 'mouse' && hoverIn(openPost.id)} onPointerLeave={(e) => e.pointerType === 'mouse' && hoverOut()}>
+        <div className="cd-pop" id="cd-pop" ref={popRef} style={pop} onPointerEnter={(e) => e.pointerType === 'mouse' && hoverIn(openPost.id)} onPointerLeave={(e) => e.pointerType === 'mouse' && hoverOut()}>
           <div className="cd-pop-head">
             <Avatar post={openPost} size={40} />
             <span>

@@ -472,16 +472,7 @@ export function ChannelPage({ t, slug }: { t: Dict; slug: string }) {
         <section className="pz-sec is-tight" aria-labelledby="preview-title">
           <div className="pz-container is-wide">
             <div className="pz-stage pz-zoomable" data-reveal data-parallax>
-              <figure className="pz-shot is-browser">
-                <div className="pz-shot-bar" aria-hidden="true">
-                  <span className="pz-shot-dots">
-                    <i />
-                    <i />
-                    <i />
-                  </span>
-                  <span className="pz-shot-url">{`${t.shotUrl}/launches`}</span>
-                  <i />
-                </div>
+              <figure className="pz-shot is-bare">
                 <div className="pz-shot-zoom">
                   {(['light', 'dark'] as const).map((theme) => (
                     <img key={theme} className={`is-${theme}`} src={channelShotSrc(slug, t.lang, theme)} width={CHANNEL_SHOT.w} height={CHANNEL_SHOT.h} alt={fill(p.previewTitle)} loading="lazy" decoding="async" />

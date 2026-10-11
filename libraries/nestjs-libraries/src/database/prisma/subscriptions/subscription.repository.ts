@@ -13,7 +13,8 @@ export class SubscriptionRepository {
     private readonly _organization: PrismaRepository<'organization'>,
     private readonly _user: PrismaRepository<'user'>,
     private readonly _credits: PrismaRepository<'credits'>,
-    private _usedCodes: PrismaRepository<'usedCodes'>
+    private _usedCodes: PrismaRepository<'usedCodes'>,
+    private readonly _aiCreditPurchase: PrismaRepository<'aiCreditPurchase'>
   ) {}
 
   getUserAccount(userId: string) {
@@ -327,6 +328,107 @@ export class SubscriptionRepository {
       where: {
         id,
         organizationId,
+      },
+    });
+  }
+
+  // Tadween AI credits. Rows of type "ai_credits" hold the credits an action
+  // cost; older "ai_images" rows are one image each and are counted, not summed
+  async getAiCreditsUsage(organizationId: string, from: Date) {
+    const [monthly, legacyImages, purchasedSpent, purchasedTotal] =
+      await Promise.all([
+        this._credits.model.credits.aggregate({
+          where: {
+            organizationId,
+            type: 'ai_credits',
+            createdAt: { gte: from },
+          },
+          _sum: { credits: true, purchased: true },
+        }),
+        this._credits.model.credits.count({
+          where: {
+            organizationId,
+            type: 'ai_images',
+            createdAt: { gte: from },
+          },
+        }),
+        this._credits.model.credits.aggregate({
+          where: { organizationId, type: 'ai_credits' },
+          _sum: { purchased: true },
+        }),
+        this._aiCreditPurchase.model.aiCreditPurchase.aggregate({
+          where: { organizationId },
+          _sum: { credits: true },
+        }),
+      ]);
+
+    return {
+      monthlyUsed:
+        (monthly._sum.credits || 0) - (monthly._sum.purchased || 0),
+      legacyImages,
+      purchasedUsed: purchasedSpent._sum.purchased || 0,
+      purchasedTotal: purchasedTotal._sum.credits || 0,
+    };
+  }
+
+  chargeAiCredits(
+    organizationId: string,
+    action: string,
+    credits: number,
+    purchased: number
+  ) {
+    return this._credits.model.credits.create({
+      data: {
+        organizationId,
+        type: 'ai_credits',
+        action,
+        credits,
+        purchased,
+      },
+      select: {
+        id: true,
+      },
+    });
+  }
+
+  // The checkout session id is the primary key: a webhook delivered twice
+  // credits the pack once
+  addAiCreditPurchase(
+    id: string,
+    organizationId: string,
+    credits: number,
+    amount: number,
+    currency: string,
+    provider: string
+  ) {
+    return this._aiCreditPurchase.model.aiCreditPurchase.upsert({
+      where: {
+        id,
+      },
+      create: {
+        id,
+        organizationId,
+        credits,
+        amount,
+        currency,
+        provider,
+      },
+      update: {},
+      select: {
+        id: true,
+      },
+    });
+  }
+
+  getAiCreditPurchase(organizationId: string, id: string) {
+    return this._aiCreditPurchase.model.aiCreditPurchase.findFirst({
+      where: {
+        id,
+        organizationId,
+      },
+      select: {
+        id: true,
+        credits: true,
       },
     });
   }

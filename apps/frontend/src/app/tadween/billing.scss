@@ -315,3 +315,24 @@
 .tdw-ui .tdw-paywall-plan-row { font-size: 15px; }
 .tdw-ui .tdw-paywall-plan.is-unlock .tdw-paywall-plan-row { font-weight: 600; color: var(--primary); }
 .tdw-ui .tdw-paywall-plan-price { font-size: 13px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+
+// AI credits card on Billing, the top-up drawer and the "credits left" chip (ai.credits.tsx)
+.tdw-ui .tdw-credits { display: grid; gap: var(--space-5); padding: var(--space-6) var(--space-8); border-radius: var(--radius-xl); background: var(--card); box-shadow: 0 0 0 1px var(--border), var(--shadow-sm); }
+.tdw-ui .tdw-credits-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+.tdw-ui .tdw-credits-title { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.02em; }
+.tdw-ui .tdw-credits-lead { margin: 4px 0 0; max-width: 560px; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+.tdw-ui .tdw-credits-body { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+.tdw-ui .tdw-credits-stat { display: grid; gap: 2px; }
+.tdw-ui .tdw-credits-stat-label { font-size: 13px; color: var(--muted-foreground); }
+.tdw-ui .tdw-credits-stat-value { font-size: 22px; line-height: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tdw-ui .tdw-credits-costs { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; padding: var(--space-4) 0 0; border-top: 1px solid var(--border); list-style: none; font-size: 13px; color: var(--muted-foreground); }
+.tdw-ui.tdw-credits-badge-scope { display: inline-flex; background: transparent; }
+.tdw-ui .tdw-credits-badge { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--radius-full); background: var(--primary-soft); color: var(--primary); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; text-decoration: none; font-variant-numeric: tabular-nums; }
+.tdw-ui .tdw-credits-badge:hover { text-decoration: underline; }
+.tdw-ui .tdw-credits-badge.is-out { background: var(--destructive-soft); color: var(--destructive); }
+@media (max-width: 720px) {
+  .tdw-ui .tdw-credits { padding: var(--space-5); }
+  .tdw-ui .tdw-credits-head { flex-wrap: wrap; }
+  .tdw-ui .tdw-credits-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .tdw-ui .tdw-credits-body > .pz-usage { grid-column: 1 / -1; }
+}

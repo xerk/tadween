@@ -7,6 +7,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { useToaster } from '@gitroom/react/toaster/toaster';
+import { AiCreditsBadge } from '@gitroom/frontend/components/tadween/billing/ai.credits';
 const list = [
   'Realistic',
   'Cartoon',
@@ -50,11 +51,10 @@ const AiImageModal: FC<{
     close();
     setLocked(true);
     try {
-      const image = await (
-        await fetch('/media/generate-image-with-prompt', {
-          method: 'POST',
-          body: JSON.stringify({
-            prompt: `
+      const res = await fetch('/media/generate-image-with-prompt', {
+        method: 'POST',
+        body: JSON.stringify({
+          prompt: `
 <!-- description -->
 ${prompt}
 <!-- /description -->
@@ -64,11 +64,14 @@ ${style}
 <!-- /style -->
 
 `,
-          }),
-        })
-      ).json();
-      if (image) {
-        onChange(image);
+        }),
+      });
+      // Out of AI credits answers 402 and opens the paywall
+      if (res.ok) {
+        const image = await res.json();
+        if (image) {
+          onChange(image);
+        }
       }
     } catch (e) {}
     setLocked(false);
@@ -78,7 +81,10 @@ ${style}
   return (
     <div className="flex flex-col gap-[16px]">
       <div className="flex flex-col gap-[6px]">
-        <div className="text-[14px]">{t('prompt', 'Prompt')}</div>
+        <div className="flex items-center justify-between gap-[8px]">
+          <div className="text-[14px]">{t('prompt', 'Prompt')}</div>
+          <AiCreditsBadge />
+        </div>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}

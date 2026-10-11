@@ -20,6 +20,12 @@ import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
 import { BillingSyncDto } from '@gitroom/nestjs-libraries/dtos/billing/billing.sync.dto';
+import { BillingAiCreditsDto } from '@gitroom/nestjs-libraries/dtos/billing/billing.ai.credits.dto';
+import {
+  aiCreditCost,
+  aiCreditPacks,
+  imageCreditAction,
+} from '@gitroom/nestjs-libraries/openai/ai.config';
 
 @ApiTags('Billing')
 @Controller('/billing')
@@ -180,6 +186,46 @@ export class BillingController {
       }
       throw new HttpException((e as Error)?.message || 'Sync failed', 400);
     }
+  }
+
+  // AI credits left this month and purchased, what each action costs, and the
+  // top-up packs on sale
+  @Get('/ai-credits')
+  async aiCredits(@GetOrgFromRequest() org: Organization) {
+    return {
+      ...(await this._subscriptionService.getAiCredits(org.id)),
+      costs: {
+        write: aiCreditCost('write'),
+        agent_message: aiCreditCost('agent_message'),
+        image: aiCreditCost(imageCreditAction()),
+      },
+      packs: aiCreditPacks,
+    };
+  }
+
+  // Buy a top-up pack: answers the embedded checkout's client secret
+  @Post('/ai-credits')
+  async buyAiCredits(
+    @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
+    @Body() body: BillingAiCreditsDto
+  ) {
+    return (await this.provider(org)).embeddedAiCredits(
+      org.id,
+      user.id,
+      body.pack
+    );
+  }
+
+  // Polled after checkout until the webhook credited the pack
+  @Get('/ai-credits/:id')
+  async aiCreditsPurchase(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string
+  ) {
+    return {
+      done: await this._subscriptionService.isAiCreditPurchaseDone(org.id, id),
+    };
   }
 
   @Get('/portal')

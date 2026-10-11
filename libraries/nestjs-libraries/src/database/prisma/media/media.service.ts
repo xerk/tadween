@@ -2,6 +2,7 @@ import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { MediaRepository } from '@gitroom/nestjs-libraries/database/prisma/media/media.repository';
 import { OpenaiService } from '@gitroom/nestjs-libraries/openai/openai.service';
 import { generationError } from '@gitroom/nestjs-libraries/openai/generation.error';
+import { imageCreditAction } from '@gitroom/nestjs-libraries/openai/ai.config';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { Organization } from '@prisma/client';
 import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/save.media.information.dto';
@@ -102,22 +103,25 @@ export class MediaService {
     return this._mediaRepository.getMediaById(id);
   }
 
+  // `exempt`: a super admin acting as themselves is never refused (still charged)
   async generateImage(
     prompt: string,
-    org: Organization,
-    generatePromptFirst?: boolean
+    org: Pick<Organization, 'id'>,
+    generatePromptFirst?: boolean,
+    exempt = false
   ) {
     try {
-      const generating = await this._subscriptionService.useCredit(
-        org,
-        'ai_images',
+      const generating = await this._subscriptionService.useAiCredits(
+        org.id,
+        imageCreditAction(),
         async () => {
           if (generatePromptFirst) {
             prompt = await this._openAi.generatePromptForPicture(prompt);
             console.log('Prompt:', prompt);
           }
           return this._openAi.generateImage(prompt);
-        }
+        },
+        exempt
       );
 
       return generating;

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { END, START, StateGraph } from '@langchain/langgraph';
 import { ChatOpenAI } from '@langchain/openai';
+import { aiModels } from '@gitroom/nestjs-libraries/openai/ai.config';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { agentCategories } from '@gitroom/nestjs-libraries/agent/agent.categories';
 import { z } from 'zod';
@@ -10,7 +11,7 @@ import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/po
 
 const model = new ChatOpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'sk-proj-',
-  model: 'gpt-4o-2024-08-06',
+  model: aiModels.writing(),
   temperature: 0,
 });
 

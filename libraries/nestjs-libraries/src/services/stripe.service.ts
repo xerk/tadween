@@ -9,6 +9,7 @@ import { BillingSubscribeDto } from '@gitroom/nestjs-libraries/dtos/billing/bill
 import { groupBy } from 'lodash';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
+import { aiCreditPacks } from '@gitroom/nestjs-libraries/openai/ai.config';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { TrackService } from '@gitroom/nestjs-libraries/track/track.service';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
@@ -71,6 +72,9 @@ export class StripeService extends PaymentProviderAbstract {
         return this.updateSubscription(event);
       case 'customer.subscription.deleted':
         return this.deleteSubscription(event);
+      case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded':
+        return this.aiCreditsPaid(event);
       default:
         return { ok: true };
     }
@@ -1001,6 +1005,89 @@ export class StripeService extends PaymentProviderAbstract {
       hasPaymentMethod:
         !!subscription.default_payment_method || methods.data.length > 0,
     };
+  }
+
+  // AI credits top-up: a one-time payment in Embedded Checkout. The pack and
+  // the workspace travel in the session metadata; the webhook credits them.
+  async embeddedAiCredits(
+    organizationId: string,
+    userId: string,
+    packId: string
+  ) {
+    const pack = aiCreditPacks.find((p) => p.id === packId)!;
+    const org = await this._organizationService.getOrgById(organizationId);
+    const customer = await this.createOrGetCustomer(org!);
+
+    const { id, client_secret } = await stripe.checkout.sessions.create({
+      ui_mode: 'embedded',
+      redirect_on_completion: 'never',
+      customer,
+      mode: 'payment',
+      adaptive_pricing: { enabled: true },
+      metadata: {
+        service: 'gitroom',
+        type: 'ai_credits',
+        organizationId,
+        userId,
+        credits: String(pack.credits),
+      },
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: 'usd',
+            unit_amount: pack.amount,
+            product_data: {
+              name: `${pack.credits} AI credits`,
+            },
+          },
+        },
+      ],
+    });
+
+    return {
+      client_secret,
+      check: id,
+    };
+  }
+
+  // Webhook: credits a paid top-up once (keyed by the session id). Must not
+  // throw: a failure is logged and Stripe's retry will try again.
+  async aiCreditsPaid(
+    event:
+      | Stripe.CheckoutSessionCompletedEvent
+      | Stripe.CheckoutSessionAsyncPaymentSucceededEvent
+  ) {
+    try {
+      const session = event.data.object;
+      if (
+        session.mode !== 'payment' ||
+        session.metadata?.type !== 'ai_credits' ||
+        session.payment_status !== 'paid' ||
+        !session.metadata?.organizationId
+      ) {
+        return { ok: true };
+      }
+
+      const credits = parseInt(session.metadata.credits || '', 10);
+      if (!Number.isFinite(credits) || credits <= 0) {
+        console.error('AI credits checkout without a credits amount', session.id);
+        return { ok: true };
+      }
+
+      await this._subscriptionService.addAiCreditPurchase(
+        session.id,
+        session.metadata.organizationId,
+        credits,
+        session.amount_total || 0,
+        session.currency || 'usd',
+        'stripe'
+      );
+    } catch (e) {
+      console.error('Error processing AI credits payment:', e);
+    }
+
+    return { ok: true };
   }
 
   async embedded(

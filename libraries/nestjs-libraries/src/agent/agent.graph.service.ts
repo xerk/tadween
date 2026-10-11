@@ -5,7 +5,7 @@ import {
   ToolMessage,
 } from '@langchain/core/messages';
 import { END, START, StateGraph } from '@langchain/langgraph';
-import { ChatOpenAI, DallEAPIWrapper } from '@langchain/openai';
+import { ChatOpenAI } from '@langchain/openai';
 import { TavilySearch } from '@langchain/tavily';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
@@ -16,6 +16,7 @@ import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/me
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { GeneratorDto } from '@gitroom/nestjs-libraries/dtos/generator/generator.dto';
 import { generationError } from '@gitroom/nestjs-libraries/openai/generation.error';
+import { aiModels } from '@gitroom/nestjs-libraries/openai/ai.config';
 
 const tools = !process.env.TAVILY_API_KEY
   ? []
@@ -24,13 +25,8 @@ const toolNode = new ToolNode(tools);
 
 const model = new ChatOpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'sk-proj-',
-  model: 'gpt-4.1',
+  model: aiModels.writing(),
   temperature: 0.7,
-});
-
-const dalle = new DallEAPIWrapper({
-  apiKey: process.env.OPENAI_API_KEY || 'sk-proj-',
-  model: 'chatgpt-image-latest',
 });
 
 interface WorkflowChannelsState {
@@ -51,6 +47,7 @@ interface WorkflowChannelsState {
     image?: string;
   }[];
   isPicture?: boolean;
+  billingExempt?: boolean;
   popularPosts?: { content: string; hook: string }[];
 }
 
@@ -129,6 +126,7 @@ export class AgentGraphService {
         popularPosts: null,
         topic: null,
         isPicture: null,
+        billingExempt: null,
       },
     });
 
@@ -322,10 +320,16 @@ export class AgentGraphService {
     try {
       const newContent = await Promise.all(
         (state.content || []).map(async (p) => {
-          const image = await dalle.invoke(p.prompt!);
+          // The app's image path: medium quality, paid with AI credits
+          const image = await this._mediaService.generateImage(
+            p.prompt!,
+            { id: state.orgId },
+            false,
+            state.billingExempt
+          );
           return {
             ...p,
-            image,
+            image: 'data:image/png;base64,' + image,
           };
         })
       );
@@ -375,7 +379,7 @@ export class AgentGraphService {
     return { date: await this._postsService.findFreeDateTime(state.orgId) };
   }
 
-  start(orgId: string, body: GeneratorDto) {
+  start(orgId: string, body: GeneratorDto, billingExempt = false) {
     const state = AgentGraphService.state();
     const workflow = state
       .addNode('agent', this.startCall.bind(this))
@@ -416,6 +420,7 @@ export class AgentGraphService {
         format: body.format,
         tone: body.tone,
         orgId,
+        billingExempt,
       },
       {
         streamMode: 'values',

@@ -141,7 +141,10 @@ export const ThreadsPreview: FC<{
               )}
             </div>
             <div
-              className={clsx('flex-1 min-w-0', last ? 'pb-[8px]' : 'pb-[16px]')}
+              className={clsx(
+                'flex-1 min-w-0',
+                last ? 'pb-[8px]' : 'pb-[16px]'
+              )}
             >
               <div className="flex items-center gap-[6px] h-[21px]">
                 <span className="font-[600] truncate">{username}</span>
@@ -217,7 +220,10 @@ const ThreadsMedia: FC<{ images: string[] }> = ({ images }) => {
         <a key={index} href={src} target="_blank" className="flex-none">
           <MediaItem
             src={src}
-            className={clsx('block h-[250px] w-auto max-w-none object-cover', frame)}
+            className={clsx(
+              'block h-[250px] w-auto max-w-none object-cover',
+              frame
+            )}
           />
         </a>
       ))}

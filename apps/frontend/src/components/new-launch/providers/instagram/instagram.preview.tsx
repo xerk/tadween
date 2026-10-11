@@ -1,18 +1,82 @@
 import { useIntegration } from '@gitroom/frontend/components/launches/helpers/use.integration';
-import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useMediaDirectory } from '@gitroom/react/helpers/use.media.directory';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { textSlicer } from '@gitroom/helpers/utils/count.length';
-import { FC } from 'react';
-import { VideoOrImage } from '@gitroom/react/helpers/video.or.image';
-import { SliderComponent } from '@gitroom/frontend/components/third-parties/slider.component';
+import { hasExtension } from '@gitroom/helpers/utils/has.extension';
+import { FC, useLayoutEffect, useRef, useState } from 'react';
+import clsx from 'clsx';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { TadweenAvatarImage } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
+
+const escape = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// mentions and hashtags in Instagram's link colour, a link stays plain text
+// (Instagram does not link it in a caption)
+const format = (value: string) =>
+  escape(value).replace(
+    /\[\[\[([.\s\S]*?)\]\]\]|(^|[^\p{L}\p{N}_&])([#@][\p{L}\p{N}_.]*[\p{L}\p{N}_])/gu,
+    (match, mention, before, tag) =>
+      mention
+        ? `<span class="text-textInstagramLink">${mention}</span>`
+        : `${before}<span class="text-textInstagramLink">${tag}</span>`
+  );
+
+// One block per line, so each takes its own direction (an Arabic line reads
+// right to left). The text after `end` is marked as cropped.
+const toParagraphs = (text: string, end: number) => {
+  let offset = 0;
+  return text.split('\n').map((line) => {
+    const from = offset;
+    offset += line.length + 1;
+    const keep = Math.min(Math.max(end - from, 0), line.length);
+    const cropped = line.slice(keep);
+    return (
+      format(line.slice(0, keep)) +
+      (cropped
+        ? `<mark class="bg-red-500" data-tooltip-id="tooltip" data-tooltip-content="This text will be cropped">${format(
+            cropped
+          )}</mark>`
+        : '')
+    );
+  });
+};
+
+// "username caption": the name opens the first line; <bdi> keeps it out of
+// that line's direction, so an Arabic caption still reads right to left
+const Caption: FC<{ username?: string; paragraphs: string[] }> = ({
+  username,
+  paragraphs,
+}) => (
+  <>
+    {paragraphs.map((html, index) => (
+      <div
+        key={index}
+        dir="auto"
+        className="min-h-[18px] [text-align:start]"
+        dangerouslySetInnerHTML={{
+          __html:
+            (index === 0
+              ? `<bdi class="font-[600]">${escape(username || '')}</bdi> `
+              : '') + html,
+        }}
+      />
+    ))}
+  </>
+);
 
 export const InstagramPreview: FC<{
   maximumCharacters?: number;
 }> = (props) => {
   const { value: topValue, integration } = useIntegration();
-  const current = useLaunchStore((state) => state.current);
   const mediaDir = useMediaDirectory();
+  const t = useT();
+  const [expanded, setExpanded] = useState(false);
+  // "… more": the caption shows two lines until it is opened, like the feed
+  const captionRef = useRef<HTMLDivElement>(null);
+  const [clamped, setClamped] = useState(false);
+  const [moreRtl, setMoreRtl] = useState(false);
+  const username = integration?.display || integration?.name;
 
   const renderContent = topValue.map((p) => {
     const newContent = stripHtmlValidation(
@@ -26,197 +90,284 @@ export const InstagramPreview: FC<{
       true
     );
 
-    const { start, end } = textSlicer(
+    const { end } = textSlicer(
       integration?.identifier || '',
       props.maximumCharacters || 10000,
       newContent
     );
 
-    const finalValue =
-      `<strong class="text-[15px] font-[600]">${integration?.name} </strong>` +
-      `<span dir="auto">` +
-      newContent
-        .slice(start, end)
-        .replace(/\[\[\[([.\s\S]*?)]]]/, (match, match1) => {
-          return `<span class="font-bold font-[arial]" style="color: #ae8afc">${match1}</span>`;
-        }) +
-      `<mark class="bg-red-500" data-tooltip-id="tooltip" data-tooltip-content="This text will be cropped">` +
-      newContent.slice(end).replace(/\[\[\[([.\s\S]*?)]]]/, (match, match1) => {
-        return `<span class="font-bold font-[arial]" style="color: #ae8afc">${match1}</span>`;
-      }) +
-      `</mark></span>`;
-
-    return { text: finalValue, images: p.image };
+    return {
+      paragraphs: toParagraphs(newContent, end),
+      images: (p.image || []).map((image) => mediaDir.set(image.path)),
+    };
   });
+  const paragraphs = renderContent?.[0]?.paragraphs || [];
+  const images = renderContent?.[0]?.images || [];
+  const comments = renderContent.slice(1);
+
+  useLayoutEffect(() => {
+    const el = captionRef.current;
+    if (!el) {
+      return;
+    }
+    const measure = () => {
+      setClamped(!expanded && el.scrollHeight > el.clientHeight + 1);
+      // "… more" goes at the end of the last visible line, in that line's
+      // direction (an Arabic line ends on the left)
+      const lines = Array.from(el.children) as HTMLElement[];
+      const last = lines.filter((p) => p.offsetTop < el.clientHeight).pop();
+      setMoreRtl(!!last && getComputedStyle(last).direction === 'rtl');
+    };
+    measure();
+    // the inspector and the phone frame change width without a render
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [expanded, paragraphs.join('\n')]);
+
   return (
-    <div className="py-[10px] flex flex-col px-[15px] w-full gap-[10px] bg-bgInstagram rounded-[12px]">
-      <div className="flex gap-[10px] items-center">
-        <div className="w-[36px] h-[36px]">
-          <img
-            src={integration?.picture || '/no-picture.jpg'}
-            alt="social"
-            className="rounded-full relative z-[2] w-[36px] h-[36px]"
-          />
-        </div>
-        <div className="flex flex-col leading-[18px]">
-          <div className="text-[15px] font-[600]">{integration?.name}</div>
-        </div>
+    // an English Instagram screen: left to right even inside the Arabic app
+    // (.lbox, global.scss), each line of the caption still takes its own
+    // direction
+    <div className="lbox flex flex-col w-full bg-bgInstagram text-textInstagram rounded-[12px] overflow-hidden pb-[12px] text-[14px] leading-[18px] [font-family:-apple-system,BlinkMacSystemFont,'Segoe_UI',Roboto,Helvetica,Arial,sans-serif]">
+      <div className="flex items-center gap-[10px] h-[54px] px-[12px]">
+        <TadweenAvatarImage
+          src={integration?.picture}
+          name={username}
+          className="w-[32px] h-[32px] rounded-full object-cover flex-none"
+        />
+        <div className="flex-1 min-w-0 font-[600] truncate">{username}</div>
+        <span className="flex-none" aria-hidden="true">
+          <InstagramIcon d={MORE} fill />
+        </span>
       </div>
-      {!!renderContent?.[0]?.images?.length ? (
-        <SliderComponent
-          className="h-[585px] rounded-[8px] overflow-hidden"
-          list={renderContent?.[0]?.images.map((image, index) => (
-            <a
-              key={`image_${index}`}
-              className="flex-1"
-              href={mediaDir.set(image.path)}
-              target="_blank"
-            >
-              <VideoOrImage autoplay={true} src={mediaDir.set(image.path)} />
-            </a>
-          ))}
-        />
-      ) : (
-        <div
-          style={{ background: 'url(/no-video-youtube.png)' }}
-          className="!bg-cover w-full aspect-[calc(16/9)] rounded-[8px] overflow-hidden"
-        />
-      )}
-      <div
-        dir="auto"
-        className="text-[14px] font-[400] whitespace-pre-line"
-        dangerouslySetInnerHTML={{
-          __html: renderContent?.[0]?.text,
-        }}
+      <InstagramMedia
+        images={images}
+        emptyLabel={t(
+          'tdw_instagram_needs_media',
+          'Instagram needs a photo or video'
+        )}
       />
-      <div className="py-[8px] text-textColor flex text-[14px] font-[700] gap-[10.5px] select-none">
-        <div className="flex gap-[4px] items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="22"
-            height="20"
-            viewBox="0 0 22 20"
-            fill="none"
+      <div className="px-[12px]">
+        <div className="relative">
+          <div
+            ref={captionRef}
+            // cut by height, not line-clamp: its own ellipsis would double the "…"
+            className={clsx(
+              'break-words',
+              !expanded && 'max-h-[36px] overflow-hidden'
+            )}
           >
-            <path
-              d="M10.7232 18.2722C10.7232 18.2722 0.792969 12.7112 0.792969 5.95866C0.792969 4.76493 1.20656 3.60807 1.96337 2.68491C2.72018 1.76175 3.77346 1.12932 4.94401 0.895206C6.11455 0.661097 7.33006 0.839776 8.38371 1.40084C9.43737 1.96191 10.2641 2.87071 10.7232 3.97261V3.97261C11.1823 2.87071 12.0091 1.96191 13.0627 1.40084C14.1164 0.839776 15.3319 0.661097 16.5024 0.895206C17.673 1.12932 18.7263 1.76175 19.4831 2.68491C20.2399 3.60807 20.6535 4.76493 20.6535 5.95866C20.6535 12.7112 10.7232 18.2722 10.7232 18.2722Z"
-              stroke="currentColor"
-              strokeWidth="1.58884"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+            <Caption username={username} paragraphs={paragraphs} />
+          </div>
+          {clamped && (
+            <button
+              type="button"
+              onClick={() => setExpanded(true)}
+              className={clsx(
+                'absolute bottom-0 [direction:ltr] [unicode-bidi:isolate] bg-bgInstagram text-textInstagramMuted select-none',
+                // physical sides: the app's RTL stylesheet flips logical ones
+                moreRtl ? 'left-0 pr-[4px]' : 'right-0 pl-[4px]'
+              )}
+            >
+              … more
+            </button>
+          )}
         </div>
-        <div className="flex gap-[4px] items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="26"
-            height="26"
-            viewBox="0 0 26 26"
-            fill="none"
-          >
-            <path
-              d="M4.5067 17.576C3.3239 15.5805 2.91017 13.2218 3.34318 10.9428C3.7762 8.66377 5.02618 6.6212 6.85846 5.1985C8.69075 3.7758 10.9793 3.07083 13.2946 3.21592C15.6098 3.36102 17.7924 4.34621 19.4328 5.98653C21.0731 7.62686 22.0583 9.80951 22.2034 12.1247C22.3485 14.44 21.6435 16.7285 20.2208 18.5608C18.7981 20.3931 16.7555 21.6431 14.4765 22.0761C12.1975 22.5091 9.83884 22.0954 7.84327 20.9126V20.9126L4.54642 21.846C4.41135 21.8855 4.26814 21.888 4.13179 21.8531C3.99545 21.8182 3.871 21.7473 3.77149 21.6478C3.67197 21.5483 3.60106 21.4238 3.56619 21.2875C3.53131 21.1512 3.53375 21.0079 3.57326 20.8729L4.5067 17.576Z"
-              stroke="currentColor"
-              strokeWidth="1.58884"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-        <div className="flex gap-[4px] items-center flex-1">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="26"
-            height="26"
-            viewBox="0 0 26 26"
-            fill="none"
-          >
-            <path
-              d="M20.884 3.56475L2.37397 8.77813C2.21641 8.82121 2.07595 8.91181 1.97174 9.0376C1.86752 9.16339 1.80462 9.31824 1.79159 9.48107C1.77857 9.6439 1.81605 9.80679 1.89894 9.94754C1.98183 10.0883 2.1061 10.2001 2.25481 10.2677L10.7551 14.2894C10.9216 14.3665 11.0553 14.5003 11.1325 14.6668L15.1542 23.1671C15.2218 23.3158 15.3336 23.44 15.4743 23.5229C15.6151 23.6058 15.778 23.6433 15.9408 23.6303C16.1036 23.6172 16.2585 23.5543 16.3843 23.4501C16.5101 23.3459 16.6007 23.2055 16.6437 23.0479L21.8571 4.53791C21.8966 4.40284 21.8991 4.25962 21.8642 4.12328C21.8293 3.98694 21.7584 3.86249 21.6589 3.76297C21.5594 3.66346 21.4349 3.59255 21.2986 3.55767C21.1622 3.5228 21.019 3.52524 20.884 3.56475V3.56475Z"
-              stroke="currentColor"
-              strokeWidth="1.58884"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M11.0117 14.4084L15.5002 9.91992"
-              stroke="currentColor"
-              strokeWidth="1.58884"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-        <div className="flex gap-[4px] items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="26"
-            height="26"
-            viewBox="0 0 26 26"
-            fill="none"
-          >
-            <path
-              d="M19.0662 22.2443L12.7108 18.2722L6.35547 22.2443V4.76708C6.35547 4.55638 6.43917 4.35432 6.58815 4.20534C6.73713 4.05635 6.9392 3.97266 7.14989 3.97266H18.2718C18.4825 3.97266 18.6845 4.05635 18.8335 4.20534C18.9825 4.35432 19.0662 4.55638 19.0662 4.76708V22.2443Z"
-              stroke="currentColor"
-              strokeWidth="1.58884"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+        {comments.map((comment, index) => (
+          <div key={index} className="mt-[4px] break-words">
+            <Caption username={username} paragraphs={comment.paragraphs} />
+          </div>
+        ))}
+        <div className="mt-[6px] text-[12px] leading-[16px] text-textInstagramMuted select-none">
+          now
         </div>
       </div>
-      {renderContent.length > 1 && (
-        <>
-          {renderContent.slice(1).map((value, index) => (
-            <div key={index} className="flex flex-col gap-[12px]">
-              <div className="flex gap-[10px] leading-[17px]">
-                <div className="h-[34px]">
-                  <img
-                    src={integration?.picture || '/no-picture.jpg'}
-                    alt="social"
-                    className="rounded-full relative z-[2] h-[34px] w-[34px]"
-                  />
-                </div>
-                <div className="flex flex-col gap-[6px] flex-1">
-                  <div className="flex gap-[4px] py-[8px]">
-                    <div
-                      dir="auto"
-                      className="whitespace-pre-line text-[14px] font-[400] flex-1"
-                      dangerouslySetInnerHTML={{
-                        __html: value.text,
-                      }}
-                    />
-                    <div>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
-                        fill="none"
-                      >
-                        <path
-                          d="M10 16.875C10 16.875 2.1875 12.5 2.1875 7.18751C2.1875 6.24836 2.51289 5.33821 3.1083 4.61193C3.70371 3.88564 4.53236 3.38808 5.45328 3.2039C6.37419 3.01971 7.33047 3.16029 8.15943 3.6017C8.98838 4.04311 9.63879 4.7581 10 5.62501V5.62501C10.3612 4.7581 11.0116 4.04311 11.8406 3.6017C12.6695 3.16029 13.6258 3.01971 14.5467 3.2039C15.4676 3.38808 16.2963 3.88564 16.8917 4.61193C17.4871 5.33821 17.8125 6.24836 17.8125 7.18751C17.8125 12.5 10 16.875 10 16.875Z"
-                          stroke="currentColor"
-                          strokeWidth="1.58884"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="flex font-[400] text-[12px] text-textLinkedin items-center select-none">
-                    <div className="flex gap-[16px] flex-1">
-                      <div className="font-[700]">now</div>
-                      <div className="font-[700]">Reply</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </>
-      )}
     </div>
   );
 };
+
+// the post's media: one picture, a carousel with its dots and "1/3", or a
+// Reels frame for a video. Instagram needs one, so its absence is shown as an
+// empty frame.
+const InstagramMedia: FC<{ images: string[]; emptyLabel: string }> = ({
+  images,
+  emptyLabel,
+}) => {
+  const [index, setIndex] = useState(0);
+  // a feed picture is cropped between 4:5 and 1.91:1; a carousel uses the
+  // first one's shape for all
+  const [ratio, setRatio] = useState(1);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const video = images.length === 1 && hasExtension(images[0], 'mp4');
+  const go = (next: number) => {
+    const el = trackRef.current;
+    el?.scrollTo({ left: next * el.clientWidth, behavior: 'smooth' });
+  };
+
+  if (!images.length) {
+    return (
+      <>
+        <div className="w-full aspect-square flex flex-col items-center justify-center gap-[12px] bg-instagramEmpty text-textInstagramMuted select-none">
+          <InstagramIcon d={PHOTO} size={48} />
+          <div className="text-[14px] font-[600] px-[24px] text-center">
+            {emptyLabel}
+          </div>
+        </div>
+        <ActionRow count={0} index={0} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div
+        className="relative w-full bg-black"
+        style={{ aspectRatio: video ? '9 / 16' : String(ratio) }}
+      >
+        <div
+          ref={trackRef}
+          className="flex w-full h-full overflow-x-auto snap-x snap-mandatory [scrollbar-width:none]"
+          onScroll={(e) =>
+            setIndex(
+              Math.round(
+                e.currentTarget.scrollLeft / e.currentTarget.clientWidth
+              )
+            )
+          }
+        >
+          {images.map((src, i) =>
+            hasExtension(src, 'mp4') ? (
+              <video
+                key={i}
+                src={src}
+                autoPlay
+                muted
+                loop
+                className="w-full h-full flex-none snap-start object-cover"
+              />
+            ) : (
+              <img
+                key={i}
+                src={src}
+                alt=""
+                className="w-full h-full flex-none snap-start object-cover"
+                onLoad={(e) => {
+                  if (i === 0) {
+                    const { naturalWidth: w, naturalHeight: h } =
+                      e.currentTarget;
+                    setRatio(Math.min(Math.max(w / h || 1, 0.8), 1.91));
+                  }
+                }}
+              />
+            )
+          )}
+        </div>
+        {images.length > 1 && (
+          <>
+            <span className="absolute top-[12px] right-[12px] px-[8px] py-[4px] rounded-full bg-[rgba(18,18,18,0.7)] text-white text-[12px] leading-[14px] font-[600] select-none">
+              {index + 1}/{images.length}
+            </span>
+            {index > 0 && (
+              <SlideButton side="left" onClick={() => go(index - 1)} />
+            )}
+            {index < images.length - 1 && (
+              <SlideButton side="right" onClick={() => go(index + 1)} />
+            )}
+          </>
+        )}
+        {video && (
+          <span
+            className="absolute right-[12px] bottom-[12px] w-[28px] h-[28px] rounded-full bg-[rgba(18,18,18,0.7)] text-white flex items-center justify-center"
+            aria-hidden="true"
+          >
+            <InstagramIcon d={MUTED} size={14} fill />
+          </span>
+        )}
+      </div>
+      <ActionRow count={images.length} index={index} />
+    </>
+  );
+};
+
+const SlideButton: FC<{ side: 'left' | 'right'; onClick: () => void }> = ({
+  side,
+  onClick,
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-label={side === 'left' ? 'Previous' : 'Next'}
+    className={clsx(
+      'absolute top-1/2 -translate-y-1/2 w-[26px] h-[26px] rounded-full bg-white/80 text-black flex items-center justify-center shadow',
+      side === 'left' ? 'left-[8px] rotate-180' : 'right-[8px]'
+    )}
+  >
+    <InstagramIcon d={CHEVRON} size={14} />
+  </button>
+);
+
+// heart, comment, share on the left, save at the far end, the carousel dots
+// in the middle; no counts
+const ActionRow: FC<{ count: number; index: number }> = ({ count, index }) => (
+  <div className="relative flex items-center gap-[16px] h-[46px] px-[12px] select-none">
+    <InstagramIcon d={LIKE} fill label="Like" />
+    <InstagramIcon d={COMMENT} label="Comment" />
+    <InstagramIcon d={SHARE} label="Share" />
+    <span className="flex-1" />
+    <InstagramIcon d={SAVE} label="Save" />
+    {count > 1 && (
+      <div className="absolute left-1/2 -translate-x-1/2 flex gap-[4px]">
+        {Array.from({ length: count }).map((_, i) => (
+          <span
+            key={i}
+            className={clsx(
+              'w-[6px] h-[6px] rounded-full',
+              i === index ? 'bg-[#0095f6]' : 'bg-textInstagramMuted opacity-50'
+            )}
+          />
+        ))}
+      </div>
+    )}
+  </div>
+);
+
+const InstagramIcon: FC<{
+  d: string;
+  size?: number;
+  fill?: boolean;
+  label?: string;
+}> = ({ d, size = 24, fill, label }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    aria-label={label}
+    aria-hidden={label ? undefined : true}
+    role={label ? 'img' : undefined}
+    className="flex-none"
+    fill={fill ? 'currentColor' : 'none'}
+    stroke={fill ? undefined : 'currentColor'}
+    strokeWidth={fill ? undefined : 2}
+    strokeLinejoin="round"
+    strokeLinecap="round"
+  >
+    <path d={d} />
+  </svg>
+);
+
+// Instagram's own outline icons (instagram.com)
+const LIKE =
+  'M16.792 3.904A4.989 4.989 0 0 1 21.5 9.122c0 3.072-2.652 4.959-5.197 7.222-2.512 2.243-3.865 3.469-4.303 3.752-.477-.309-2.143-1.823-4.303-3.752C5.141 14.072 2.5 12.167 2.5 9.122a4.989 4.989 0 0 1 4.708-5.218 4.21 4.21 0 0 1 3.675 1.941c.84 1.175.98 1.763 1.12 1.763s.278-.588 1.11-1.766a4.17 4.17 0 0 1 3.679-1.938m0-2a6.04 6.04 0 0 0-4.797 2.127 6.052 6.052 0 0 0-4.787-2.127A6.985 6.985 0 0 0 .5 9.122c0 3.61 2.55 5.827 5.015 7.97.283.246.569.494.853.747l1.027.918a44.998 44.998 0 0 0 3.518 3.018 2 2 0 0 0 2.174 0 45.263 45.263 0 0 0 3.626-3.115l.922-.824c.293-.26.59-.519.885-.774 2.334-2.025 4.98-4.32 4.98-7.94a6.985 6.985 0 0 0-6.708-7.218Z';
+const COMMENT = 'M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z';
+const SHARE =
+  'M13.973 20.046 21.77 6.928C22.8 5.195 21.55 3 19.535 3H4.466C2.138 3 .984 5.825 2.646 7.456l4.842 4.752 1.723 7.121c.548 2.266 3.571 2.721 4.762.717ZM7.488 12.208l8.027-4.567';
+const SAVE = 'M20 21 12 13.44 4 21 4 3 20 3 20 21Z';
+const MORE =
+  'M12 10.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm-6 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm12 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z';
+const PHOTO =
+  'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm-1 11 5-5 4 4 3-3 6 6M15.5 9.5a1 1 0 1 0 0-.01';
+const CHEVRON = 'm9 5 7 7-7 7';
+const MUTED =
+  'M11.3 3.3a1 1 0 0 1 1.7.7v16a1 1 0 0 1-1.7.7L6.6 16H3a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1h3.6zM16.3 8.3a1 1 0 0 1 1.4 0l1.8 1.8 1.8-1.8a1 1 0 1 1 1.4 1.4L20.9 11.5l1.8 1.8a1 1 0 0 1-1.4 1.4l-1.8-1.8-1.8 1.8a1 1 0 0 1-1.4-1.4l1.8-1.8-1.8-1.8a1 1 0 0 1 0-1.4z';

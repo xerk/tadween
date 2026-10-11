@@ -21,17 +21,23 @@ import { Icon } from '@gitroom/frontend/components/tadween/ui';
 // or the workspace is on a trial. Styles: app/tadween/shell.scss.
 
 const DAY = 86400000;
-// what StripeService gives every trial (trial_period_days)
+// Older subscription rows carry no trial end: StripeService's default trial
 const TRIAL_DAYS = 7;
 
-// The billing page's own request (same key), only while on a trial: the trial
-// started with the subscription row
+// The billing page's own request (same key), only while on a trial. The row
+// carries Stripe's real trial end (trialEndsAt, written by the webhooks)
 const useTrialSubscription = (trial: boolean) => {
   const fetch = useFetch();
   const load = useCallback(async (path: string) => {
     return await (await fetch(path)).json();
   }, []);
-  return useSWR<{ subscription?: { createdAt: string } }>(
+  return useSWR<{
+    subscription?: {
+      createdAt: string;
+      trialEndsAt?: string | null;
+      status?: string | null;
+    };
+  }>(
     trial ? '/user/subscription' : null,
     load,
     { revalidateOnFocus: false }
@@ -64,12 +70,17 @@ export const useUpgradeOffer = () => {
       if (!sub) {
         return null;
       }
-      const started = sub.subscription?.createdAt;
-      const left = started
-        ? Math.ceil(
-            TRIAL_DAYS - (Date.now() - new Date(started).getTime()) / DAY
-          )
+      // A failed renewal (past_due) is not a trial: the app's banner asks
+      // for a card instead
+      if (['past_due', 'unpaid'].includes(sub.subscription?.status || '')) {
+        return { daysLeft: null };
+      }
+      const ends = sub.subscription?.trialEndsAt
+        ? new Date(sub.subscription.trialEndsAt).getTime()
+        : sub.subscription?.createdAt
+        ? new Date(sub.subscription.createdAt).getTime() + TRIAL_DAYS * DAY
         : 0;
+      const left = ends ? Math.ceil((ends - Date.now()) / DAY) : 0;
       return { daysLeft: left > 0 ? left : null };
     }
     const top = Math.max(...visible(false).map(([, v]) => v.month_price));
@@ -80,19 +91,12 @@ export const useUpgradeOffer = () => {
   }, [billingEnabled, user, settings, trial, sub, pricing, visible]);
 };
 
-const useUpgradeLabel = (daysLeft: number | null) => {
-  const t = useT();
-  return daysLeft
-    ? t('tdw_upgrade_days_left', 'Upgrade · {{n}} days left', {
-        n: daysLeft,
-      })
-    : t('tdw_upgrade', 'Upgrade');
-};
-
-// Top bar: a soft pill on desktop, the icon alone on phones
+// Top bar: a soft pill on desktop, the icon alone on phones. The trial's days
+// left are shown once, on the sidebar line (and the trial banner), not here
 export const UpgradeButton: FC = () => {
+  const t = useT();
   const offer = useUpgradeOffer();
-  const label = useUpgradeLabel(offer?.daysLeft || null);
+  const label = t('tdw_upgrade', 'Upgrade');
   if (!offer) {
     return null;
   }

@@ -150,9 +150,21 @@ export const PaywallModal: FC = () => {
             <Button
               variant={unlock ? 'secondary' : 'primary'}
               icon="sparkles"
-              onClick={() => {
+              onClick={async () => {
                 close();
-                modals.closeAll();
+                // same as Upgrade: an unsaved composer asks before closing
+                if (
+                  !(await closeAllModals({
+                    description: t(
+                      'are_you_sure_you_want_to_close_this_modal_all_data_will_be_lost',
+                      'Are you sure you want to close this modal? (all data will be lost)'
+                    ),
+                    approveLabel: t('yes_close_it', 'Yes, close it!'),
+                    cancelLabel: t('no', 'No'),
+                  }))
+                ) {
+                  return;
+                }
                 router.push('/billing?credits=1');
               }}
             >

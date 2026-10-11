@@ -471,10 +471,29 @@ export const TadweenSheetRow: FC<{
   destructive?: boolean;
   chevron?: boolean;
   disabled?: boolean;
-}> = ({ icon, label, value, onClick, destructive, chevron = true, disabled }) => (
+  // the page ('page') or choice (true) the user is on: aria-current
+  current?: boolean | 'page';
+  className?: string;
+}> = ({
+  icon,
+  label,
+  value,
+  onClick,
+  destructive,
+  chevron = true,
+  disabled,
+  current,
+  className,
+}) => (
   <button
     type="button"
-    className={clsx('tdw-sheet-row', destructive && 'is-destructive')}
+    className={clsx(
+      'tdw-sheet-row',
+      destructive && 'is-destructive',
+      current && 'is-current',
+      className
+    )}
+    aria-current={current === true ? 'true' : current || undefined}
     onClick={onClick}
     disabled={disabled}
   >

@@ -15,11 +15,10 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Calendar } from '@gitroom/frontend/components/launches/calendar';
 import { useCalendarNavigation } from '@gitroom/frontend/components/launches/filters';
-import { NewPost } from '@gitroom/frontend/components/launches/new.post';
 import { GeneratorComponent } from '@gitroom/frontend/components/launches/generator/generator';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
 import { useAddProvider } from '@gitroom/frontend/components/launches/add.provider.component';
-import { Icon, usePresence } from '@gitroom/frontend/components/tadween/ui';
+import { usePresence } from '@gitroom/frontend/components/tadween/ui';
 import { WorkspaceToolbar } from '@gitroom/frontend/components/tadween/workspace/toolbar';
 import { ChannelsSheet } from '@gitroom/frontend/components/tadween/workspace/channels.sheet';
 import {
@@ -237,20 +236,15 @@ export const CalendarWorkspace: FC<{
             <Calendar />
           </div>
         </div>
-        <div className="tdw-ws-fab">
-          {hasChannels && showGenerator && (
+        {/* phones: the AI generator floats above the dock; Create post is
+            the dock's centre button (tadween/shell/dock.tsx) */}
+        {hasChannels && showGenerator && (
+          <div className="tdw-ws-fab">
             <span className="tdw-ws-fab-gen">
               <GeneratorComponent />
             </span>
-          )}
-          {hasChannels ? (
-            <NewPost />
-          ) : (
-            <button type="button" onClick={addProvider} aria-label={t('add_channel', 'Add Channel')}>
-              <Icon name="plus" size={24} />
-            </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       {sidePanel.mounted && (
         <WorkspaceSidePanel

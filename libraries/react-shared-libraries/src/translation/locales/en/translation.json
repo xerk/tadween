@@ -1064,5 +1064,7 @@
   "tdw_trial_days_left_other": "{{count}} days left in your trial",
   "tdw_choose_plan": "Choose plan",
   "tdw_side_needs_one": "{{count}} needs reconnecting",
-  "tdw_side_needs_other": "{{count}} need reconnecting"
+  "tdw_side_needs_other": "{{count}} need reconnecting",
+  "tdw_dock_more": "More",
+  "tdw_dock_nav": "Main navigation"
 }

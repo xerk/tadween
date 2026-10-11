@@ -14,16 +14,6 @@
 $tdw-ws-phone: '(max-width: 768px)';
 $tdw-ws-side: '(max-width: 1099px)';
 
-// Hidden from sight, still read by screen readers (icon-only Create)
-@mixin tdw-ws-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 // ── 1. Layout ───────────────────────────────────────────────────────────────
 .tdw-ws {
   --ws-line: color-mix(in srgb, var(--tdw-foreground) 8%, transparent);
@@ -1790,7 +1780,7 @@ html[dir='rtl'] .tdw-ws-sheet-head {
 // Tablets: Postiz's own `mobile` shell (the page scrolls), desktop workspace
 @media (min-width: 769px) and (max-width: 1025px) {
   .tdw-ws-cal {
-    min-height: calc(100dvh - 190px);
+    min-height: calc(100dvh - 190px - var(--tdw-dock-space));
   }
 }
 
@@ -1922,6 +1912,15 @@ html[dir='rtl'] .tdw-ws-sheet-head {
       display: grid;
       width: 100%;
     }
+
+    // a finger-sized switch
+    .pz-seg-item {
+      min-height: 36px;
+    }
+  }
+
+  .tdw-ui.tdw-ws-bar .pz-btn-sm {
+    min-height: 36px;
   }
 
   .tdw-ws-canvas {
@@ -1990,11 +1989,12 @@ html[dir='rtl'] .tdw-ws-sheet-head {
     min-height: 44px;
   }
 
-  // Floating Create button above the safe area (the AI generator above it)
+  // The AI generator floats above the dock (Create post is the dock's own
+  // centre button, tadween/shell/dock.tsx)
   .tdw-ws-fab {
     position: fixed;
     inset-inline-end: 18px;
-    bottom: calc(22px + env(safe-area-inset-bottom));
+    bottom: calc(var(--tdw-dock-space) + 8px);
     z-index: 60;
     display: flex;
     flex-direction: column;
@@ -2006,35 +2006,6 @@ html[dir='rtl'] .tdw-ws-sheet-head {
       height: 44px;
       border-radius: 50%;
       box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.35);
-    }
-
-    > button {
-      display: grid;
-      place-items: center;
-      width: 56px !important;
-      height: 56px;
-      min-height: 56px !important;
-      max-height: 56px !important;
-      padding: 0 !important;
-      border: 0;
-      border-radius: 50% !important;
-      background: var(--tdw-primary-strong);
-      color: #fff;
-      box-shadow: 0 10px 24px -8px color-mix(in srgb, var(--tdw-primary-strong) 70%, transparent), 0 2px 6px rgba(0, 0, 0, 0.18);
-      transition: transform 220ms var(--tdw-ease-spring);
-
-      &:active {
-        transform: scale(0.92);
-      }
-
-      > div {
-        @include tdw-ws-sr-only;
-      }
-
-      svg {
-        width: 24px;
-        height: 24px;
-      }
     }
   }
 
@@ -2121,7 +2092,6 @@ html[dir='rtl'] .tdw-ws-sheet-head {
   .tdw-ws-menu,
   .tdw-chip-card,
   .tdw-ws-dayitem,
-  .tdw-ws-fab > button,
   html body .tdw-ws .tdw-chip {
     animation: none !important;
     transition-duration: 1ms !important;

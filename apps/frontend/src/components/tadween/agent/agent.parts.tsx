@@ -319,8 +319,9 @@ const CHANNEL_SEARCH_FROM = 6;
    `onCollapse` adds the collapse button; `collapsed` shows avatars only. */
 export const ChannelPanel: FC<{
   collapsed?: boolean;
+  strip?: boolean;
   onCollapse?: (collapsed: boolean) => void;
-}> = ({ collapsed, onCollapse }) => {
+}> = ({ collapsed, strip, onCollapse }) => {
   const t = useT();
   const { selected, setSelected } = useAgentWorkspace();
   const { channels, isLoading } = useAgentChannels();
@@ -371,6 +372,58 @@ export const ChannelPanel: FC<{
     total: channels.filter((c) => !c.disabled).length,
   });
 
+  // one avatar button: tap to select or unselect (the rail and the phone strip)
+  const mini = (c: AgentChannel) => {
+    const on = isOn(c);
+    const label = [
+      c.name,
+      networkName(c.identifier),
+      c.refreshNeeded || c.inBetweenSteps
+        ? t('tdw_an_reconnect_needed', 'Reconnect needed')
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    return (
+      <button
+        key={c.id}
+        type="button"
+        role="checkbox"
+        aria-checked={on}
+        aria-label={label}
+        title={label}
+        disabled={c.disabled}
+        className={cx('tdw-ag-ch-mini', on && 'is-on')}
+        onClick={() => toggle(c)}
+      >
+        <TadweenChannelAvatar integration={c} size={36} />
+        {on ? (
+          <span className="tdw-ag-ch-mini-tick" aria-hidden="true">
+            <Icon name="check" size={10} />
+          </span>
+        ) : null}
+        {c.refreshNeeded || c.inBetweenSteps ? (
+          <span className="tdw-ag-ch-mini-warn" aria-hidden="true">
+            !
+          </span>
+        ) : null}
+      </button>
+    );
+  };
+
+  // phones: the avatars in one scrolling row above the chat, no sheet
+  if (strip) {
+    return (
+      <div
+        className="tdw-ag-ch-strip"
+        role="group"
+        aria-label={`${t('channels', 'Channels')} · ${count}`}
+      >
+        {isLoading ? <Skeleton width={36} height={36} radius={18} /> : channels.map(mini)}
+      </div>
+    );
+  }
+
   if (collapsed) {
     return (
       <div className="tdw-ag-channels-body is-collapsed">
@@ -385,43 +438,7 @@ export const ChannelPanel: FC<{
           {selected.length}
         </span>
         <div className="tdw-ag-ch-mini-list" role="group" aria-label={t('channels', 'Channels')}>
-          {channels.map((c) => {
-            const on = isOn(c);
-            const label = [
-              c.name,
-              networkName(c.identifier),
-              c.refreshNeeded || c.inBetweenSteps
-                ? t('tdw_an_reconnect_needed', 'Reconnect needed')
-                : '',
-            ]
-              .filter(Boolean)
-              .join(' · ');
-            return (
-              <button
-                key={c.id}
-                type="button"
-                role="checkbox"
-                aria-checked={on}
-                aria-label={label}
-                title={label}
-                disabled={c.disabled}
-                className={cx('tdw-ag-ch-mini', on && 'is-on')}
-                onClick={() => toggle(c)}
-              >
-                <TadweenChannelAvatar integration={c} size={36} />
-                {on ? (
-                  <span className="tdw-ag-ch-mini-tick" aria-hidden="true">
-                    <Icon name="check" size={10} />
-                  </span>
-                ) : null}
-                {c.refreshNeeded || c.inBetweenSteps ? (
-                  <span className="tdw-ag-ch-mini-warn" aria-hidden="true">
-                    !
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
+          {channels.map(mini)}
         </div>
       </div>
     );

@@ -117,11 +117,6 @@
     &.is-small { height: 26px; font-size: 12px; }
     &:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
   }
-  .tdw-ag-chip-count {
-    display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
-    background: var(--card); color: var(--foreground); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
-  }
-  .tdw-ag-chip.is-on .tdw-ag-chip-count { background: var(--tdw-primary-strong); color: #fff; }
 }
 
 // ── Chat list (rail and phone sheet) ──────────────────────────────────────────
@@ -361,9 +356,15 @@
   @media (max-width: 1025px) {
     .tdw-ag-rail, .tdw-ag-channels, .tdw-ag-desktop-only { display: none; }
     .tdw-ag-phone-only { display: inline-grid; }
-    .tdw-ag-chip.tdw-ag-phone-only { display: inline-flex; }
     .tdw-ag-hero-sub.tdw-ag-phone-only { display: block; }
     .tdw-ag-head { padding: 0 8px; }
+    // the channels as one scrolling row of avatars under the chat's title
+    .tdw-ag-strip.tdw-ag-phone-only { display: block; flex: none; border-bottom: 1px solid var(--border); }
+    .tdw-ag-ch-strip {
+      display: flex; gap: 4px; padding: 6px 10px; overflow-x: auto; scrollbar-width: none;
+      &::-webkit-scrollbar { display: none; }
+      .tdw-ag-ch-mini { flex: none; }
+    }
     .tdw-ag-head-title { text-align: center; }
     .tdw-ag-copilot .copilotKitMessagesContainer { padding: 20px 16px 8px; gap: 18px; }
     .tdw-ag-copilot .copilotKitMessagesFooter { padding: 0 16px; }

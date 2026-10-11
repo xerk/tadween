@@ -118,12 +118,12 @@ export const ChatThreadList: FC<{ onNavigate?: () => void }> = ({
   );
 };
 
-/* AgentTopBar: the chat's title; on phones also the Channels and Chats sheets */
+/* AgentTopBar: the chat's title; on phones also the Chats sheet and, under
+   it, the channels as one row of avatars to tap (no sheet in the way) */
 const AgentTopBar: FC = () => {
   const t = useT();
   const { id } = useParams<{ id: string }>();
   const { data } = useAgentThreads();
-  const { selected, channelsOpen, setChannelsOpen } = useAgentWorkspace();
   const startNewChat = useStartNewChat();
   const [chatsOpen, setChatsOpen] = useState(false);
   const isNew = !id || id === 'new';
@@ -136,61 +136,43 @@ const AgentTopBar: FC = () => {
   );
 
   return (
-    <header className="tdw-ag-head">
-      <button
-        type="button"
-        className={cx('tdw-ag-chip tdw-ag-phone-only', selected.length && 'is-on')}
-        aria-haspopup="dialog"
-        aria-expanded={channelsOpen}
-        onClick={() => setChannelsOpen(true)}
-      >
-        <Icon name="users" size={15} />
-        <span>{t('channels', 'Channels')}</span>
-        <span className="tdw-ag-chip-count">{selected.length}</span>
-      </button>
-      <h2 className="tdw-ag-head-title" dir="auto">
-        {title}
-      </h2>
-      <IconButton
-        icon="message-square"
-        label={t('tdw_ag_chats', 'Chats')}
-        className="tdw-ag-phone-only"
-        onClick={() => setChatsOpen(true)}
-      />
-      <IconButton
-        icon="plus"
-        label={t('start_a_new_chat', 'Start a new chat')}
-        className="tdw-ag-phone-only"
-        onClick={startNewChat}
-      />
-      <TadweenSheet
-        open={channelsOpen}
-        onClose={() => setChannelsOpen(false)}
-        title={t('channels', 'Channels')}
-        done={{ label: t('done', 'Done') }}
-        detent="large"
-      >
-        <TadweenScope className="tdw-ag-sheet">
-          <ChannelPanel />
-        </TadweenScope>
-      </TadweenSheet>
-      <TadweenSheet
-        open={chatsOpen}
-        onClose={() => setChatsOpen(false)}
-        title={t('tdw_ag_chats', 'Chats')}
-        detent="large"
-      >
-        <TadweenScope className="tdw-ag-sheet">
-          <ChatThreadList onNavigate={() => setChatsOpen(false)} />
-        </TadweenScope>
-      </TadweenSheet>
-    </header>
+    <>
+      <header className="tdw-ag-head">
+        <h2 className="tdw-ag-head-title" dir="auto">
+          {title}
+        </h2>
+        <IconButton
+          icon="message-square"
+          label={t('tdw_ag_chats', 'Chats')}
+          className="tdw-ag-phone-only"
+          onClick={() => setChatsOpen(true)}
+        />
+        <IconButton
+          icon="plus"
+          label={t('start_a_new_chat', 'Start a new chat')}
+          className="tdw-ag-phone-only"
+          onClick={startNewChat}
+        />
+        <TadweenSheet
+          open={chatsOpen}
+          onClose={() => setChatsOpen(false)}
+          title={t('tdw_ag_chats', 'Chats')}
+          detent="large"
+        >
+          <TadweenScope className="tdw-ag-sheet">
+            <ChatThreadList onNavigate={() => setChatsOpen(false)} />
+          </TadweenScope>
+        </TadweenSheet>
+      </header>
+      <div className="tdw-ag-strip tdw-ag-phone-only">
+        <ChannelPanel strip={true} />
+      </div>
+    </>
   );
 };
 
 export const AgentWorkspace: FC<{ children: ReactNode }> = ({ children }) => {
   const [selected, setSelected] = useState<AgentChannel[]>([]);
-  const [channelsOpen, setChannelsOpen] = useState(false);
   const [draft, setDraftState] = useState({ text: '', at: 0 });
   const [chatKey, setChatKey] = useState(0);
   // the same cookie Postiz's agent page collapses its channel list with
@@ -200,14 +182,12 @@ export const AgentWorkspace: FC<{ children: ReactNode }> = ({ children }) => {
     () => ({
       selected,
       setSelected,
-      channelsOpen,
-      setChannelsOpen,
       draft,
       setDraft: (text: string) => setDraftState({ text, at: Date.now() }),
       chatKey,
       newChat: () => setChatKey((k) => k + 1),
     }),
-    [selected, channelsOpen, draft, chatKey]
+    [selected, draft, chatKey]
   );
 
   return (

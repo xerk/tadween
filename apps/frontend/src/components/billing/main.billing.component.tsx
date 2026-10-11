@@ -232,7 +232,7 @@ export const MainBillingComponent: FC<{
         return;
       }
       setLoading(true);
-      const { portal, blocked } = await (
+      const { portal, blocked, checkout: needsCheckout } = await (
         await fetch('/billing/subscribe', {
           method: 'POST',
           body: JSON.stringify({
@@ -254,6 +254,11 @@ export const MainBillingComponent: FC<{
           confirmLabel: t('tdw_ok', 'OK'),
           alert: true,
         });
+        return;
+      }
+      // A plan granted by an admin isn't paid through Stripe yet
+      if (needsCheckout) {
+        setCheckout(target || null);
         return;
       }
       if (portal) {

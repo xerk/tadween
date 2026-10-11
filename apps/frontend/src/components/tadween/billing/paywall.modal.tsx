@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
+import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import {
   PublicPlan,
   useTadweenPricing,
@@ -59,6 +60,7 @@ export const PaywallModal: FC = () => {
   const t = useT();
   const user = useUser();
   const router = useRouter();
+  const modals = useModals();
   const text = usePlanFeatureText();
   const { plans, planFor } = useTadweenPricing();
   const [reason, setReason] = useState<{
@@ -138,6 +140,8 @@ export const PaywallModal: FC = () => {
               variant="primary"
               onClick={() => {
                 close();
+                // the refused action's modal (invite, composer…) would stay open over Billing
+                modals.closeAll();
                 router.push(`/billing?plan=${unlock.tier}`);
               }}
             >

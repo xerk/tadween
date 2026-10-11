@@ -128,6 +128,13 @@ export class StripeService extends PaymentProviderAbstract {
         confirm: true, // Confirm the PaymentIntent
       });
 
+      // The bank asks for 3-D Secure on every payment: the hold can't be
+      // placed off-session, but the customer just passed 3-D Secure in Checkout
+      if (paymentIntent.status === 'requires_action') {
+        await stripe.paymentIntents.cancel(paymentIntent.id).catch(() => {});
+        return true;
+      }
+
       if (paymentIntent.status !== 'requires_capture') {
         console.error('Cant charge');
         await stripe.paymentMethods.detach(latestMethod.id);
@@ -138,6 +145,15 @@ export class StripeService extends PaymentProviderAbstract {
       await stripe.paymentIntents.cancel(paymentIntent.id as string);
       return true;
     } catch (err) {
+      // Same 3-D Secure case, reported as an error by the off-session confirm
+      const stripeError = err as Stripe.errors.StripeError;
+      if (stripeError?.code === 'authentication_required') {
+        const intent = stripeError.payment_intent;
+        if (intent?.id) {
+          await stripe.paymentIntents.cancel(intent.id).catch(() => {});
+        }
+        return true;
+      }
       try {
         await stripe.paymentMethods.detach(latestMethod.id);
         await stripe.subscriptions.cancel(event.data.object.id as string);
@@ -1038,6 +1054,12 @@ export class StripeService extends PaymentProviderAbstract {
         userId,
         allowTrial
       );
+    }
+
+    // A plan granted by an admin has no Stripe subscription to change: the
+    // app takes the workspace through Checkout for the new plan instead
+    if (!(await this.getLiveSubscriptions(customer)).length) {
+      return { checkout: true };
     }
 
     const currentUserSubscription = {

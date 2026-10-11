@@ -89,7 +89,7 @@ export const InstagramPreview: FC<{
           __html: renderContent?.[0]?.text,
         }}
       />
-      <div className="py-[8px] text-textColor flex text-[14px] font-[700] gap-[10.5px]">
+      <div className="py-[8px] text-textColor flex text-[14px] font-[700] gap-[10.5px] select-none">
         <div className="flex gap-[4px] items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -106,7 +106,6 @@ export const InstagramPreview: FC<{
               strokeLinejoin="round"
             />
           </svg>
-          <div>121</div>
         </div>
         <div className="flex gap-[4px] items-center">
           <svg
@@ -124,7 +123,6 @@ export const InstagramPreview: FC<{
               strokeLinejoin="round"
             />
           </svg>
-          <div>32</div>
         </div>
         <div className="flex gap-[4px] items-center flex-1">
           <svg
@@ -207,10 +205,9 @@ export const InstagramPreview: FC<{
                       </svg>
                     </div>
                   </div>
-                  <div className="flex font-[400] text-[12px] text-textLinkedin items-center">
+                  <div className="flex font-[400] text-[12px] text-textLinkedin items-center select-none">
                     <div className="flex gap-[16px] flex-1">
-                      <div className="font-[700]">30m</div>
-                      <div className="font-[700]">8 Likes</div>
+                      <div className="font-[700]">now</div>
                       <div className="font-[700]">Reply</div>
                     </div>
                   </div>

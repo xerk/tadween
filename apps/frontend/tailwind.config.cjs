@@ -108,6 +108,8 @@ module.exports = {
         bgYoutube: 'var(--youtube-bg)',
         bgCommentFacebook: 'var(--facebook-bg-comment)',
         textLinkedin: 'var(--linkedin-text)',
+        textLinkedinInk: 'var(--linkedin-ink)',
+        bgLinkedinComment: 'var(--linkedin-bg-comment)',
         borderPreview: 'var(--border-preview)',
         borderLinkedin: 'var(--linkedin-border)',
         youtubeButton: 'var(--youtube-button)',

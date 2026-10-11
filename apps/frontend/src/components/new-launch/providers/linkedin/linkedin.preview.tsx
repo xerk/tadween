@@ -1,16 +1,17 @@
 import { useIntegration } from '@gitroom/frontend/components/launches/helpers/use.integration';
-import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useMediaDirectory } from '@gitroom/react/helpers/use.media.directory';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { textSlicer } from '@gitroom/helpers/utils/count.length';
-import { FC } from 'react';
+import { FC, ReactNode, useLayoutEffect, useRef, useState } from 'react';
+import clsx from 'clsx';
+import { TadweenAvatarImage } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 import { VideoOrImage } from '@gitroom/react/helpers/video.or.image';
 
 const Icons = () => {
   return (
     <svg
-      width={71}
-      height={22}
+      width={52}
+      height={16}
       viewBox="0 0 71 22"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -214,41 +215,59 @@ const Icons = () => {
   );
 };
 
-const LinkedinIconSmall = () => {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <rect width="16" height="16" rx="2.77787" fill="#E9A53F" />
-      <g clipPath="url(#clip0_2511_140522)">
-        <path
-          d="M3.33203 4.5751C3.33203 4.27479 3.43714 4.02704 3.64735 3.83186C3.85755 3.63666 4.13083 3.53906 4.46717 3.53906C4.7975 3.53906 5.06476 3.63515 5.26897 3.82735C5.47918 4.02555 5.58428 4.2838 5.58428 4.60213C5.58428 4.89041 5.48218 5.13065 5.27798 5.32285C5.06777 5.52104 4.79149 5.62014 4.44915 5.62014H4.44014C4.10981 5.62014 3.84254 5.52104 3.63834 5.32285C3.43413 5.12465 3.33203 4.8754 3.33203 4.5751ZM3.44915 12.458L3.44915 6.43996H5.44915L5.44915 12.458H3.44915ZM6.55726 12.458H8.55726V9.09762C8.55726 8.8874 8.58128 8.72524 8.62933 8.61113C8.71341 8.40693 8.84104 8.23425 9.01221 8.09312C9.18338 7.95197 9.39809 7.8814 9.65635 7.8814C10.329 7.8814 10.6654 8.33485 10.6654 9.24176V12.458H12.6654L12.6654 9.00753C12.6654 8.11864 12.4552 7.44447 12.0347 6.98501C11.6143 6.52555 11.0588 6.29582 10.3681 6.29582C9.59329 6.29582 8.98969 6.62915 8.55726 7.29582V7.31384H8.54825L8.55726 7.29582V6.43996H6.55726C6.56926 6.63215 6.57527 7.22975 6.57527 8.23276C6.57527 9.23575 6.56926 10.6442 6.55726 12.458Z"
-          fill="white"
-        />
-      </g>
-      <defs>
-        <clipPath id="clip0_2511_140522">
-          <rect
-            x="3.33203"
-            y="3.33203"
-            width="9.33333"
-            height="9.33333"
-            fill="white"
-          />
-        </clipPath>
-      </defs>
-    </svg>
+const mention = (value: string) =>
+  value.replace(
+    /\[\[\[([.\s\S]*?)]]]/g,
+    (match, match1) =>
+      `<span class="font-bold font-[arial]" style="color: #ae8afc">${match1}</span>`
   );
+
+// One block per line, so each takes its own direction (an Arabic line reads
+// right to left, a link stays left to right). The text before `start` is not
+// posted; after `end` it is marked as cropped.
+const toParagraphs = (text: string, start: number, end: number) => {
+  let offset = 0;
+  return text.split('\n').flatMap((line) => {
+    const from = offset;
+    offset += line.length + 1;
+    if (from + line.length < start) {
+      return [];
+    }
+    const keep = Math.min(Math.max(end - from, 0), line.length);
+    const kept = line.slice(Math.max(start - from, 0), keep);
+    const cropped = line.slice(keep);
+    return [
+      mention(kept) +
+        (cropped
+          ? `<mark class="bg-red-500" data-tooltip-id="tooltip" data-tooltip-content="This text will be cropped">${mention(
+              cropped
+            )}</mark>`
+          : ''),
+    ];
+  });
 };
+
+const Paragraphs: FC<{ paragraphs: string[] }> = ({ paragraphs }) => (
+  <>
+    {paragraphs.map((html, index) => (
+      <div
+        key={index}
+        dir="auto"
+        className="min-h-[20px] text-start"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    ))}
+  </>
+);
+
 export const LinkedinPreview: FC<{
   maximumCharacters?: number;
 }> = (props) => {
   const { value: topValue, integration } = useIntegration();
-  const current = useLaunchStore((state) => state.current);
+  const [expanded, setExpanded] = useState(false);
+  // "…more": the post shows three lines until it is opened, like the feed
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [clamped, setClamped] = useState(false);
   const mediaDir = useMediaDirectory();
 
   const renderContent = topValue.map((p) => {
@@ -269,63 +288,70 @@ export const LinkedinPreview: FC<{
       newContent
     );
 
-    const finalValue =
-      newContent
-        .slice(start, end)
-        .replace(/\[\[\[([.\s\S]*?)]]]/, (match, match1) => {
-          return `<span class="font-bold font-[arial]" style="color: #ae8afc">${match1}</span>`;
-        }) +
-      `<mark class="bg-red-500" data-tooltip-id="tooltip" data-tooltip-content="This text will be cropped">` +
-      newContent.slice(end).replace(/\[\[\[([.\s\S]*?)]]]/, (match, match1) => {
-        return `<span class="font-bold font-[arial]" style="color: #ae8afc">${match1}</span>`;
-      }) +
-      `</mark>`;
-
-    return { text: finalValue, images: p.image };
+    return {
+      paragraphs: toParagraphs(newContent, start, end),
+      images: p.image,
+    };
   });
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    setClamped(!expanded && !!el && el.scrollHeight > el.clientHeight + 1);
+  });
+
+  // a company page's logo is square, a member's photo is round
+  const avatarShape =
+    integration?.identifier === 'linkedin-page'
+      ? 'rounded-[4px]'
+      : 'rounded-full';
+  const comments = renderContent.slice(1);
+
   return (
-    <div className="py-[15px] flex flex-col px-[15px] w-full gap-[20px] bg-bgLinkedin rounded-[12px]">
-      <div className="flex gap-[8px]">
-        <div className="w-[48px] h-[48px]">
-          <img
-            src={integration?.picture || '/no-picture.jpg'}
-            alt="social"
-            className="rounded-full relative z-[2] w-[48px] h-[48px]"
-          />
+    <div className="flex flex-col w-full bg-bgLinkedin text-textLinkedinInk rounded-[8px]">
+      <div className="flex gap-[8px] px-[16px] pt-[12px] mb-[8px]">
+        <TadweenAvatarImage
+          src={integration?.picture}
+          name={integration?.name}
+          className={clsx(
+            'w-[48px] h-[48px] object-cover flex-none',
+            avatarShape
+          )}
+        />
+        <div className="flex flex-col flex-1 min-w-0 text-[12px] leading-[16px] text-textLinkedin">
+          <div className="text-[14px] leading-[20px] font-[600] text-textLinkedinInk truncate">
+            {integration?.name}
+          </div>
+          <div className="flex gap-[4px] items-center">
+            <span>Now</span>
+            <span aria-hidden="true">•</span>
+            <LinkedinGlobe />
+          </div>
         </div>
-        <div className="flex flex-col leading-[16px]">
-          <div className="text-[14px] font-[500]">{integration?.name}</div>
-          <div className="text-[12px] font-[400] text-[#A3A3A3]">
-            2,871 followers
-          </div>
-          <div className="text-[12px] font-[400] text-[#A3A3A3] flex gap-[4px] items-center">
-            <span>30m •</span>
-            <span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="10"
-                height="10"
-                viewBox="0 0 10 10"
-                fill="none"
-              >
-                <path
-                  d="M5 10C4.30833 10 3.65833 9.86867 3.05 9.606C2.44167 9.34367 1.9125 8.9875 1.4625 8.5375C1.0125 8.0875 0.656333 7.55833 0.394 6.95C0.131333 6.34167 0 5.69167 0 5C0 4.30833 0.131333 3.65833 0.394 3.05C0.656333 2.44167 1.0125 1.9125 1.4625 1.4625C1.9125 1.0125 2.44167 0.656167 3.05 0.3935C3.65833 0.131167 4.30833 0 5 0C5.69167 0 6.34167 0.131167 6.95 0.3935C7.55833 0.656167 8.0875 1.0125 8.5375 1.4625C8.9875 1.9125 9.34367 2.44167 9.606 3.05C9.86867 3.65833 10 4.30833 10 5C10 5.69167 9.86867 6.34167 9.606 6.95C9.34367 7.55833 8.9875 8.0875 8.5375 8.5375C8.0875 8.9875 7.55833 9.34367 6.95 9.606C6.34167 9.86867 5.69167 10 5 10ZM4.5 8.975V8C4.225 8 3.98967 7.90217 3.794 7.7065C3.598 7.5105 3.5 7.275 3.5 7V6.5L1.1 4.1C1.075 4.25 1.052 4.4 1.031 4.55C1.01033 4.7 1 4.85 1 5C1 6.00833 1.33133 6.89167 1.994 7.65C2.65633 8.40833 3.49167 8.85 4.5 8.975ZM7.95 7.7C8.11667 7.51667 8.26667 7.31867 8.4 7.106C8.53333 6.89367 8.64383 6.67283 8.7315 6.4435C8.81883 6.2145 8.8855 5.97917 8.9315 5.7375C8.97717 5.49583 9 5.25 9 5C9 4.18333 8.773 3.4375 8.319 2.7625C7.86467 2.0875 7.25833 1.6 6.5 1.3V1.5C6.5 1.775 6.40217 2.01033 6.2065 2.206C6.0105 2.402 5.775 2.5 5.5 2.5H4.5V3.5C4.5 3.64167 4.45217 3.76033 4.3565 3.856C4.2605 3.952 4.14167 4 4 4H3V5H6C6.14167 5 6.2605 5.04783 6.3565 5.1435C6.45217 5.2395 6.5 5.35833 6.5 5.5V7H7C7.21667 7 7.4125 7.0645 7.5875 7.1935C7.7625 7.32283 7.88333 7.49167 7.95 7.7Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </span>
-          </div>
+        <div
+          className="flex-none h-[24px] w-[24px] text-textLinkedin"
+          aria-hidden="true"
+        >
+          <LinkedinMore />
         </div>
       </div>
-      <div
-        dir="auto"
-        className="text-[14px] font-[400] whitespace-pre-line"
-        dangerouslySetInnerHTML={{
-          __html: renderContent?.[0]?.text,
-        }}
-      />
+      <div className="px-[16px] relative text-[14px] leading-[20px]">
+        <div
+          ref={bodyRef}
+          className={clsx('break-words', !expanded && 'line-clamp-3')}
+        >
+          <Paragraphs paragraphs={renderContent?.[0]?.paragraphs || []} />
+        </div>
+        {clamped && (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="absolute bottom-0 end-[16px] ps-[4px] bg-bgLinkedin text-textLinkedin hover:text-[#0a66c2] hover:underline select-none"
+          >
+            …more
+          </button>
+        )}
+      </div>
       {!!renderContent?.[0]?.images?.length && (
-        <div className="h-[280px] -mx-[15px] overflow-hidden flex">
+        <div className="mt-[8px] max-h-[420px] overflow-hidden flex gap-[2px]">
           {renderContent?.[0]?.images.map((image, index) => (
             <a
               key={`image_${index}`}
@@ -338,178 +364,115 @@ export const LinkedinPreview: FC<{
           ))}
         </div>
       )}
-      <div className="flex text-textLinkedin text-[12px] font-[400] items-center">
-        <div className="flex flex-1 gap-[11px] items-center">
+      <div className="flex items-center min-h-[32px] mx-[16px] py-[8px] text-[12px] leading-[16px] text-textLinkedin">
+        <div className="flex flex-1 items-center">
           <Icons />
-          <div className="">88</div>
         </div>
-        <div className="gap-[9px] items-center flex">
-          <div>4 Comments</div>
+        {!!comments.length && (
           <div>
-            <div className="w-[3px] h-[3px] bg-[#565C65] rounded-full" />
+            {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
           </div>
-          <div>8 Reposts</div>
-        </div>
+        )}
       </div>
-      <div className="pt-[8px] flex text-[14px] font-[700] px-[32px] justify-between border-t border-borderLinkedin text-textLinkedin">
-        <div className="flex gap-[4px] items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="21"
-            viewBox="0 0 20 21"
-            fill="none"
-          >
-            <path
-              d="M6.39692 20.41C5.39692 20.41 4.35692 20.02 3.75692 19.41C3.37692 19.03 3.13692 18.5 3.00692 17.79C2.67692 17.57 2.39692 17.28 2.17692 16.95C1.89692 16.53 1.71692 15.99 1.65692 15.29C0.916917 14.74 0.476917 14.06 0.366917 13.24C0.276917 12.56 0.406917 11.86 0.746917 11.15C0.336917 10.66 0.0969174 10.05 0.0169174 9.35C-0.163083 7.53 1.10692 6.16 3.17692 5.95C3.53692 5.91 3.89692 5.89 4.25692 5.89C4.65692 5.89 5.05692 5.91 5.45692 5.96C5.26692 5.39 5.14692 4.86 5.10692 4.4C4.97692 3.09 5.31692 1.98 6.11692 1.11C6.71692 0.45 7.63692 0 8.41692 0C8.54692 0 8.67692 0.01 8.78692 0.04C9.61692 0.22 10.2069 0.78 10.6269 1.79C10.8369 2.29 10.9269 2.69 11.0669 3.46C11.1669 4.05 11.2269 4.29 11.3169 4.57C11.6069 5.44 12.3869 6.36 13.3469 6.98C14.1069 7.47 14.9369 7.86 15.7969 8.14H17.9169C18.3569 8.14 18.7269 8.29 19.0069 8.56C19.3169 8.86 19.4669 9.28 19.4269 9.75V17.05C19.4269 17.53 19.2269 17.93 18.8769 18.18C18.6169 18.36 18.3069 18.45 17.9569 18.45H14.9069C12.2269 19.08 10.4069 19.54 9.54692 19.82C8.22692 20.24 7.62692 20.36 6.64692 20.43C6.56692 20.43 6.47692 20.43 6.39692 20.43V20.41ZM4.27692 7.68C3.97692 7.68 3.67692 7.69 3.36692 7.72C2.27692 7.83 1.72692 8.34 1.80692 9.16C1.85692 9.65 2.03692 9.99 2.39692 10.23C2.58692 10.37 2.71692 10.57 2.76692 10.8C2.80692 11.03 2.76692 11.27 2.63692 11.46C2.25692 12.03 2.09692 12.54 2.15692 12.99C2.20692 13.38 2.46692 13.7 2.97692 13.99C3.10692 14.07 3.21692 14.18 3.29692 14.31C3.37692 14.44 3.41692 14.59 3.42692 14.74C3.44692 15.49 3.58692 15.8 3.67692 15.92C3.82692 16.14 3.99692 16.29 4.21692 16.38C4.36692 16.44 4.48692 16.55 4.58692 16.68C4.67692 16.81 4.73692 16.97 4.75692 17.12C4.81692 17.79 4.97692 18.04 5.05692 18.12C5.31692 18.39 5.90692 18.59 6.41692 18.59H6.54692C7.37692 18.53 7.81692 18.44 9.02692 18.05C9.96692 17.75 11.8069 17.29 14.6469 16.62V9.55C13.7869 9.23 13.0469 8.86 12.3969 8.44C11.0969 7.6 10.0669 6.35 9.64692 5.09C9.50692 4.69 9.44692 4.38 9.32692 3.72C9.20692 3.01 9.13692 2.75 9.00692 2.43C8.76692 1.85 8.60692 1.78 8.43692 1.74C8.24692 1.74 7.78692 1.92 7.46692 2.26C7.00692 2.77 6.83692 3.36 6.91692 4.18C6.97692 4.84 7.25692 5.69 7.73692 6.72C7.80692 6.87 7.83692 7.05 7.81692 7.22C7.79692 7.39 7.72692 7.55 7.61692 7.68C7.50692 7.81 7.36692 7.91 7.19692 7.96C7.10692 7.99 7.01692 8 6.91692 8C6.83692 8 6.76692 8 6.68692 7.97C5.89692 7.76 5.08692 7.65 4.27692 7.65V7.68ZM17.6469 16.63V9.9H16.4169V16.63H17.6469Z"
-              fill="currentColor"
-            />
-          </svg>
-          <div>Like</div>
-        </div>
-        <div className="flex gap-[4px] items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="21"
-            height="19"
-            viewBox="0 0 21 19"
-            fill="none"
-          >
-            <path
-              d="M7 1H14C17.3137 1 20 3.68629 20 7C20 8.96497 19.0567 10.7096 17.5938 11.8057L17.5762 11.8184L17.5596 11.832L11.5 16.7891V13H7C3.68629 13 1 10.3137 1 7C1 3.68629 3.68629 1 7 1Z"
-              stroke="currentColor"
-              strokeWidth="2"
-            />
-          </svg>
-          <div>Comments</div>
-        </div>
-        <div className="flex gap-[4px] items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="25"
-            viewBox="0 0 18 25"
-            fill="none"
-          >
-            <g clipPath="url(#clip0_2511_140348)">
-              <path
-                d="M14.69 4.17L10.2 0H7.56L11.08 3.27H3.61C1.62 3.27 0 4.89 0 6.88V15.94H1.8V6.88C1.8 5.88 2.61 5.07 3.61 5.07H11.08L7.58 8.32H10.22L14.69 4.17Z"
-                fill="currentColor"
-              />
-              <path
-                d="M3.14062 20.1098L7.63062 24.2798H10.2706L6.75062 21.0098H14.2206C16.2106 21.0098 17.8306 19.3898 17.8306 17.3998V8.33984H16.0306V17.3998C16.0306 18.3998 15.2206 19.2098 14.2206 19.2098H6.75062L10.2506 15.9598H7.61063L3.14062 20.1098Z"
-                fill="currentColor"
-              />
-            </g>
-            <defs>
-              <clipPath id="clip0_2511_140348">
-                <rect width="17.83" height="24.28" fill="white" />
-              </clipPath>
-            </defs>
-          </svg>
-          <div>Repost</div>
-        </div>
-        <div className="flex gap-[4px] items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="21"
-            height="21"
-            viewBox="0 0 21 21"
-            fill="none"
-          >
-            <path
-              d="M21 0L0 7.2L7.2 10.8L16.2 4.8L9.6 13.8L13.8 21L21 0Z"
-              fill="currentColor"
-            />
-          </svg>
-          <div>Send</div>
-        </div>
+      <div className="mx-[12px] border-t border-borderLinkedin" />
+      <div className="flex justify-between px-[8px] py-[4px] text-[14px] font-[600] text-textLinkedin select-none">
+        <LinkedinAction icon={<LinkedinLike />} label="Like" />
+        <LinkedinAction icon={<LinkedinComment />} label="Comment" />
+        <LinkedinAction icon={<LinkedinRepost />} label="Repost" />
+        <LinkedinAction icon={<LinkedinSend />} label="Send" />
       </div>
-      {renderContent.length > 1 && (
-        <>
-          {renderContent.slice(1).map((value, index) => (
-            <div key={index} className="flex flex-col gap-[12px]">
-              <div className="flex gap-[6px] leading-[17px]">
-                <div className="h-[34px]">
-                  <img
-                    src={integration?.picture || '/no-picture.jpg'}
-                    alt="social"
-                    className="rounded-full relative z-[2] h-[34px] w-[34px]"
-                  />
+      {!!comments.length && (
+        <div className="flex flex-col gap-[12px] px-[16px] pt-[4px] pb-[12px]">
+          {comments.map((value, index) => (
+            <div key={index} className="flex gap-[4px]">
+              <TadweenAvatarImage
+                src={integration?.picture}
+                name={integration?.name}
+                className={clsx(
+                  'w-[32px] h-[32px] object-cover flex-none',
+                  avatarShape
+                )}
+              />
+              <div className="flex-1 min-w-0 flex flex-col">
+                <div className="bg-bgLinkedinComment rounded-[8px] rounded-ss-none px-[12px] pt-[8px] pb-[12px]">
+                  <div className="flex items-center gap-[4px] text-[12px] leading-[16px] text-textLinkedin">
+                    <span className="text-[14px] leading-[20px] font-[600] text-textLinkedinInk truncate">
+                      {integration?.name}
+                    </span>
+                    <span className="flex-none px-[4px] rounded-[2px] bg-borderLinkedin text-[12px] leading-[16px]">
+                      Author
+                    </span>
+                    <span className="flex-1" />
+                    <span className="flex-none">Now</span>
+                  </div>
+                  <div className="mt-[4px] text-[14px] leading-[20px] break-words">
+                    <Paragraphs paragraphs={value.paragraphs} />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-[12px]">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-[6px]">
-                      <div className="text-[13px] font-[500]">
-                        {integration?.name}
-                      </div>
-                      <div>
-                        <LinkedinIconSmall />
-                      </div>
-                      <div className="text-[12px] font-[400]">• 1st</div>
-                    </div>
-                    <div className="text-[12px] font-[400] text-textLinkedin">
-                      Founder
-                    </div>
-                  </div>
-                  <div
-                    dir="auto"
-                    className="whitespace-pre-line text-[14px] font-[400]"
-                    dangerouslySetInnerHTML={{
-                      __html: value.text,
-                    }}
-                  />
-                  <div className="flex gap-[6px] font-[400] text-[12px] text-textLinkedin items-center">
-                    <div className="font-[700]">Like</div>
-                    <div>•</div>
-                    <div>
-                      <svg
-                        width="21"
-                        height="22"
-                        viewBox="0 0 21 22"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <rect
-                          x="1.0625"
-                          y="1.27734"
-                          width="18.7109"
-                          height="18.7109"
-                          rx="9.35544"
-                          stroke="white"
-                          strokeWidth="2.12624"
-                        />
-                        <path
-                          d="M10.4444 19.7547C15.682 19.7547 19.9279 15.6053 19.9279 10.4867C19.9279 5.36816 15.682 1.21875 10.4444 1.21875C5.20684 1.21875 0.960938 5.36816 0.960938 10.4867C0.960938 15.6053 5.20684 19.7547 10.4444 19.7547Z"
-                          fill="#1485BD"
-                        />
-                        <path
-                          fillRule="evenodd"
-                          clipRule="evenodd"
-                          d="M15.7769 9.49337H15.0318C14.964 9.49337 14.8286 9.24182 14.4899 8.88434C13.9886 8.35474 13.4331 7.6795 13.0402 7.30878C12.0654 6.48197 11.2686 5.4738 10.6965 4.34304C10.3713 3.6678 10.3442 3.36328 9.68038 3.36328C9.41819 3.39637 9.17864 3.5255 9.01014 3.72458C8.84164 3.92366 8.75676 4.17783 8.77267 4.43572C8.77267 4.62108 8.86751 5.26983 8.90815 5.49491C9.19833 6.53009 9.65567 7.51338 10.2629 8.4077H10.9945H5.19604C5.03181 8.40533 4.86888 8.43654 4.71771 8.49931C4.56654 8.56209 4.43047 8.65505 4.31821 8.77223C4.20596 8.88941 4.12001 9.02823 4.06587 9.17978C4.01173 9.33132 3.9906 9.49226 4.00383 9.65225C4.02471 9.96246 4.16748 10.2528 4.40229 10.4625C4.63709 10.6722 4.94577 10.7852 5.26378 10.7776H5.48055C5.34176 10.7811 5.20503 10.8112 5.07816 10.8663C4.95129 10.9214 4.83678 11.0004 4.74116 11.0988C4.64554 11.1971 4.57069 11.3129 4.52089 11.4396C4.47108 11.5662 4.44731 11.7012 4.45091 11.8368C4.45326 12.1036 4.55728 12.36 4.74266 12.5558C4.92804 12.7517 5.18147 12.873 5.45345 12.896C5.28789 13.0198 5.16238 13.1876 5.09194 13.3794C5.0215 13.5711 5.00913 13.7786 5.05632 13.977C5.10351 14.1755 5.20824 14.3564 5.35797 14.4981C5.50771 14.6398 5.69609 14.7364 5.90053 14.7761C5.77072 14.9963 5.72737 15.2552 5.7786 15.5043C5.84797 15.7489 5.99897 15.9638 6.2076 16.1149C6.41624 16.266 6.67055 16.3447 6.93017 16.3384H10.0326C10.4391 16.3384 10.8441 16.2881 11.2384 16.1928L13.1622 15.6367H15.7363C17.1181 15.5837 17.4839 9.49337 15.7769 9.49337Z"
-                          fill="#E6F7FF"
-                        />
-                        <path
-                          d="M9.66218 8.40793H5.16429C4.99306 8.40636 4.82349 8.44086 4.66712 8.50909C4.51076 8.57731 4.37127 8.67765 4.25814 8.80328C4.14501 8.92891 4.06091 9.07689 4.01154 9.23713C3.96218 9.39738 3.94872 9.56613 3.97208 9.73192C3.99629 10.0398 4.14049 10.3268 4.37495 10.5337C4.6094 10.7407 4.9162 10.8518 5.23203 10.8441H5.4488C5.31001 10.8475 5.17328 10.8776 5.04641 10.9327C4.91954 10.9878 4.80503 11.0668 4.70941 11.1652C4.61379 11.2635 4.53894 11.3794 4.48914 11.506C4.43933 11.6326 4.41556 11.7676 4.41916 11.9033C4.42415 12.1706 4.52871 12.427 4.71326 12.6245C4.89781 12.8219 5.14969 12.9468 5.4217 12.9757C5.29214 13.075 5.18712 13.2016 5.11442 13.346C5.04172 13.4904 5.0032 13.6489 5.00172 13.8098C5.0024 14.0582 5.09018 14.2988 5.25043 14.4915C5.41069 14.6843 5.63372 14.8175 5.88233 14.869C5.75158 15.0937 5.70828 15.357 5.7604 15.6105C5.83228 15.8526 5.98435 16.0645 6.19275 16.2131C6.40116 16.3616 6.65411 16.4384 6.91196 16.4313H10.0144C10.4209 16.4313 10.8259 16.381 11.2202 16.2857L13.144 15.6634H15.7181C17.0728 15.6634 17.4386 9.52008 15.7181 9.52008C15.4699 9.53344 15.2211 9.53344 14.9729 9.52008C14.9052 9.52008 14.7697 9.26852 14.431 8.91104C13.9297 8.38145 13.3743 7.70621 12.9814 7.33549C12.0197 6.50104 11.2369 5.48852 10.6783 4.3565C10.5707 4.10668 10.4244 3.87448 10.2447 3.66803C10.0191 3.48258 9.72796 3.39116 9.43402 3.41345C9.14008 3.43574 8.86686 3.56995 8.67318 3.78719C8.53278 3.93558 8.41835 4.10556 8.33449 4.2903C8.27968 4.41815 8.23881 4.55128 8.21256 4.6875C8.17621 5.06078 8.20832 5.43741 8.30739 5.79966C8.3941 6.18097 8.51738 6.55301 8.67318 6.91181C8.92788 7.37918 9.22865 7.82272 9.56734 8.23581C9.60914 8.26098 9.6422 8.29789 9.66218 8.34173"
-                          stroke="#004B7C"
-                          strokeWidth="0.847356"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                    <div>19</div>
-                    <div>|</div>
-                    <div className="font-[700]">Reply</div>
-                    <div>•</div>
-                    <div>1 reply</div>
-                  </div>
+                <div className="flex items-center gap-[4px] ps-[8px] pt-[4px] text-[12px] leading-[16px] font-[600] text-textLinkedin select-none">
+                  <span>Like</span>
+                  <span className="font-[400]" aria-hidden="true">
+                    |
+                  </span>
+                  <span>Reply</span>
                 </div>
               </div>
             </div>
           ))}
-        </>
+        </div>
       )}
     </div>
   );
 };
+
+const LinkedinAction: FC<{ icon: ReactNode; label: string }> = ({
+  icon,
+  label,
+}) => (
+  <div className="flex flex-1 justify-center items-center gap-[4px] min-h-[40px] px-[4px] rounded-[4px] hover:bg-bgLinkedinComment cursor-default">
+    {icon}
+    <span>{label}</span>
+  </div>
+);
+
+const LinkedinIcon: FC<{ d: string }> = ({ d }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    width="20"
+    height="20"
+    fill="currentColor"
+    aria-hidden="true"
+    className="flex-none"
+  >
+    <path d={d} />
+  </svg>
+);
+
+const LinkedinLike = () => (
+  <LinkedinIcon d="M19.46 11l-3.91-3.91a7 7 0 01-1.69-2.74l-.49-1.47A2.76 2.76 0 0010.76 1 2.75 2.75 0 008 3.74v1.12a9.19 9.19 0 00.46 2.85L8.89 9H4.12A2.12 2.12 0 002 11.12a2.16 2.16 0 00.92 1.76A2.11 2.11 0 002 14.62a2.14 2.14 0 001.28 2 2 2 0 00-.28 1 2.12 2.12 0 002 2.12v.14A2.12 2.12 0 007.12 22h7.49a8.08 8.08 0 003.58-.84l.31-.16H21V11zM19 19h-1l-.73.37a6.14 6.14 0 01-2.69.63H7.72a1 1 0 01-1-.72l-.25-.87-.85-.41A1 1 0 015 17l.17-1-.76-.74A1 1 0 014.27 14l.66-1.09-.73-1.1a.49.49 0 01.08-.7.48.48 0 01.34-.11h7.05l-1.31-3.92A7 7 0 0110 4.86V3.75a.77.77 0 01.75-.75.75.75 0 01.71.51L12 5a9 9 0 002.13 3.5l4.5 4.5H19z" />
+);
+const LinkedinComment = () => (
+  <LinkedinIcon d="M7 9h10v1H7zm0 4h7v-1H7zm16-2a6.78 6.78 0 01-2.84 5.61L12 22v-4H8A7 7 0 018 4h8a7 7 0 017 7zm-2 0a5 5 0 00-5-5H8a5 5 0 000 10h6v2.28L19 15a4.79 4.79 0 002-4z" />
+);
+const LinkedinRepost = () => (
+  <LinkedinIcon d="M13.96 5H6c-.55 0-1 .45-1 1v10H3V6c0-1.66 1.34-3 3-3h7.96L12 0h2.37L17 4l-2.63 4H12l1.96-3zm5.54 3H19v10c0 .55-.45 1-1 1h-7.96L12 16H9.63L7 20l2.63 4H12l-1.96-3H18c1.66 0 3-1.34 3-3V8h-1.5z" />
+);
+const LinkedinSend = () => (
+  <LinkedinIcon d="M21 3L0 10l7.66 4.26L16 8l-6.26 8.34L14 24l7-21z" />
+);
+const LinkedinMore = () => (
+  <LinkedinIcon d="M14 12a2 2 0 11-2-2 2 2 0 012 2zM4 10a2 2 0 102 2 2 2 0 00-2-2zm16 0a2 2 0 102 2 2 2 0 00-2-2z" />
+);
+const LinkedinGlobe = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 16 16"
+    width="14"
+    height="14"
+    fill="currentColor"
+    aria-hidden="true"
+  >
+    <path d="M8 1a7 7 0 107 7 7 7 0 00-7-7zM3 8a5 5 0 011-3l.55.55A1.5 1.5 0 015 6.62v1.07a.75.75 0 00.22.53l.56.56a.75.75 0 00.53.22H7v.69a.75.75 0 00.22.53l.56.56a.75.75 0 01.22.53V13a5 5 0 01-5-5zm6.24 4.83l2-2.46a.75.75 0 00.09-.8l-.58-1.16A.76.76 0 0010 8H7v-.19a.51.51 0 01.28-.45l.38-.19a.74.74 0 01.68 0L9 7.5l.38-.7a1 1 0 00.12-.48v-.85a.78.78 0 01.21-.53l1.07-1.09a5 5 0 01-1.54 9z" />
+  </svg>
+);

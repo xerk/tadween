@@ -75,6 +75,7 @@ body {
   }
   .tdw-ch-avatar-net {
     position: absolute;
+    z-index: 1; // above the selected ring
     inset-inline-end: -3px;
     bottom: -2px;
     width: 12px !important;
@@ -82,6 +83,13 @@ body {
     min-width: 12px;
     border-radius: 3px;
     box-shadow: 0 0 0 1.5px var(--tdw-card);
+  }
+  // the network badge on the channel picker (new-launch/picks.socials.component.tsx):
+  // above the selected ring, with its own outline so the ring never runs over it
+  .tdw-pick-net {
+    z-index: 11;
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px var(--tdw-card);
   }
   .tdw-ch-dot {
     position: absolute;

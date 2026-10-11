@@ -6,6 +6,24 @@ export const textSlicer = (
   end: number,
   text: string
 ): { start: number; end: number } => {
+  if (integrationType === 'threads') {
+    // the limit counts UTF-8 bytes (countLength), so the crop does too
+    const encoder = new TextEncoder();
+    let bytes = 0;
+    let index = 0;
+    for (const char of text) {
+      bytes += encoder.encode(char).length;
+      if (bytes > end) {
+        break;
+      }
+      index += char.length;
+    }
+    return {
+      start: 0,
+      end: index,
+    };
+  }
+
   if (integrationType !== 'x') {
     return {
       start: 0,

@@ -1293,6 +1293,7 @@
   "tdw_agent_unavailable": "الوصول للمساعدين غير متاح في خطتك أو دورك الحالي. يمكنك إعداده لاحقًا من الإعدادات ← API و MCP.",
   "tdw_agent_disabled": "الوصول للمساعدين عبر API و MCP متوقف.",
   "tdw_all_channels": "كل الحسابات",
+  "tdw_instagram_needs_media": "إنستغرام يحتاج إلى صورة أو فيديو",
   "tdw_editing": "التحرير",
   "tdw_preview_as": "معاينة باسم",
   "tdw_remove_channel": "إزالة الحساب",

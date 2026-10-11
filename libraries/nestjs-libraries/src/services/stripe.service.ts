@@ -321,9 +321,19 @@ export class StripeService extends PaymentProviderAbstract {
     );
   }
 
+  // Plans granted by an admin used to store the owner's user id in paymentId
+  // (Postiz's add-subscription). Only a `cus_…` id is a Stripe customer; any
+  // other value means the workspace has no customer yet.
+  private stripeCustomerId(organization?: { paymentId?: string | null } | null) {
+    return organization?.paymentId?.startsWith('cus_')
+      ? organization.paymentId
+      : undefined;
+  }
+
   async createOrGetCustomer(organization: Organization) {
-    if (organization.paymentId) {
-      return organization.paymentId;
+    const existing = this.stripeCustomerId(organization);
+    if (existing) {
+      return existing;
     }
 
     const users = await this._organizationService.getTeam(organization.id);
@@ -406,9 +416,12 @@ export class StripeService extends PaymentProviderAbstract {
 
   async getCustomerSubscriptions(organizationId: string) {
     const org = (await this._organizationService.getOrgById(organizationId))!;
-    const customer = org.paymentId;
+    const customer = this.stripeCustomerId(org);
+    if (!customer) {
+      return { data: [] as Stripe.Subscription[] };
+    }
     return stripe.subscriptions.list({
-      customer: customer!,
+      customer,
       status: 'all',
     });
   }
@@ -511,12 +524,13 @@ export class StripeService extends PaymentProviderAbstract {
     // getOrgById must not filter deletedAt, this can run for an organization
     // that was already soft deleted by an account deletion
     const org = await this._organizationService.getOrgById(organizationId);
-    if (!org?.paymentId) {
+    const customer = this.stripeCustomerId(org);
+    if (!org || !customer) {
       return;
     }
 
     const subscriptions = await stripe.subscriptions.list({
-      customer: org.paymentId,
+      customer,
       status: 'all',
       limit: 100,
     });
@@ -528,14 +542,14 @@ export class StripeService extends PaymentProviderAbstract {
     }
 
     await this._subscriptionService.deleteSubscription(
-      org.paymentId,
+      customer,
       STRIPE_PROVIDER
     );
   }
 
   async getCustomerByOrganizationId(organizationId: string) {
     const org = (await this._organizationService.getOrgById(organizationId))!;
-    return org.paymentId;
+    return this.stripeCustomerId(org);
   }
 
   async createBillingPortalLink(customer: string) {
@@ -739,9 +753,13 @@ export class StripeService extends PaymentProviderAbstract {
   }
 
   async finishTrial(organization: Organization) {
+    const customer = this.stripeCustomerId(organization);
+    if (!customer) {
+      return;
+    }
     const list = (
       await stripe.subscriptions.list({
-        customer: organization.paymentId,
+        customer,
       })
     ).data.filter((f) => f.status === 'trialing');
 
@@ -751,7 +769,7 @@ export class StripeService extends PaymentProviderAbstract {
   }
 
   async checkDiscount(organization: Organization) {
-    const customer = organization.paymentId;
+    const customer = this.stripeCustomerId(organization);
     if (!process.env.STRIPE_DISCOUNT_ID || !customer) {
       return false;
     }
@@ -791,7 +809,7 @@ export class StripeService extends PaymentProviderAbstract {
   }
 
   async applyDiscount(organization: Organization) {
-    const customer = organization.paymentId;
+    const customer = this.stripeCustomerId(organization);
     const check = this.checkDiscount(organization);
     if (!check) {
       return false;
@@ -950,7 +968,9 @@ export class StripeService extends PaymentProviderAbstract {
   // Trial end and whether a card is on file, for the in-app trial banner
   async getTrialInfo(organizationId: string) {
     const org = await this._organizationService.getOrgById(organizationId);
-    const [subscription] = await this.getLiveSubscriptions(org?.paymentId);
+    const [subscription] = await this.getLiveSubscriptions(
+      this.stripeCustomerId(org)
+    );
     if (!subscription || subscription.status !== 'trialing') {
       return null;
     }
@@ -1082,12 +1102,13 @@ export class StripeService extends PaymentProviderAbstract {
 
   async getCharges(organizationId: string) {
     const org = await this._organizationService.getOrgById(organizationId);
-    if (!org?.paymentId) {
+    const customer = this.stripeCustomerId(org);
+    if (!customer) {
       return [];
     }
 
     const charges = await stripe.charges.list({
-      customer: org.paymentId,
+      customer,
       limit: 100,
     });
 
@@ -1133,7 +1154,7 @@ export class StripeService extends PaymentProviderAbstract {
 
   async refundCharges(organizationId: string, chargeIds: string[]) {
     const org = await this._organizationService.getOrgById(organizationId);
-    if (!org?.paymentId) {
+    if (!this.stripeCustomerId(org)) {
       throw new Error('No payment customer found for this organization');
     }
 
@@ -1154,11 +1175,10 @@ export class StripeService extends PaymentProviderAbstract {
 
   async cancelSubscription(organizationId: string) {
     const org = await this._organizationService.getOrgById(organizationId);
-    if (!org?.paymentId) {
+    const customer = this.stripeCustomerId(org);
+    if (!customer) {
       throw new Error('No payment customer found for this organization');
     }
-
-    const customer = org.paymentId;
 
     const subscriptions = await this.getLiveSubscriptions(customer);
 
@@ -1226,7 +1246,7 @@ export class StripeService extends PaymentProviderAbstract {
       );
 
     const stripeSubscription = await this.getActiveStripeSubscription(
-      org?.paymentId
+      this.stripeCustomerId(org)
     );
 
     const coupons = this.mapSubscriptionDiscounts(stripeSubscription);
@@ -1239,7 +1259,7 @@ export class StripeService extends PaymentProviderAbstract {
     if (stripeSubscription) {
       try {
         const preview = await stripe.invoices.createPreview({
-          customer: org!.paymentId!,
+          customer: this.stripeCustomerId(org)!,
           subscription: stripeSubscription.id,
         });
         nextPayment = preview.total / 100;
@@ -1349,14 +1369,13 @@ export class StripeService extends PaymentProviderAbstract {
 
   async chatbaseRefundPreview(organizationId: string) {
     const org = await this._organizationService.getOrgById(organizationId);
-    if (!org?.paymentId) {
+    const customer = this.stripeCustomerId(org);
+    if (!customer) {
       return {
         eligible: false as const,
         reason: 'No payment customer found for this organization',
       };
     }
-
-    const customer = org.paymentId;
 
     const subscriptions = (
       await stripe.subscriptions.list({

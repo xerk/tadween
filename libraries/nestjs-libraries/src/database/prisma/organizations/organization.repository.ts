@@ -273,6 +273,8 @@ export class OrganizationRepository {
             totalChannels: true,
             isLifetime: true,
             createdAt: true,
+            status: true,
+            trialEndsAt: true,
           },
         },
       },

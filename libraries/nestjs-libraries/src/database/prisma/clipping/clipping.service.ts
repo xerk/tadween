@@ -190,7 +190,7 @@ export class ClippingService {
       throw new HttpException('Only YouTube videos can be clipped', 400);
     }
 
-    if (org.isTrailing) {
+    if (this._subscriptionService.isOnTrial(org)) {
       throw new HttpException('Clipping is not available in trial mode', 406);
     }
 

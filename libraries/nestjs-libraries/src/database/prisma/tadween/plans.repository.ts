@@ -12,6 +12,9 @@ const toData = (body: PlanDto) => ({
   tier: body.tier,
   monthlyPriceUsd: body.monthlyPriceUsd,
   yearlyPriceUsd: body.yearlyPriceUsd,
+  // undefined leaves the stored value as it is (older clients)
+  founderMonthlyPriceUsd: body.founderMonthlyPriceUsd,
+  webhooks: body.webhooks,
   trialDays: body.trialDays,
   mostPopular: body.mostPopular,
   channels: body.channels,
@@ -93,6 +96,30 @@ export class PlansRepository {
       where: { id },
       data: { yearlyPriceUsd },
       select: { id: true },
+    });
+  }
+
+  // Frees a key for a default plan (PlansService.seedDefaults)
+  setKey(id: string, key: string) {
+    return this._plans.model.plan.update({
+      where: { id },
+      data: { key },
+      select: { id: true },
+    });
+  }
+
+  // Paying workspaces for the founder offer's cap: live Stripe subscriptions
+  // whose renewals are being paid (trials, admin grants and lifetime deals
+  // don't count), subscribed since the window started.
+  countPayingSubscriptions(since: Date | null) {
+    return this._subscriptions.model.subscription.count({
+      where: {
+        provider: 'stripe',
+        isLifetime: false,
+        deletedAt: null,
+        status: { in: ['active', 'past_due'] },
+        ...(since ? { createdAt: { gte: since } } : {}),
+      },
     });
   }
 

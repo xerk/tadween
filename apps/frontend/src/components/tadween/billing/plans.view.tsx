@@ -100,6 +100,56 @@ export const PlanFeatureList: FC<{ plan: PublicPlan; all?: boolean }> = ({
 export const planPrice = (plan: PublicPlan, period: BillingPeriod) =>
   period === 'YEARLY' ? plan.yearlyPriceUsd / 12 : plan.monthlyPriceUsd;
 
+// While checkout charges a plan's founder price: says so, that it stays while
+// subscribed, and the regular price that applies after the offer closes. An
+// honest future price, never a crossed-out "was" price.
+export const FounderNote: FC<{
+  plan: PublicPlan;
+  period: BillingPeriod;
+  compact?: boolean;
+}> = ({ plan, period, compact }) => {
+  const t = useT();
+  const { founder } = useTadweenPricing();
+  if (!plan.founderPrice || !founder?.open) {
+    return null;
+  }
+  const yearly = period === 'YEARLY';
+  const regular = t(
+    yearly ? 'tdw_founder_regular_year' : 'tdw_founder_regular_month',
+    yearly
+      ? 'Regular {{amount}}/year after the first {{cap}} customers'
+      : 'Regular {{amount}}/month after the first {{cap}} customers',
+    {
+      amount: formatUsd(
+        yearly ? plan.listYearlyPriceUsd : plan.listMonthlyPriceUsd
+      ),
+      cap: founder.cap.toLocaleString('en-US'),
+    }
+  );
+  const spots =
+    founder.spotsLeft === 1
+      ? t('tdw_founder_spot_left', '1 spot left')
+      : t('tdw_founder_spots_left', '{{n}} spots left', {
+          n: founder.spotsLeft.toLocaleString('en-US'),
+        });
+  return (
+    <div className={cx('tdw-founder', compact && 'is-compact')}>
+      <span className="tdw-founder-tag">
+        <Icon name="star" size={14} />
+        {compact
+          ? t('tdw_founder_price', 'Founder price')
+          : t(
+              'tdw_founder_price_locked',
+              'Founder price · locked while you stay subscribed'
+            )}
+      </span>
+      <span className="tdw-founder-regular">
+        {regular} · {spots}
+      </span>
+    </div>
+  );
+};
+
 export const PlanCard: FC<{
   plan: PublicPlan;
   period: BillingPeriod;
@@ -141,6 +191,7 @@ export const PlanCard: FC<{
         </span>
         <span className="tdw-plan-per">{t('tdw_per_month', '/ month')}</span>
       </div>
+      <FounderNote plan={plan} period={period} />
       <p className="tdw-plan-bill">
         {period === 'YEARLY'
           ? yearlySaving > 0

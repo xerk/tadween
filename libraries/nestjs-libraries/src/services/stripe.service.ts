@@ -52,12 +52,15 @@ export class StripeService extends PaymentProviderAbstract {
   }
 
   async processWebhook(event: Stripe.Event) {
-    // Maybe it comes from another stripe webhook
+    // Maybe it comes from another stripe webhook. Invoices don't carry the
+    // subscription's metadata: their handlers check it on the subscription.
     if (
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       event?.data?.object?.metadata?.service !== 'gitroom' &&
-      event.type !== 'invoice.payment_succeeded'
+      event.type !== 'invoice.payment_succeeded' &&
+      event.type !== 'invoice.payment_failed' &&
+      event.type !== 'invoice.paid'
     ) {
       return { ok: true };
     }
@@ -65,6 +68,9 @@ export class StripeService extends PaymentProviderAbstract {
     switch (event.type) {
       case 'invoice.payment_succeeded':
         return this.paymentSucceeded(event);
+      case 'invoice.payment_failed':
+      case 'invoice.paid':
+        return this.invoiceStatusChanged(event);
       case 'customer.subscription.created':
         return this.createSubscription(event);
       case 'customer.subscription.updated':
@@ -212,7 +218,7 @@ export class StripeService extends PaymentProviderAbstract {
       return { ok: false };
     }
 
-    return this._subscriptionService.createOrUpdateSubscription(
+    const saved = await this._subscriptionService.createOrUpdateSubscription(
       STRIPE_PROVIDER,
       event.data.object.status !== 'active',
       uniqueId,
@@ -222,6 +228,8 @@ export class StripeService extends PaymentProviderAbstract {
       period,
       event.data.object.cancel_at
     );
+    await this.saveProviderState(event.data.object);
+    return saved;
   }
   async updateSubscription(event: Stripe.CustomerSubscriptionUpdatedEvent) {
     const { uniqueId, billing, period } = event.data.object.metadata as {
@@ -249,7 +257,7 @@ export class StripeService extends PaymentProviderAbstract {
       return { ok: false };
     }
 
-    return this._subscriptionService.createOrUpdateSubscription(
+    const saved = await this._subscriptionService.createOrUpdateSubscription(
       STRIPE_PROVIDER,
       event.data.object.status !== 'active',
       uniqueId,
@@ -259,6 +267,8 @@ export class StripeService extends PaymentProviderAbstract {
       period,
       event.data.object.cancel_at
     );
+    await this.saveProviderState(event.data.object);
+    return saved;
   }
 
   async deleteSubscription(event: Stripe.CustomerSubscriptionDeletedEvent) {
@@ -289,7 +299,7 @@ export class StripeService extends PaymentProviderAbstract {
       return;
     }
 
-    return this._subscriptionService.createOrUpdateSubscription(
+    const saved = await this._subscriptionService.createOrUpdateSubscription(
       STRIPE_PROVIDER,
       survivor.status !== 'active',
       uniqueId,
@@ -299,6 +309,68 @@ export class StripeService extends PaymentProviderAbstract {
       period,
       survivor.cancel_at
     );
+    await this.saveProviderState(survivor);
+    return saved;
+  }
+
+  // Stripe's status, trial end and price on the workspace's subscription row,
+  // so the app can tell a failed renewal (past_due) from a trial. Reached from
+  // webhooks: never throws.
+  private async saveProviderState(subscription: Stripe.Subscription) {
+    try {
+      const customer =
+        typeof subscription.customer === 'string'
+          ? subscription.customer
+          : subscription.customer?.id;
+      if (!customer) {
+        return;
+      }
+      await this._subscriptionService.updateProviderState(
+        customer,
+        STRIPE_PROVIDER,
+        {
+          status: subscription.status,
+          trialEndsAt: subscription.trial_end
+            ? new Date(subscription.trial_end * 1000)
+            : null,
+          priceCents: subscription.items?.data?.[0]?.price?.unit_amount ?? null,
+        }
+      );
+    } catch (err) {
+      console.error('stripe_subscription_state_not_saved', {
+        stripe_subscription_id: subscription?.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  // A renewal failed (the subscription goes past_due) or an invoice got paid
+  // (back to active): refresh the stored status from the subscription itself.
+  // customer.subscription.updated reports the same change; this is the belt.
+  async invoiceStatusChanged(
+    event: Stripe.InvoicePaymentFailedEvent | Stripe.InvoicePaidEvent
+  ) {
+    try {
+      const subscriptionId =
+        event.data.object.parent?.subscription_details?.subscription;
+      if (!subscriptionId) {
+        return { ok: true };
+      }
+      const subscription = await stripe.subscriptions.retrieve(
+        typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id
+      );
+      if (subscription.metadata?.service !== 'gitroom') {
+        return { ok: true };
+      }
+      await this.saveProviderState(subscription);
+    } catch (err) {
+      console.error('stripe_invoice_status_not_saved', {
+        stripe_event_type: event.type,
+        stripe_event_id: event.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return { ok: true };
   }
 
   // After a login swap, move each Stripe customer's email to the login that
@@ -1275,7 +1347,16 @@ export class StripeService extends PaymentProviderAbstract {
     const priceData = subscription
       ? (await this._plans.getPricing())[subscription.subscriptionTier]
       : undefined;
-    const monthlyPrice = priceData?.month_price || 0;
+    // A locked founder price stays what the subscription pays after the
+    // plan's price changed: Stripe's price (stored by the webhooks) wins
+    const paid =
+      typeof subscription?.priceCents === 'number'
+        ? subscription.priceCents / 100
+        : null;
+    const monthlyPrice =
+      paid !== null && subscription?.period === 'MONTHLY'
+        ? paid
+        : priceData?.month_price || 0;
 
     let nextPayment: number | null = null;
     if (stripeSubscription) {
@@ -1297,7 +1378,7 @@ export class StripeService extends PaymentProviderAbstract {
       monthlyPrice,
       planPrice:
         subscription?.period === 'YEARLY'
-          ? priceData?.year_price || 0
+          ? paid ?? (priceData?.year_price || 0)
           : monthlyPrice,
       nextPayment,
       coupons,

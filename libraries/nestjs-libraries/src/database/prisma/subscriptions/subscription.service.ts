@@ -8,6 +8,11 @@ import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
 
+// Stripe statuses of a renewal whose payment failed. Organization.isTrailing
+// is also true for them (it stores "not active"), so trial-only limits must
+// not apply: the workspace keeps working while Stripe retries the card.
+export const PAYMENT_FAILED_STATUSES = ['past_due', 'unpaid'];
+
 @Injectable()
 export class SubscriptionService {
   constructor(
@@ -33,6 +38,18 @@ export class SubscriptionService {
 
   getCode(code: string) {
     return this._subscriptionRepository.getCode(code);
+  }
+
+  // On a real free trial: isTrailing, unless the subscription's last payment
+  // failed. Organizations loaded without their subscription keep isTrailing.
+  isOnTrial(org: {
+    isTrailing: boolean;
+    subscription?: { status?: string | null } | null;
+  }) {
+    return (
+      org.isTrailing &&
+      !PAYMENT_FAILED_STATUSES.includes(org.subscription?.status || '')
+    );
   }
 
   // Customer-keyed flows must never touch a subscription owned by another provider
@@ -107,6 +124,28 @@ export class SubscriptionService {
       organizationId,
       cancelAt
     );
+  }
+
+  // Reached from payment webhooks: log failures instead of throwing
+  async updateProviderState(
+    customerId: string,
+    provider: string,
+    state: {
+      status: string;
+      trialEndsAt: Date | null;
+      priceCents: number | null;
+    }
+  ) {
+    try {
+      return await this._subscriptionRepository.updateProviderState(
+        customerId,
+        provider,
+        state
+      );
+    } catch (e) {
+      console.error('Error saving subscription status:', e);
+      return { count: 0 };
+    }
   }
 
   async checkSubscription(organizationId: string, subscriptionId: string) {

@@ -28,6 +28,7 @@ import {
   FeatureSettingsDto,
   PlanDto,
   YearlyDiscountDto,
+  FounderWindowDto,
   ProviderCredentialsDto,
   ProviderSettingsDto,
   RegistrationSettingsDto,
@@ -183,9 +184,18 @@ export class AdminConsoleController {
     );
   }
 
+  @Put('/plans/founder')
+  setFounderWindow(
+    @GetUserFromRequest() user: User,
+    @Req() req: Request,
+    @Body() body: FounderWindowDto
+  ) {
+    return this._plans.setFounderWindow(body, this.adminId(req, user));
+  }
+
   @Post('/plans/defaults')
-  seedPlans() {
-    return this._plans.seedDefaults();
+  seedPlans(@GetUserFromRequest() user: User, @Req() req: Request) {
+    return this._plans.seedDefaults(this.adminId(req, user));
   }
 
   @Put('/plans/:id')

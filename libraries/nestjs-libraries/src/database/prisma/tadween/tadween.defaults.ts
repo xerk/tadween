@@ -226,32 +226,47 @@ export const credentialStatus = (identifier: string) => {
 };
 
 // ── Plans ────────────────────────────────────────────────────────────────────
-// Two plans that differ only in limits: every feature is on in both. Prices are
-// USD; the yearly price is always derived from the monthly one with the yearly
-// discount below (editable in /admin/plans, stored in platform settings).
+// Three plans that differ in limits; every feature is on in all of them except
+// webhooks (Business and Agency). Prices are USD; the yearly price is always
+// derived from the monthly one with the yearly discount below (editable in
+// /admin/plans, stored in platform settings). 17% ≈ two months free.
 //
 // Each plan sells its own Postiz tier (Stripe products, prices and webhooks map
-// subscriptions back by tier): Pro → TEAM, Business → PRO. TEAM and PRO enable
-// the same capabilities in Postiz's pricing map and differ only in numbers
-// (webhooks, AI videos, clipping minutes).
+// subscriptions back by tier): Creator → STANDARD, Business → TEAM, Agency →
+// PRO. Business and Agency take over the tiers the first two Tadween plans sold
+// (Pro → TEAM, Business → PRO), so those subscribers only gain limits and keep
+// the Stripe price they pay.
+//
+// Founder pricing: while the founder window is open (the first
+// DEFAULT_FOUNDER_CAP paying workspaces, optionally until an end date),
+// checkout charges `founderMonthlyPriceUsd` instead of the list price.
+// Stripe keeps a subscription on the price it started with, so founders keep
+// theirs while they stay subscribed.
 //
 // Paying workspaces must never lose limits: loading the defaults goes through
 // PlansService's lower-limits guard, which refuses any default that would lower
 // a tier with subscribers and reports it instead.
-export const DEFAULT_YEARLY_DISCOUNT_PERCENT = 20;
+export const DEFAULT_YEARLY_DISCOUNT_PERCENT = 17;
+export const DEFAULT_FOUNDER_CAP = 300;
 
 export interface DefaultPlan {
   key: string;
   name: string;
   description: string;
   tier: SubscriptionTier;
+  // List ("regular") price
   monthlyPriceUsd: number;
+  // Charged instead while the founder window is open (null: no founder offer)
+  founderMonthlyPriceUsd: number | null;
   trialDays: number;
   mostPopular: boolean;
   channels: number;
+  // Members besides the owner (-1 unlimited, 0 owner only)
   teamMembers: number;
   postsPerMonth: number;
   aiCredits: number;
+  // null = the tier's static value (TEAM 10, PRO 30)
+  webhooks: number | null;
   // Extra bullets shown after the ones generated from the limits
   features: string[];
   position: number;
@@ -259,33 +274,54 @@ export interface DefaultPlan {
 
 export const DEFAULT_PLANS: DefaultPlan[] = [
   {
-    key: 'pro',
-    name: 'Pro',
-    description: 'For creators and small teams',
-    tier: 'TEAM',
-    monthlyPriceUsd: 9,
+    key: 'creator',
+    name: 'Creator',
+    description: 'For creators and solo founders',
+    tier: 'STANDARD',
+    monthlyPriceUsd: 19,
+    founderMonthlyPriceUsd: 12,
     trialDays: 7,
     mostPopular: false,
-    channels: 10,
-    teamMembers: 3,
+    channels: 5,
+    teamMembers: 0,
     postsPerMonth: -1,
-    aiCredits: 100,
+    aiCredits: 250,
+    webhooks: 0,
     features: [],
     position: 0,
   },
   {
     key: 'business',
     name: 'Business',
-    description: 'For brands and agencies with many pages',
-    tier: 'PRO',
-    monthlyPriceUsd: 19,
+    description: 'For brands and small teams',
+    tier: 'TEAM',
+    monthlyPriceUsd: 39,
+    founderMonthlyPriceUsd: 24,
     trialDays: 7,
     mostPopular: true,
-    channels: 30,
-    teamMembers: -1,
+    channels: 15,
+    teamMembers: 5,
     postsPerMonth: -1,
-    aiCredits: 300,
+    aiCredits: 750,
+    webhooks: null,
     features: [],
     position: 1,
+  },
+  {
+    key: 'agency',
+    name: 'Agency',
+    description: 'For agencies running many brands',
+    tier: 'PRO',
+    monthlyPriceUsd: 79,
+    founderMonthlyPriceUsd: 49,
+    trialDays: 7,
+    mostPopular: false,
+    channels: 40,
+    teamMembers: -1,
+    postsPerMonth: -1,
+    aiCredits: 2000,
+    webhooks: null,
+    features: [],
+    position: 2,
   },
 ];

@@ -9,6 +9,7 @@ import {
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import {
   DEFAULT_PLANS,
+  DEFAULT_YEARLY_DISCOUNT_PERCENT,
   FeatureKey,
 } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { PlatformSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/platform-settings.service';
@@ -23,14 +24,32 @@ export interface PlanFeatureItem {
   value?: number;
 }
 
+// The founder offer as the pricing page shows it
+export interface FounderOffer {
+  open: boolean;
+  cap: number;
+  spotsLeft: number;
+  endsAt: string | null;
+}
+
 // A plan as the pricing page and billing see it (no provider price ids).
 export interface PublicPlan {
   key: string;
   name: string;
   description: string | null;
   tier: string;
+  // What checkout charges today: the founder price while the founder window
+  // is open, else the list price
   monthlyPriceUsd: number;
   yearlyPriceUsd: number;
+  // The regular price, charged once the founder window closes
+  listMonthlyPriceUsd: number;
+  listYearlyPriceUsd: number;
+  // The founder price (null: no founder offer on this plan)
+  founderMonthlyPriceUsd: number | null;
+  founderYearlyPriceUsd: number | null;
+  // true while the founder price is what checkout charges
+  founderPrice: boolean;
   trialDays: number;
   mostPopular: boolean;
   channels: number;
@@ -115,10 +134,11 @@ const featureItemsFor = (
 type PlanLimits = Pick<
   Plan,
   'monthlyPriceUsd' | 'yearlyPriceUsd' | 'channels' | 'teamMembers' | 'postsPerMonth' | 'aiCredits'
->;
+> & { webhooks?: number | null };
 
 // Overlay one DB plan onto the static Postiz entry for its tier. Fields the plan
-// does not model (webhooks, autoPost, videos…) keep Postiz's values.
+// does not model (videos, clipping…) keep Postiz's values. Every Tadween plan
+// has RSS auto-post, and AI images whenever it has AI credits.
 const overlay = (
   base: PricingInnerInterface,
   plan: PlanLimits
@@ -131,9 +151,29 @@ const overlay = (
   team_members_count: plan.teamMembers,
   posts_per_month: plan.postsPerMonth < 0 ? UNLIMITED : plan.postsPerMonth,
   ai: plan.aiCredits !== 0,
+  image_generator: plan.aiCredits !== 0,
   image_generation_count:
     plan.aiCredits < 0 ? UNLIMITED : plan.aiCredits,
+  autoPost: true,
+  webhooks:
+    plan.webhooks === undefined || plan.webhooks === null
+      ? base.webhooks
+      : plan.webhooks < 0
+      ? UNLIMITED
+      : plan.webhooks,
 });
+
+// The founder price when the window is open and the plan has one below its
+// list price, else the list price
+const chargedMonthly = (
+  plan: Pick<Plan, 'monthlyPriceUsd' | 'founderMonthlyPriceUsd'>,
+  founderOpen: boolean
+) =>
+  founderOpen &&
+  plan.founderMonthlyPriceUsd !== null &&
+  plan.founderMonthlyPriceUsd < plan.monthlyPriceUsd
+    ? plan.founderMonthlyPriceUsd
+    : plan.monthlyPriceUsd;
 
 // Members besides the owner a tier allows (Infinity = unlimited).
 export const teamSeats = (v: PricingInnerInterface) =>
@@ -159,11 +199,13 @@ const LIMITS: Array<{
     label: 'AI credits',
     lower: (n, c) => n.image_generation_count < c.image_generation_count,
   },
+  { label: 'webhooks', lower: (n, c) => n.webhooks < c.webhooks },
 ];
 
 @Injectable()
 export class PlansService {
   private _cache: { at: number; plans: Plan[] } | null = null;
+  private _founderCache: { at: number; offer: FounderOffer } | null = null;
 
   constructor(
     private _repository: PlansRepository,
@@ -186,40 +228,103 @@ export class PlansService {
 
   private invalidate() {
     this._cache = null;
+    this._founderCache = null;
+  }
+
+  // Whether checkout charges founder prices now: the window has a cap, has
+  // not ended, and fewer paying workspaces than the cap subscribed in it. The
+  // count comes from the database (Subscription.status from Stripe webhooks).
+  async getFounderOffer(): Promise<FounderOffer> {
+    if (this._founderCache && Date.now() - this._founderCache.at < TTL_MS) {
+      return this._founderCache.offer;
+    }
+    const window = await this._settings.getFounderWindow();
+    let paying = 0;
+    try {
+      paying = await this._repository.countPayingSubscriptions(
+        window.startsAt ? new Date(window.startsAt) : null
+      );
+    } catch (e) {
+      // Columns not pushed yet: no founder offer rather than a broken checkout
+      paying = window.cap;
+    }
+    const spotsLeft = Math.max(0, window.cap - paying);
+    const offer: FounderOffer = {
+      open:
+        spotsLeft > 0 &&
+        (!window.endsAt || Date.now() < new Date(window.endsAt).getTime()),
+      cap: window.cap,
+      spotsLeft,
+      endsAt: window.endsAt,
+    };
+    this._founderCache = { at: Date.now(), offer };
+    return offer;
   }
 
   // The pricing map every consumer used to import statically, with active DB
-  // plans overlaid per tier. No plans → exactly the static map.
+  // plans overlaid per tier. No plans → exactly the static map. Prices are
+  // what checkout charges now (founder prices while the window is open).
   async getPricing(): Promise<PricingInterface> {
     const plans = await this.activePlans();
+    const [founder, discount] = plans.some(
+      (p) => p.founderMonthlyPriceUsd !== null
+    )
+      ? await Promise.all([
+          this.getFounderOffer(),
+          this._settings.getYearlyDiscountPercent(),
+        ])
+      : [null, 0];
     return Object.keys(pricing).reduce((all, tier) => {
       const plan = plans.find((p) => p.tier === tier);
+      if (!plan) {
+        return { ...all, [tier]: pricing[tier] };
+      }
+      const monthly = chargedMonthly(plan, !!founder?.open);
       return {
         ...all,
-        [tier]: plan ? overlay(pricing[tier], plan) : pricing[tier],
+        [tier]: overlay(pricing[tier], {
+          ...plan,
+          monthlyPriceUsd: monthly,
+          yearlyPriceUsd:
+            monthly === plan.monthlyPriceUsd
+              ? plan.yearlyPriceUsd
+              : yearlyPriceFrom(monthly, discount),
+        }),
       };
     }, {} as PricingInterface);
   }
 
   async getPublicPlans(): Promise<PublicPlan[]> {
-    const [plans, pricingMap, on, yearlyDiscountPercent] = await Promise.all([
-      this.activePlans(),
-      this.getPricing(),
-      this._settings.getFeatures(),
-      this._settings.getYearlyDiscountPercent(),
-    ]);
+    const [plans, pricingMap, on, yearlyDiscountPercent, founder] =
+      await Promise.all([
+        this.activePlans(),
+        this.getPricing(),
+        this._settings.getFeatures(),
+        this._settings.getYearlyDiscountPercent(),
+        this.getFounderOffer(),
+      ]);
     return plans.map((p) => {
       const featureItems = featureItemsFor(p, pricingMap[p.tier], on);
       const extraFeatures = Array.isArray(p.features)
         ? (p.features as string[])
         : [];
+      const hasFounder =
+        p.founderMonthlyPriceUsd !== null &&
+        p.founderMonthlyPriceUsd < p.monthlyPriceUsd;
       return {
         key: p.key,
         name: p.name,
         description: p.description,
         tier: p.tier,
-        monthlyPriceUsd: p.monthlyPriceUsd,
-        yearlyPriceUsd: p.yearlyPriceUsd,
+        monthlyPriceUsd: pricingMap[p.tier].month_price,
+        yearlyPriceUsd: pricingMap[p.tier].year_price,
+        listMonthlyPriceUsd: p.monthlyPriceUsd,
+        listYearlyPriceUsd: p.yearlyPriceUsd,
+        founderMonthlyPriceUsd: hasFounder ? p.founderMonthlyPriceUsd : null,
+        founderYearlyPriceUsd: hasFounder
+          ? yearlyPriceFrom(p.founderMonthlyPriceUsd!, yearlyDiscountPercent)
+          : null,
+        founderPrice: hasFounder && founder.open,
         trialDays: p.trialDays,
         mostPopular: p.mostPopular,
         channels: p.channels,
@@ -256,7 +361,25 @@ export class PlansService {
       plans: await this._repository.list(false),
       yearlyDiscountPercent: await this._settings.getYearlyDiscountPercent(),
       subscribers: await this._repository.countSubscriptionsByTier(),
+      founderWindow: await this._settings.getFounderWindow(),
+      founder: await this.getFounderOffer(),
     };
+  }
+
+  async setFounderWindow(
+    founder: { cap: number; startsAt?: string | null; endsAt?: string | null },
+    userId: string
+  ) {
+    await this._settings.setFounderWindow(
+      {
+        cap: founder.cap,
+        startsAt: founder.startsAt || null,
+        endsAt: founder.endsAt || null,
+      },
+      userId
+    );
+    this.invalidate();
+    return this.listForAdmin();
   }
 
   // The yearly price is never typed: it follows the monthly price and the
@@ -391,18 +514,33 @@ export class PlansService {
     return { id };
   }
 
-  // Loads the default plans. Plans with a default key are created or updated
-  // to the defaults; other active plans are hidden, except on tiers with
-  // subscribers (they stay, with a warning). The lower-limits guard applies to
-  // every change, so paying workspaces never lose anything.
-  async seedDefaults() {
+  // Loads the default plans and the default yearly discount. Each default
+  // takes over the active plan already selling its tier (so its subscribers
+  // keep one continuous plan), else the plan with its key, else it is
+  // created. Keys move with it: a plan that holds a default's key but is not
+  // its target is renamed to "<key>-old". Other active plans are hidden,
+  // except on tiers with subscribers (they stay, with a warning). The
+  // lower-limits guard applies to every change, so paying workspaces never
+  // lose anything.
+  async seedDefaults(userId: string) {
     const warnings: string[] = [];
-    const discount = await this._settings.getYearlyDiscountPercent();
-    const defaultKeys = DEFAULT_PLANS.map((p) => p.key);
+    await this._settings.setYearlyDiscountPercent(
+      DEFAULT_YEARLY_DISCOUNT_PERCENT,
+      userId
+    );
+    const discount = DEFAULT_YEARLY_DISCOUNT_PERCENT;
     const existing = await this._repository.list(false);
 
+    const targets = DEFAULT_PLANS.map((plan) => ({
+      plan,
+      current:
+        existing.find((p) => p.active && p.tier === plan.tier) ||
+        existing.find((p) => p.key === plan.key),
+    }));
+    const targetIds = targets.map((t) => t.current?.id).filter(Boolean);
+
     for (const plan of existing.filter(
-      (p) => p.active && !defaultKeys.includes(p.key)
+      (p) => p.active && !targetIds.includes(p.id)
     )) {
       const paying = await this._repository.countSubscriptions(plan.tier);
       if (paying) {
@@ -417,13 +555,31 @@ export class PlansService {
       this.invalidate();
     }
 
-    for (const plan of DEFAULT_PLANS) {
+    // Free the default keys first: a target can hold another default's key
+    // (the old Business plan sells PRO, which Agency takes over)
+    const taken = new Set(existing.map((p) => p.key));
+    for (const { plan, current } of targets) {
+      const holder = existing.find(
+        (p) => p.key === plan.key && p.id !== current?.id
+      );
+      if (!holder) {
+        continue;
+      }
+      let key = `${plan.key}-old`;
+      for (let n = 2; taken.has(key); n++) {
+        key = `${plan.key}-old-${n}`;
+      }
+      taken.add(key);
+      await this._repository.setKey(holder.id, key);
+      holder.key = key;
+    }
+
+    for (const { plan, current } of targets) {
       const body: PlanDto = {
         ...plan,
         yearlyPriceUsd: yearlyPriceFrom(plan.monthlyPriceUsd, discount),
         active: true,
       };
-      const current = existing.find((p) => p.key === plan.key);
       try {
         if (current) {
           await this.update(current.id, body);

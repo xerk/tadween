@@ -25,7 +25,8 @@ interface OpenModalInterface {
   closeOnEscape?: boolean;
   withCloseButton?: boolean;
   destructive?: boolean;
-  askClose?: boolean;
+  // a function decides on every close, e.g. ask only when there are unsaved changes
+  askClose?: boolean | (() => boolean);
   onClose?: () => void;
   children: ReactNode | ((close: () => void) => ReactNode);
   classNames?: {
@@ -104,7 +105,9 @@ export const Component: FC<{
 }> = memo(({ isLast, modal, closeModal, zIndex }) => {
   const decision = useDecisionModal();
   const closeModalFunction = useCallback(async () => {
-    if (modal.askClose) {
+    if (
+      typeof modal.askClose === 'function' ? modal.askClose() : modal.askClose
+    ) {
       const open = await decision.open();
       if (!open) {
         return;
@@ -412,6 +415,31 @@ export const DecisionEverywhere: FC = () => {
     decisionModalEmitter.on('open', decision.open);
   }, []);
   return null;
+};
+
+// Close every open modal the way its own close button would: when one asks
+// before closing (the composer with unsaved changes), ask once. Resolves false
+// when the user keeps it open (nothing is closed then).
+export const useCloseAllModals = () => {
+  const decision = useDecisionModal();
+  const { closeAll } = useModals();
+  return useCallback(
+    async (question?: Parameters<typeof decision.open>[0]) => {
+      const asks = useModalStore
+        .getState()
+        .modalManager.some((modal) =>
+          typeof modal.askClose === 'function'
+            ? modal.askClose()
+            : modal.askClose
+        );
+      if (asks && !(await decision.open(question))) {
+        return false;
+      }
+      closeAll();
+      return true;
+    },
+    [decision, closeAll]
+  );
 };
 
 export const useDecisionModal = () => {

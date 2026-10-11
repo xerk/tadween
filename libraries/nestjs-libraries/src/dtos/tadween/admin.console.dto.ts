@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsDefined,
   IsEmail,
+  IsISO8601,
   IsIn,
   IsInt,
   IsUrl,
@@ -144,10 +145,18 @@ export class PlanDto {
   @IsIn(['STANDARD', 'PRO', 'TEAM', 'ULTIMATE'])
   tier: 'STANDARD' | 'PRO' | 'TEAM' | 'ULTIMATE';
 
-  // Whole units: Stripe prices are created from price * 100
+  // The list ("regular") price, in whole units: Stripe prices are created
+  // from price * 100
   @IsInt()
   @Min(0)
   monthlyPriceUsd: number;
+
+  // Charged instead of the list price while the founder window is open.
+  // null removes the founder offer; left out keeps the stored value.
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  founderMonthlyPriceUsd?: number | null;
 
   // Ignored on save: the server derives it from the monthly price and the
   // yearly discount (PlansService.withYearlyPrice).
@@ -182,6 +191,13 @@ export class PlanDto {
   @Min(-1)
   aiCredits: number;
 
+  // Webhooks allowed (-1 unlimited, 0 none). null = the tier's static value;
+  // left out keeps the stored value.
+  @IsOptional()
+  @IsInt()
+  @Min(-1)
+  webhooks?: number | null;
+
   @IsArray()
   @ArrayMaxSize(20)
   @IsString({ each: true })
@@ -215,6 +231,25 @@ export class AdminUserActivationDto {
 export class AdminOrgTierDto {
   @IsIn(['FREE', 'STANDARD', 'PRO', 'TEAM', 'ULTIMATE'])
   tier: 'FREE' | 'STANDARD' | 'PRO' | 'TEAM' | 'ULTIMATE';
+}
+
+// The founder offer's window (PlatformSettingsService.getFounderWindow)
+export class FounderWindowDto {
+  // Paying workspaces that get the founder price; 0 turns the offer off
+  @IsInt()
+  @Min(0)
+  @Max(100000)
+  cap: number;
+
+  // Count paying workspaces subscribed from this date (null: all time)
+  @IsOptional()
+  @IsISO8601()
+  startsAt?: string | null;
+
+  // The offer closes on this date even with spots left (null: no end)
+  @IsOptional()
+  @IsISO8601()
+  endsAt?: string | null;
 }
 
 export class YearlyDiscountDto {

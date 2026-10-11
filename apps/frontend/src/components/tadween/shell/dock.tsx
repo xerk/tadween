@@ -41,6 +41,9 @@ const DOCK_PATHS = ['/today', '/launches', '/analytics'];
 const isCurrent = (pathname: string, path: string) =>
   pathname.indexOf(path) === 0;
 
+// full-height chat pages keep their message box at the bottom edge: no dock
+const DOCKLESS_PATHS = ['/agents'];
+
 // Slides out of the way while the page scrolls down and comes back on the way
 // up. Any scroller counts (the window or a page's own scrolling panel).
 const useScrolledAway = (pathname: string, modalOpen: boolean) => {
@@ -210,7 +213,8 @@ export const MobileDock: FC = () => {
         className={clsx(
           'tdw-dock',
           away && 'is-away',
-          modalOpen && !more && 'is-hidden'
+          modalOpen && !more && 'is-hidden',
+          DOCKLESS_PATHS.some((path) => isCurrent(pathname, path)) && 'is-off'
         )}
         aria-label={t('tdw_dock_nav', 'Main navigation')}
       >

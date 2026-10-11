@@ -333,7 +333,6 @@ export class BillingController {
 
     await this._subscriptionService.addSubscription(
       org.id,
-      user.id,
       body.subscription,
       this._paymentService.getDefaultProviderName('web')
     );

@@ -220,26 +220,18 @@ export class AdminConsoleService {
 
     const provider = this._paymentService.getDefaultProviderName('web');
     if (tier === 'FREE') {
-      if (!org.subscription || !org.paymentId) {
+      if (!org.subscription) {
         return { tier: 'FREE' };
       }
-      await this._subscriptionService.deleteSubscription(
-        org.paymentId,
+      // by workspace: granted plans have no Stripe customer to look up
+      await this._subscriptionService.deleteSubscriptionByOrgId(
+        org.id,
         org.subscription.provider
       );
       return { tier: 'FREE' };
     }
 
-    const ownerId = org.users[0]?.userId;
-    if (!ownerId) {
-      throw new HttpException('This workspace has no owner.', 400);
-    }
-    await this._subscriptionService.addSubscription(
-      org.id,
-      ownerId,
-      tier,
-      provider
-    );
+    await this._subscriptionService.addSubscription(org.id, tier, provider);
     return { tier };
   }
 }

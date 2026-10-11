@@ -62,7 +62,8 @@ export class UsersController {
       {
         user_id: organization.id,
         email: user.email,
-        ...(organization.paymentId
+        // only a real Stripe customer (granted plans once stored a user id)
+        ...(organization.paymentId?.startsWith('cus_')
           ? {
               stripe_accounts: [
                 {

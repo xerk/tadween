@@ -430,24 +430,20 @@ export class SubscriptionService {
     };
   }
 
-  async addSubscription(
-    orgId: string,
-    userId: string,
-    subscription: any,
-    provider: string
-  ) {
-    await this._subscriptionRepository.setCustomerId(orgId, userId);
-    return this.createOrUpdateSubscription(
-      provider,
+  // A plan granted without a payment: keyed by the workspace only. It used to
+  // write the owner's user id into paymentId, which Stripe then rejected as a
+  // customer id when the workspace later bought a plan.
+  async addSubscription(orgId: string, subscription: any, provider: string) {
+    return this.createOrUpdateSubscriptionByOrg(
       false,
+      orgId,
+      provider,
       makeId(5),
-      userId,
       (await this._plans.getPricing())[subscription].channel!,
       subscription,
       'MONTHLY',
-      null,
-      undefined,
-      orgId
+      null
     );
   }
+
 }

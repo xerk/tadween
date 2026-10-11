@@ -317,29 +317,34 @@ export class AgentGraphService {
       return {};
     }
 
-    try {
-      const newContent = await Promise.all(
-        (state.content || []).map(async (p) => {
-          // The app's image path: medium quality, paid with AI credits
-          const image = await this._mediaService.generateImage(
-            p.prompt!,
-            { id: state.orgId },
-            false,
-            state.billingExempt
-          );
-          return {
-            ...p,
-            image: 'data:image/png;base64,' + image,
-          };
-        })
-      );
+    // The app's image path: medium quality, paid with AI credits. Pictures
+    // that were made are kept (and paid) even when a later one is refused
+    const results = await Promise.allSettled(
+      (state.content || []).map((p) =>
+        this._mediaService.generateImage(
+          p.prompt!,
+          { id: state.orgId },
+          false,
+          state.billingExempt
+        )
+      )
+    );
 
-      return {
-        content: newContent,
-      };
-    } catch (err) {
-      throw generationError(err);
+    const failed = results.find(
+      (r): r is PromiseRejectedResult => r.status === 'rejected'
+    );
+    if (failed && results.every((r) => r.status === 'rejected')) {
+      throw generationError(failed.reason);
     }
+
+    return {
+      content: (state.content || []).map((p, index) => {
+        const result = results[index];
+        return result.status === 'fulfilled'
+          ? { ...p, image: 'data:image/png;base64,' + result.value }
+          : p;
+      }),
+    };
   }
 
   async uploadPictures(state: WorkflowChannelsState) {

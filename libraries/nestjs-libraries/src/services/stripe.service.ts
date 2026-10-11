@@ -1052,7 +1052,7 @@ export class StripeService extends PaymentProviderAbstract {
   }
 
   // Webhook: credits a paid top-up once (keyed by the session id). Must not
-  // throw: a failure is logged and Stripe's retry will try again.
+  // throw: a failure is logged with what is needed to credit it by hand.
   async aiCreditsPaid(
     event:
       | Stripe.CheckoutSessionCompletedEvent

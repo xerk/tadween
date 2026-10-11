@@ -456,7 +456,7 @@ export class SubscriptionService {
   // Tadween AI credits: the plan's monthly allowance (Plan.aiCredits, reset
   // every billing month) plus purchased top-ups, which never expire and are
   // spent after the allowance
-  async getAiCredits(organizationId: string) {
+  private async aiCreditsWindow(organizationId: string) {
     const subscription = await this._subscriptionRepository.getSubscription(
       organizationId
     );
@@ -468,25 +468,43 @@ export class SubscriptionService {
       tier === 'FREE'
         ? 0
         : (await this._plans.getPricing())[tier]?.image_generation_count || 0;
-    const usage = await this._subscriptionRepository.getAiCreditsUsage(
-      organizationId,
-      from.toDate()
-    );
+    return { from, limit };
+  }
 
+  private aiCreditsBalance(
+    window: { from: dayjs.Dayjs; limit: number },
+    usage: {
+      monthlyUsed: number;
+      legacyImages: number;
+      purchasedUsed: number;
+      purchasedTotal: number;
+    }
+  ) {
     // Images charged before credits existed count at today's image price
     const used =
       usage.monthlyUsed + usage.legacyImages * aiCreditCost('image');
-    const monthlyLeft = Math.max(0, limit - used);
+    const monthlyLeft = Math.max(0, window.limit - used);
     const purchased = Math.max(0, usage.purchasedTotal - usage.purchasedUsed);
 
     return {
-      limit,
+      limit: window.limit,
       used,
       monthlyLeft,
       purchased,
       available: monthlyLeft + purchased,
-      resetsAt: from.add(1, 'month').toDate(),
+      resetsAt: window.from.add(1, 'month').toDate(),
     };
+  }
+
+  async getAiCredits(organizationId: string) {
+    const window = await this.aiCreditsWindow(organizationId);
+    return this.aiCreditsBalance(
+      window,
+      await this._subscriptionRepository.getAiCreditsUsage(
+        organizationId,
+        window.from.toDate()
+      )
+    );
   }
 
   // Refuses (402) when the workspace can't pay for the action. Installs without
@@ -512,31 +530,53 @@ export class SubscriptionService {
     return true;
   }
 
-  // Records one action: the monthly allowance pays first, then top-ups
-  async chargeAiCredits(organizationId: string, action: AiCreditAction) {
+  // Records one action: the monthly allowance pays first, then top-ups. With
+  // `enforce`, an action the balance can't cover is refused (402) instead.
+  async chargeAiCredits(
+    organizationId: string,
+    action: AiCreditAction,
+    enforce = false
+  ) {
     const cost = aiCreditCost(action);
-    const balance = await this.getAiCredits(organizationId);
-    const fromMonthly = Math.min(cost, balance.monthlyLeft);
-    const purchased = Math.min(cost - fromMonthly, balance.purchased);
-
-    return this._subscriptionRepository.chargeAiCredits(
+    const window = await this.aiCreditsWindow(organizationId);
+    const charge = await this._subscriptionRepository.chargeAiCredits(
       organizationId,
       action,
       cost,
-      purchased
+      window.from.toDate(),
+      (usage) => {
+        const balance = this.aiCreditsBalance(window, usage);
+        if (enforce && balance.available < cost) {
+          return null;
+        }
+        const fromMonthly = Math.min(cost, balance.monthlyLeft);
+        return Math.min(cost - fromMonthly, balance.purchased);
+      }
     );
+
+    if (!charge) {
+      throw new SubscriptionException({
+        action: AuthorizationActions.Create,
+        section: Sections.AI_CREDITS,
+      });
+    }
+
+    return charge;
   }
 
-  // For an AI call that finishes inside the request: checked first, charged
-  // before it runs (so parallel calls can't overspend) and refunded if it fails
+  // For an AI call that finishes inside the request: charged before it runs
+  // (checked and written atomically) and refunded if it fails
   async useAiCredits<T>(
     organizationId: string,
     action: AiCreditAction,
     func: () => Promise<T>,
     exempt = false
   ): Promise<T> {
-    await this.assertAiCredits(organizationId, action, exempt);
-    const charge = await this.chargeAiCredits(organizationId, action);
+    const charge = await this.chargeAiCredits(
+      organizationId,
+      action,
+      !exempt && !!process.env.STRIPE_PUBLISHABLE_KEY
+    );
 
     try {
       return await func();
@@ -568,7 +608,11 @@ export class SubscriptionService {
         provider
       );
     } catch (e) {
-      console.error('Error adding purchased AI credits:', e);
+      // Paid but not credited: everything needed to credit it by hand
+      console.error(
+        `Error adding purchased AI credits (session ${id}, workspace ${organizationId}, ${credits} credits):`,
+        e
+      );
       return false;
     }
   }

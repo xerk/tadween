@@ -137,7 +137,7 @@ export const legalAr: LegalCopy = {
           'تتصل الخدمة بمنصات تابعة لأطراف ثالثة لا نتحكم فيها، منها LinkedIn وMeta (Facebook وInstagram وThreads) وGoogle (YouTube) وغيرها مما تختار ربطه. ويخضع استخدامك لكل منصة لشروطها وسياساتها الخاصة، مثل {linkedinTerms} و{metaTerms}. وأنت مسؤول عن الالتزام بها.',
           'YouTube. يستخدم تدوين خدمات YouTube API لرفع مقاطع الفيديو وإدارتها على قنوات YouTube التي تربطها. وبربطك قناة YouTube أو استخدامك ميزات YouTube في تدوين، فإنك توافق على الالتزام بـ{youtubeTerms}. ويرد وصف تعامل Google مع بياناتك في {googlePrivacy}.',
           'يمكن للمنصات تغيير واجهاتها البرمجية أو حدود معدّل الطلبات أو ميزاتها أو موافقتها على تطبيقات مثل تطبيقنا، أو تقييد أي منها، في أي وقت. وعند حدوث ذلك، قد تتوقف بعض الميزات عن العمل أو قد يتعذر نشر منشور ما. وسنحاول إعلامك عند تعذّر نشر منشور، لكننا لسنا مسؤولين عن الإجراءات التي تتخذها أي منصة، بما في ذلك إزالة المحتوى أو تقييد حسابك لديها.',
-          'العلامات التجارية. أسماء LinkedIn وFacebook وInstagram وThreads وYouTube وغيرها من المنصات، وClaude (Anthropic) وChatGPT (OpenAI) وCursor (Anysphere)، علامات تجارية مملوكة لأصحابها. ونستخدم هذه الأسماء والشعارات فقط لبيان ما يعمل معه تدوين، وتدوين غير تابع لهم ولا برعايتهم ولا بموافقتهم.',
+          'العلامات التجارية. أسماء LinkedIn وFacebook وInstagram وThreads وYouTube وغيرها من المنصات، وClaude وClaude Code (Anthropic) وChatGPT (OpenAI) وCursor (Anysphere) وGitHub Copilot (GitHub) وVS Code (Microsoft) وGemini (Google) وHermes Agent (Nous Research) وWindsurf وn8n، علامات تجارية مملوكة لأصحابها. ونستخدم هذه الأسماء والشعارات فقط لبيان ما يعمل معه تدوين، وتدوين غير تابع لهم ولا برعايتهم ولا بموافقتهم.',
         ],
       },
       {

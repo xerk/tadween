@@ -272,6 +272,34 @@ export interface AiClientsDict {
   items: Record<string, AiClientCopy>;
 }
 
+/** The words of the home page's calendar demo (components/CalendarDemo.tsx). The demo week is
+    fixed (Monday 12 to Friday 16 October 2026, "now" on Wednesday at 11:20) so the server and
+    the browser draw the same thing. */
+export interface CalendarDemoCopy {
+  /** The demo's accessible name, and how to move a post with the keyboard. */
+  label: string;
+  keyboardHint: string;
+  range: string;
+  month: string;
+  views: { label: string; week: string; month: string; board: string };
+  filtersLabel: string;
+  /** The five days of the week view, short ("Mon 12") and long ("Monday, Oct 12"). */
+  days: { short: string; long: string }[];
+  /** Monday to Sunday, for the month view's header. */
+  weekdays: string[];
+  today: string;
+  now: string;
+  status: { draft: string; scheduled: string; published: string };
+  upNext: string;
+  actions: { edit: string; duplicate: string; preview: string; delete: string };
+  /** "+{n} more" under a full day in the month view. */
+  more: string;
+  /** What the drag callout says after a move: "{when}" is the new day and time. */
+  moved: string;
+  refusedPast: string;
+  refusedPublished: string;
+}
+
 export interface Dict {
   lang: Lang;
   dir: 'ltr' | 'rtl';
@@ -335,10 +363,10 @@ export interface Dict {
     fine: string;
     nets: string;
   };
-  product: Head & { calloutA: string; calloutB: string };
+  product: Head & { calloutA: string; calloutB: string; demo: CalendarDemoCopy };
   netstrip: { title: string; all: string };
   arabic: Head & { bullets: string[] };
-  agentTeaser: Head & { link: string; eyebrow: string };
+  agentTeaser: Head & { link: string; eyebrow: string; worksWith: string };
   allFeatures: Head & { more: string };
   steps: {
     title: string;

@@ -1,12 +1,13 @@
 import type { ReactNode } from 'react';
 import type { ChatDemo, Dict, Faq } from '@/content/types';
-import { AI_CLIENTS } from '@/lib/aiClients';
-import { CHANNELS, channelBySlug, networkBySlug } from '@/lib/channels';
+import { AI_CLIENTS, WORKS_WITH } from '@/lib/aiClients';
+import { CHANNELS, networkBySlug } from '@/lib/channels';
 import { SIGN_IN_URL, SIGN_UP_URL } from '@/lib/config';
 import { FEATURE_MENU, featureRefIcon, featureRefPath, type FeatureRef } from '@/lib/features';
 import { PATHS, channelPath, clientPath, localePath } from '@/lib/routes';
 import type { ShotId } from '@/lib/shots';
 import { Accordion } from './Accordion';
+import { CalendarDemo } from './CalendarDemo';
 import { Icon, cx } from './Icon';
 import type { IconName } from './icons';
 import { Logo } from './Logo';
@@ -73,6 +74,7 @@ export function TrialButtons({ t, primary, secondaryHref, secondary }: { t: Dict
   );
 }
 
+/** Tadween's focus networks, for the hero's row of marks and the calendar demo's filters. */
 const HERO_NETS = ['linkedin', 'instagram', 'facebook', 'threads', 'youtube'];
 
 export function Hero({ t }: { t: Dict }) {
@@ -119,39 +121,19 @@ export function Hero({ t }: { t: Dict }) {
   );
 }
 
-/** The big product shot after the hero: the real calendar with a chip being dragged to a
-    new day and a hover preview popping up, both drawn over the screenshot. */
+/** The calendar after the hero: a small working week (components/CalendarDemo.tsx) instead of a
+    screenshot, with the two callouts that point at what to try. */
 export function ProductShot({ t }: { t: Dict }) {
   const p = t.product;
-  const li = channelBySlug('linkedin')!;
+  const netNames = Object.fromEntries(HERO_NETS.map((slug) => [slug, networkName(t, slug)]));
   return (
     <section className="pz-sec is-tight" id="product" aria-labelledby="product-title">
       <div className="pz-container">
         <SectionHead id="product-title" title={p.title} sub={p.sub} />
       </div>
       <div className="pz-container is-wide">
-        <div className="pz-stage pz-showcase" data-parallax>
-          <div className="pz-mock pz-zoomable" data-art>
-            <Shot t={t} id="calendar-week" priority />
-            <span className="pz-mock-chip" style={{ top: '46%', insetInlineStart: '44%', ['--dx' as string]: t.dir === 'rtl' ? '-110%' : '110%', ['--dy' as string]: '-140%' }} aria-hidden="true">
-              <img src={li.icon} alt="" width={14} height={14} />
-              Nile Studio · 09:00
-            </span>
-            <span className="pz-mock-cursor is-drag" style={{ top: '49%', insetInlineStart: '55%', ['--dx' as string]: t.dir === 'rtl' ? '-1100%' : '1100%', ['--dy' as string]: '-820%' }} aria-hidden="true">
-              <Icon name="mouse-pointer-2" size={22} />
-            </span>
-            <div className="pz-mock-pop" style={{ top: '18%', insetInlineEnd: '3%' }} aria-hidden="true">
-              <Shot t={t} id="calendar-preview" frame="bare" />
-            </div>
-          </div>
-          <span className="pz-callout is-a" data-reveal>
-            <Icon name="eye" size={16} />
-            {p.calloutA}
-          </span>
-          <span className="pz-callout is-b is-smart" data-reveal>
-            <Icon name="mouse-pointer-2" size={16} />
-            {p.calloutB}
-          </span>
+        <div className="pz-stage pz-showcase" data-reveal>
+          <CalendarDemo c={p.demo} calloutA={p.calloutA} calloutB={p.calloutB} numberLocale={t.numberLocale} netNames={netNames} />
         </div>
       </div>
     </section>
@@ -306,6 +288,19 @@ export function AgentTeaser({ t }: { t: Dict }) {
             {a.title}
           </h2>
           <p className="t-body">{a.sub}</p>
+          <div className="pz-works">
+            <span>{a.worksWith}</span>
+            <ul lang="en">
+              {WORKS_WITH.map((w) => (
+                <li key={w.name}>
+                  <a href={localePath(t.lang, w.page ? clientPath(w.page) : `${PATHS.agent}#connect`)} style={w.brand ? { ['--brand' as string]: w.brand } : undefined}>
+                    {w.logo ? <span className="pz-works-mark" style={{ ['--logo' as string]: `url(${w.logo})` }} aria-hidden="true" /> : <span className="pz-works-mark is-initial" aria-hidden="true">{w.name[0]}</span>}
+                    {w.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
           <a className="pz-more-link" href={localePath(t.lang, PATHS.agent)}>
             {a.link}
             <Icon name="arrow-right" className="pz-flip-rtl" />

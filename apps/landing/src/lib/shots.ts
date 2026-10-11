@@ -15,7 +15,6 @@ export interface ShotSpec {
 }
 
 export const SHOTS = {
-  'calendar-week': { w: 2400, h: 1500, frame: 'browser', path: '/launches' },
   'calendar-month': { w: 2400, h: 1500, frame: 'browser', path: '/launches?display=month' },
   'calendar-preview': { w: 680, h: 568, frame: 'bare' },
   board: { w: 2400, h: 1500, frame: 'browser', path: '/launches?display=list' },

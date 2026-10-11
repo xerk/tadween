@@ -133,4 +133,22 @@ export const MORE_AI_CLIENTS: { slug: string; name: string }[] = [
   { slug: 'grok-build', name: 'Grok Build' },
 ];
 
+/** The row of marks under the home page's agent section: clients the app's Settings → API & MCP
+    guide covers. `page` is the slug of the client's own page; the others link to the agent
+    page's connect steps (any remote MCP client follows them). `logo` is a single-colour mark in
+    public/logos (Simple Icons, CC0; GitHub Copilot is Octicons, MIT, notice in the file) drawn as
+    a CSS mask, so it takes the text colour and `brand` on hover. Hermes Agent has no openly
+    licensed mark, so it shows its initial. Near-black brands keep the text colour on hover. */
+export const WORKS_WITH: { name: string; logo?: string; brand?: string; page?: string }[] = [
+  { name: 'ChatGPT', logo: '/logos/chatgpt.svg', brand: '#10a37f', page: 'chatgpt' },
+  { name: 'Claude', logo: '/logos/claude.svg', brand: '#d97757', page: 'claude' },
+  { name: 'Claude Code', logo: '/logos/claude.svg', brand: '#d97757' },
+  { name: 'Cursor', logo: '/logos/cursor.svg', page: 'cursor' },
+  { name: 'GitHub Copilot', logo: '/logos/github-copilot.svg' },
+  { name: 'Windsurf', logo: '/logos/windsurf.svg' },
+  { name: 'Gemini CLI', logo: '/logos/gemini.svg', brand: '#8e75b2' },
+  { name: 'n8n', logo: '/logos/n8n.svg', brand: '#ea4b71' },
+  { name: 'Hermes Agent' },
+];
+
 export const clientBySlug = (slug: string) => AI_CLIENTS.find((c) => c.slug === slug);

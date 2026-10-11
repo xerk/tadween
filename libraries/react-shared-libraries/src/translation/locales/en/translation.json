@@ -1288,5 +1288,6 @@
   "tdw_credits_added": "{{n}} credits added",
   "tdw_credits_added_desc": "You now have {{n}} AI credits.",
   "tdw_done": "Done",
-  "tdw_credits_slow_desc": "We are still adding your credits. They will appear in a minute; you can close this window."
+  "tdw_credits_slow_desc": "We are still adding your credits. They will appear in a minute; you can close this window.",
+  "tdw_unlimited_ai_credits": "Unlimited AI credits"
 }

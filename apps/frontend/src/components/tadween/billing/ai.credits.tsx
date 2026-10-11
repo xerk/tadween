@@ -16,6 +16,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import {
   Button,
   cx,
@@ -80,8 +81,11 @@ const useNumber = () => {
 export const AiCreditsBadge: FC<{ className?: string }> = ({ className }) => {
   const t = useT();
   const number = useNumber();
+  const { billingEnabled } = useVariables();
+  const user = useUser();
   const { data } = useAiCredits();
-  if (!data) {
+  // Without billing, and for super admins, AI is never refused
+  if (!data || !billingEnabled || user?.billingExempt) {
     return null;
   }
   const out = data.available <= 0;
@@ -99,6 +103,8 @@ export const AiCreditsBadge: FC<{ className?: string }> = ({ className }) => {
         <Icon name="sparkles" size={14} />
         {out
           ? t('tdw_ai_credits_out', 'No AI credits left')
+          : data.limit >= UNLIMITED
+          ? t('tdw_unlimited_ai_credits', 'Unlimited AI credits')
           : t('tdw_ai_credits_left', '{{n}} AI credits left', {
               n: number(data.available),
             })}

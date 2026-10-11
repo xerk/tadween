@@ -133,7 +133,7 @@ export const FacebookPreview: FC<{
         <div className="flex flex-col leading-[18px]">
           <div className="text-[14px] font-[500]">{integration?.name}</div>
           <div className="text-[12px] font-[400] text-[#A3A3A3] flex gap-[4px] items-center">
-            <span>30m •</span>
+            <span>Just now •</span>
             <span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -186,13 +186,17 @@ export const FacebookPreview: FC<{
       <div className="flex text-textLinkedin text-[12px] font-[400] items-center">
         <div className="flex flex-1 gap-[10px] items-center">
           <Icons />
-          <div className="">You & 12 other</div>
         </div>
         <div className="gap-[9px] items-center flex">
-          <div>20 Comments</div>
+          {renderContent.length > 1 && (
+            <div>
+              {renderContent.length - 1}{' '}
+              {renderContent.length === 2 ? 'comment' : 'comments'}
+            </div>
+          )}
         </div>
       </div>
-      <div className="pt-[8px] flex text-[14px] font-[700] px-[32px] justify-between border-t border-borderLinkedin text-textLinkedin">
+      <div className="pt-[8px] flex text-[14px] font-[700] px-[32px] justify-between border-t border-borderLinkedin text-textLinkedin select-none">
         <div className="flex gap-[4px] items-center">
           <svg
             width="24"
@@ -240,7 +244,7 @@ export const FacebookPreview: FC<{
               />
             </g>
           </svg>
-          <div>Comments</div>
+          <div>Comment</div>
         </div>
         <div className="flex gap-[4px] items-center">
           <svg
@@ -321,14 +325,13 @@ export const FacebookPreview: FC<{
                       </div>
                     )}
                   </div>
-                  <div className="flex font-[400] text-[12px] text-textLinkedin items-center">
+                  <div className="flex font-[400] text-[12px] text-textLinkedin items-center select-none">
                     <div className="flex gap-[16px] flex-1">
-                      <div className="font-[700]">9h</div>
+                      <div className="font-[700]">Just now</div>
                       <div className="font-[700]">Like</div>
                       <div className="font-[700]">Reply</div>
                     </div>
                     <div className="flex gap-[4px]">
-                      <div>2</div>
                       <div>
                         <svg
                           xmlns="http://www.w3.org/2000/svg"

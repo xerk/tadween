@@ -6,7 +6,7 @@
 // same functions <Filters /> uses), so nothing about loading changes. The
 // channels themselves (chips, filters, menus, customers, Add channel) live in
 // the "All channels" sheet the Channels control opens.
-import React, { FC, useMemo, useRef } from 'react';
+import React, { FC, useMemo } from 'react';
 import clsx from 'clsx';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
@@ -64,7 +64,6 @@ export const WorkspaceToolbar: FC<{
   onToggleSide: () => void;
 }> = ({ hasChannels, showGenerator, onAddChannel, onOpenChannels, sideOpen, onToggleSide }) => {
   const t = useT();
-  const bar = useRef<HTMLElement>(null);
   const nav = useCalendarNavigation();
   const { calendar, isListView } = nav;
   const { title, year, range } = useTitle();
@@ -88,7 +87,9 @@ export const WorkspaceToolbar: FC<{
       ? nav.setMonth()
       : nav.setList();
 
-  const openChannels = () => bar.current && onOpenChannels(bar.current.getBoundingClientRect());
+  // the panel opens under the channels button itself
+  const openChannels = (e: React.MouseEvent<HTMLButtonElement>) =>
+    onOpenChannels(e.currentTarget.getBoundingClientRect());
   const channelsLabel = allSelected
     ? t('tdw_ws_channels_count', '{{count}} channels', { count: channels.length })
     : t('tdw_ws_channels_shown_count', '{{shown}} of {{total}} channels shown', {
@@ -97,7 +98,7 @@ export const WorkspaceToolbar: FC<{
       });
 
   return (
-    <header ref={bar} className="tdw-ui tdw-ws-bar">
+    <header className="tdw-ui tdw-ws-bar">
       <div className="tdw-ws-bar-row">
         <div className="tdw-ws-title" aria-live="polite">
           <h1>

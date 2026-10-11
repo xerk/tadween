@@ -437,6 +437,14 @@ export interface Dict {
     billedMonthly: string;
     /** "{amount}" is the yearly total ("$470"). */
     billedYearly: string;
+    /** Under a founder price: the price stays while the workspace stays subscribed. */
+    founderLocked: string;
+    /** Under a founder price, the regular price that follows the offer: "{price}" is the
+        regular monthly (or yearly) price, "{cap}" the number of founder spots. */
+    regularMonthly: string;
+    regularYearly: string;
+    /** The founder spots left, by plural form like `days`; "{n}" is the number. */
+    spotsLeft: Partial<Record<Intl.LDMLPluralRule, string>> & { other: string };
     /** The plan CTA; "{days}" is the plan's trial length from `days`. */
     trial: string;
     /** The trial length by plural form (Intl.PluralRules); "{n}" is the number. `other`
@@ -452,6 +460,10 @@ export interface Dict {
     /** A feature line one plan has and another doesn't. */
     notIncluded: string;
     unlimited: string;
+    /** The team row of a plan for one person (0 team members). */
+    justYou: string;
+    /** Under the cards; "{amount}" is the smallest AI credit pack's price. */
+    creditPacks: string;
     /** The label of each generated feature line (lib/plans.ts FEATURE_KEYS), the value the
         plan's own number; the app's tdw_plan_feature_* strings in the same words. */
     features: Record<FeatureKey, string>;

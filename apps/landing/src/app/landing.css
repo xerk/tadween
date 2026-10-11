@@ -102,18 +102,20 @@ a { color: var(--primary); text-underline-offset: 3px; }
 
 /* ── Pricing ─────────────────────────────────────────── */
 .pz-pricing { display: grid; grid-template-columns: minmax(0, 1fr); gap: 40px; }
-.pz-pricing-toggle { display: flex; justify-content: center; }
+.pz-pricing-toggle { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .pz-pricing-toggle .pz-seg-item { padding: 8px 18px; font-size: 14px; }
 .pz-save { padding: 1px 7px; border-radius: var(--radius-full); background: var(--success-soft); color: var(--success); font-size: 11px; line-height: 16px; font-weight: 600; }
-.pz-tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px; align-items: stretch; }
-.pz-tiers.is-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 880px; width: 100%; margin: 0 auto; }
-.pz-tier { position: relative; display: flex; flex-direction: column; padding: 32px; border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); }
+.pz-founder-chip { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 12px; border-radius: var(--radius-full); background: var(--card); box-shadow: var(--shadow-sm); font-size: 13px; line-height: 18px; font-weight: 500; color: var(--foreground); }
+.pz-founder-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+/* One column per plan (--n, set by the table), side by side from 961px. */
+.pz-tiers { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 20px; align-items: stretch; max-width: calc(var(--n, 3) * 400px); width: 100%; margin: 0 auto; }
+.pz-tier { position: relative; padding: 32px; border-radius: var(--radius-xl); background: var(--card); box-shadow: var(--shadow-sm); }
 .pz-tier.is-popular { box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 55%, transparent), 0 12px 40px -12px color-mix(in oklab, var(--primary) 35%, transparent), var(--shadow-md); }
 .pz-tier.is-popular::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(120% 60% at 50% 0%, color-mix(in oklab, var(--primary-soft) 70%, transparent), transparent 70%); }
 .pz-tier > * { position: relative; }
-/* The cards share their rows (subgrid), so a longer description or extra lines in one card
-   never push the other card's price or limits out of line. */
-.pz-tiers.is-pair .pz-tier { display: grid; grid-template-rows: subgrid; grid-row: span 7; row-gap: 0; align-content: start; }
+/* The cards share their rows (subgrid), so a longer description, founder lines or extra lines
+   in one card never push another card's price or limits out of line. */
+.pz-tier { display: grid; grid-template-rows: subgrid; grid-row: span 6; row-gap: 0; align-content: start; }
 .pz-tier-extras:empty { display: none; }
 .pz-tier-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 28px; }
 .pz-tier-name { margin: 0; font-size: 20px; line-height: 28px; font-weight: 600; letter-spacing: -0.015em; }
@@ -126,6 +128,12 @@ a { color: var(--primary); text-underline-offset: 3px; }
 .pz-tier-cents { font-size: 0.5em; line-height: 1.6; letter-spacing: -0.02em; }
 .pz-tier-per { font-size: 15px; color: var(--muted-foreground); }
 .pz-tier-bill { margin: 8px 0 0; min-height: 20px; font-size: 13px; line-height: 20px; color: var(--muted-foreground); }
+.pz-tier-founder { display: grid; gap: 4px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border); }
+.pz-tier-locked { display: flex; align-items: flex-start; gap: 6px; margin: 0; font-size: 13px; line-height: 20px; font-weight: 600; color: var(--primary); }
+.pz-tier-locked .pz-icon { flex: none; margin-top: 3px; }
+.pz-tier-regular { margin: 0; font-size: 13px; line-height: 20px; color: var(--muted-foreground); }
+.pz-credit-packs { display: flex; align-items: center; justify-content: center; gap: 8px; margin: -12px 0 0; font-size: 15px; line-height: 22px; color: var(--muted-foreground); text-align: center; }
+.pz-credit-packs .pz-icon { color: var(--primary); flex: none; }
 .pz-usd { font-variant-numeric: tabular-nums; color: var(--foreground); font-weight: 500; }
 .pz-tier-cta { width: 100%; margin-top: 24px; }
 .pz-tier-rows { margin: 28px 0 0; padding: 0; border-top: 1px solid var(--border); }
@@ -910,6 +918,8 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
   .pz-sheet { display: none; }
 }
 @media (max-width: 960px) {
+  .pz-tiers { grid-template-columns: minmax(0, 1fr); max-width: 520px; }
+  .pz-tier.is-popular { order: -1; }
   :root { --nav-h: 60px; }
   .pz-nav-links, .pz-nav .pz-signin { display: none; }
   .pz-burger { display: inline-grid; }
@@ -924,8 +934,7 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
 }
 @media (max-width: 640px) {
   .pz-nav .pz-btn-primary { padding: 0 12px; }
-  .pz-tiers.is-pair, .pz-includes-list { grid-template-columns: minmax(0, 1fr); }
-  .pz-tier.is-popular { order: -1; }
+  .pz-includes-list { grid-template-columns: minmax(0, 1fr); }
   .pz-tier { padding: 26px 22px; }
   .pz-includes { padding: 22px; }
   .pz-cards, .pz-steps, .pz-steps.is-row, .pz-checks, .pz-chcards, .pz-facts { grid-template-columns: minmax(0, 1fr); }

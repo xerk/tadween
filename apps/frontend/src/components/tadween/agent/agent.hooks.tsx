@@ -79,8 +79,6 @@ export interface AgentWorkspaceState {
   selected: AgentChannel[];
   setSelected: (channels: AgentChannel[]) => void;
   // the channel panel's sheet on phones
-  channelsOpen: boolean;
-  setChannelsOpen: (open: boolean) => void;
   // text a suggested prompt put into the composer
   draft: { text: string; at: number };
   setDraft: (text: string) => void;
@@ -92,8 +90,6 @@ export interface AgentWorkspaceState {
 export const AgentWorkspaceContext = createContext<AgentWorkspaceState>({
   selected: [],
   setSelected: () => {},
-  channelsOpen: false,
-  setChannelsOpen: () => {},
   draft: { text: '', at: 0 },
   setDraft: () => {},
   chatKey: 0,

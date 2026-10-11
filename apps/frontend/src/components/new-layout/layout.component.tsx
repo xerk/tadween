@@ -1,12 +1,14 @@
 'use client';
 
-import React, { ReactNode, useCallback, useEffect, useState } from 'react';
+import React, { ReactNode, useCallback, useEffect } from 'react';
 import { tadweenFont as jakartaSans } from '@gitroom/frontend/app/fonts';
 import {
   SidebarHeader,
   useSidebarCollapsed,
 } from '@gitroom/frontend/components/tadween/shell/sidebar';
 import { AccountMenu } from '@gitroom/frontend/components/tadween/shell/account.menu';
+import { MobileDock } from '@gitroom/frontend/components/tadween/shell/dock';
+import { usePhoneLayout } from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
 import {
   SidebarChannels,
   SidebarCreatePost,
@@ -64,11 +66,8 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  const [menuOpen, setMenuOpen] = useState(false);
   const sidebar = useSidebarCollapsed();
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
+  const phone = usePhoneLayout();
   const load = useCallback(async (path: string) => {
     return await (await fetch(path)).json();
   }, []);
@@ -126,7 +125,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             <ContinueProvider />
             <div
               className={clsx(
-                'flex flex-col min-h-screen min-w-screen text-newTextColor p-[12px] mobile:p-[8px] mobile:pb-[80px]',
+                'tdw-shell flex flex-col min-h-screen min-w-screen text-newTextColor p-[12px] mobile:p-[8px]',
                 jakartaSans.className
               )}
             >
@@ -148,43 +147,40 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                   {billingEnabled && <TrialBanner />}
                   <div className="flex-1 flex gap-[8px] mobile:gap-0">
                     <Support />
-                    {menuOpen && (
+                    {/* phones: the bottom dock in place of the sidebar */}
+                    {phone ? (
+                      <MobileDock />
+                    ) : (
                       <div
-                        className="hidden mobile:block fixed inset-0 bg-newBackdrop opacity-60 z-[var(--tdw-z-nav)]"
-                        onClick={() => setMenuOpen(false)}
-                      />
-                    )}
-                    <div
-                      className={clsx(
-                        'tdw-side flex flex-col bg-newBgColorInner rounded-[12px] mobile:fixed mobile:top-0 mobile:bottom-0 mobile:start-0 mobile:z-[calc(var(--tdw-z-nav)+1)] mobile:rounded-none mobile:overflow-y-auto mobile:overflow-x-hidden',
-                        !menuOpen && 'mobile:hidden',
-                        sidebar.collapsed && 'is-collapsed'
-                      )}
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <div
-                        id="left-menu"
                         className={clsx(
-                          'tdw-side-inner fixed h-full flex flex-1 top-0 mobile:static mobile:h-auto mobile:min-h-full mobile:mx-auto',
-                          user?.admin &&
-                            user?.impersonate &&
-                            'pt-[60px] max-h-[1000px]:w-[500px]'
+                          'tdw-side flex flex-col bg-newBgColorInner rounded-[12px]',
+                          sidebar.collapsed && 'is-collapsed'
                         )}
                       >
-                        <div className="tdw-side-body flex flex-col h-full gap-[32px] mobile:gap-[16px] flex-1 py-[12px]">
-                          <SidebarHeader
-                            collapsed={sidebar.collapsed}
-                            onToggle={sidebar.toggle}
-                          />
-                          <SidebarCreatePost />
-                          <TopMenu>
-                            <SidebarChannels collapsed={sidebar.collapsed} />
-                          </TopMenu>
-                          <UpgradeTrialLine />
-                          <AccountMenu />
+                        <div
+                          id="left-menu"
+                          className={clsx(
+                            'tdw-side-inner fixed h-full flex flex-1 top-0',
+                            user?.admin &&
+                              user?.impersonate &&
+                              'pt-[60px] max-h-[1000px]:w-[500px]'
+                          )}
+                        >
+                          <div className="tdw-side-body flex flex-col h-full gap-[32px] flex-1 py-[12px]">
+                            <SidebarHeader
+                              collapsed={sidebar.collapsed}
+                              onToggle={sidebar.toggle}
+                            />
+                            <SidebarCreatePost />
+                            <TopMenu>
+                              <SidebarChannels collapsed={sidebar.collapsed} />
+                            </TopMenu>
+                            <UpgradeTrialLine />
+                            <AccountMenu />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                     <div className="flex-1 min-w-0 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
                       <div
                         className={clsx(
@@ -194,26 +190,6 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                             : 'h-[68px] mobile:h-[56px]'
                         )}
                       >
-                        <button
-                          className="hidden mobile:flex items-center justify-center w-[36px] h-[36px] -ms-[6px] rounded-[8px] text-textItemBlur hover:text-newTextColor hover:bg-boxFocused"
-                          onClick={() => setMenuOpen(true)}
-                          aria-label="Open menu"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="22"
-                            height="22"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <path
-                              d="M3 6H21M3 12H21M3 18H21"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </button>
                         <div className="tdw-topbar-title flex flex-1 min-w-0">
                           <Title />
                         </div>

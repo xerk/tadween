@@ -6,8 +6,9 @@
 // Components: components/tadween/shell/*. Postiz's menu markup only gained
 // tdw-* class names; the overrides below use two classes so they win over
 // single Tailwind utilities without !important.
-// Below Postiz's `mobile` breakpoint (1025px) the slide-in menu is always the
-// full panel; collapsed rules are scoped to wider screens.
+// Below Postiz's `mobile` breakpoint (1025px) the sidebar isn't rendered: the
+// floating bottom dock and its More sheet take its place (tadween/shell/dock.tsx,
+// "Phone dock" below). Collapsed rules are scoped to wider screens.
 
 $tdw-desktop: '(min-width: 1026px)';
 $tdw-mobile: '(max-width: 1025px)';
@@ -45,10 +46,6 @@ $tdw-mobile: '(max-width: 1025px)';
         0 8px 24px -16px rgb(0 0 0 / 0.35);
     }
   }
-
-  @media #{$tdw-mobile} {
-    --tdw-side-w: 272px;
-  }
 }
 
 // The fixed inner column keeps the menu in place while the page scrolls.
@@ -64,11 +61,6 @@ $tdw-mobile: '(max-width: 1025px)';
     height: calc(100dvh - 24px);
     padding-block: 10px 4px;
   }
-
-  @media #{$tdw-mobile} {
-    width: 100%;
-    padding-inline: 8px;
-  }
 }
 
 .tdw-side .tdw-side-body {
@@ -80,7 +72,7 @@ $tdw-mobile: '(max-width: 1025px)';
 
 // The sticky menu is a stacking context of its own: lift it above the page,
 // so Postiz's channel menu (fixed, inside it) isn't painted over by the
-// calendar next to it. Phones keep the slide-in menu's --tdw-z-nav.
+// calendar next to it.
 @media not #{$tdw-mobile} {
   .tdw-side {
     z-index: calc(var(--tdw-z-sticky) + 1);
@@ -855,6 +847,339 @@ html[dir='rtl'] .tdw-acct-host.is-danger svg {
   }
 }
 
+// ── Phone dock (tadween/shell/dock.tsx) ───────────────────────────────────
+// A capsule of liquid glass floating above the bottom edge: translucent
+// material with a strong blur and saturation, a light top edge and hairline
+// inside, a soft shadow below. The lens under the current item slides on the
+// spring curve. Only below the phone breakpoint; the sidebar is above it.
+@media #{$tdw-mobile} {
+  // page content clears the dock (not on the paywall, which has none)
+  body:has(.tdw-dock) .tdw-shell.tdw-shell {
+    padding-bottom: calc(var(--tdw-dock-space) + 8px);
+  }
+
+  // toasts rise above the dock while it shows
+  body:has(.tdw-dock:not(.is-hidden, .is-away)) .tdw-toaster {
+    bottom: calc(var(--tdw-dock-space) + 4px);
+  }
+
+  // compact top bar: title, streak and bell (Upgrade is in More)
+  .tdw-topbar-actions > .tdw-upgrade-pill {
+    display: none;
+  }
+
+  // the small pills keep their look with a finger-sized hit area
+  .tdw-topbar-actions > .tdw-streak,
+  .tdw-topbar-actions .tdw-adminbar-pill {
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -6px -2px;
+    }
+  }
+}
+
+.tdw-dock {
+  --tdw-dock-h: 64px;
+  --tdw-dock-edge: rgb(255 255 255 / 0.6);
+  --tdw-dock-line: rgb(255 255 255 / 0.35);
+  --tdw-dock-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.08),
+    0 14px 36px -10px rgb(0 0 0 / 0.28), 0 2px 8px -2px rgb(0 0 0 / 0.1);
+  position: fixed;
+  z-index: var(--tdw-z-nav);
+  inset-inline: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  max-width: 480px;
+  margin-inline: auto;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tdw-material) 85%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  backdrop-filter: blur(24px) saturate(190%);
+  box-shadow: inset 0 1px 0 var(--tdw-dock-edge),
+    inset 0 0 0 0.5px var(--tdw-dock-line), var(--tdw-dock-shadow);
+  transition: transform 420ms var(--tdw-ease-spring), opacity 220ms ease;
+  -webkit-tap-highlight-color: transparent;
+
+  @media #{$tdw-desktop} {
+    display: none;
+  }
+}
+
+.dark .tdw-dock {
+  --tdw-dock-edge: rgb(255 255 255 / 0.14);
+  --tdw-dock-line: rgb(255 255 255 / 0.08);
+  --tdw-dock-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.6),
+    0 16px 40px -10px rgb(0 0 0 / 0.7);
+}
+
+// steps aside: scrolling down, a modal or sheet, or typing (the keyboard).
+// A closed sheet kept in the DOM (data-present false) doesn't count.
+.tdw-dock.is-away,
+.tdw-dock.is-hidden,
+body:has([aria-modal='true']:not(.tdw-sheet[data-present='false'] *)) .tdw-dock,
+body:has(.tdw-sheet[data-present='true']) .tdw-dock,
+body:has(
+    :is(
+        input:not([type='checkbox'], [type='radio'], [type='button'], [type='submit'], [type='range'], [type='file'], [type='color']),
+        textarea,
+        select,
+        [contenteditable='true']
+      ):focus
+  )
+  .tdw-dock {
+  transform: translateY(calc(100% + 24px + env(safe-area-inset-bottom, 0px)));
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 260ms cubic-bezier(0.32, 0, 0.67, 0), opacity 200ms ease;
+}
+
+// tabbing into a dock that scrolled away brings it back (keyboard focus
+// only: a sheet closing hands focus back to More without a keyboard)
+.tdw-dock.is-away:not(.is-hidden):has(:focus-visible) {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tdw-dock-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--tdw-dock-h);
+  padding: 6px;
+}
+
+.tdw-dock-lens {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tdw-foreground) 7%, transparent);
+  box-shadow: inset 0 1px 0 var(--tdw-dock-edge),
+    inset 0 0 0 0.5px color-mix(in srgb, var(--tdw-foreground) 8%, transparent);
+  pointer-events: none;
+
+  &.is-ready {
+    transition: transform 420ms var(--tdw-ease-spring),
+      width 420ms var(--tdw-ease-spring);
+  }
+
+  &.is-none {
+    opacity: 0;
+  }
+}
+
+.tdw-dock-item {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 999px;
+  color: var(--tdw-muted-foreground);
+  transition: color 150ms ease, transform 100ms ease;
+
+  &:active {
+    transform: scale(0.94);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tdw-ring);
+    outline-offset: -2px;
+  }
+
+  &[aria-current='page'],
+  &[data-active] {
+    color: var(--tdw-foreground);
+
+    .tdw-dock-icon {
+      color: var(--tdw-primary);
+    }
+  }
+}
+
+.tdw-dock-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+
+  svg {
+    max-width: 22px;
+    max-height: 22px;
+  }
+}
+
+.tdw-dock-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+}
+
+// Create post: the one filled button, in the middle
+.tdw-dock-create {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-inline: 4px;
+  border-radius: 50%;
+  background: var(--tdw-primary-strong);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25),
+    0 6px 16px -6px color-mix(in srgb, var(--tdw-primary-strong) 80%, transparent);
+  transition: transform 100ms ease, filter 150ms ease;
+
+  &:active {
+    transform: scale(0.92);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tdw-ring);
+    outline-offset: 2px;
+  }
+}
+
+// very narrow phones: icons only
+@media (max-width: 340px) {
+  .tdw-dock-label {
+    display: none;
+  }
+}
+
+// More sheet: the sidebar's channels and account as grouped rows
+.tdw-dock-sheet {
+  .tdw-sheet-row-ico svg {
+    max-width: 20px;
+    max-height: 20px;
+  }
+
+  .tdw-sheet-row.is-current,
+  .tdw-sheet-row.is-upgrade {
+    color: var(--tdw-primary);
+    font-weight: 600;
+
+    .tdw-sheet-row-ico {
+      color: var(--tdw-primary);
+    }
+  }
+
+  // Postiz's appearance / language / log out components as the row's icon
+  .tdw-sheet-host > :first-child {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    color: var(--tdw-muted-foreground);
+
+    svg {
+      width: 20px;
+      height: 20px;
+      pointer-events: none;
+    }
+  }
+
+  .tdw-sheet-host.is-destructive > :first-child {
+    color: inherit;
+  }
+
+  .tdw-sheet-host > .rounded-full:first-child {
+    width: 20px;
+    height: 20px;
+  }
+
+  .tdw-sheet-acct {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-inline-start: -12px;
+    padding-bottom: 4px;
+    color: var(--tdw-foreground);
+  }
+
+  .tdw-acct-info > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tdw-dock-channels,
+  .tdw-side-trial {
+    margin-top: 20px;
+  }
+
+  .tdw-side-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tdw-side-heading {
+    padding-inline: 4px 0;
+  }
+
+  .tdw-side-heading-btn {
+    font-size: 13px;
+  }
+
+  .tdw-side-add {
+    width: 40px;
+    height: 40px;
+  }
+
+  .tdw-side-channels {
+    overflow: visible;
+    gap: 0;
+    border-radius: 12px;
+    background: var(--tdw-sheet-fill);
+  }
+
+  .tdw-side-channel {
+    height: 52px;
+    padding-inline: 14px 6px;
+    border-radius: 0;
+    font-size: 16px;
+  }
+
+  .tdw-side-fix {
+    padding: 8px 10px;
+  }
+
+  .tdw-side-chmenu {
+    padding: 8px;
+  }
+}
+
+html[dir='rtl'] .tdw-dock-sheet .tdw-sheet-host.is-destructive svg {
+  transform: scaleX(-1);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .tdw-dock {
+    background: var(--tdw-popover);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 // ── Motion ──────────────────────────────────────────────────────────────────
 @media (prefers-reduced-motion: reduce) {
   .tdw-side,
@@ -866,5 +1191,27 @@ html[dir='rtl'] .tdw-acct-host.is-danger svg {
 
   .tdw-acct-menu.is-open {
     animation: none;
+  }
+
+  // the dock fades in place, the lens jumps
+  .tdw-dock,
+  .tdw-dock.is-away,
+  .tdw-dock.is-hidden,
+  .tdw-dock-lens.is-ready,
+  .tdw-dock-item,
+  .tdw-dock-create {
+    transition: opacity 150ms ease !important;
+  }
+
+  .tdw-dock.is-away,
+  .tdw-dock.is-hidden,
+  body:has([aria-modal='true']:not(.tdw-sheet[data-present='false'] *)) .tdw-dock,
+  body:has(.tdw-sheet[data-present='true']) .tdw-dock {
+    transform: none;
+  }
+
+  .tdw-dock-item:active,
+  .tdw-dock-create:active {
+    transform: none;
   }
 }

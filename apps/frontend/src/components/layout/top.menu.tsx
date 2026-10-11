@@ -362,74 +362,66 @@ export const useMenuItem = () => {
   };
 };
 
-// Tadween: `children` (the sidebar's channels) sit between the two lists
-export const TopMenu: FC<{ children?: ReactNode }> = ({ children }) => {
+// Tadween: the menu entries this user sees (the sidebar and the phone dock)
+export const useVisibleMenu = () => {
   const user = useUser();
   const { firstMenu, secondMenu } = useMenuItem();
   const { isGeneral, billingEnabled } = useVariables();
+  const visible = (f: MenuItemInterface) => {
+    if (f.hide) {
+      return false;
+    }
+    if (f.requireBilling && !billingEnabled) {
+      return false;
+    }
+    if (f.name === 'Billing' && user?.isLifetime) {
+      return false;
+    }
+    if (f.role) {
+      return f.role.includes(user?.role!);
+    }
+    return true;
+  };
+  return {
+    firstMenu:
+      // @ts-ignore
+      user?.orgId &&
+      // @ts-ignore
+      (user.tier !== 'FREE' || !isGeneral || !billingEnabled)
+        ? firstMenu.filter(visible)
+        : [],
+    secondMenu: secondMenu.filter(visible),
+  };
+};
+
+// Tadween: `children` (the sidebar's channels) sit between the two lists
+export const TopMenu: FC<{ children?: ReactNode }> = ({ children }) => {
+  const { firstMenu, secondMenu } = useVisibleMenu();
   return (
     <>
       <div className="tdw-side-nav flex flex-col minCustom:gap-[16px] blurMe">
-        {
-          // @ts-ignore
-          user?.orgId &&
-            // @ts-ignore
-            (user.tier !== 'FREE' || !isGeneral || !billingEnabled) &&
-            firstMenu
-              .filter((f) => {
-                if (f.hide) {
-                  return false;
-                }
-                if (f.requireBilling && !billingEnabled) {
-                  return false;
-                }
-                if (f.name === 'Billing' && user?.isLifetime) {
-                  return false;
-                }
-                if (f.role) {
-                  return f.role.includes(user?.role!);
-                }
-                return true;
-              })
-              .map((item, index) => (
-                <MenuItem
-                  path={item.path}
-                  label={item.name}
-                  icon={item.icon}
-                  key={item.name}
-                  onClick={item.onClick}
-                />
-              ))
-        }
+        {firstMenu.map((item) => (
+          <MenuItem
+            path={item.path}
+            label={item.name}
+            icon={item.icon}
+            key={item.name}
+            onClick={item.onClick}
+          />
+        ))}
       </div>
       {children}
       <div className="tdw-side-nav is-secondary flex flex-col minCustom:gap-[20px] custom:gap-[8px] blurMe">
-        {secondMenu
-          .filter((f) => {
-            if (f.hide) {
-              return false;
-            }
-            if (f.requireBilling && !billingEnabled) {
-              return false;
-            }
-            if (f.name === 'Billing' && user?.isLifetime) {
-              return false;
-            }
-            if (f.role) {
-              return f.role.includes(user?.role!);
-            }
-            return true;
-          })
-          .map((item, index) => (
-            <MenuItem
-              path={item.path}
-              label={item.name}
-              icon={item.icon}
-              key={item.name}
-              onClick={item.onClick}
-              className={item.className}
-            />
-          ))}
+        {secondMenu.map((item) => (
+          <MenuItem
+            path={item.path}
+            label={item.name}
+            icon={item.icon}
+            key={item.name}
+            onClick={item.onClick}
+            className={item.className}
+          />
+        ))}
       </div>
     </>
   );

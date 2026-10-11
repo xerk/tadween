@@ -9,13 +9,17 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import {
+  TadweenSheetGroup,
+  TadweenSheetRow,
+} from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
 
 // Tadween app shell: the left menu is a full panel (logo, workspace, labelled items)
 // or an icon rail with floating labels. ⌘\ / Ctrl+\ or the panel button switches.
 // The choice is kept in localStorage (`tdw-side`, as in the design system); a
 // menu collapsed before that still has it in the `tdw-side` cookie, read once.
-// Styles: app/tadween/shell.scss. Below the `mobile` breakpoint the slide-in
-// menu always shows the full panel.
+// Styles: app/tadween/shell.scss. Below the `mobile` breakpoint the sidebar
+// gives way to the bottom dock (dock.tsx).
 
 const SIDE_KEY = 'tdw-side';
 const readSide = () => {
@@ -119,18 +123,13 @@ const ChevronsUpDown: FC = () => (
   </svg>
 );
 
-// The workspace name opens the workspace list (design system: the sidebar's
-// switcher). Switching is Postiz's own: POST /user/change-org, then reload, as
-// OrganizationSelector does. With a single workspace it is just the name.
-const WorkspaceSwitcher: FC = () => {
+// The workspaces, the current one and the switch. Switching is Postiz's own:
+// POST /user/change-org, then reload, as OrganizationSelector does.
+const useWorkspaces = () => {
   const t = useT();
   const fetch = useFetch();
   const user = useUser();
   const { data } = useOrganizations();
-  const [open, setOpen] = useState(false);
-  const [style, setStyle] = useState<CSSProperties>({});
-  const trigger = useRef<HTMLButtonElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
   const list: {
     id: string;
     name: string;
@@ -148,8 +147,7 @@ const WorkspaceSwitcher: FC = () => {
   const current = list.find((d) => d.id === user?.orgId);
 
   const changeOrg = useCallback(
-    (id: string) => async () => {
-      setOpen(false);
+    async (id: string) => {
       if (id === user?.orgId) {
         return;
       }
@@ -161,6 +159,36 @@ const WorkspaceSwitcher: FC = () => {
     },
     [user?.orgId]
   );
+
+  return { list, current, orgId: user?.orgId, roleLabel, changeOrg };
+};
+
+const CheckIcon: FC = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+
+// The workspace name opens the workspace list (design system: the sidebar's
+// switcher). With a single workspace it is just the name.
+const WorkspaceSwitcher: FC = () => {
+  const t = useT();
+  const { list, current, orgId, roleLabel, changeOrg } = useWorkspaces();
+  const [open, setOpen] = useState(false);
+  const [style, setStyle] = useState<CSSProperties>({});
+  const trigger = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -219,8 +247,6 @@ const WorkspaceSwitcher: FC = () => {
         data-tooltip-content={current?.name || ''}
         data-tooltip-hidden={open}
         onClick={(e) => {
-          // The mobile slide-in menu closes on any click inside it
-          e.stopPropagation();
           const r = trigger.current!.getBoundingClientRect();
           const rtl = document.documentElement.dir === 'rtl';
           setStyle({
@@ -251,26 +277,14 @@ const WorkspaceSwitcher: FC = () => {
               type="button"
               role="menuitem"
               className="tdw-acct-item"
-              aria-current={org.id === user?.orgId ? 'true' : undefined}
-              onClick={changeOrg(org.id)}
+              aria-current={org.id === orgId ? 'true' : undefined}
+              onClick={() => {
+                setOpen(false);
+                changeOrg(org.id);
+              }}
             >
               <span className="tdw-acct-ico">
-                {org.id === user?.orgId && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                )}
+                {org.id === orgId && <CheckIcon />}
               </span>
               <span className="tdw-side-switch-name">{org.name}</span>
               <span className="tdw-side-switch-role">
@@ -282,6 +296,31 @@ const WorkspaceSwitcher: FC = () => {
         document.body
       )}
     </>
+  );
+};
+
+// Phones: the workspaces in the dock's More sheet (tadween/shell/dock.tsx),
+// only when there is more than one to switch to
+export const WorkspaceSheetGroup: FC = () => {
+  const t = useT();
+  const { list, orgId, roleLabel, changeOrg } = useWorkspaces();
+  if (list.length < 2) {
+    return null;
+  }
+  return (
+    <TadweenSheetGroup label={t('workspace', 'Workspace')}>
+      {list.map((org) => (
+        <TadweenSheetRow
+          key={org.id}
+          icon={org.id === orgId ? <CheckIcon /> : <span />}
+          label={org.name}
+          value={roleLabel(org.users?.[0]?.role)}
+          current={org.id === orgId}
+          chevron={false}
+          onClick={() => changeOrg(org.id)}
+        />
+      ))}
+    </TadweenSheetGroup>
   );
 };
 

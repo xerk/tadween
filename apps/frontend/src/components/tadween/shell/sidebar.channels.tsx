@@ -53,12 +53,26 @@ const useSidebarReload = () => {
 const needsReconnect = (i: TodayIntegration) =>
   !!i.refreshNeeded || !!i.inBetweenSteps;
 
-export const SidebarCreatePost: FC = () => {
-  const t = useT();
+// Create post: the composer, or with nothing to post to yet, connect a
+// channel first. The sidebar's button and the phone dock's centre button.
+export const useCreatePost = () => {
   const reload = useSidebarReload();
   const { integrations, isLoading } = useTodayIntegrations();
   const { create } = useTodayActions(integrations, reload);
   const addChannel = useAddProvider(reload);
+  const start = useCallback(() => {
+    if (integrations.length) {
+      create();
+    } else {
+      addChannel();
+    }
+  }, [integrations.length, create, addChannel]);
+  return { start, isLoading };
+};
+
+export const SidebarCreatePost: FC = () => {
+  const t = useT();
+  const { start, isLoading } = useCreatePost();
   const label = t('today_create_post', 'Create post');
 
   return (
@@ -69,16 +83,7 @@ export const SidebarCreatePost: FC = () => {
       aria-label={label}
       data-tooltip-id="tdw-rail"
       data-tooltip-content={label}
-      onClick={(e) => {
-        // the mobile slide-in menu closes on any click inside it
-        e.stopPropagation();
-        // nothing to post to yet: connect a channel first
-        if (integrations.length) {
-          create();
-        } else {
-          addChannel();
-        }
-      }}
+      onClick={start}
     >
       <Icon name="plus" size={18} />
       <span className="tdw-side-label">{label}</span>
@@ -240,7 +245,7 @@ export const SidebarChannels: FC<{ collapsed: boolean }> = ({ collapsed }) => {
           <div className="tdw-side-chbody">
             {customers.length ? (
               <TadweenScope className="tdw-side-customer tdw-side-label">
-                {/* the phone's slide-in menu closes on any click inside it */}
+                {/* clicks on the filter stay inside the list */}
                 <div onClick={(e) => e.stopPropagation()}>
                   <Select
                     size="sm"

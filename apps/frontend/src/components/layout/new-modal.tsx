@@ -74,6 +74,11 @@ const useModalStore = create<State>((set) => ({
   closeAll: () => set({ modalManager: [] }),
 }));
 
+// Tadween: whether any modal (dialog, drawer, the composer) is open; the
+// phone dock (tadween/shell/dock.tsx) steps aside for it
+export const useHasOpenModal = () =>
+  useModalStore((state) => state.modalManager.length > 0);
+
 const CurrentModalContext = createContext({ id: '' });
 
 // what a drawer tells its content: it is in a drawer, whether it is the top

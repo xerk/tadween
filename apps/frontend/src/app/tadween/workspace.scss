@@ -1720,6 +1720,12 @@ html[dir='rtl'] .tdw-ws-sheet {
   display: none;
 }
 
+// double-clicking a chip ("show only that one") mustn't select the text around it
+.tdw-ws-sheet-head,
+.tdw-ws-sheet-filter {
+  user-select: none;
+}
+
 .tdw-ws-sheet-head {
   display: flex;
   align-items: center;

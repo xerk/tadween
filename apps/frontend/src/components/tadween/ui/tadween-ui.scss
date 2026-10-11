@@ -97,6 +97,11 @@
   .pz-btn { font-size: 14px; line-height: 20px; letter-spacing: -0.005em; height: 36px; padding: 0 var(--space-4); border-radius: var(--radius-md); }
   .pz-btn-sm { height: 30px; padding: 0 var(--space-3); font-size: 13px; border-radius: 8px; }
   .pz-btn-lg { height: 44px; padding: 0 var(--space-5); font-size: 15px; }
+  // Touch screens: a small button keeps its look but takes a 40px tall tap
+  @media (hover: none) {
+    .pz-btn-sm { position: relative; }
+    .pz-btn-sm::after { content: ''; position: absolute; inset: -5px 0; }
+  }
   .pz-iconbtn { padding: 0; border-radius: var(--radius-md); }
   .pz-iconbtn-md { width: 36px; height: 36px; }
   .pz-iconbtn-sm { width: 28px; height: 28px; border-radius: 7px; }
@@ -480,6 +485,8 @@
     .pz-settings-body { padding: 16px; }
     .pz-radios, .pz-tiers { grid-template-columns: minmax(0, 1fr) !important; }
     .pz-table { min-width: 640px; }
+    // One or two columns fit any phone; only wider tables scroll
+    .pz-table:not(:has(th:nth-child(3))) { min-width: 0; }
   }
   .pz-cell-person > span:last-child { min-width: 0; }
   .tdw-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }

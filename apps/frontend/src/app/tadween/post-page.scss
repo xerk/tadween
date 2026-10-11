@@ -29,8 +29,9 @@
   .tdw-pp-top {
     position: sticky; top: 0; z-index: 40;
     background: color-mix(in srgb, var(--background) 82%, transparent);
-    backdrop-filter: saturate(180%) blur(20px);
+    // prefixed first: the other way round the build drops the standard one
     -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
     border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   }
   .tdw-pp-top-in {
@@ -161,7 +162,7 @@
     position: absolute; top: 50%; left: 50%; display: grid; place-items: center;
     width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
     background: rgba(0, 0, 0, 0.55); color: #fff;
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
     svg { margin-inline-start: 3px; fill: currentColor; }
   }
   .tdw-pp-more {

@@ -527,6 +527,12 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
     color: var(--tdw-muted-foreground);
   }
 
+  // The month says the whole day name; phones use the short one (section 10)
+  .tdw-ws-month .tdw-ws-dh-short,
+  .tdw-ws-more-short {
+    display: none;
+  }
+
   .tdw-ws-week .tdw-ws-dh {
     flex-direction: row;
     align-items: center;
@@ -571,6 +577,10 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
 
   .tdw-ws-dh-long {
     display: none;
+  }
+
+  .tdw-ws-month .tdw-ws-dh-long {
+    display: inline;
   }
 
   // Hour labels sit on the line that starts their hour
@@ -1071,6 +1081,42 @@ html[dir='rtl'] body .tdw-ws .tdw-chip::before {
 
   .tdw-chip-acts > .tdw-chip-more {
     display: grid !important;
+  }
+}
+
+// A month chip on a phone is a day column wide: only the avatar shows (the
+// status edge stays) and a tap opens the post as before
+@container (max-width: 64px) {
+  .tdw-ws .tdw-chip--month .tdw-chip-main,
+  .tdw-ws .tdw-chip--month .tdw-chip-acts,
+  .tdw-ws .tdw-chip--month .tdw-chip-published,
+  .tdw-ws .tdw-chip--month .tdw-chip-error {
+    display: none !important;
+  }
+
+  .tdw-ws .tdw-chip--month .tdw-chip-body {
+    display: flex;
+    justify-content: center;
+    padding: 4px 2px 4px 5px;
+  }
+
+  .tdw-ws .tdw-chip--month .tdw-chip-avatar,
+  .tdw-ws .tdw-chip--month .tdw-chip-avatar > img:first-child {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+// Touch screens: ⋯ keeps its 22px look but takes a 40px tap
+@media (hover: none) {
+  .tdw-chip-act.tdw-chip-more {
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -9px;
+    }
   }
 }
 
@@ -1889,6 +1935,21 @@ html[dir='rtl'] .tdw-ws-sheet-head {
 }
 
 @media #{$tdw-ws-phone} {
+  // All seven days on screen, with short day names and a short "+n"
+  .tdw-ws .tdw-ws-month {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .tdw-ws .tdw-ws-month .tdw-ws-dh-long,
+  .tdw-ws .tdw-ws-month .tdw-ws-more-long {
+    display: none;
+  }
+
+  .tdw-ws .tdw-ws-month .tdw-ws-dh-short,
+  .tdw-ws .tdw-ws-month .tdw-ws-more-short {
+    display: inline;
+  }
+
   .tdw-ws-bar {
     margin: 8px 8px 0;
     padding: 10px 10px 10px 14px;

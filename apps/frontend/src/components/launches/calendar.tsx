@@ -540,7 +540,8 @@ export const MonthView = () => {
     const days = [];
     // Starting from Monday (1) to Sunday (7)
     for (let i = 1; i <= 7; i++) {
-      days.push(newDayjs().day(i).format('dddd'));
+      const day = newDayjs().day(i);
+      days.push({ name: day.format('dddd'), short: day.format('ddd') });
     }
     return days;
   }, [i18next.resolvedLanguage]);
@@ -583,10 +584,13 @@ export const MonthView = () => {
         <div className="tdw-ws-month grid grid-cols-7 tablet:[grid-template-columns:repeat(7,_minmax(100px,_1fr))] grid-rows-[62px_auto] gap-[4px] rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
           {localizedDays.map((day) => (
             <div
-              key={day}
+              key={day.name}
               className="tdw-ws-dh z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"
             >
-              <div>{day}</div>
+              <div>
+                <span className="tdw-ws-dh-long">{day.name}</span>
+                <span className="tdw-ws-dh-short">{day.short}</span>
+              </div>
             </div>
           ))}
           {calendarDays.map((date, index) => (
@@ -941,7 +945,12 @@ export const CalendarColumn: FC<{
               className="text-center hover:underline py-[5px] text-textColor"
               onClick={showAllFunc}
             >
-              {t('show_more', '+ Show more')} ({postList.length - 3})
+              <span className="tdw-ws-more-long">
+                {t('show_more', '+ Show more')} ({postList.length - 3})
+              </span>
+              <span className="tdw-ws-more-short" dir="ltr">
+                +{postList.length - 3}
+              </span>
             </div>
           )}
           {showAll && postList.length > 3 && (

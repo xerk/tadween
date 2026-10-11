@@ -387,6 +387,6 @@ export const en: Dict = {
         ],
       },
     ],
-    copyright: '© 2026 Tadween.',
+    copyright: '© 2026 {company}. Tadween is a product of {company}.',
   },
 };

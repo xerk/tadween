@@ -391,6 +391,6 @@ export const ar: Dict = {
         ],
       },
     ],
-    copyright: '© ٢٠٢٦ تدوين.',
+    copyright: '© ٢٠٢٦ {company}. تدوين منتج من {company}.',
   },
 };

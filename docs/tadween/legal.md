@@ -33,7 +33,7 @@ build time, so rebuild after changing them.
 
 | Variable | Shown until set | Example | Where it appears |
 | --- | --- | --- | --- |
-| `NEXT_PUBLIC_LEGAL_COMPANY` | [Company legal name] | `Tadween LLC` | All pages: who operates the Service, contact blocks |
+| `NEXT_PUBLIC_LEGAL_COMPANY` | [Company legal name] | `Tadween LLC` | All pages: who operates the Service, contact blocks, and the footer line "© 2026 {company}. Tadween is a product of {company}." (falls back to "Tadween") |
 | `NEXT_PUBLIC_LEGAL_STATE` | [US state of formation] | `Delaware` | Terms §1 |
 | `NEXT_PUBLIC_LEGAL_ADDRESS` | [Registered business address] | your real business or mailing address (not a registered-agent address) | Terms §1/§18, Privacy §1/§14, Refund §8, Contact |
 | `NEXT_PUBLIC_SUPPORT_EMAIL` | [Support email] | `support@example.com` | Everywhere people are told to contact you (rendered as a `mailto:` link) |
@@ -193,3 +193,25 @@ TADWEEN_PRIVACY_URL=https://<site>/privacy
 ```
 
 Branding also has a support email field: use the same address as `NEXT_PUBLIC_SUPPORT_EMAIL`.
+
+## Values for tadween.xerk.io (Xerk LLC)
+
+From the company documents (Articles of Organization, Operating Agreement, Wyoming filing ID 2026-002103351):
+
+```
+NEXT_PUBLIC_LEGAL_COMPANY="Xerk LLC"
+NEXT_PUBLIC_LEGAL_STATE="Wyoming"
+NEXT_PUBLIC_LEGAL_ADDRESS="30 N Gould St Ste R, Sheridan, WY 82801, United States"
+NEXT_PUBLIC_SUPPORT_EMAIL="support@xerk.io"
+NEXT_PUBLIC_LEGAL_GOVERNING_LAW="Wyoming"
+NEXT_PUBLIC_LEGAL_VENUE="Sheridan County, Wyoming"
+NEXT_PUBLIC_REFUND_DAYS="14"
+NEXT_PUBLIC_LEGAL_AI_PROVIDERS="OpenAI"
+NEXT_PUBLIC_LEGAL_ANALYTICS="none"
+# still to decide before launch:
+# NEXT_PUBLIC_LEGAL_EMAIL_PROVIDER=   (the service that sends account emails)
+# NEXT_PUBLIC_LEGAL_HOSTING_PROVIDER= (where the app and uploaded media are hosted)
+```
+
+The address is the registered agent's (Registered Agents Inc, Sheridan), which the company uses as its
+principal and mailing address. Replace it with a virtual mailbox address if one is opened.

@@ -213,7 +213,7 @@
   .pz-menu-hint { margin-inline-start: auto; font-size: 12px; color: var(--muted-foreground); }
   .pz-menu-sep { height: 1px; margin: 4px 6px; background: var(--border); }
 
-  .pz-overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: var(--space-6); }
+  .pz-overlay { position: fixed; inset: 0; z-index: var(--tdw-z-dialog); display: grid; place-items: center; padding: var(--space-6); }
   .pz-overlay.is-inline { position: absolute; }
   .pz-scrim { position: absolute; inset: 0; background: var(--scrim); transition: opacity var(--duration-base) ease; }
   .pz-overlay[data-state="closed"] .pz-scrim { opacity: 0; }

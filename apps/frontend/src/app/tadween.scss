@@ -27,12 +27,15 @@
   // modals and the composer drawer (new-modal.tsx adds the stack index); the
   // phone's bottom dock; menus anchored to a trigger (top bar, account,
   // workspace), portalled to <body> so no page layer can cover them; bottom
-  // sheets; toasts; tooltips.
+  // sheets; design-system dialogs (Dialog in tadween/ui, above every modal and
+  // sheet, since a confirm or the upgrade paywall can open from any of them);
+  // toasts; tooltips.
   --tdw-z-sticky: 30;
   --tdw-z-modal: 200;
   --tdw-z-nav: 490;
   --tdw-z-popover: 500;
   --tdw-z-sheet: 600;
+  --tdw-z-dialog: 700;
   --tdw-z-toast: 900;
   --tdw-z-tooltip: 1000;
   // Room the phone's bottom dock (tadween/shell/dock.tsx) takes at the foot

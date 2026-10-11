@@ -194,7 +194,9 @@ const InstagramMedia: FC<{ images: string[]; emptyLabel: string }> = ({
   images,
   emptyLabel,
 }) => {
-  const [index, setIndex] = useState(0);
+  const [slide, setIndex] = useState(0);
+  // a picture removed while a later one was shown
+  const index = Math.min(slide, Math.max(images.length - 1, 0));
   // a feed picture is cropped between 4:5 and 1.91:1; a carousel uses the
   // first one's shape for all
   const [ratio, setRatio] = useState(1);

@@ -35,7 +35,16 @@ const formatter = () => {
           return link(mention);
         }
         if (url) {
-          return link(shortUrl(url));
+          return link(
+            escape(
+              shortUrl(
+                url
+                  .replace(/&lt;/g, '<')
+                  .replace(/&gt;/g, '>')
+                  .replace(/&amp;/g, '&')
+              )
+            )
+          );
         }
         if (sign === '@') {
           return before + link('@' + word);
@@ -248,6 +257,7 @@ const ThreadsAction: FC<{ label: string; d: string; size?: number }> = ({
 }) => (
   <span
     className="flex items-center justify-center w-[36px] h-[36px] rounded-full hover:bg-threadsHover cursor-default"
+    role="img"
     aria-label={label}
   >
     <ThreadsIcon size={size} d={d} />

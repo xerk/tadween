@@ -297,8 +297,8 @@
   }
 }
 
-// Trial line above the app (TrialBanner)
-.tdw-ui .tdw-trial-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin: 0 0 8px; padding: 8px 16px; border-radius: var(--radius-lg); background: var(--primary-soft); color: var(--foreground); font-size: 13px; line-height: 18px; }
+// Trial line at the top of the page card (TrialBanner)
+.tdw-ui .tdw-trial-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; background: var(--primary-soft); color: var(--foreground); font-size: 13px; line-height: 18px; }
 .tdw-ui .tdw-trial-bar .pz-icon { color: var(--primary); }
 .tdw-ui .tdw-trial-sep { color: var(--muted-foreground); }
 .tdw-ui .tdw-trial-link { color: var(--primary); font-weight: 600; text-decoration: none; }

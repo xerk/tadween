@@ -144,7 +144,6 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
               ) : (
                 <>
                   <AnnouncementBanner />
-                  {billingEnabled && <TrialBanner />}
                   <div className="flex-1 flex gap-[8px] mobile:gap-0">
                     <Support />
                     {/* phones: the bottom dock in place of the sidebar */}
@@ -206,6 +205,8 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                           <NotificationComponent />
                         </div>
                       </div>
+                      {/* inside the page card: above the shell it ran under the fixed sidebar */}
+                      {billingEnabled && <TrialBanner />}
                       <div className="flex flex-1 min-w-0 gap-[1px] mobile:flex-col">
                         {children}
                       </div>

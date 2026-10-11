@@ -60,6 +60,16 @@ export abstract class PaymentProviderAbstract {
     return this.notSupported();
   }
 
+  // One-time purchase of an AI credits pack (embedded checkout); credited by
+  // the provider's webhook. Answers { client_secret, check }.
+  async embeddedAiCredits(
+    organizationId: string,
+    userId: string,
+    packId: string
+  ): Promise<any> {
+    return this.notSupported();
+  }
+
   // Start the plan's free trial without a payment method
   async startTrial(
     uniqueId: string,

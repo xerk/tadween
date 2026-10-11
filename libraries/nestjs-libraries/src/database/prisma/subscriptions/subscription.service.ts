@@ -7,6 +7,16 @@ import { Organization } from '@prisma/client';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
+import {
+  AiCreditAction,
+  aiCreditCost,
+  imageCreditAction,
+} from '@gitroom/nestjs-libraries/openai/ai.config';
+import {
+  AuthorizationActions,
+  Sections,
+  SubscriptionException,
+} from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 
 // Stripe statuses of a renewal whose payment failed. Organization.isTrailing
 // is also true for them (it stores "not active"), so trial-only limits must
@@ -442,7 +452,27 @@ export class SubscriptionService {
     return this._subscriptionRepository.getSubscription(organizationId);
   }
 
+  // Usage resets every month on the day the subscription started
+  private billingPeriodStart(subscriptionCreatedAt: Date | string) {
+    let date = dayjs(subscriptionCreatedAt);
+    while (date.isBefore(dayjs())) {
+      date = date.add(1, 'month');
+    }
+
+    return date.subtract(1, 'month');
+  }
+
   async checkCredits(organization: Organization, checkType = 'ai_images') {
+    // Images are paid with AI credits: answer how many images they still buy
+    if (checkType === 'ai_images') {
+      const balance = await this.getAiCredits(organization.id);
+      return {
+        credits: Math.floor(
+          balance.available / aiCreditCost(imageCreditAction())
+        ),
+      };
+    }
+
     // @ts-ignore
     const type = organization?.subscription?.subscriptionTier || 'FREE';
 
@@ -451,16 +481,9 @@ export class SubscriptionService {
     }
 
     // @ts-ignore
-    let date = dayjs(organization.subscription.createdAt);
-    while (date.isBefore(dayjs())) {
-      date = date.add(1, 'month');
-    }
-
-    const checkFromMonth = date.subtract(1, 'month');
+    const checkFromMonth = this.billingPeriodStart(organization.subscription.createdAt);
     const imageGenerationCount =
-      checkType === 'ai_images'
-        ? (await this._plans.getPricing())[type].image_generation_count
-        : checkType === 'clipping_minutes'
+      checkType === 'clipping_minutes'
         ? pricing[type].clipping_minutes
         : pricing[type].generate_videos;
 
@@ -473,6 +496,177 @@ export class SubscriptionService {
     return {
       credits: imageGenerationCount - totalUse,
     };
+  }
+
+  // Tadween AI credits: the plan's monthly allowance (Plan.aiCredits, reset
+  // every billing month) plus purchased top-ups, which never expire and are
+  // spent after the allowance
+  private async aiCreditsWindow(organizationId: string) {
+    const subscription = await this._subscriptionRepository.getSubscription(
+      organizationId
+    );
+    const tier = subscription?.subscriptionTier || 'FREE';
+    const from = subscription
+      ? this.billingPeriodStart(subscription.createdAt)
+      : dayjs().startOf('month');
+    const limit =
+      tier === 'FREE'
+        ? 0
+        : (await this._plans.getPricing())[tier]?.image_generation_count || 0;
+    return { from, limit };
+  }
+
+  private aiCreditsBalance(
+    window: { from: dayjs.Dayjs; limit: number },
+    usage: {
+      monthlyUsed: number;
+      legacyImages: number;
+      purchasedUsed: number;
+      purchasedTotal: number;
+    }
+  ) {
+    // Images charged before credits existed count at today's image price
+    const used =
+      usage.monthlyUsed + usage.legacyImages * aiCreditCost('image');
+    const monthlyLeft = Math.max(0, window.limit - used);
+    const purchased = Math.max(0, usage.purchasedTotal - usage.purchasedUsed);
+
+    return {
+      limit: window.limit,
+      used,
+      monthlyLeft,
+      purchased,
+      available: monthlyLeft + purchased,
+      resetsAt: window.from.add(1, 'month').toDate(),
+    };
+  }
+
+  async getAiCredits(organizationId: string) {
+    const window = await this.aiCreditsWindow(organizationId);
+    return this.aiCreditsBalance(
+      window,
+      await this._subscriptionRepository.getAiCreditsUsage(
+        organizationId,
+        window.from.toDate()
+      )
+    );
+  }
+
+  // Refuses (402) when the workspace can't pay for the action. Installs without
+  // billing and super admins acting as themselves are never refused; their
+  // usage is still recorded by chargeAiCredits.
+  async assertAiCredits(
+    organizationId: string,
+    action: AiCreditAction,
+    exempt = false
+  ) {
+    if (exempt || !process.env.STRIPE_PUBLISHABLE_KEY) {
+      return true;
+    }
+
+    const balance = await this.getAiCredits(organizationId);
+    if (balance.available < aiCreditCost(action)) {
+      throw new SubscriptionException({
+        action: AuthorizationActions.Create,
+        section: Sections.AI_CREDITS,
+      });
+    }
+
+    return true;
+  }
+
+  // Records one action: the monthly allowance pays first, then top-ups. With
+  // `enforce`, an action the balance can't cover is refused (402) instead.
+  async chargeAiCredits(
+    organizationId: string,
+    action: AiCreditAction,
+    enforce = false
+  ) {
+    const cost = aiCreditCost(action);
+    const window = await this.aiCreditsWindow(organizationId);
+    const charge = await this._subscriptionRepository.chargeAiCredits(
+      organizationId,
+      action,
+      cost,
+      window.from.toDate(),
+      (usage) => {
+        const balance = this.aiCreditsBalance(window, usage);
+        if (enforce && balance.available < cost) {
+          return null;
+        }
+        const fromMonthly = Math.min(cost, balance.monthlyLeft);
+        return Math.min(cost - fromMonthly, balance.purchased);
+      }
+    );
+
+    if (!charge) {
+      throw new SubscriptionException({
+        action: AuthorizationActions.Create,
+        section: Sections.AI_CREDITS,
+      });
+    }
+
+    return charge;
+  }
+
+  // For an AI call that finishes inside the request: charged before it runs
+  // (checked and written atomically) and refunded if it fails
+  async useAiCredits<T>(
+    organizationId: string,
+    action: AiCreditAction,
+    func: () => Promise<T>,
+    exempt = false
+  ): Promise<T> {
+    const charge = await this.chargeAiCredits(
+      organizationId,
+      action,
+      !exempt && !!process.env.STRIPE_PUBLISHABLE_KEY
+    );
+
+    try {
+      return await func();
+    } catch (err) {
+      await this._subscriptionRepository.refundCredits(
+        organizationId,
+        charge.id
+      );
+      throw err;
+    }
+  }
+
+  // Reached from the payment webhook: logs failures, never throws
+  async addAiCreditPurchase(
+    id: string,
+    organizationId: string,
+    credits: number,
+    amount: number,
+    currency: string,
+    provider: string
+  ) {
+    try {
+      return await this._subscriptionRepository.addAiCreditPurchase(
+        id,
+        organizationId,
+        credits,
+        amount,
+        currency,
+        provider
+      );
+    } catch (e) {
+      // Paid but not credited: everything needed to credit it by hand
+      console.error(
+        `Error adding purchased AI credits (session ${id}, workspace ${organizationId}, ${credits} credits):`,
+        e
+      );
+      return false;
+    }
+  }
+
+  async isAiCreditPurchaseDone(organizationId: string, id: string) {
+    return !!(await this._subscriptionRepository.getAiCreditPurchase(
+      organizationId,
+      id
+    ));
   }
 
   // A plan granted without a payment: keyed by the workspace only. It used to

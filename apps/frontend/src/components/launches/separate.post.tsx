@@ -22,15 +22,19 @@ export const SeparatePost: FC<{
     ) {
       props.changeLoading(true);
       const merge = props.posts.join('\n');
-      const { posts } = await (
-        await fetch('/posts/separate-posts', {
-          method: 'POST',
-          body: JSON.stringify({
-            content: merge,
-            len: props.len,
-          }),
-        })
-      ).json();
+      const res = await fetch('/posts/separate-posts', {
+        method: 'POST',
+        body: JSON.stringify({
+          content: merge,
+          len: props.len,
+        }),
+      });
+      // Out of AI credits (402) opens the paywall; keep the posts as they are
+      if (!res.ok) {
+        props.changeLoading(false);
+        return;
+      }
+      const { posts } = await res.json();
 
       props.merge(posts);
       props.changeLoading(false);

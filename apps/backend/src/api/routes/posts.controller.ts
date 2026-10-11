@@ -8,6 +8,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
   Res,
 } from '@nestjs/common';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
@@ -20,7 +21,9 @@ import { ApiTags } from '@nestjs/swagger';
 import { GeneratorDto } from '@gitroom/nestjs-libraries/dtos/generator/generator.dto';
 import { CreateGeneratedPostsDto } from '@gitroom/nestjs-libraries/dtos/generator/create.generated.posts.dto';
 import { AgentGraphService } from '@gitroom/nestjs-libraries/agent/agent.graph.service';
-import { Response } from 'express';
+import { Request, Response } from 'express';
+import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
+import { isBillingExempt } from '@gitroom/backend/services/auth/permissions/permissions.service';
 import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
 import { ShortLinkService } from '@gitroom/nestjs-libraries/short-linking/short.link.service';
 import { CreateTagDto } from '@gitroom/nestjs-libraries/dtos/posts/create.tag.dto';
@@ -41,7 +44,8 @@ export class PostsController {
   constructor(
     private _postsService: PostsService,
     private _agentGraphService: AgentGraphService,
-    private _shortLinkService: ShortLinkService
+    private _shortLinkService: ShortLinkService,
+    private _subscriptionService: SubscriptionService
   ) {}
 
   @Get('/:id/statistics')
@@ -269,14 +273,26 @@ export class PostsController {
   @CheckPolicies([AuthorizationActions.Create, Sections.POSTS_PER_MONTH])
   async generatePosts(
     @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
     @Body() body: GeneratorDto,
+    @Req() req: Request,
     @Res({ passthrough: false }) res: Response
   ) {
+    // Writing is paid with AI credits (pictures are charged as images): refused
+    // before the stream starts, charged when the posts were generated
+    const exempt = isBillingExempt(user, req);
+    await this._subscriptionService.assertAiCredits(org.id, 'write', exempt);
+
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     try {
-      for await (const event of this._agentGraphService.start(org.id, body)) {
+      for await (const event of this._agentGraphService.start(
+        org.id,
+        body,
+        exempt
+      )) {
         res.write(JSON.stringify(event) + '\n');
       }
+      await this._subscriptionService.chargeAiCredits(org.id, 'write');
     } catch (err) {
       // The stream has already started, so we cannot surface a normal HTTP
       // error here. Emit a final error event on the open stream instead, so the
@@ -317,8 +333,15 @@ export class PostsController {
   @Post('/separate-posts')
   async separatePosts(
     @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
+    @Req() req: Request,
     @Body() body: { content: string; len: number }
   ) {
-    return this._postsService.separatePosts(body.content, body.len);
+    return this._subscriptionService.useAiCredits(
+      org.id,
+      'write',
+      () => this._postsService.separatePosts(body.content, body.len),
+      isBillingExempt(user, req)
+    );
   }
 }

@@ -1,8 +1,9 @@
 'use client';
 
 // Billing's header card: the workspace's plan, its price and state, usage
-// against the plan's limits (channels, team members, AI images) and the
-// actions. Invoices and the card live in the Stripe customer portal.
+// against the plan's limits (channels, team members) and the actions. AI
+// credits have their own card (ai.credits.tsx). Invoices and the card live in
+// the Stripe customer portal.
 import React, { FC, ReactNode, useCallback } from 'react';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
@@ -58,15 +59,6 @@ const useTeamUsed = (enabled: boolean) => {
     : undefined;
 };
 
-const useAiImagesLeft = () => {
-  const load = useJson();
-  const { data } = useSWR('/copilot/credits', load, {
-    revalidateOnFocus: false,
-    shouldRetryOnError: false,
-  });
-  return data ? (data.credits as number) : undefined;
-};
-
 const Meter: FC<{ label: ReactNode; used?: number; limit: number }> = ({
   label,
   used,
@@ -96,7 +88,6 @@ export const CurrentPlanCard: FC<{
   const t = useT();
   const channels = useChannelsUsed();
   const team = useTeamUsed(!!plan && plan.teamMembers !== 0);
-  const aiLeft = useAiImagesLeft();
   const amount =
     typeof priceCents === 'number'
       ? priceCents / 100
@@ -174,17 +165,6 @@ export const CurrentPlanCard: FC<{
               label={t('tdw_cmp_team', 'Team members')}
               used={team}
               limit={plan.teamMembers}
-            />
-          ) : null}
-          {plan.aiCredits !== 0 && plan.aiCredits > 0 ? (
-            <Meter
-              label={t('tdw_cmp_images', 'AI images this month')}
-              used={
-                aiLeft === undefined
-                  ? undefined
-                  : Math.max(0, plan.aiCredits - aiLeft)
-              }
-              limit={plan.aiCredits}
             />
           ) : null}
         </div>

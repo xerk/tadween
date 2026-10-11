@@ -44,6 +44,12 @@ import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { ExistingDataContextProvider } from '@gitroom/frontend/components/launches/helpers/use.existing.data';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
+import { useUser } from '@gitroom/frontend/components/layout/user.context';
+import {
+  AiCreditsBadge,
+  useAiCredits,
+} from '@gitroom/frontend/components/tadween/billing/ai.credits';
+import { openPaywall } from '@gitroom/frontend/components/tadween/billing/paywall.modal';
 
 export const AgentChat: FC = () => {
   const t = useT();
@@ -220,6 +226,17 @@ const NewInput: FC<InputProps> = (props) => {
   const [media, setMedia] = useState([] as { path: string; id: string }[]);
   const [value, setValue] = useState('');
   const { properties } = useContext(PropertiesContext);
+  const { billingEnabled } = useVariables();
+  const user = useUser();
+  const { data: credits, mutate: reloadCredits } = useAiCredits();
+
+  // A message is charged when its answer ends: refresh the balance then
+  useEffect(() => {
+    if (!props.inProgress) {
+      reloadCredits();
+    }
+  }, [props.inProgress]);
+
   return (
     <>
       <MediaPortal
@@ -227,10 +244,24 @@ const NewInput: FC<InputProps> = (props) => {
         media={media}
         setMedia={(e) => setMedia(e.target.value)}
       />
+      <div className="flex justify-end px-[4px] pb-[6px]">
+        <AiCreditsBadge />
+      </div>
       <Input
         {...props}
         onChange={setValue}
         onSend={(text) => {
+          // The agent's requests don't go through useFetch, so its 402 never
+          // reaches the paywall: check the balance before sending instead
+          if (
+            billingEnabled &&
+            !user?.billingExempt &&
+            credits &&
+            credits.available < credits.costs.agent_message
+          ) {
+            openPaywall({ section: 'ai_credits' });
+            return Promise.resolve(undefined as any);
+          }
           const send = props.onSend(
             text +
               (media.length > 0

@@ -290,6 +290,12 @@ model Credits {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   type           String       @default("ai_images")
+  /// Tadween AI credits (type "ai_credits"): what was charged (write,
+  /// agent_message, image, image_hd). Null on older rows.
+  action         String?
+  /// Tadween AI credits: the part of `credits` taken from purchased top-ups
+  /// rather than the monthly allowance.
+  purchased      Int          @default(0)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
@@ -1885,6 +1891,21 @@ model ProviderCredential {
   value     String
   updatedAt DateTime @updatedAt
   updatedBy String?
+}
+
+// AI credits bought as a one-time top-up. `id` is the payment provider's
+// checkout session id, so a webhook delivered twice credits the pack once.
+// Purchased credits never expire; they are spent after the monthly allowance.
+model AiCreditPurchase {
+  id             String   @id
+  organizationId String
+  credits        Int
+  amount         Int
+  currency       String
+  provider       String
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
 }
 
 // A sellable plan. `tier` maps it onto Postiz's SubscriptionTier so Stripe,

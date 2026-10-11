@@ -15,13 +15,14 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
-import { Organization } from '@prisma/client';
+import { Organization, User } from '@prisma/client';
+import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
+import { isBillingExempt } from '@gitroom/backend/services/auth/permissions/permissions.service';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 import { ApiTags } from '@nestjs/swagger';
 import handleR2Upload from '@gitroom/nestjs-libraries/upload/r2.uploader';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { streamUploadOptions } from '@gitroom/nestjs-libraries/upload/multer.stream.engine';
-import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/save.media.information.dto';
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
@@ -39,8 +40,7 @@ import {
 export class MediaController {
   private storage = UploadFactory.createStorage();
   constructor(
-    private _mediaService: MediaService,
-    private _subscriptionService: SubscriptionService
+    private _mediaService: MediaService
   ) {}
 
   @Delete('/:id')
@@ -57,35 +57,35 @@ export class MediaController {
     return this._mediaService.generateVideo(org, body);
   }
 
+  // Paid with AI credits: out of credits answers 402 (the app's paywall)
   @Post('/generate-image')
   async generateImage(
     @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
     @Req() req: Request,
     @Body('prompt') prompt: string,
     isPicturePrompt = false
   ) {
-    const total = await this._subscriptionService.checkCredits(org);
-    if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
-      return false;
-    }
-
     return {
       output:
         'data:image/png;base64,' +
-        (await this._mediaService.generateImage(prompt, org, isPicturePrompt)),
+        (await this._mediaService.generateImage(
+          prompt,
+          org,
+          isPicturePrompt,
+          isBillingExempt(user, req)
+        )),
     };
   }
 
   @Post('/generate-image-with-prompt')
   async generateImageFromText(
     @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
     @Req() req: Request,
     @Body('prompt') prompt: string
   ) {
-    const image = await this.generateImage(org, req, prompt, true);
-    if (!image) {
-      return false;
-    }
+    const image = await this.generateImage(org, user, req, prompt, true);
 
     const file = await this.storage.uploadSimple(image.output);
 

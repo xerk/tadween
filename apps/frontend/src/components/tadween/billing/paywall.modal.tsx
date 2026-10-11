@@ -40,6 +40,7 @@ const ROW: Record<string, string> = {
   channel: 'channels',
   team_members: 'team',
   ai: 'ai_images',
+  ai_credits: 'ai_images',
   webhooks: 'webhooks',
   posts_per_month: 'posts',
 };
@@ -108,11 +109,15 @@ export const PaywallModal: FC = () => {
       ? t('tdw_paywall_team', 'Invite more team members')
       : reason?.section === 'ai'
       ? t('tdw_paywall_ai', 'Get more AI images')
+      : reason?.section === 'ai_credits'
+      ? t('tdw_paywall_ai_credits', 'You’ve used your AI credits this month')
       : reason?.section === 'webhooks'
       ? t('tdw_paywall_webhooks', 'Add more webhooks')
       : t('tdw_paywall_generic', 'Upgrade your plan');
 
   const close = () => setReason(null);
+  // Out of AI credits: a top-up pack is the other way out
+  const credits = reason?.section === 'ai_credits';
   return (
     <Dialog
       open={!!reason && plans.length > 0}
@@ -122,9 +127,12 @@ export const PaywallModal: FC = () => {
         unlock
           ? t('tdw_paywall_desc', '{{name}} gives you {{what}}.', {
               name: unlock.name,
+              // lower-case the start only: "AI" stays upper case
               what: text(
                 unlock.featureItems.find((i) => i.key === row) || { key: row }
-              ).toLowerCase(),
+              ).replace(/^\S+/, (w) =>
+                w === w.toUpperCase() ? w : w.toLowerCase()
+              ),
             })
           : reason?.message ||
             t(
@@ -138,6 +146,19 @@ export const PaywallModal: FC = () => {
           <Button variant="ghost" onClick={close}>
             {unlock ? t('tdw_not_now', 'Not now') : t('tdw_close', 'Close')}
           </Button>
+          {credits ? (
+            <Button
+              variant={unlock ? 'secondary' : 'primary'}
+              icon="sparkles"
+              onClick={() => {
+                close();
+                modals.closeAll();
+                router.push('/billing?credits=1');
+              }}
+            >
+              {t('tdw_buy_more_credits', 'Buy more credits')}
+            </Button>
+          ) : null}
           {unlock ? (
             <Button
               variant="primary"

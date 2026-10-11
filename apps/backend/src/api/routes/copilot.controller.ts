@@ -7,14 +7,25 @@ import {
   Res,
   Query,
   Param,
+  UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   CopilotRuntime,
   OpenAIAdapter,
   copilotRuntimeNodeHttpEndpoint,
 } from '@copilotkit/runtime';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
-import { Organization } from '@prisma/client';
+import { Organization, User } from '@prisma/client';
+import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
+import { isBillingExempt } from '@gitroom/backend/services/auth/permissions/permissions.service';
+import {
+  AiCreditAction,
+  agentMessagesPerHour,
+  aiModels,
+  isNewCopilotMessage,
+} from '@gitroom/nestjs-libraries/openai/ai.config';
+import { ThrottlerAiMessageGuard } from '@gitroom/nestjs-libraries/throttler/throttler.provider';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { MastraAgent } from '@ag-ui/mastra';
 import { MastraService } from '@gitroom/nestjs-libraries/chat/mastra.service';
@@ -27,6 +38,7 @@ export type ChannelsContext = {
   integrations: string;
   organization: string;
   ui: string;
+  billingExempt: string;
 };
 
 // the copilot runtime writes its own CORS headers on the response, keep them aligned with main.ts
@@ -74,8 +86,43 @@ export class CopilotController {
     private _subscriptionService: SubscriptionService,
     private _mastraService: MastraService
   ) {}
+  // A new message is paid with AI credits: refused (402) before the model
+  // runs when the workspace can't pay, charged once the answer was streamed
+  private async meterMessage(
+    req: Request,
+    res: Response,
+    organization: Organization,
+    user: User,
+    action: AiCreditAction
+  ) {
+    if (!isNewCopilotMessage(req.body)) {
+      return;
+    }
+
+    await this._subscriptionService.assertAiCredits(
+      organization.id,
+      action,
+      isBillingExempt(user, req)
+    );
+
+    // 'close' also fires when the browser stops the answer half way
+    res.once('close', () => {
+      if (res.statusCode >= 400) {
+        return;
+      }
+      this._subscriptionService
+        .chargeAiCredits(organization.id, action)
+        .catch((err) => Logger.error(`Could not charge AI credits: ${err}`));
+    });
+  }
+
   @Post('/chat')
-  chatAgent(@Req() req: Request, @Res() res: Response) {
+  async chatAgent(
+    @Req() req: Request,
+    @Res() res: Response,
+    @GetOrgFromRequest() organization: Organization,
+    @GetUserFromRequest() user: User
+  ) {
     if (
       process.env.OPENAI_API_KEY === undefined ||
       process.env.OPENAI_API_KEY === ''
@@ -84,12 +131,14 @@ export class CopilotController {
       return aiNotConfigured(req, res, 'default');
     }
 
+    await this.meterMessage(req, res, organization, user, 'write');
+
     const copilotRuntimeHandler = copilotRuntimeNodeHttpEndpoint({
       endpoint: '/copilot/chat',
       cors: copilotCors(),
       runtime: new CopilotRuntime(),
       serviceAdapter: new OpenAIAdapter({
-        model: 'gpt-4.1',
+        model: aiModels.writing(),
       }),
     });
 
@@ -98,10 +147,13 @@ export class CopilotController {
 
   @Post('/agent')
   @CheckPolicies([AuthorizationActions.Create, Sections.AI])
+  @UseGuards(ThrottlerAiMessageGuard)
+  @Throttle({ default: { limit: agentMessagesPerHour(), ttl: 3600000 } })
   async agent(
     @Req() req: Request,
     @Res() res: Response,
-    @GetOrgFromRequest() organization: Organization
+    @GetOrgFromRequest() organization: Organization,
+    @GetUserFromRequest() user: User
   ) {
     if (
       process.env.OPENAI_API_KEY === undefined ||
@@ -110,6 +162,8 @@ export class CopilotController {
       Logger.warn('OpenAI API key not set, chat functionality will not work');
       return aiNotConfigured(req, res, 'postiz');
     }
+
+    await this.meterMessage(req, res, organization, user, 'agent_message');
     const mastra = await this._mastraService.mastra();
     const requestContext = new RequestContext<ChannelsContext>();
     requestContext.set(
@@ -119,6 +173,8 @@ export class CopilotController {
 
     requestContext.set('organization', JSON.stringify(organization));
     requestContext.set('ui', 'true');
+    // tools (image generation) never refuse a super admin, like the dashboard
+    requestContext.set('billingExempt', String(isBillingExempt(user, req)));
 
     const agents = MastraAgent.getLocalAgents({
       resourceId: organization.id,
@@ -135,7 +191,7 @@ export class CopilotController {
       cors: copilotCors(),
       runtime,
       serviceAdapter: new OpenAIAdapter({
-        model: 'gpt-4.1',
+        model: aiModels.writing(),
       }),
     });
 

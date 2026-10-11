@@ -1,20 +1,16 @@
 import { AgentToolInterface } from '@gitroom/nestjs-libraries/chat/agent.tool.interface';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
-import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 
 @Injectable()
 export class GenerateImageTool implements AgentToolInterface {
   private storage = UploadFactory.createStorage();
 
-  constructor(
-    private _mediaService: MediaService,
-    private _subscriptionService: SubscriptionService
-  ) {}
+  constructor(private _mediaService: MediaService) {}
   name = 'generateImageTool';
 
   run() {
@@ -47,18 +43,13 @@ export class GenerateImageTool implements AgentToolInterface {
         checkAuth(inputData, context);
         const org = JSON.parse((context?.requestContext as any)?.get('organization') as string);
         try {
-          // Same credit gate as the dashboard's /media/generate-image route -
-          // only enforced when billing is enabled (cloud), self-hosted is free
-          const total = await this._subscriptionService.checkCredits(org);
-          if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
-            return {
-              error: 'No AI image credits are available on this account.',
-            };
-          }
-
+          // Paid with AI credits inside generateImage (refused when the
+          // workspace is out, refunded when the generation fails)
           const image = await this._mediaService.generateImage(
             inputData.prompt,
-            org
+            org,
+            false,
+            (context?.requestContext as any)?.get('billingExempt') === 'true'
           );
 
           const file = await this.storage.uploadSimple(
@@ -71,10 +62,16 @@ export class GenerateImageTool implements AgentToolInterface {
             file
           );
         } catch (err) {
+          // SubscriptionException (402) carries { section, action } and its
+          // message is just "Subscription Exception", so translate it
+          const message =
+            err instanceof HttpException && err.getStatus() === 402
+              ? "The workspace has used its AI credits this month. They can buy more credits or upgrade in Billing."
+              : err instanceof Error
+              ? err.message
+              : String(err);
           return {
-            error: `Image generation failed: ${
-              err instanceof Error ? err.message : String(err)
-            }. The user's image credit was not used.`,
+            error: `Image generation failed: ${message}. No AI credits were used.`,
           };
         }
       },

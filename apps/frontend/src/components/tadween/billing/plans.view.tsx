@@ -46,13 +46,16 @@ export const usePlanFeatureText = () => {
           'tdw_plan_feature_ai_writing',
           'AI auto-complete and copilots'
         );
+      // Plan.aiCredits: credits for writing, the agent and images
       case 'ai_images':
         return unlimited
           ? t(
-              'tdw_plan_feature_ai_images_unlimited',
-              'Unlimited AI images per month'
+              'tdw_plan_feature_ai_credits_unlimited',
+              'Unlimited AI credits per month'
             )
-          : t('tdw_plan_feature_ai_images', '{{n}} AI images per month', { n });
+          : t('tdw_plan_feature_ai_credits', '{{n}} AI credits per month', {
+              n,
+            });
       case 'picture_editor':
         return t('tdw_plan_feature_picture_editor', 'Advanced picture editor');
       case 'autopost':

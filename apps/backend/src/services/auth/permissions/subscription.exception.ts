@@ -56,6 +56,8 @@ const getErrorMessage = (error: {
       return 'Your subscription does not include more team members. Please upgrade your subscription to invite more people.';
     case Sections.AI:
       return 'Your subscription does not include AI features. Please upgrade your subscription to use them.';
+    case Sections.AI_CREDITS:
+      return "You've used your AI credits this month. Buy more credits or upgrade your plan to keep using AI.";
     case Sections.IMPORT_FROM_CHANNELS:
       return 'Your subscription does not include importing from channels. Please upgrade your subscription to use it.';
     case Sections.CLIPPING_MINUTES:

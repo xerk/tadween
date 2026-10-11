@@ -36,6 +36,10 @@ import {
 } from '@gitroom/frontend/components/tadween/billing/billing.dialogs';
 import { PlansView } from '@gitroom/frontend/components/tadween/billing/plans.view';
 import { CheckoutDrawer } from '@gitroom/frontend/components/tadween/billing/checkout.drawer';
+import {
+  AiCreditsCard,
+  BuyCreditsDrawer,
+} from '@gitroom/frontend/components/tadween/billing/ai.credits';
 import { useUtmUrl } from '@gitroom/helpers/utils/utm.saver';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { FinishTrial } from '@gitroom/frontend/components/billing/finish.trial';
@@ -123,6 +127,8 @@ export const MainBillingComponent: FC<{
   const [period, setPeriod] = useState<BillingPeriod>(sub?.period || 'MONTHLY');
   const [changeTo, setChangeTo] = useState<string | null>(null);
   const [checkout, setCheckout] = useState<PublicPlan | null>(null);
+  // /billing?credits=1 (from the AI credits paywall) opens the top-up drawer
+  const [buyCredits, setBuyCredits] = useState(!!queryParams.get('credits'));
   useEffect(() => {
     setSubscription(sub);
     setPeriod(sub?.period || 'MONTHLY');
@@ -440,6 +446,9 @@ export const MainBillingComponent: FC<{
           }
         />
       )}
+      {!!subscription && (
+        <AiCreditsCard onBuy={() => setBuyCredits(true)} />
+      )}
       <PlansView
         title={
           subscription
@@ -502,6 +511,10 @@ export const MainBillingComponent: FC<{
         plan={checkout}
         period={period}
         onClose={() => setCheckout(null)}
+      />
+      <BuyCreditsDrawer
+        open={buyCredits}
+        onClose={() => setBuyCredits(false)}
       />
     </TadweenScope>
   );

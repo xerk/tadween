@@ -107,6 +107,11 @@ export function LandingNav({ t, altHref, current }: { t: Dict; altHref: string; 
             {t.nav.signIn}
           </a>
         </div>
+        {/* Small phones have no room for it in the bar */}
+        <div className="pz-sheet-theme">
+          <span>{t.nav.theme}</span>
+          <ThemeToggle label={t.nav.theme} />
+        </div>
       </div>
       <NavController />
     </header>

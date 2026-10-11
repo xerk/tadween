@@ -220,6 +220,7 @@ a { color: var(--primary); text-underline-offset: 3px; }
 .pz-sheet > a { display: block; padding: 16px 4px; border-bottom: 1px solid var(--border); color: var(--foreground); font-size: 17px; font-weight: 600; text-decoration: none; }
 .pz-sheet-cta { display: grid; gap: 10px; margin-top: 24px; }
 .pz-sheet-cta .pz-btn { width: 100%; }
+.pz-sheet-theme { display: none; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; font-size: 15px; font-weight: 500; }
 
 /* ── Product screenshots ─────────────────────────────── */
 /* Each shot exists in light and dark; the one that matches the page theme shows. Both
@@ -937,6 +938,15 @@ a.pz-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
   .pz-shot-url { display: none; }
   .pz-acc-btn { padding: 18px; font-size: 16px; }
   .pz-acc-body { padding: 0 18px 20px; }
+}
+/* Small phones: the bar keeps logo, language, trial button and menu (it was
+   ~398px wide and pushed the menu off screen); the theme moves into the sheet */
+@media (max-width: 400px) {
+  .pz-nav-bar { gap: 4px; }
+  .pz-nav .pz-logo { flex: none; }
+  .pz-nav-bar > .pz-btn-primary { padding: 0 10px; font-size: 13px; }
+  .pz-nav-bar > .pz-theme:not(.pz-burger) { display: none; }
+  .pz-sheet-theme { display: flex; }
 }
 
 /* AI agent menu in the site bar: hover or keyboard focus opens the list of AI tool pages */

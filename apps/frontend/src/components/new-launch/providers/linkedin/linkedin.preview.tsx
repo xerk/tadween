@@ -247,13 +247,16 @@ const toParagraphs = (text: string, start: number, end: number) => {
   });
 };
 
+// the first letter is Arabic, Hebrew, Persian...
+const RTL_START = /^[^A-Za-z\u0590-\u08FF]*[\u0590-\u08FF]/;
+
 const Paragraphs: FC<{ paragraphs: string[] }> = ({ paragraphs }) => (
   <>
     {paragraphs.map((html, index) => (
       <div
         key={index}
         dir="auto"
-        className="min-h-[20px] text-start"
+        className="min-h-[20px] [text-align:start]"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     ))}
@@ -293,10 +296,20 @@ export const LinkedinPreview: FC<{
       images: p.image,
     };
   });
+  const paragraphs = renderContent?.[0]?.paragraphs || [];
   useLayoutEffect(() => {
     const el = bodyRef.current;
-    setClamped(!expanded && !!el && el.scrollHeight > el.clientHeight + 1);
-  });
+    if (!el) {
+      return;
+    }
+    const measure = () =>
+      setClamped(!expanded && el.scrollHeight > el.clientHeight + 1);
+    measure();
+    // the inspector and the phone frame change width without a render
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [expanded, paragraphs.join('\n')]);
 
   // a company page's logo is square, a member's photo is round
   const avatarShape =
@@ -306,7 +319,9 @@ export const LinkedinPreview: FC<{
   const comments = renderContent.slice(1);
 
   return (
-    <div className="flex flex-col w-full bg-bgLinkedin text-textLinkedinInk rounded-[8px]">
+    // an English LinkedIn screen: left to right even inside the Arabic app
+    // (.lbox, global.scss), each line of the post still takes its own direction
+    <div className="lbox flex flex-col w-full bg-bgLinkedin text-textLinkedinInk rounded-[8px]">
       <div className="flex gap-[8px] px-[16px] pt-[12px] mb-[8px]">
         <TadweenAvatarImage
           src={integration?.picture}
@@ -333,18 +348,26 @@ export const LinkedinPreview: FC<{
           <LinkedinMore />
         </div>
       </div>
-      <div className="px-[16px] relative text-[14px] leading-[20px]">
+      <div
+        // "…more" sits at the end of the post's own first line direction
+        className={clsx(
+          'px-[16px] relative text-[14px] leading-[20px]',
+          RTL_START.test(paragraphs.join(' ').replace(/<[^>]*>/g, ''))
+            ? '[direction:rtl]'
+            : '[direction:ltr]'
+        )}
+      >
         <div
           ref={bodyRef}
           className={clsx('break-words', !expanded && 'line-clamp-3')}
         >
-          <Paragraphs paragraphs={renderContent?.[0]?.paragraphs || []} />
+          <Paragraphs paragraphs={paragraphs} />
         </div>
         {clamped && (
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="absolute bottom-0 end-[16px] ps-[4px] bg-bgLinkedin text-textLinkedin hover:text-[#0a66c2] hover:underline select-none"
+            className="absolute bottom-0 end-[16px] ps-[4px] [direction:ltr] [unicode-bidi:isolate] bg-bgLinkedin text-textLinkedin hover:text-[#0a66c2] hover:underline select-none"
           >
             …more
           </button>
@@ -394,7 +417,7 @@ export const LinkedinPreview: FC<{
                 )}
               />
               <div className="flex-1 min-w-0 flex flex-col">
-                <div className="bg-bgLinkedinComment rounded-[8px] rounded-ss-none px-[12px] pt-[8px] pb-[12px]">
+                <div className="bg-bgCommentLinkedin rounded-[8px] rounded-ss-none px-[12px] pt-[8px] pb-[12px]">
                   <div className="flex items-center gap-[4px] text-[12px] leading-[16px] text-textLinkedin">
                     <span className="text-[14px] leading-[20px] font-[600] text-textLinkedinInk truncate">
                       {integration?.name}
@@ -429,7 +452,7 @@ const LinkedinAction: FC<{ icon: ReactNode; label: string }> = ({
   icon,
   label,
 }) => (
-  <div className="flex flex-1 justify-center items-center gap-[4px] min-h-[40px] px-[4px] rounded-[4px] hover:bg-bgLinkedinComment cursor-default">
+  <div className="flex flex-1 justify-center items-center gap-[4px] min-h-[40px] px-[4px] rounded-[4px] hover:bg-bgCommentLinkedin cursor-default">
     {icon}
     <span>{label}</span>
   </div>

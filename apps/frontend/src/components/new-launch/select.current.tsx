@@ -20,6 +20,7 @@ import { TadweenIcon } from '@gitroom/frontend/components/tadween/editor/icons';
 import { useEditorChecks } from '@gitroom/frontend/components/tadween/editor/checks';
 import { PHONE_QUERY } from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { hasPreview } from '@gitroom/frontend/components/new-launch/providers/show.all.providers';
 import { Integrations } from '@gitroom/frontend/components/launches/calendar.context';
 import {
   useDecisionModal,
@@ -245,8 +246,13 @@ export const SelectPreview: FC<{
 }> = ({ value, onChange }) => {
   const t = useT();
   const selectedIntegrations = useLaunchStore(
-    (state) => state.selectedIntegrations
+    useShallow((state) =>
+      state.selectedIntegrations.filter((p) =>
+        hasPreview(p.integration.identifier)
+      )
+    )
   );
+  const { checks } = useEditorChecks();
 
   if (selectedIntegrations.length < 2) {
     return null;
@@ -282,7 +288,13 @@ export const SelectPreview: FC<{
           <TadweenChannelAvatar
             integration={integration}
             size={26}
-            dot={<IsGlobal id={integration.id} />}
+            dot={
+              checks.some((p) => p.integration.id === integration.id) ? (
+                <span className="tdw-ch-dot is-error" />
+              ) : (
+                <IsGlobal id={integration.id} />
+              )
+            }
           />
         </button>
       ))}

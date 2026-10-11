@@ -183,6 +183,10 @@ export const Providers = [
     component: TumblrProvider,
   },
 ];
+// a channel the composer has a preview for
+export const hasPreview = (identifier: string) =>
+  Providers.some((provider) => provider.identifier === identifier);
+
 // previewIntegration: the channel the inspector shows while editing "All
 // channels" (the first selected one when unset)
 export const ShowAllProviders = forwardRef<
@@ -201,10 +205,12 @@ export const ShowAllProviders = forwardRef<
     );
 
   const t = useT();
+  const previewable = selectedIntegrations.filter((p) =>
+    hasPreview(p.integration.identifier)
+  );
   const previewed =
-    selectedIntegrations.find(
-      (p) => p.integration.id === props.previewIntegration
-    ) || selectedIntegrations[0];
+    previewable.find((p) => p.integration.id === props.previewIntegration) ||
+    previewable[0];
 
   useImperativeHandle(ref, () => ({
     checkAllValid: async () => {
@@ -226,7 +232,7 @@ export const ShowAllProviders = forwardRef<
 
   return (
     <div className="w-full flex flex-col flex-1">
-      {current === 'global' && !selectedIntegrations.length && (
+      {current === 'global' && !previewed && (
         <IntegrationContext.Provider
           value={{
             date,

@@ -37,6 +37,9 @@ interface CharacterCondition {
   maximumCharacters: number;
 }
 
+// previewed: the channel the inspector shows while editing "All channels"
+type WrappedProps = { id: string; previewed?: boolean };
+
 export const withProvider = function <T extends object>(params: {
   comments?: boolean | 'no-media';
   postComment: PostComment;
@@ -59,8 +62,7 @@ export const withProvider = function <T extends object>(params: {
     maximumCharacters,
   } = params;
 
-  // previewed: the channel the inspector shows while editing "All channels"
-  const Wrapped = forwardRef((props: { id: string; previewed?: boolean }, ref) => {
+  const Wrapped = forwardRef((props: WrappedProps, ref) => {
     const t = useT();
     const fetch = useFetch();
     const {

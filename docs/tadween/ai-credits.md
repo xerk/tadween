@@ -31,8 +31,11 @@ Not metered yet: the RSS auto-post AI rewrite (it runs in the background worker)
   ("You've used your AI credits this month") with **Buy more credits** and **Upgrade**.
   The agent page checks the balance before sending, because CopilotKit's requests don't
   go through the app's fetch wrapper.
-- Images and writing that finish inside the request are charged before the call and
-  refunded if the call fails. Agent and composer chat messages are streamed, so they are
+  The composer assistant (CopilotPopup) has no such check yet: when it is refused, the
+  popup shows no answer.
+- Images and writing that finish inside the request are charged before the call (the
+  balance check and the charge run in one serializable transaction, so parallel calls
+  can't spend the same credits) and refunded if the call fails. Agent and composer chat messages are streamed, so they are
   charged when the response closes with a non-error status (also when the user stops the
   answer half way).
 - Super admins acting as themselves are never refused, but their usage is still recorded.

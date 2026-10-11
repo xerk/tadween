@@ -1,6 +1,9 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { AdminConsoleRepository } from '@gitroom/nestjs-libraries/database/prisma/tadween/admin-console.repository';
-import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
+import {
+  PAYMENT_FAILED_STATUSES,
+  SubscriptionService,
+} from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
 import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
 import {
@@ -60,6 +63,7 @@ const subscriptionStatus = (org: {
     isLifetime: boolean;
     cancelAt: Date | null;
     deletedAt: Date | null;
+    status: string | null;
   } | null;
 }): OrganizationStatus => {
   const sub = org.subscription;
@@ -68,6 +72,10 @@ const subscriptionStatus = (org: {
   }
   if (sub.isLifetime) {
     return 'lifetime';
+  }
+  // Stripe's own status wins: a failed renewal also sets isTrailing
+  if (PAYMENT_FAILED_STATUSES.includes(sub.status || '')) {
+    return 'past_due';
   }
   if (sub.cancelAt) {
     return 'cancelled';
@@ -123,7 +131,13 @@ export class AdminConsoleService {
       return {
         planName: plan?.name || null,
         channels: totalChannels ?? plan?.channels ?? null,
-        members: plan ? plan.teamMembers : null,
+        // Seats including the owner, like the member count it is shown
+        // against (Plan.teamMembers counts members besides the owner)
+        members: !plan
+          ? null
+          : plan.teamMembers < 0
+          ? -1
+          : plan.teamMembers + 1,
       };
     };
   }

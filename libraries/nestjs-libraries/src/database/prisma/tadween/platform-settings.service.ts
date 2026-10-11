@@ -4,6 +4,7 @@ import {
   BRAND_LINK_KEYS,
   Branding,
   brandingDefaults,
+  DEFAULT_FOUNDER_CAP,
   DEFAULT_YEARLY_DISCOUNT_PERCENT,
   FEATURE_KEYS,
   FeatureKey,
@@ -84,7 +85,7 @@ export class PlatformSettingsService {
     return (await this.values())[KEYS.branding] || {};
   }
 
-  // Percent off 12 monthly payments when paying yearly (default 20).
+  // Percent off 12 monthly payments when paying yearly (default 17).
   async getYearlyDiscountPercent(): Promise<number> {
     const stored = (await this.values())[KEYS.billing]?.yearlyDiscountPercent;
     return Number.isInteger(stored) && stored >= 0 && stored <= 90
@@ -98,6 +99,45 @@ export class PlatformSettingsService {
       {
         ...((await this.values())[KEYS.billing] || {}),
         yearlyDiscountPercent: percent,
+      },
+      userId
+    );
+  }
+
+  // The founder offer's window: open for the first `cap` paying workspaces
+  // (counted from `startsAt`, all time when unset) and until `endsAt` when
+  // set. cap 0 = no founder offer.
+  async getFounderWindow(): Promise<{
+    cap: number;
+    startsAt: string | null;
+    endsAt: string | null;
+  }> {
+    const stored = (await this.values())[KEYS.billing]?.founder || {};
+    const date = (value: unknown) =>
+      typeof value === 'string' && !isNaN(Date.parse(value)) ? value : null;
+    return {
+      cap:
+        Number.isInteger(stored.cap) && stored.cap >= 0
+          ? stored.cap
+          : DEFAULT_FOUNDER_CAP,
+      startsAt: date(stored.startsAt),
+      endsAt: date(stored.endsAt),
+    };
+  }
+
+  async setFounderWindow(
+    founder: { cap: number; startsAt: string | null; endsAt: string | null },
+    userId: string
+  ) {
+    return this.save(
+      KEYS.billing,
+      {
+        ...((await this.values())[KEYS.billing] || {}),
+        founder: {
+          cap: founder.cap,
+          startsAt: founder.startsAt || null,
+          endsAt: founder.endsAt || null,
+        },
       },
       userId
     );

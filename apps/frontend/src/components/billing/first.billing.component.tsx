@@ -116,11 +116,11 @@ export const FirstBillingComponent = () => {
             trial
               ? t(
                   'tdw_paywall_trial_lead',
-                  'Start with a free trial on any plan. Both plans have every feature; they differ only in limits.'
+                  'Start with a free trial on any plan. Plans differ in limits: channels, team members and AI credits.'
                 )
               : t(
                   'tdw_paywall_lead_plans',
-                  'Both plans have every feature; they differ only in limits.'
+                  'Plans differ in limits: channels, team members and AI credits.'
                 )
           }
           period={period}

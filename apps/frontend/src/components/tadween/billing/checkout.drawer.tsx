@@ -37,7 +37,10 @@ import {
   BillingPeriod,
   formatUsd,
 } from '@gitroom/frontend/components/tadween/billing/pricing';
-import { usePlanFeatureText } from '@gitroom/frontend/components/tadween/billing/plans.view';
+import {
+  FounderNote,
+  usePlanFeatureText,
+} from '@gitroom/frontend/components/tadween/billing/plans.view';
 
 type Step =
   | 'pay'
@@ -113,6 +116,7 @@ const OrderSummary: FC<{
           <span className="tdw-order-per">{per}</span>
         </div>
       </div>
+      <FounderNote plan={plan} period={period} />
       <div className="tdw-order-meta">
         <span>
           {yearly
@@ -140,6 +144,8 @@ const OrderSummary: FC<{
                 amount: formatUsd(amount),
                 per,
                 date: dateLabel,
+                // React escapes; i18next would turn "/month" into "&#x2F;month"
+                interpolation: { escapeValue: false },
               }
             )}
           </span>

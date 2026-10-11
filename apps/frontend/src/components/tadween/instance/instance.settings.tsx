@@ -36,8 +36,17 @@ export interface PublicPlan {
   name: string;
   description: string | null;
   tier: 'STANDARD' | 'PRO' | 'TEAM' | 'ULTIMATE';
+  // What checkout charges now (the founder price while the offer is open)
   monthlyPriceUsd: number;
   yearlyPriceUsd: number;
+  // The regular price, charged once the founder offer closes
+  listMonthlyPriceUsd: number;
+  listYearlyPriceUsd: number;
+  // null: no founder price on this plan
+  founderMonthlyPriceUsd: number | null;
+  founderYearlyPriceUsd: number | null;
+  // true while checkout charges the founder price
+  founderPrice: boolean;
   trialDays: number;
   mostPopular: boolean;
   channels: number;
@@ -81,6 +90,15 @@ export interface InstanceSettings {
   ai?: { available: boolean };
   // social sign-in providers the backend has credentials for, { google: true }
   login?: Record<string, boolean>;
+  // The founder offer (PlansService.getFounderOffer)
+  founder?: FounderOffer;
+}
+
+export interface FounderOffer {
+  open: boolean;
+  cap: number;
+  spotsLeft: number;
+  endsAt: string | null;
 }
 
 export const INSTANCE_SETTINGS_KEY = '/instance/settings';
@@ -186,6 +204,7 @@ export const useTadweenPricing = () => {
     return {
       pricing,
       plans,
+      founder: data?.founder,
       hasPlans: plans.length > 0,
       planFor,
       nameFor: (tier: string, fallback: string) =>

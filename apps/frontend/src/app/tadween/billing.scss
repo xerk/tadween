@@ -217,6 +217,12 @@
   .tdw-plan-price { display: flex; align-items: baseline; gap: 6px; margin-top: var(--space-4); }
   .tdw-plan-amount { font-family: var(--font-mono); font-size: 48px; line-height: 52px; font-weight: 500; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
   .tdw-plan-per { font-size: 15px; color: var(--muted-foreground); }
+  // Founder offer (FounderNote): what is charged now and the regular price later
+  .tdw-founder { display: grid; gap: 2px; margin-top: var(--space-2); font-size: 13px; line-height: 18px; }
+  .tdw-founder-tag { display: inline-flex; align-items: center; gap: 6px; color: var(--primary); font-weight: 600; }
+  .tdw-founder-regular { color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .tdw-founder.is-compact { margin-top: 0; font-size: 12px; line-height: 16px; }
+  .tdw-order .tdw-founder { margin-top: 0; }
   .tdw-plan-bill { margin: 0 0 var(--space-4); min-height: 20px; font-size: 13px; line-height: 20px; color: var(--muted-foreground); }
   .tdw-plan-cta { display: grid; }
   .tdw-plan-cta .pz-btn { height: 48px; font-size: 15px; }
@@ -245,6 +251,7 @@
   .tdw-current-label { font-size: 13px; color: var(--muted-foreground); }
   .tdw-current-name { margin: 2px 0 0; font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.02em; }
   .tdw-current-price { margin: 4px 0 0; font-size: 14px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+  .tdw-current-failed { margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--warning-soft); font-size: 14px; line-height: 20px; }
   .tdw-current-usage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); }
   .tdw-current-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding-top: var(--space-5); border-top: 1px solid var(--border); }
   .tdw-current-actions .grow { flex: 1; }
@@ -303,8 +310,17 @@
 .tdw-ui .tdw-trial-sep { color: var(--muted-foreground); }
 .tdw-ui .tdw-trial-link { color: var(--primary); font-weight: 600; text-decoration: none; }
 .tdw-ui .tdw-trial-link:hover { text-decoration: underline; }
+.tdw-ui button.tdw-trial-link { padding: 0; border: 0; background: none; font: inherit; font-weight: 600; cursor: pointer; }
+.tdw-ui button.tdw-trial-link:disabled { opacity: .6; cursor: progress; }
+// Failed renewal (Stripe past_due): same bar, warning colours
+.tdw-ui .tdw-trial-bar.is-failed { background: var(--warning-soft); }
+.tdw-ui .tdw-trial-bar.is-failed .pz-icon { color: var(--warning); }
+.tdw-ui .tdw-trial-bar.is-failed .tdw-trial-link { color: var(--foreground); text-decoration: underline; }
 .tdw-ui .tdw-skip { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin-top: calc(-1 * var(--space-4)); font-size: 14px; color: var(--muted-foreground); text-align: center; }
 
+// Upgrade paywall (PaywallModal). It opens over the modal whose action was
+// refused (invite, composer: modal manager, z-index 200+), so it sits above it.
+.tdw-ui .pz-overlay:has(.tdw-paywall-modal) { z-index: 400; }
 // Upgrade paywall (PaywallModal)
 .tdw-ui .tdw-paywall-modal { display: grid; gap: var(--space-4); }
 .tdw-ui .tdw-paywall-usage { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }

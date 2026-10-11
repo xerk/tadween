@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
-import { useModals } from '@gitroom/frontend/components/layout/new-modal';
+import { useCloseAllModals } from '@gitroom/frontend/components/layout/new-modal';
 import {
   PublicPlan,
   useTadweenPricing,
@@ -24,7 +24,10 @@ import {
   Icon,
 } from '@gitroom/frontend/components/tadween/ui';
 import { formatUsd } from '@gitroom/frontend/components/tadween/billing/pricing';
-import { usePlanFeatureText } from '@gitroom/frontend/components/tadween/billing/plans.view';
+import {
+  FounderNote,
+  usePlanFeatureText,
+} from '@gitroom/frontend/components/tadween/billing/plans.view';
 
 const paywallEmitter = new EventEmitter();
 
@@ -60,7 +63,7 @@ export const PaywallModal: FC = () => {
   const t = useT();
   const user = useUser();
   const router = useRouter();
-  const modals = useModals();
+  const closeAllModals = useCloseAllModals();
   const text = usePlanFeatureText();
   const { plans, planFor } = useTadweenPricing();
   const [reason, setReason] = useState<{
@@ -138,10 +141,23 @@ export const PaywallModal: FC = () => {
           {unlock ? (
             <Button
               variant="primary"
-              onClick={() => {
+              onClick={async () => {
                 close();
-                // the refused action's modal (invite, composer…) would stay open over Billing
-                modals.closeAll();
+                // The refused action's modal (invite, composer…) would stay
+                // open over Billing: close it like its close button does, so
+                // a composer with unsaved text asks first and can be kept
+                if (
+                  !(await closeAllModals({
+                    description: t(
+                      'are_you_sure_you_want_to_close_this_modal_all_data_will_be_lost',
+                      'Are you sure you want to close this modal? (all data will be lost)'
+                    ),
+                    approveLabel: t('yes_close_it', 'Yes, close it!'),
+                    cancelLabel: t('no', 'No'),
+                  }))
+                ) {
+                  return;
+                }
                 router.push(`/billing?plan=${unlock.tier}`);
               }}
             >
@@ -196,6 +212,7 @@ export const PaywallModal: FC = () => {
                   {formatUsd(p.monthlyPriceUsd)}
                   {t('tdw_per_month_short', '/month')}
                 </span>
+                <FounderNote plan={p} period="MONTHLY" compact />
               </div>
             );
           })}

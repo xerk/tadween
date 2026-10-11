@@ -5,6 +5,7 @@ import {
   AdminOrganizationsQueryDto,
   AdminUsersQueryDto,
 } from '@gitroom/nestjs-libraries/dtos/tadween/admin.list.dto';
+import { PAYMENT_FAILED_STATUSES } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 
 // What the console shows of a user: no password, tokens or API keys.
 const USER_SELECT = {
@@ -186,13 +187,21 @@ export class AdminConsoleRepository {
 
   // ── Organizations (subscribers) ────────────────────────────────────────────
   // Subscription status is derived from what Postiz stores, in this order:
-  // no live row → none, isLifetime → lifetime, cancelAt → cancelled,
-  // Organization.isTrailing → trialing, otherwise active.
+  // no live row → none, isLifetime → lifetime, Stripe status past_due/unpaid
+  // → past_due, cancelAt → cancelled, Organization.isTrailing → trialing,
+  // otherwise active.  Keep in sync with subscriptionStatus() in the service.
   private organizationWhere(
     query: AdminOrganizationsQueryDto
   ): Prisma.OrganizationWhereInput {
     const q = (query.search || '').trim();
     const live = { deletedAt: null as Date | null, isLifetime: false };
+    // NOT IN drops NULL rows in SQL: a null status is "not failed"
+    const notFailed: Prisma.SubscriptionWhereInput = {
+      OR: [
+        { status: null },
+        { status: { notIn: PAYMENT_FAILED_STATUSES } },
+      ],
+    };
     const and: Prisma.OrganizationWhereInput[] = [{ deletedAt: null }];
     const none: Prisma.OrganizationWhereInput = {
       OR: [
@@ -208,19 +217,30 @@ export class AdminConsoleRepository {
       case 'lifetime':
         and.push({ subscription: { is: { deletedAt: null, isLifetime: true } } });
         break;
+      case 'past_due':
+        and.push({
+          subscription: {
+            is: { ...live, status: { in: PAYMENT_FAILED_STATUSES } },
+          },
+        });
+        break;
       case 'cancelled':
-        and.push({ subscription: { is: { ...live, cancelAt: { not: null } } } });
+        and.push({
+          subscription: {
+            is: { ...live, ...notFailed, cancelAt: { not: null } },
+          },
+        });
         break;
       case 'trialing':
         and.push({
           isTrailing: true,
-          subscription: { is: { ...live, cancelAt: null } },
+          subscription: { is: { ...live, ...notFailed, cancelAt: null } },
         });
         break;
       case 'active':
         and.push({
           isTrailing: false,
-          subscription: { is: { ...live, cancelAt: null } },
+          subscription: { is: { ...live, ...notFailed, cancelAt: null } },
         });
         break;
     }
@@ -282,6 +302,8 @@ export class AdminConsoleRepository {
               identifier: true,
               cancelAt: true,
               totalChannels: true,
+              status: true,
+              priceCents: true,
               createdAt: true,
               deletedAt: true,
             },
@@ -329,6 +351,8 @@ export class AdminConsoleRepository {
             identifier: true,
             cancelAt: true,
             totalChannels: true,
+            status: true,
+            priceCents: true,
             createdAt: true,
             updatedAt: true,
             deletedAt: true,

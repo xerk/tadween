@@ -95,9 +95,14 @@ export interface AdminPlan {
   name: string;
   description: string | null;
   tier: Tier;
+  // The list price
   monthlyPriceUsd: number;
   // Derived on the server from the monthly price and the yearly discount
   yearlyPriceUsd: number;
+  // Charged instead while the founder window is open (null: no offer)
+  founderMonthlyPriceUsd: number | null;
+  // -1 unlimited, 0 none, null = the tier's static value
+  webhooks: number | null;
   trialDays: number;
   mostPopular: boolean;
   channels: number;
@@ -155,6 +160,7 @@ export type AdminUsersPage = AdminListPage<AdminUser>;
 export type SubscriptionStatus =
   | 'active'
   | 'trialing'
+  | 'past_due'
   | 'cancelled'
   | 'lifetime'
   | 'none';
@@ -167,6 +173,9 @@ interface AdminSubscription {
   identifier: string | null;
   cancelAt: string | null;
   totalChannels: number;
+  // Stripe's status (null before it reported one) and the price it charges
+  status: string | null;
+  priceCents: number | null;
   createdAt: string;
   updatedAt?: string;
   deletedAt: string | null;
@@ -175,7 +184,7 @@ interface AdminSubscription {
 interface AdminLimits {
   planName: string | null;
   channels: number | null;
-  members: number | null; // -1 unlimited, 0 owner only
+  members: number | null; // seats including the owner, -1 unlimited
 }
 
 export interface AdminOrganization {
@@ -288,6 +297,8 @@ export interface AdminPlansData {
   // Live subscriptions per tier
   subscribers: Record<string, number>;
   postizPricing: PricingInterface;
+  founderWindow: { cap: number; startsAt: string | null; endsAt: string | null };
+  founder: { open: boolean; cap: number; spotsLeft: number; endsAt: string | null };
 }
 
 export const useAdminPlans = () =>

@@ -95,6 +95,10 @@ const InviteMember = () => {
         body: JSON.stringify(values),
       });
       if (!response.ok) {
+        // No free seat: the upgrade paywall already opened (layout.context)
+        if (response.status === 402) {
+          return;
+        }
         const { message } = await response.json().catch(() => ({} as any));
         toast.show(
           (Array.isArray(message) ? message[0] : message) ||

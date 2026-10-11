@@ -12,6 +12,9 @@ const toData = (body: PlanDto) => ({
   tier: body.tier,
   monthlyPriceUsd: body.monthlyPriceUsd,
   yearlyPriceUsd: body.yearlyPriceUsd,
+  // undefined leaves the stored value as it is (older clients)
+  founderMonthlyPriceUsd: body.founderMonthlyPriceUsd,
+  webhooks: body.webhooks,
   trialDays: body.trialDays,
   mostPopular: body.mostPopular,
   channels: body.channels,
@@ -29,7 +32,8 @@ const toData = (body: PlanDto) => ({
 export class PlansRepository {
   constructor(
     private _plans: PrismaRepository<'plan'>,
-    private _subscriptions: PrismaRepository<'subscription'>
+    private _subscriptions: PrismaRepository<'subscription'>,
+    private _organizations: PrismaRepository<'organization'>
   ) {}
 
   // Workspaces whose limits come from this tier (lifetime and cancelling ones
@@ -93,6 +97,32 @@ export class PlansRepository {
       where: { id },
       data: { yearlyPriceUsd },
       select: { id: true },
+    });
+  }
+
+  // Frees a key for a default plan (PlansService.seedDefaults)
+  setKey(id: string, key: string) {
+    return this._plans.model.plan.update({
+      where: { id },
+      data: { key },
+      select: { id: true },
+    });
+  }
+
+  // Founder spots taken since the window started (cancelled founders
+  // included: Organization.founderSince is never cleared)
+  countFounderSpots(since: Date | null) {
+    return this._organizations.model.organization.count({
+      where: { founderSince: since ? { gte: since } : { not: null } },
+    });
+  }
+
+  // The workspace paying through this provider customer takes a founder spot,
+  // once (a later subscription of the same workspace keeps the first date)
+  claimFounderSpot(customerId: string) {
+    return this._organizations.model.organization.updateMany({
+      where: { paymentId: customerId, founderSince: null },
+      data: { founderSince: new Date() },
     });
   }
 

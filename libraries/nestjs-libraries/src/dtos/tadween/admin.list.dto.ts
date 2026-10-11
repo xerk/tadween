@@ -47,6 +47,7 @@ export class AdminListQueryDto {
 export const ORGANIZATION_STATUSES = [
   'active',
   'trialing',
+  'past_due',
   'cancelled',
   'lifetime',
   'none',

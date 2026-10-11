@@ -588,6 +588,31 @@ export const DecisionEverywhere: FC = () => {
   return null;
 };
 
+// Close every open modal the way its own close button would: when one asks
+// before closing (the composer with unsaved changes), ask once. Resolves false
+// when the user keeps it open (nothing is closed then).
+export const useCloseAllModals = () => {
+  const decision = useDecisionModal();
+  const { closeAll } = useModals();
+  return useCallback(
+    async (question?: Parameters<typeof decision.open>[0]) => {
+      const asks = useModalStore
+        .getState()
+        .modalManager.some((modal) =>
+          typeof modal.askClose === 'function'
+            ? modal.askClose()
+            : modal.askClose
+        );
+      if (asks && !(await decision.open(question))) {
+        return false;
+      }
+      closeAll();
+      return true;
+    },
+    [decision, closeAll]
+  );
+};
+
 export const useDecisionModal = () => {
   const modals = useModals();
   const open = useCallback(

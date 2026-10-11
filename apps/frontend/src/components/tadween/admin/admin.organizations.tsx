@@ -36,10 +36,12 @@ import {
   useExportAll,
 } from './admin.api';
 import { ChangePlanDialog, PlanTarget } from './admin.change.plan';
+import { formatUsd } from '@gitroom/frontend/components/tadween/billing/pricing';
 
-const STATUS: Record<SubscriptionStatus, { label: string; key: string; tone: 'ok' | 'warn' | 'brand' | 'neutral'; icon: string }> = {
+const STATUS: Record<SubscriptionStatus, { label: string; key: string; tone: 'ok' | 'warn' | 'bad' | 'brand' | 'neutral'; icon: string }> = {
   active: { label: 'Active', key: 'tdw_admin_status_active', tone: 'ok', icon: 'check' },
   trialing: { label: 'Trialing', key: 'tdw_admin_status_trialing', tone: 'brand', icon: 'clock' },
+  past_due: { label: 'Payment failed', key: 'tdw_admin_status_past_due', tone: 'bad', icon: 'triangle-alert' },
   cancelled: { label: 'Cancelled', key: 'tdw_admin_status_cancelled', tone: 'warn', icon: 'circle-x' },
   lifetime: { label: 'Lifetime', key: 'tdw_admin_status_lifetime', tone: 'brand', icon: 'star' },
   none: { label: 'No subscription', key: 'tdw_admin_status_none', tone: 'neutral', icon: 'minus' },
@@ -176,9 +178,23 @@ const OrganizationDrawer: FC<{
                     : '—'}
                 </Field>
                 <Field label={t('tdw_admin_since', 'Subscribed since')}>{date(sub?.createdAt)}</Field>
+                <Field label={t('tdw_admin_stripe_status', 'Stripe status')}>
+                  {sub?.status || '—'}
+                  {typeof sub?.priceCents === 'number' ? (
+                    <span className="caption pz-muted">
+                      {' '}
+                      · {formatUsd(sub.priceCents / 100)}
+                      {sub.period === 'YEARLY'
+                        ? t('tdw_per_year_short', '/year')
+                        : t('tdw_per_month_short', '/month')}
+                    </span>
+                  ) : null}
+                </Field>
                 <Field label={t('tdw_admin_col_ends', 'Cancels on')}>{date(sub?.cancelAt)}</Field>
                 <Field label={t('tdw_admin_trial', 'Trial')}>
-                  {org.isTrailing
+                  {org.status === 'past_due'
+                    ? t('tdw_admin_trial_none', 'No trial')
+                    : org.isTrailing
                     ? t('tdw_admin_trial_in', 'In trial')
                     : org.allowTrial
                     ? t('tdw_admin_trial_can', 'Can start a trial')

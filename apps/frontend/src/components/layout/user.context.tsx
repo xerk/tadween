@@ -19,6 +19,9 @@ export const UserContext = createContext<
       impersonate: boolean;
       allowTrial: boolean;
       isTrailing: boolean;
+      // Stripe's status (past_due: the last renewal failed) and trial end
+      subscriptionStatus?: string | null;
+      trialEndsAt?: string | null;
       streakSince: string | null;
       // Super admin acting as themselves: no paywall or plan gates
       billingExempt?: boolean;

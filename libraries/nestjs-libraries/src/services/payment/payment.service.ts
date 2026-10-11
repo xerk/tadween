@@ -51,7 +51,7 @@ export class PaymentService {
   // Subscription row + the platform (web / mobile) of the provider that owns it,
   // so clients can tell the user where to manage the subscription.
   async getSubscription(organizationId: string) {
-    const subscription =
+    let subscription =
       await this._subscriptionService.getSubscriptionByOrganizationId(
         organizationId
       );
@@ -63,11 +63,21 @@ export class PaymentService {
     // break reading the subscription
     let platform: PaymentPlatform | undefined;
     try {
-      platform = this._paymentProviderManager.getProvider(
+      const provider = this._paymentProviderManager.getProvider(
         subscription.provider
-      ).platform;
+      );
+      platform = provider.platform;
+      // Rows from before the provider status was stored: read it once, so
+      // the app shows the real state and the price this workspace pays
+      if (subscription.status === null && !subscription.isLifetime) {
+        await provider.refreshSubscriptionState(organizationId);
+        subscription =
+          (await this._subscriptionService.getSubscriptionByOrganizationId(
+            organizationId
+          )) || subscription;
+      }
     } catch (err) {
-      platform = undefined;
+      platform = platform || undefined;
     }
 
     return {

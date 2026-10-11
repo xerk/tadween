@@ -133,6 +133,16 @@ export class UsersController {
       isTrailing: !process.env.STRIPE_PUBLISHABLE_KEY
         ? false
         : organization?.isTrailing,
+      // Tadween: the payment provider's status (past_due = the last renewal
+      // failed, not a trial) and the real trial end, for the app's banner
+      subscriptionStatus: !process.env.STRIPE_PUBLISHABLE_KEY
+        ? null
+        : // @ts-ignore
+          organization?.subscription?.status || null,
+      trialEndsAt: !process.env.STRIPE_PUBLISHABLE_KEY
+        ? null
+        : // @ts-ignore
+          organization?.subscription?.trialEndsAt || null,
       allowTrial: organization?.allowTrial,
       streakSince: organization?.streakSince || null,
       publicApi:

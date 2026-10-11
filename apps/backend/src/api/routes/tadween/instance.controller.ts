@@ -16,11 +16,14 @@ export class InstanceController {
 
   @Get('/settings')
   async settings() {
-    const [settings, plans, pricing] = await Promise.all([
+    const [settings, plans, pricing, founder] = await Promise.all([
       this._settings.getPublicSettings(),
       this._plans.getPublicPlans(),
       this._plans.getPricing(),
+      this._plans.getFounderOffer(),
     ]);
-    return { ...settings, plans, pricing };
+    // `founder`: whether founder prices are charged now and how many spots
+    // are left, for the pricing page's offer line
+    return { ...settings, plans, pricing, founder };
   }
 }

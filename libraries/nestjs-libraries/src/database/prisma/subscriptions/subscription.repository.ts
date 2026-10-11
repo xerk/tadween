@@ -133,6 +133,29 @@ export class SubscriptionRepository {
     });
   }
 
+  // What the payment provider reports about the live subscription (status,
+  // trial end, price), keyed like the other customer-keyed writes
+  updateProviderState(
+    customerId: string,
+    provider: string,
+    state: {
+      status: string;
+      trialEndsAt: Date | null;
+      priceCents: number | null;
+    }
+  ) {
+    return this._subscription.model.subscription.updateMany({
+      where: {
+        provider,
+        deletedAt: null,
+        organization: {
+          paymentId: customerId,
+        },
+      },
+      data: state,
+    });
+  }
+
   async getSubscriptionByOrgId(orgId: string) {
     return this._subscription.model.subscription.findFirst({
       where: {

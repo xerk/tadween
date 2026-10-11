@@ -29,6 +29,7 @@ import {
   PeriodToggle,
 } from '@gitroom/frontend/components/tadween/billing/pricing';
 import { CurrentPlanCard } from '@gitroom/frontend/components/tadween/billing/current.plan';
+import { isPaymentFailed } from '@gitroom/frontend/components/tadween/billing/trial.banner';
 import {
   ChangePlanDialog,
   useBillingDialogs,
@@ -408,11 +409,15 @@ export const MainBillingComponent: FC<{
           plan={currentPlan}
           period={subscription.period as BillingPeriod}
           trial={!!user?.isTrailing}
+          paymentFailed={isPaymentFailed(subscription.status)}
+          priceCents={subscription.priceCents}
           cancelAt={subscription.cancelAt}
           actions={
             <>
               <Button variant="primary" icon="credit-card" onClick={openPortal}>
-                {t('tdw_manage_billing', 'Manage billing')}
+                {isPaymentFailed(subscription.status)
+                  ? t('tdw_update_card', 'Update card')
+                  : t('tdw_manage_billing', 'Manage billing')}
               </Button>
               <Button variant="ghost" icon="receipt" onClick={openPortal}>
                 {t('tdw_invoices', 'Invoices')}
@@ -458,7 +463,7 @@ export const MainBillingComponent: FC<{
               )
             : t(
                 'tdw_paywall_lead_plans',
-                'Both plans have every feature; they differ only in limits.'
+                'Plans differ in limits: channels, team members and AI credits.'
               )
         }
         period={period}

@@ -18,6 +18,11 @@ import {
   SubscriptionException,
 } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 
+// Stripe statuses of a renewal whose payment failed. Organization.isTrailing
+// is also true for them (it stores "not active"), so trial-only limits must
+// not apply: the workspace keeps working while Stripe retries the card.
+export const PAYMENT_FAILED_STATUSES = ['past_due', 'unpaid'];
+
 @Injectable()
 export class SubscriptionService {
   constructor(
@@ -43,6 +48,24 @@ export class SubscriptionService {
 
   getCode(code: string) {
     return this._subscriptionRepository.getCode(code);
+  }
+
+  // On a real free trial: isTrailing, unless the subscription's last payment
+  // failed. Organizations loaded without their subscription status (API key
+  // requests) read it from the subscription row.
+  async isOnTrial(org: {
+    id: string;
+    isTrailing: boolean;
+    subscription?: { status?: string | null } | null;
+  }): Promise<boolean> {
+    if (!org.isTrailing) {
+      return false;
+    }
+    const status =
+      org.subscription?.status !== undefined
+        ? org.subscription.status
+        : (await this._subscriptionRepository.getSubscription(org.id))?.status;
+    return !PAYMENT_FAILED_STATUSES.includes(status || '');
   }
 
   // Customer-keyed flows must never touch a subscription owned by another provider
@@ -117,6 +140,28 @@ export class SubscriptionService {
       organizationId,
       cancelAt
     );
+  }
+
+  // Reached from payment webhooks: log failures instead of throwing
+  async updateProviderState(
+    customerId: string,
+    provider: string,
+    state: {
+      status: string;
+      trialEndsAt: Date | null;
+      priceCents: number | null;
+    }
+  ) {
+    try {
+      return await this._subscriptionRepository.updateProviderState(
+        customerId,
+        provider,
+        state
+      );
+    } catch (e) {
+      console.error('Error saving subscription status:', e);
+      return { count: 0 };
+    }
   }
 
   async checkSubscription(organizationId: string, subscriptionId: string) {

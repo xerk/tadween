@@ -44,9 +44,11 @@ const useChannelsUsed = () => {
     : undefined;
 };
 
-const useTeamUsed = () => {
+// Only for plans with a team: without one the server refuses the list (402),
+// which would open the upgrade paywall over Billing
+const useTeamUsed = (enabled: boolean) => {
   const load = useJson();
-  const { data } = useSWR('/settings/team', load, {
+  const { data } = useSWR(enabled ? '/settings/team' : null, load, {
     revalidateOnFocus: false,
     shouldRetryOnError: false,
   });
@@ -75,21 +77,33 @@ export const CurrentPlanCard: FC<{
   plan?: PublicPlan;
   period: BillingPeriod;
   trial?: boolean;
+  // Stripe reported the last renewal as failed (past_due / unpaid)
+  paymentFailed?: boolean;
+  // What the subscription's Stripe price charges (a locked founder price
+  // stays after the plan's price changes); else the plan's price
+  priceCents?: number | null;
   cancelAt?: Date | string | null;
   actions: ReactNode;
-}> = ({ plan, period, trial, cancelAt, actions }) => {
+}> = ({ plan, period, trial, paymentFailed, priceCents, cancelAt, actions }) => {
   const t = useT();
   const channels = useChannelsUsed();
-  const team = useTeamUsed();
-  const price = !plan
-    ? ''
-    : period === 'YEARLY'
-    ? t('tdw_price_per_year', '{{amount}} / year', {
-        amount: formatUsd(plan.yearlyPriceUsd),
-      })
-    : t('tdw_price_per_month', '{{amount}} / month', {
-        amount: formatUsd(plan.monthlyPriceUsd),
-      });
+  const team = useTeamUsed(!!plan && plan.teamMembers !== 0);
+  const amount =
+    typeof priceCents === 'number'
+      ? priceCents / 100
+      : period === 'YEARLY'
+      ? plan?.yearlyPriceUsd
+      : plan?.monthlyPriceUsd;
+  const price =
+    !plan || amount === undefined
+      ? ''
+      : period === 'YEARLY'
+      ? t('tdw_price_per_year', '{{amount}} / year', {
+          amount: formatUsd(amount),
+        })
+      : t('tdw_price_per_month', '{{amount}} / month', {
+          amount: formatUsd(amount),
+        });
   return (
     <section className="tdw-current">
       <div className="tdw-current-head">
@@ -109,7 +123,11 @@ export const CurrentPlanCard: FC<{
               : ''}
           </p>
         </div>
-        {cancelAt ? (
+        {paymentFailed ? (
+          <Pill tone="bad" icon="triangle-alert">
+            {t('tdw_payment_failed', 'Payment failed')}
+          </Pill>
+        ) : cancelAt ? (
           <Pill tone="warn" icon="clock">
             {t('tdw_cancelling', 'Cancelling')}
           </Pill>
@@ -123,6 +141,18 @@ export const CurrentPlanCard: FC<{
           </Pill>
         )}
       </div>
+      {paymentFailed ? (
+        <p className="tdw-current-failed" role="alert">
+          {t(
+            'tdw_payment_failed_bar',
+            'Your last payment failed. Update your card to keep posting.'
+          )}{' '}
+          {t(
+            'tdw_payment_failed_retry',
+            'Stripe retries the card over the next days; everything keeps working until then.'
+          )}
+        </p>
+      ) : null}
       {plan ? (
         <div className="tdw-current-usage">
           <Meter

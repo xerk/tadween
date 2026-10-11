@@ -29,6 +29,7 @@ import { formatUsd } from '@gitroom/frontend/components/tadween/billing/pricing'
 import { AdminPage } from './admin.shell';
 import {
   AdminPlan,
+  AdminPlansData,
   Tier,
   TIER_LABEL,
   useAdminMutation,
@@ -51,12 +52,16 @@ type FormState = {
   description: string;
   tier: Tier;
   monthlyPriceUsd: string;
+  // '' = no founder offer
+  founderMonthlyPriceUsd: string;
   trialDays: string;
   mostPopular: boolean;
   channels: string;
   teamMembers: string;
   postsPerMonth: string;
   aiCredits: string;
+  // '' = the tier's static value
+  webhooks: string;
   features: string;
   providerPriceIdMonthly: string;
   providerPriceIdYearly: string;
@@ -70,12 +75,18 @@ const toForm = (p?: AdminPlan, position = 0): FormState => ({
   description: p?.description || '',
   tier: p?.tier || 'STANDARD',
   monthlyPriceUsd: String(p?.monthlyPriceUsd ?? 0),
+  founderMonthlyPriceUsd:
+    p?.founderMonthlyPriceUsd === null || p?.founderMonthlyPriceUsd === undefined
+      ? ''
+      : String(p.founderMonthlyPriceUsd),
   trialDays: String(p?.trialDays ?? 7),
   mostPopular: !!p?.mostPopular,
   channels: String(p?.channels ?? 5),
   teamMembers: String(p?.teamMembers ?? 0),
   postsPerMonth: String(p?.postsPerMonth ?? -1),
   aiCredits: String(p?.aiCredits ?? 0),
+  webhooks:
+    p?.webhooks === null || p?.webhooks === undefined ? '' : String(p.webhooks),
   features: (p?.features || []).join('\n'),
   providerPriceIdMonthly: p?.providerPriceIdMonthly || '',
   providerPriceIdYearly: p?.providerPriceIdYearly || '',
@@ -97,6 +108,15 @@ const validate = (f: FormState) => {
     const n = int(f[k]);
     if (!Number.isInteger(n) || n < -1) errors[k] = 'A whole number; -1 means unlimited.';
   });
+  if (f.webhooks.trim() !== '') {
+    const n = int(f.webhooks);
+    if (!Number.isInteger(n) || n < -1) errors.webhooks = 'Empty for the tier default, or a whole number; -1 means unlimited.';
+  }
+  if (f.founderMonthlyPriceUsd.trim() !== '') {
+    const n = int(f.founderMonthlyPriceUsd);
+    if (!Number.isInteger(n) || n < 0) errors.founderMonthlyPriceUsd = 'Empty for no founder price, or a whole number.';
+    else if (n >= int(f.monthlyPriceUsd)) errors.founderMonthlyPriceUsd = 'Lower than the list price, or empty.';
+  }
   return errors;
 };
 
@@ -106,12 +126,14 @@ const toBody = (f: FormState) => ({
   description: f.description.trim() || undefined,
   tier: f.tier,
   monthlyPriceUsd: int(f.monthlyPriceUsd),
+  founderMonthlyPriceUsd: f.founderMonthlyPriceUsd.trim() === '' ? null : int(f.founderMonthlyPriceUsd),
   trialDays: int(f.trialDays),
   mostPopular: f.mostPopular,
   channels: int(f.channels),
   teamMembers: int(f.teamMembers),
   postsPerMonth: int(f.postsPerMonth),
   aiCredits: int(f.aiCredits),
+  webhooks: f.webhooks.trim() === '' ? null : int(f.webhooks),
   features: f.features.split('\n').map((x) => x.trim()).filter(Boolean),
   providerPriceIdMonthly: f.providerPriceIdMonthly.trim() || undefined,
   providerPriceIdYearly: f.providerPriceIdYearly.trim() || undefined,
@@ -144,6 +166,8 @@ const PlanDialog: FC<{
   const postiz = stripePrice(form.tier);
   const monthly = int(form.monthlyPriceUsd);
   const yearly = Number.isInteger(monthly) ? yearlyFrom(monthly, discount) : NaN;
+  const founder = int(form.founderMonthlyPriceUsd);
+  const founderYearly = Number.isInteger(founder) ? yearlyFrom(founder, discount) : NaN;
 
   const submit = async () => {
     setSubmitted(true);
@@ -167,7 +191,7 @@ const PlanDialog: FC<{
       onClose={onClose}
       size="lg"
       title={plan ? `Edit ${plan.name}` : 'Add plan'}
-      description="Prices are whole US dollars. Checkout charges them through Stripe; the yearly price follows the yearly discount."
+      description="Prices are whole US dollars. Checkout charges the founder price while the founder offer is open, then the list price; the yearly price follows the yearly discount."
       footer={
         <>
           <span className="flex-1" />
@@ -203,9 +227,9 @@ const PlanDialog: FC<{
         <div className="grid gap-[8px]">
           <span className="pz-label">Prices</span>
           <div className="grid grid-cols-2 gap-[12px] mobile:grid-cols-1">
-            <Input label="USD / month" inputMode="numeric" icon="credit-card" {...text('monthlyPriceUsd')} />
+            <Input label="List price, USD / month" inputMode="numeric" icon="credit-card" hint="The regular price." {...text('monthlyPriceUsd')} />
             <Input
-              label="USD / year"
+              label="List price, USD / year"
               value={Number.isNaN(yearly) ? '' : String(yearly)}
               readOnly
               hint={
@@ -213,6 +237,20 @@ const PlanDialog: FC<{
                   ? `${discount}% off 12 months`
                   : `= ${formatUsd(yearly)}/yr, save ${formatUsd(monthly * 12 - yearly)} (${discount}% off)`
               }
+            />
+            <Input
+              label="Founder price, USD / month"
+              inputMode="numeric"
+              icon="star"
+              placeholder="No founder price"
+              hint="Charged instead while the founder offer is open. Empty: no founder price."
+              {...text('founderMonthlyPriceUsd')}
+            />
+            <Input
+              label="Founder price, USD / year"
+              value={Number.isNaN(founderYearly) ? '' : String(founderYearly)}
+              readOnly
+              hint={`${discount}% off 12 founder months`}
             />
           </div>
           <p className="pz-note">
@@ -223,11 +261,12 @@ const PlanDialog: FC<{
           </p>
         </div>
 
-        <div className="grid grid-cols-4 gap-[12px] mobile:grid-cols-2">
+        <div className="grid grid-cols-5 gap-[12px] mobile:grid-cols-2">
           <Input label="Channels" inputMode="numeric" {...text('channels')} />
-          <Input label="Team members" inputMode="numeric" hint="0 none, -1 unlimited" {...text('teamMembers')} />
+          <Input label="Team members" inputMode="numeric" hint="Besides the owner. 0 none, -1 unlimited" {...text('teamMembers')} />
           <Input label="Posts / month" inputMode="numeric" hint="-1 unlimited" {...text('postsPerMonth')} />
           <Input label="AI credits / month" inputMode="numeric" hint="0 turns AI off, -1 unlimited" {...text('aiCredits')} />
+          <Input label="Webhooks" inputMode="numeric" placeholder="Tier default" hint="0 none, -1 unlimited, empty = tier default" {...text('webhooks')} />
         </div>
 
         <Textarea
@@ -290,6 +329,95 @@ const PricingPreview: FC = () => {
           />
         ))}
       </div>
+    </Section>
+  );
+};
+
+// The founder offer: founder prices for the first `cap` paying workspaces,
+// optionally until an end date. Counted from the database.
+const dateInput = (iso: string | null) => (iso ? iso.slice(0, 10) : '');
+
+const FounderWindow: FC<{
+  window: AdminPlansData['founderWindow'];
+  offer?: AdminPlansData['founder'];
+  onSaved: () => void;
+}> = ({ window: current, offer, onSaved }) => {
+  const save = useAdminMutation();
+  const toast = useToaster();
+  const [cap, setCap] = useState(String(current.cap));
+  const [startsAt, setStartsAt] = useState(dateInput(current.startsAt));
+  const [endsAt, setEndsAt] = useState(dateInput(current.endsAt));
+  const [saving, setSaving] = useState(false);
+  const n = Number(cap);
+  const valid = cap.trim() !== '' && Number.isInteger(n) && n >= 0;
+  const changed =
+    n !== current.cap ||
+    startsAt !== dateInput(current.startsAt) ||
+    endsAt !== dateInput(current.endsAt);
+  return (
+    <Section
+      title="Founder offer"
+      description="Founder prices are charged for the first paying workspaces, counted from active Stripe subscriptions (trials and granted plans don't count). When the cap or the end date is reached, checkout charges the list price and the founder copy disappears. Founders keep their price while they stay subscribed."
+      action={
+        <Button
+          variant="primary"
+          size="sm"
+          loading={saving}
+          disabled={!valid || !changed}
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await save('/admin/console/plans/founder', 'PUT', {
+                cap: n,
+                startsAt: startsAt ? new Date(startsAt).toISOString() : null,
+                endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+              });
+              onSaved();
+              toast.show('Founder offer saved');
+            } catch (e) {
+              toast.show((e as Error).message, 'warning');
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          Save
+        </Button>
+      }
+    >
+      <div className="grid grid-cols-3 gap-[12px] pt-[8px] mobile:grid-cols-1">
+        <Input
+          label="Paying workspaces"
+          inputMode="numeric"
+          value={cap}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCap(e.target.value)}
+          hint="0 turns the founder offer off."
+          error={valid ? undefined : 'A whole number, 0 or more.'}
+        />
+        <Input
+          label="Count from"
+          type="date"
+          value={startsAt}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStartsAt(e.target.value)}
+          hint="Empty: every paying workspace counts."
+        />
+        <Input
+          label="Ends on"
+          type="date"
+          value={endsAt}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEndsAt(e.target.value)}
+          hint="Empty: no end date."
+        />
+      </div>
+      {offer ? (
+        <p className="pz-note mt-[8px]">
+          {offer.open
+            ? `Open: ${offer.spotsLeft.toLocaleString('en-US')} of ${offer.cap.toLocaleString('en-US')} founder spots left.`
+            : offer.cap === 0
+            ? 'Off: checkout charges list prices.'
+            : 'Closed: checkout charges list prices.'}
+        </p>
+      ) : null}
     </Section>
   );
 };
@@ -357,7 +485,7 @@ export const AdminPlansPage = () => {
   const [confirmSeed, setConfirmSeed] = useState(false);
   const [warnings, setWarnings] = useState<string[]>([]);
   const plans = data?.plans || [];
-  const discount = data?.yearlyDiscountPercent ?? 20;
+  const discount = data?.yearlyDiscountPercent ?? 17;
 
   const refresh = async () => {
     await mutate();
@@ -378,7 +506,7 @@ export const AdminPlansPage = () => {
       const result = await save<{ warnings?: string[] }>('/admin/console/plans/defaults', 'POST');
       await refresh();
       setWarnings(result?.warnings || []);
-      toast.show(result?.warnings?.length ? 'Default plans loaded, with warnings' : 'Default plans loaded: Pro and Business');
+      toast.show(result?.warnings?.length ? 'Default plans loaded, with warnings' : 'Default plans loaded: Creator, Business and Agency');
     } catch (e) {
       toast.show((e as Error).message, 'warning');
     } finally {
@@ -414,10 +542,10 @@ export const AdminPlansPage = () => {
           <EmptyState
             icon="credit-card"
             title="Billing uses Postiz’s built-in pricing"
-            body="Load the two Tadween plans, Pro and Business. They have every feature and differ only in limits. Prices are in US dollars; yearly is the monthly price with the yearly discount."
+            body="Load the three Tadween plans, Creator, Business and Agency. They differ in limits; Business and Agency add webhooks. Prices are in US dollars, with founder prices for the first paying workspaces; yearly is the monthly price with the yearly discount."
             action={
               <Button variant="primary" loading={seeding} loadingLabel="Adding…" onClick={seed}>
-                Add Pro and Business
+                Add Creator, Business and Agency
               </Button>
             }
             secondary={
@@ -443,6 +571,14 @@ export const AdminPlansPage = () => {
             pay. Limits apply to everyone on the tier, so they can’t go below today’s while a workspace is subscribed to it.
           </Banner>
           <YearlyDiscount key={discount} value={discount} onSaved={refresh} />
+          {data?.founderWindow ? (
+            <FounderWindow
+              key={JSON.stringify(data.founderWindow)}
+              window={data.founderWindow}
+              offer={data.founder}
+              onSaved={refresh}
+            />
+          ) : null}
           <DataTable
             id="admin-plans"
             loading={isLoading}
@@ -471,8 +607,15 @@ export const AdminPlansPage = () => {
                 key: 'usd',
                 label: 'USD',
                 render: (p) => (
-                  <span className="time">
-                    ${p.monthlyPriceUsd}/mo · ${p.yearlyPriceUsd}/yr
+                  <span className="grid">
+                    <span className="time">
+                      ${p.monthlyPriceUsd}/mo · ${p.yearlyPriceUsd}/yr
+                    </span>
+                    {p.founderMonthlyPriceUsd !== null ? (
+                      <span className="caption pz-muted time">
+                        Founder ${p.founderMonthlyPriceUsd}/mo · ${yearlyFrom(p.founderMonthlyPriceUsd, discount)}/yr
+                      </span>
+                    ) : null}
                   </span>
                 ),
               },
@@ -493,6 +636,13 @@ export const AdminPlansPage = () => {
                     </span>
                     <span>
                       {limit(p.postsPerMonth, 'posts/mo')} · {p.aiCredits === 0 ? 'AI off' : limit(p.aiCredits, 'AI credits')}
+                    </span>
+                    <span>
+                      {p.webhooks === null
+                        ? 'Tier webhooks'
+                        : p.webhooks === 0
+                        ? 'No webhooks'
+                        : limit(p.webhooks, 'webhooks')}
                     </span>
                   </span>
                 ),
@@ -546,7 +696,7 @@ export const AdminPlansPage = () => {
         open={confirmSeed}
         onClose={() => setConfirmSeed(false)}
         title="Load the default plans?"
-        description="Pro and Business are added, or reset to their defaults if they exist. Other plans are hidden, except on tiers with subscribers, which stay on sale. Nobody already subscribed loses a limit."
+        description="Creator, Business and Agency are added, or reset to their defaults if they exist: each takes over the plan already selling its tier (Business the old Pro on TEAM, Agency the old Business on PRO), so subscribers stay on one plan. The yearly discount goes back to 17%. Other plans are hidden, except on tiers with subscribers, which stay on sale. Nobody already subscribed loses a limit or their price."
         confirmLabel="Load defaults"
         onConfirm={() => {
           setConfirmSeed(false);

@@ -66,7 +66,7 @@ export const FEATURES: FeatureDefinition[] = [
   { key: 'shortLinks', group: 'Workspace', label: 'Short links', description: 'Shorten and track links in posts.', hides: 'Settings → Short links preference', applied: true },
   { key: 'publicApi', group: 'Developers', label: 'Public API, MCP and CLI', description: 'API key, OAuth apps and the MCP server for each workspace.', hides: 'Settings → API & MCP, and the agent step of onboarding', applied: true },
   { key: 'webhooks', group: 'Developers', label: 'Webhooks', description: 'HTTP callbacks when posts publish or fail.', hides: 'Settings → Webhooks', applied: true },
-  { key: 'affiliate', group: 'Growth', label: 'Invite & earn and partners', description: 'Referral links and rewards for every workspace, and the affiliate program (docs/tadween/partners.md). Off unless you switch it on.', hides: 'Invite & earn in the sidebar and settings, /partners, new referrals', applied: true },
+  { key: 'affiliate', group: 'Growth', label: 'Invite & earn and partners', description: 'Referral links and rewards for every workspace, and the affiliate program (docs/tadween/partners.md). Off unless you switch it on. Switching it off hides the program and stops new referrals; referrals already made keep earning (and can be rejected in Admin → Referrals).', hides: 'Invite & earn in the sidebar and settings, /partners, new referrals', applied: true },
   { key: 'ugc', group: 'Growth', label: 'UGC videos', description: 'The AgentMedia UGC video shortcut (a Postiz partner deal). Off unless you switch it on.', hides: 'Make UGC in the sidebar', applied: true },
 ];
 

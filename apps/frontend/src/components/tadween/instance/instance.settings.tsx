@@ -7,6 +7,7 @@
 import { createContext, useCallback, useContext, useMemo } from 'react';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { useInvitedTrial } from '@gitroom/frontend/components/tadween/referral/partners.api';
 import {
   pricing as staticPricing,
   PricingInterface,
@@ -187,8 +188,15 @@ export const useBrandLinks = () => {
 // (computed by the backend), the plans to show in order, and display names.
 export const useTadweenPricing = () => {
   const { data } = useInstanceSettings();
+  // a workspace an affiliate brought gets a longer trial (partners program)
+  const { data: invited } = useInvitedTrial(data?.features?.affiliate === true);
   return useMemo(() => {
-    const plans = data?.plans || [];
+    const longer = invited?.trialDays || 0;
+    const plans = (data?.plans || []).map((p) =>
+      longer && p.trialDays > 0 && p.trialDays < longer
+        ? { ...p, trialDays: longer }
+        : p
+    );
     const pricing: PricingInterface = data?.pricing || staticPricing;
     const planFor = (tier: string) => plans.find((p) => p.tier === tier);
     // Tiers to offer, in the admin's order; without plans, Postiz's own order
@@ -212,5 +220,5 @@ export const useTadweenPricing = () => {
         planFor(tier)?.name || fallback,
       visible,
     };
-  }, [data]);
+  }, [data, invited]);
 };

@@ -178,6 +178,22 @@ export const usePartnerMe = () => {
   });
 };
 
+// The longer trial of a workspace an affiliate brought (null: the plan's own).
+// Only asked while the program is on.
+export const useInvitedTrial = (enabled: boolean) => {
+  const fetch = useFetch();
+  const load = useCallback(async (path: string) => {
+    const res = await fetch(path);
+    return res.ok
+      ? ((await res.json()) as { trialDays: number | null })
+      : { trialDays: null };
+  }, []);
+  return useSWR(enabled ? '/partners/invited' : null, load, {
+    revalidateOnFocus: false,
+    shouldRetryOnError: false,
+  });
+};
+
 // PUT /partners/payout: resolves, or throws with the server's message
 export const useSavePartnerPayout = () => {
   const fetch = useFetch();

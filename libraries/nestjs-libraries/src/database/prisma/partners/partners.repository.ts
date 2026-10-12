@@ -526,6 +526,26 @@ export class PartnersRepository {
     });
   }
 
+  // Only changes a reward that no payout holds yet (a refund racing a payout)
+  async setRewardIfFree(
+    id: string,
+    data: Partial<{ status: ReferralRewardStatus; amountCents: number; note: string | null }>
+  ) {
+    const { count } = await this._reward.model.referralReward.updateMany({
+      where: { id, status: { in: ['PENDING', 'AVAILABLE'] }, payoutId: null },
+      data,
+    });
+    return count === 1;
+  }
+
+  // Rewards left APPLYING by a crash or a provider error, to retry
+  stuckRewards(partnerId: string, before: Date) {
+    return this._reward.model.referralReward.findMany({
+      where: { partnerId, status: 'APPLYING', updatedAt: { lte: before } },
+      select: REWARD_SELECT,
+    });
+  }
+
   // Holds that ended: PENDING → AVAILABLE
   releaseHolds(partnerId: string, now: Date) {
     return this._reward.model.referralReward.updateMany({
@@ -640,6 +660,27 @@ export class PartnersRepository {
     return this._payout.model.partnerPayout.update({
       where: { id },
       data,
+      select: { id: true },
+    });
+  }
+
+  // The balance payout still being applied (retried with the same id)
+  pendingBalancePayout(partnerId: string) {
+    return this._payout.model.partnerPayout.findFirst({
+      where: { partnerId, method: 'balance', status: 'PENDING' },
+      select: { id: true, createdAt: true },
+    });
+  }
+
+  payoutTotal(payoutId: string) {
+    return this._reward.model.referralReward
+      .aggregate({ where: { payoutId }, _sum: { amountCents: true } })
+      .then((r) => r._sum.amountCents || 0);
+  }
+
+  deletePayout(id: string) {
+    return this._payout.model.partnerPayout.delete({
+      where: { id },
       select: { id: true },
     });
   }

@@ -172,7 +172,8 @@ export class PaymentService {
   }
 
   // Partners program: account balance for a reward. Reached from payment
-  // webhooks: never throws (granted: false keeps the reward to retry).
+  // webhooks: never throws. reason 'error' = unknown outcome (retry with the
+  // same key); any other granted: false = refused, nothing was granted.
   async grantAccountCredit(
     organizationId: string,
     amountCents: number,

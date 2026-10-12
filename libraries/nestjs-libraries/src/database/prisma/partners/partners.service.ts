@@ -313,6 +313,16 @@ export class PartnersService {
     }
   }
 
+  // What billing shows this workspace: the longer trial when an affiliate
+  // brought it (no partner row is created)
+  async invitedTrial(organizationId: string) {
+    if (!(await this.enabled())) {
+      return { trialDays: null };
+    }
+    const days = await this.trialDaysFor(organizationId, 1);
+    return { trialDays: days > 1 ? days : null };
+  }
+
   // ── Webhooks: paid invoices ────────────────────────────────────────────────
   // Cheap check before the provider looks up payment details
   async isReferred(organizationId: string) {
@@ -540,8 +550,15 @@ export class PartnersService {
     target: number,
     reason: string
   ) {
-    if (reward.status === 'PENDING' || reward.status === 'AVAILABLE') {
-      await this._repository.setReward(
+    // only ever down: an older refund event arriving late changes nothing
+    if (
+      (reward.status === 'PENDING' || reward.status === 'AVAILABLE') &&
+      !reward.payoutId
+    ) {
+      if (target >= reward.amountCents) {
+        return;
+      }
+      const done = await this._repository.setRewardIfFree(
         reward.id,
         target > 0
           ? { amountCents: target, note: `reduced_${reason}` }
@@ -550,10 +567,17 @@ export class PartnersService {
               note: reason,
             }
       );
-      return;
+      if (done) {
+        return;
+      }
+      // a payout took it meanwhile: handled like a paid reward below
+      reward = (await this._repository.getReward(reward.id)) || reward;
     }
-    if (reward.status === 'PAID' && reward.partnerId) {
-      // paid already: take it back from the next payout
+    if (
+      (reward.status === 'PAID' || reward.status === 'APPLYING') &&
+      reward.partnerId
+    ) {
+      // paid (or being paid) already: take it back from the next payout
       const id = `cb_${reward.id}`;
       const delta = target - original;
       const existing = await this._repository.getReward(id);
@@ -569,16 +593,13 @@ export class PartnersService {
           note: `clawback_${reason}`,
           invoiceId: reward.invoiceId,
         });
-      } else if (existing.status === 'AVAILABLE' && existing.amountCents !== delta) {
-        await this._repository.setReward(id, { amountCents: delta });
+      } else if (delta < existing.amountCents) {
+        await this._repository.setRewardIfFree(id, { amountCents: delta });
       }
       return;
     }
-    console.error('partners_clawback_skipped', {
-      reward_id: reward.id,
-      status: reward.status,
-    });
   }
+
 
   // ── Settling: holds, ladder, applying rewards ──────────────────────────────
   // Evaluated whenever a partner's data is read or one of its events arrives
@@ -632,6 +653,8 @@ export class PartnersService {
     if (!apply) {
       return;
     }
+
+    await this.recoverStuck(partner, now);
 
     for (const reward of await this._repository.rewards({
       partnerId: partner.id,
@@ -749,62 +772,122 @@ export class PartnersService {
     if (monthCents <= 0 || !(await this._repository.claimReward(reward.id))) {
       return;
     }
+    await this._repository.setReward(reward.id, { amountCents: monthCents });
+    await this.grantFreeMonth(reward.id, reward.organizationId, monthCents);
+  }
+
+  private async grantFreeMonth(
+    rewardId: string,
+    organizationId: string,
+    monthCents: number
+  ) {
     const result = await this._payments.grantAccountCredit(
-      reward.organizationId,
+      organizationId,
       monthCents,
       'Invite & earn: free month',
-      reward.id
+      rewardId
     );
+    if (result.reason === 'error') {
+      // unknown outcome: stays APPLYING and is retried with the same key
+      return;
+    }
     await this._repository.setReward(
-      reward.id,
+      rewardId,
       result.granted
         ? { status: 'PAID', amountCents: monthCents, appliedAt: new Date() }
         : { status: 'AVAILABLE', note: `free_month:${result.reason || 'not_granted'}` }
     );
   }
 
-  // Affiliates who chose Tadween balance: available commission × 1.5
-  private async payCommissionAsBalance(partner: PartnerRow) {
-    const available = await this._repository.rewards({
-      partnerId: partner.id,
-      type: 'COMMISSION',
-      status: 'AVAILABLE',
-      payoutId: null,
-    });
-    const total = available.reduce((sum, r) => sum + r.amountCents, 0);
-    if (total <= 0) {
-      return;
-    }
-    const payout = await this._repository.createPayout({
-      partnerId: partner.id,
-      amountCents: 0,
-      method: 'balance',
-      reference: null,
-      createdById: 'system',
-      paidAt: null,
-    });
-    const amount = await this._repository.attachAvailableCommission(
+  // Rewards left APPLYING (a crash, a provider timeout): grants are
+  // idempotent by reward / payout id, so they are simply tried again
+  private async recoverStuck(partner: PartnerRow, now: Date) {
+    const stuck = await this._repository.stuckRewards(
       partner.id,
-      payout.id
+      new Date(Math.min(Date.now(), now.getTime()) - 10 * 60 * 1000)
     );
-    const credit = Math.round(amount * PARTNERS.balanceMultiplier);
+    for (const reward of stuck) {
+      if (reward.type === 'CREDITS') {
+        const added = await this._subscriptions.addAiCreditPurchase(
+          reward.id,
+          reward.organizationId,
+          reward.credits,
+          0,
+          'usd',
+          'referral'
+        );
+        if (added) {
+          await this._repository.setReward(reward.id, {
+            status: 'PAID',
+            appliedAt: new Date(),
+          });
+        }
+      } else if (reward.type === 'ACCOUNT_CREDIT' && reward.amountCents > 0) {
+        await this.grantFreeMonth(reward.id, reward.organizationId, reward.amountCents);
+      } else if (reward.type === 'ACCOUNT_CREDIT') {
+        await this._repository.setReward(reward.id, { status: 'AVAILABLE' });
+      }
+      // commission rows are retried through their pending payout
+    }
+  }
+
+  // Affiliates who chose Tadween balance: available commission × 1.5. One
+  // balance payout at a time; its id is the grant's idempotency key, so a
+  // payout whose grant had an unknown outcome is retried with the same id.
+  private async payCommissionAsBalance(partner: PartnerRow) {
+    const pending = await this._repository.pendingBalancePayout(partner.id);
+    let payoutId = pending?.id;
+    let amount = 0;
+    if (pending) {
+      amount = await this._repository.payoutTotal(pending.id);
+    } else {
+      const available = await this._repository.rewards({
+        partnerId: partner.id,
+        type: 'COMMISSION',
+        status: 'AVAILABLE',
+        payoutId: null,
+      });
+      if (available.reduce((sum, r) => sum + r.amountCents, 0) <= 0) {
+        return;
+      }
+      const payout = await this._repository.createPayout({
+        partnerId: partner.id,
+        amountCents: 0,
+        method: 'balance',
+        reference: null,
+        createdById: 'system',
+        paidAt: null,
+      });
+      payoutId = payout.id;
+      amount = await this._repository.attachAvailableCommission(
+        partner.id,
+        payout.id
+      );
+    }
+    const now = new Date();
     const result =
       amount > 0
         ? await this._payments.grantAccountCredit(
             partner.organizationId,
-            credit,
+            Math.round(amount * PARTNERS.balanceMultiplier),
             'Partner commission as Tadween balance',
-            payout.id
+            payoutId!
           )
-        : { granted: false };
-    const now = new Date();
-    await this._repository.settlePayoutRewards(payout.id, result.granted, now);
-    await this._repository.updatePayout(
-      payout.id,
-      result.granted
-        ? { amountCents: amount, paidAt: now, status: 'PAID' }
-        : { status: 'CANCELLED' }
-    );
+        : { granted: false, reason: 'nothing_to_pay' };
+    if (result.reason === 'error') {
+      return; // unknown outcome: retried next time with the same payout id
+    }
+    await this._repository.settlePayoutRewards(payoutId!, result.granted, now);
+    if (result.granted) {
+      await this._repository.updatePayout(payoutId!, {
+        amountCents: amount,
+        paidAt: now,
+        status: 'PAID',
+      });
+    } else {
+      // nothing was paid (no billing account yet, another currency): no row
+      await this._repository.deletePayout(payoutId!);
+    }
   }
 
   // ── The workspace's own view (Invite & earn, /partners) ───────────────────
@@ -928,9 +1011,7 @@ export class PartnersService {
               payout: {
                 preference: fresh.payoutPreference,
                 method: fresh.payoutMethod,
-                details: mask(
-                  hasDetails ? AuthService.fixedDecryption(hasDetails) : null
-                ),
+                details: hasDetails ? this.maskedDetails(hasDetails) : null,
                 country: fresh.country,
                 mawthooqNumber: fresh.mawthooqNumber,
                 taxFormAcceptedAt: fresh.taxFormAcceptedAt,
@@ -940,6 +1021,14 @@ export class PartnersService {
             }
           : null,
     };
+  }
+
+  private maskedDetails(encrypted: string) {
+    try {
+      return mask(AuthService.fixedDecryption(encrypted));
+    } catch (e) {
+      return '••••';
+    }
   }
 
   private async referredRevenue(partnerId: string) {
@@ -1260,6 +1349,16 @@ export class PartnersService {
       rejectionReason: reason || 'rejected_by_admin',
     });
     await this._repository.voidReferralRewards(id);
+    // commission already paid out (or being paid): taken from the next payout
+    for (const reward of await this._repository.rewards({
+      referralId: id,
+      type: 'COMMISSION',
+      status: { in: ['PAID', 'APPLYING'] },
+    })) {
+      if (!reward.id.startsWith('cb_')) {
+        await this.reduceCommission(reward, reward.amountCents, 0, 'rejected');
+      }
+    }
     return { ok: true };
   }
 
@@ -1325,7 +1424,7 @@ export class PartnersService {
   async markPaid(
     adminId: string,
     partnerId: string,
-    body: { reference: string; method?: string }
+    body: { reference: string; method?: string; amountCents: number }
   ) {
     const partner = await this._repository.getPartnerById(partnerId);
     if (!partner || partner.kind !== 'AFFILIATE') {
@@ -1353,12 +1452,16 @@ export class PartnersService {
       partnerId,
       payout.id
     );
-    if (amount < PARTNERS.payoutMinimumCents) {
+    // the admin confirms the amount they sent; anything that became
+    // available after the export waits for the next payout
+    if (amount !== body.amountCents || amount < PARTNERS.payoutMinimumCents) {
       await this._repository.settlePayoutRewards(payout.id, false, now);
-      await this._repository.updatePayout(payout.id, { status: 'CANCELLED' });
+      await this._repository.deletePayout(payout.id);
       throw new HttpException(
-        `The available balance is below $${PARTNERS.payoutMinimumCents / 100}.`,
-        400
+        amount !== body.amountCents
+          ? `The available balance changed to $${(amount / 100).toFixed(2)} since the export. Reload, pay the difference or mark the new amount.`
+          : `The available balance is below $${PARTNERS.payoutMinimumCents / 100}.`,
+        409
       );
     }
     await this._repository.settlePayoutRewards(payout.id, true, now);

@@ -1504,6 +1504,14 @@ export class StripeService extends PaymentProviderAbstract {
     if (currency && currency !== 'usd') {
       return { granted: false, reason: `currency_${currency}` };
     }
+    // granted already (a retry after a timeout, or after Stripe's 24-hour
+    // idempotency window)
+    const previous = await stripe.customers.listBalanceTransactions(customer, {
+      limit: 100,
+    });
+    if (previous.data.some((t) => t.metadata?.reward === idempotencyKey)) {
+      return { granted: true };
+    }
     await stripe.customers.createBalanceTransaction(
       customer,
       {

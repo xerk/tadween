@@ -198,6 +198,8 @@ export abstract class PaymentProviderAbstract {
   // `idempotencyKey` is the reward or payout id, so a retry grants once.
   // Answers granted: false when the platform has no balance (the default) or
   // the workspace can't take one yet; the reward then stays to apply later.
+  // Throwing means "unknown outcome": the caller retries with the same key,
+  // so an implementation must not grant twice for one key.
   async grantAccountCredit(
     organizationId: string,
     amountCents: number,

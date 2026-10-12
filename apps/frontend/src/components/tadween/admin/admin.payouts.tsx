@@ -82,6 +82,7 @@ const MarkPaidDialog: FC<{
     try {
       const done = await save<{ amountCents: number }>(`/admin/console/payouts/${payout!.partnerId}`, 'POST', {
         reference: reference.trim(),
+        amountCents: payout!.amountCents,
         method,
       });
       toast.show(

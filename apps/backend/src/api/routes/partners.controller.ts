@@ -22,6 +22,12 @@ export class PartnersController {
     return this._partners.getMine(org, user.id);
   }
 
+  // The longer free trial of a workspace an affiliate brought (billing)
+  @Get('/invited')
+  invited(@GetOrgFromRequest() org: Organization) {
+    return this._partners.invitedTrial(org.id);
+  }
+
   // "Who invited you?" during the first days after sign-up
   @Post('/claim')
   claim(

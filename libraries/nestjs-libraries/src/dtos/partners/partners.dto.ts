@@ -100,6 +100,11 @@ export class AdminMarkPayoutDto {
   @MaxLength(200)
   reference: string;
 
+  // the amount sent (USD cents), as the payout list showed it
+  @IsInt()
+  @Min(1)
+  amountCents: number;
+
   @IsOptional()
   @IsIn(['wise', 'payoneer', 'bank', 'manual'])
   method?: string;

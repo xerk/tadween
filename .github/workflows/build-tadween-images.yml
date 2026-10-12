@@ -53,8 +53,8 @@ jobs:
           docker buildx build --platform linux/arm64 \
             -f apps/landing/Dockerfile \
             --build-arg NEXT_PUBLIC_SITE_URL=https://tadween.app \
-            --build-arg NEXT_PUBLIC_APP_URL=https://app.tadween.app \
-            --build-arg NEXT_PUBLIC_API_URL=https://app.tadween.app/api \
+            --build-arg NEXT_PUBLIC_APP_URL=https://studio.tadween.app \
+            --build-arg NEXT_PUBLIC_API_URL=https://studio.tadween.app/api \
             --build-arg NEXT_PUBLIC_LEGAL_COMPANY="Xerk LLC" \
             --build-arg NEXT_PUBLIC_LEGAL_STATE="Wyoming" \
             --build-arg NEXT_PUBLIC_LEGAL_ADDRESS="30 N Gould St Ste R, Sheridan, WY 82801, United States" \

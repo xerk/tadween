@@ -9,7 +9,10 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
-import { useInstanceSettings } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import {
+  useBrandLinks,
+  useInstanceSettings,
+} from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { McpClientIcon } from '@gitroom/frontend/components/public-api/mcp.client.icons';
 import { getMcpOauthUrl } from '@gitroom/frontend/components/public-api/public.component';
 import { DeveloperComponent } from '@gitroom/frontend/components/developer/developer.component';
@@ -132,14 +135,8 @@ interface ConnectContext {
 const useConnectContext = (): ConnectContext => {
   const user = useUser();
   const { backendUrl, mcpUrl } = useVariables();
-  const { data: instance } = useInstanceSettings();
+  const { name, slug } = useBrandLinks();
   return useMemo(() => {
-    const name = instance?.branding?.instanceName || 'Tadween';
-    const slug =
-      name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '') || 'tadween';
     const backend = (backendUrl || '').replace(/\/+$/, '');
     const mcpBase = (mcpUrl || backend).replace(/\/+$/, '');
     return {
@@ -152,7 +149,7 @@ const useConnectContext = (): ConnectContext => {
       key: user?.publicApi || KEY_PLACEHOLDER,
       hasKey: !!user?.publicApi,
     };
-  }, [instance, backendUrl, mcpUrl, user?.publicApi]);
+  }, [name, slug, backendUrl, mcpUrl, user?.publicApi]);
 };
 
 const json = (value: object) => JSON.stringify(value, null, 2);
@@ -821,7 +818,7 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
           tipKey,
           t(
             'tdw_api_tip_cli_url',
-            'Requests go to api.postiz.com: POSTIZ_API_URL is not set in this terminal. Set it again, or add both lines to your shell profile.'
+            'Requests go to the CLI’s default server instead of this one: POSTIZ_API_URL is not set in this terminal. Set it again, or add both lines to your shell profile.'
           ),
         ],
       },

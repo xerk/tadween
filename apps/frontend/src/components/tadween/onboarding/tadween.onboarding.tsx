@@ -415,7 +415,7 @@ const AgentsStep: FC = () => {
   const cliCopy = fillCliSteps(backendUrl, apiKey).map((s) => s.code);
 
   const { config, hint } =
-    agent === apiTab ? { config: '', hint: '' } : getMcpConfig(agent, auth, mcpBase, apiKey, backendUrl);
+    agent === apiTab ? { config: '', hint: '' } : getMcpConfig(agent, auth, mcpBase, apiKey, backendUrl, brand.slug);
   const maskedConfig =
     revealed || auth === 'oauth' || !apiKey
       ? config
@@ -460,7 +460,7 @@ const AgentsStep: FC = () => {
         isSelfHosted
           ? t(
               'connector_self_hosted_description',
-              'The official connector works with self-hosted Postiz too. When asked to sign in, choose "Use self-hosted" and enter {{url}} with your API key.',
+              'The official connector works with your own server too. When asked to sign in, choose "Use self-hosted" and enter {{url}} with your API key.',
               { url: mcpBase, interpolation: { escapeValue: false } }
             )
           : t('tdw_connector_desc', 'The fastest way: add it with one click, then sign in.')

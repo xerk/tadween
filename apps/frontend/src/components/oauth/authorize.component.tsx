@@ -1,19 +1,338 @@
 'use client';
 
-import { FC, useCallback, useEffect, useState } from 'react';
+import { FC, ReactNode, useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
 import { OAuthSelfHosted } from '@gitroom/frontend/components/oauth/self.hosted.component';
+import {
+  McpClientIcon,
+  mcpClientFromRequest,
+} from '@gitroom/frontend/components/public-api/mcp.client.icons';
+import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import {
+  Avatar,
+  Button,
+  cx,
+  Icon,
+  IconName,
+  Select,
+  Skeleton,
+  Spinner,
+} from '@gitroom/frontend/components/tadween/ui';
+
+// Consent screen of OAuth / MCP clients (ChatGPT, Claude, Cursor, …).
+// Flow, unchanged from Postiz: GET /oauth/authorize validates the request
+// (client, redirect_uri, PKCE), POST /oauth/authorize approves or denies for
+// the current user and workspace (showorg cookie) and answers with the URL to
+// send the browser to. Signed-out visitors sign in and come back here.
+// Styles: app/tadween/oauth.scss, inside the auth shell (oauth/authorize/layout.tsx).
+
+interface AuthorizeInfo {
+  app: {
+    name: string;
+    description?: string | null;
+    picture?: { path?: string } | null;
+    clientId: string;
+    redirectUrl: string;
+    dynamic?: boolean;
+  };
+  // what the token will be granted (OAuthService.grantedScope)
+  scope?: string;
+  state?: string;
+  selfHosted: boolean;
+  selfHostedEmail: boolean;
+}
+
+interface Workspace {
+  id: string;
+  name: string;
+}
+
+const useAuthorizeRequest = (query: string | null) => {
+  const fetch = useFetch();
+  const load = useCallback(async () => {
+    const data = await (await fetch(`/oauth/authorize?${query}`)).json();
+    if (data?.statusCode >= 400) {
+      throw new Error(
+        (Array.isArray(data.message) ? data.message[0] : data.message) ||
+          'Invalid OAuth request'
+      );
+    }
+    return data as AuthorizeInfo;
+  }, [query]);
+  return useSWR(query ? `oauth-authorize?${query}` : null, load, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    shouldRetryOnError: false,
+  });
+};
+
+// The signed-in account. A session that expired answers 401, which sends the
+// browser to sign in (layout.context); the stored returnUrl brings it back here.
+const useConsentUser = (logged: boolean) => {
+  const fetch = useFetch();
+  const load = useCallback(async () => {
+    localStorage.setItem('returnUrl', window.location.href);
+    const data = await (await fetch('/user/self')).json();
+    localStorage.removeItem('returnUrl');
+    return data as { name?: string; email?: string; orgId?: string };
+  }, []);
+  return useSWR(logged ? 'oauth-consent-user' : null, load, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    shouldRetryOnError: false,
+  });
+};
+
+// Same SWR key and endpoint as the sidebar's workspace switcher
+const useWorkspaces = (logged: boolean) => {
+  const fetch = useFetch();
+  const load = useCallback(async () => {
+    return await (await fetch('/user/organizations')).json();
+  }, []);
+  return useSWR(logged ? 'organizations' : null, load, {
+    revalidateIfStale: false,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  });
+};
+
+// Backend messages of a request that can't be served, as friendly copy.
+// Anything else is shown as sent.
+const REQUEST_ERRORS: Record<string, [string, string, string, string]> = {
+  missing: [
+    'tdw_oauth_err_missing_title',
+    'This link is incomplete',
+    'tdw_oauth_err_missing_body',
+    'The app that sent you here left out part of the request. Go back to the app and connect again.',
+  ],
+  'Invalid client_id': [
+    'tdw_oauth_err_client_title',
+    'We don’t recognise this app',
+    'tdw_oauth_err_client_body',
+    'Its connection may have expired or been removed. Go back to the app and connect again.',
+  ],
+  'Invalid redirect_uri': [
+    'tdw_oauth_err_redirect_title',
+    'This app’s return address doesn’t match',
+    'tdw_oauth_err_redirect_body',
+    'For your safety, we only send you back to the address the app registered. Remove the connector in the app and add it again.',
+  ],
+  pkce: [
+    'tdw_oauth_err_pkce_title',
+    'This sign-in request isn’t secure enough',
+    'tdw_oauth_err_pkce_body',
+    'The app has to use PKCE (S256) to connect. Update the app or contact its developer.',
+  ],
+  action: [
+    'tdw_oauth_err_action_title',
+    'We couldn’t finish connecting',
+    'tdw_oauth_err_action_body',
+    'Nothing was shared. Check your connection and try again.',
+  ],
+};
+
+const requestErrorKey = (message: string) =>
+  message.startsWith('Missing required parameters') ||
+  message.startsWith('Only response_type')
+    ? 'missing'
+    : message.startsWith('code_challenge') || message.includes('S256')
+    ? 'pkce'
+    : message;
+
+// What the token can do, from the granted scopes. Fixed rows only: an unknown
+// scope is never echoed.
+const SCOPE_ROWS: Record<
+  string,
+  { icon: IconName; key: string; text: string }[]
+> = {
+  'mcp:read': [
+    {
+      icon: 'eye',
+      key: 'tdw_oauth_scope_read',
+      text: 'See your channels, posts and analytics',
+    },
+  ],
+  'mcp:write': [
+    {
+      icon: 'calendar',
+      key: 'tdw_oauth_scope_write',
+      text: 'Create, schedule and edit posts',
+    },
+    {
+      icon: 'upload',
+      key: 'tdw_oauth_scope_media',
+      text: 'Upload images and videos to your media library',
+    },
+  ],
+  email: [
+    {
+      icon: 'mail',
+      key: 'tdw_oauth_scope_email',
+      text: 'See your email address',
+    },
+  ],
+};
+
+const Card: FC<{ children: ReactNode; busy?: boolean; label?: string }> = ({
+  children,
+  busy,
+  label,
+}) => (
+  <section
+    className="tdw-consent"
+    aria-busy={busy || undefined}
+    aria-label={label}
+  >
+    {children}
+  </section>
+);
+
+/* The client's mark and Tadween's, joined by a quiet connector */
+const LogoPair: FC<{ client: ReactNode }> = ({ client }) => (
+  <div className="tdw-consent-logos" aria-hidden="true">
+    <span className="tdw-consent-logo is-client">{client}</span>
+    <span className="tdw-consent-connector">
+      <i />
+      <i />
+      <i />
+    </span>
+    <span className="tdw-consent-logo is-brand">
+      <Logo />
+    </span>
+  </div>
+);
+
+const StatusIcon: FC<{ tone: 'error' | 'success' | 'muted'; icon: IconName }> = ({
+  tone,
+  icon,
+}) => (
+  <span className={cx('tdw-consent-status', `is-${tone}`)} aria-hidden="true">
+    <Icon name={icon} size={24} />
+  </span>
+);
+
+const Footnote: FC<{ logged: boolean }> = ({ logged }) => {
+  const t = useT();
+  const brand = useBrandLinks();
+  const env = useVariables();
+  const termsUrl = brand.termsUrl || env.termsUrl;
+  const privacyUrl = brand.privacyUrl || env.privacyUrl;
+  return (
+    <footer className="tdw-consent-foot">
+      <p>
+        {t(
+          'tdw_oauth_revoke_hint',
+          'You can remove access any time in'
+        )}{' '}
+        {logged ? (
+          <a href="/settings?tab=approved_apps">
+            {t('tdw_oauth_revoke_link', 'Settings → Approved apps')}
+          </a>
+        ) : (
+          <span>{t('tdw_oauth_revoke_link', 'Settings → Approved apps')}</span>
+        )}
+        .
+      </p>
+      {termsUrl || privacyUrl ? (
+        <p className="tdw-consent-legal">
+          {privacyUrl ? (
+            <a href={privacyUrl} target="_blank" rel="noopener noreferrer nofollow">
+              {t('privacy_policy', 'Privacy Policy')}
+            </a>
+          ) : null}
+          {termsUrl && privacyUrl ? <span aria-hidden="true">·</span> : null}
+          {termsUrl ? (
+            <a href={termsUrl} target="_blank" rel="noopener noreferrer nofollow">
+              {t('terms_of_service', 'Terms of Service')}
+            </a>
+          ) : null}
+        </p>
+      ) : null}
+    </footer>
+  );
+};
+
+const LoadingCard: FC = () => {
+  const t = useT();
+  return (
+    <Card busy={true} label={t('tdw_oauth_loading', 'Checking the request…')}>
+      <div className="tdw-consent-logos" aria-hidden="true">
+        <Skeleton width={56} height={56} radius={16} />
+        <span className="tdw-consent-connector">
+          <i />
+          <i />
+          <i />
+        </span>
+        <Skeleton width={56} height={56} radius={16} />
+      </div>
+      <div className="tdw-consent-skeleton" aria-hidden="true">
+        <Skeleton width="80%" height={22} />
+        <Skeleton width="55%" height={22} />
+        <span className="tdw-consent-gap" />
+        <Skeleton height={44} radius={12} />
+        <Skeleton height={44} radius={12} />
+        <Skeleton height={44} radius={12} />
+      </div>
+      <span className="tdw-consent-sr" role="status">
+        {t('tdw_oauth_loading', 'Checking the request…')}
+      </span>
+    </Card>
+  );
+};
+
+const ErrorCard: FC<{
+  message: string;
+  onRetry?: () => void;
+}> = ({ message, onRetry }) => {
+  const t = useT();
+  const brand = useBrandLinks();
+  const known = REQUEST_ERRORS[requestErrorKey(message)];
+  return (
+    <Card>
+      <StatusIcon tone="error" icon="triangle-alert" />
+      <h1 className="tdw-consent-title is-center" role="alert">
+        {known ? t(known[0], known[1]) : t('tdw_oauth_err_title', 'This connection can’t continue')}
+      </h1>
+      <p className="tdw-consent-text is-center">
+        {known ? t(known[2], known[3]) : message}
+      </p>
+      {known && requestErrorKey(message) !== 'action' ? (
+        <p className="tdw-consent-detail">
+          <Icon name="info" size={14} />
+          <code>{message}</code>
+        </p>
+      ) : null}
+      <div className="tdw-consent-actions">
+        {onRetry ? (
+          <Button variant="primary" size="lg" onClick={onRetry}>
+            {t('tdw_oauth_try_again', 'Try again')}
+          </Button>
+        ) : (
+          <a className="pz-btn pz-btn-secondary pz-btn-lg" href="/">
+            {t('tdw_oauth_open_app', 'Open {{brand}}', { brand: brand.name })}
+          </a>
+        )}
+      </div>
+    </Card>
+  );
+};
 
 export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
-  const searchParams = useSearchParams();
+  const t = useT();
   const fetch = useFetch();
-  const [appInfo, setAppInfo] = useState<any>(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const brand = useBrandLinks();
+  const searchParams = useSearchParams();
   const [selfHosted, setSelfHosted] = useState(false);
+  const [phase, setPhase] = useState<
+    'idle' | 'approve' | 'deny' | 'approved' | 'denied'
+  >('idle');
+  const [actionError, setActionError] = useState('');
+  const [switching, setSwitching] = useState(false);
 
   const clientId = searchParams.get('client_id');
   const responseType = searchParams.get('response_type');
@@ -23,21 +342,19 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
   const codeChallengeMethod = searchParams.get('code_challenge_method');
   const resource = searchParams.get('resource');
 
-  useEffect(() => {
-    if (!clientId || !responseType) {
-      setError('Missing required parameters (client_id, response_type)');
-      setLoading(false);
-      return;
-    }
-    if (responseType !== 'code') {
-      setError('Only response_type=code is supported');
-      setLoading(false);
-      return;
-    }
+  const paramsError = !clientId || !responseType
+    ? 'Missing required parameters (client_id, response_type)'
+    : responseType !== 'code'
+    ? 'Only response_type=code is supported'
+    : '';
 
-    const params = new URLSearchParams({
-      client_id: clientId,
-      response_type: responseType,
+  const query = useMemo(() => {
+    if (paramsError) {
+      return null;
+    }
+    return new URLSearchParams({
+      client_id: clientId!,
+      response_type: responseType!,
       ...(state ? { state } : {}),
       ...(redirectUri ? { redirect_uri: redirectUri } : {}),
       ...(codeChallenge ? { code_challenge: codeChallenge } : {}),
@@ -45,23 +362,9 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
         ? { code_challenge_method: codeChallengeMethod }
         : {}),
       ...(resource ? { resource } : {}),
-    });
-
-    fetch(`/oauth/authorize?${params}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.statusCode && data.statusCode >= 400) {
-          setError(data.message || 'Invalid OAuth request');
-        } else {
-          setAppInfo(data);
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        setError('Failed to validate OAuth request');
-        setLoading(false);
-      });
+    }).toString();
   }, [
+    paramsError,
     clientId,
     responseType,
     state,
@@ -71,9 +374,18 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
     resource,
   ]);
 
+  const { data: appInfo, error: requestError } = useAuthorizeRequest(query);
+  const { data: user } = useConsentUser(logged);
+  const { data: workspaceData } = useWorkspaces(logged);
+  const workspaces: Workspace[] = Array.isArray(workspaceData)
+    ? workspaceData
+    : [];
+  const workspace = workspaces.find((w) => w.id === user?.orgId);
+
   const handleAction = useCallback(
     async (action: 'approve' | 'deny') => {
-      setSubmitting(true);
+      setPhase(action);
+      setActionError('');
       try {
         const result = await (
           await fetch('/oauth/authorize', {
@@ -91,13 +403,20 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
           })
         ).json();
 
+        // only ever the URL the backend built from the validated request
         if (result.redirect) {
+          setPhase(action === 'approve' ? 'approved' : 'denied');
           window.location.href = result.redirect;
+          return;
         }
+        setActionError(
+          (Array.isArray(result.message) ? result.message[0] : result.message) ||
+            'Failed to process authorization'
+        );
       } catch {
-        setError('Failed to process authorization');
-        setSubmitting(false);
+        setActionError('Failed to process authorization');
       }
+      setPhase('idle');
     },
     [clientId, state, redirectUri, codeChallenge, codeChallengeMethod]
   );
@@ -109,169 +428,273 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
     )}`;
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex flex-1 items-center justify-center text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-[#612BD3] rounded-full blur-[120px]" />
-          <div className="absolute bottom-[20%] right-[10%] w-[250px] h-[250px] bg-[#FC69FF] rounded-full blur-[120px]" />
-        </div>
-        <div className="relative z-10 text-center">
-          <div className="flex justify-center mb-[24px]">
-            <Logo />
-          </div>
-          <div className="text-[16px] text-gray-400">
-            Please wait...
-          </div>
-          <div className="mt-[32px] flex justify-center">
-            <div className="w-[48px] h-[48px] border-[3px] border-[#612BD3] border-t-transparent rounded-full animate-spin" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Sign out and in as someone else, then come back (same returnUrl the
+  // sign-in page stores)
+  const switchAccount = useCallback(() => {
+    localStorage.setItem('returnUrl', window.location.href);
+    window.location.href = '/auth/logout';
+  }, []);
 
-  if (error) {
-    return (
-      <div className="flex flex-1 items-center justify-center text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-[#612BD3] rounded-full blur-[120px]" />
-          <div className="absolute bottom-[20%] right-[10%] w-[250px] h-[250px] bg-[#FC69FF] rounded-full blur-[120px]" />
-        </div>
-        <div className="relative z-10 text-center">
-          <div className="flex justify-center mb-[24px]">
-            <Logo />
-          </div>
-          <div className="w-[80px] h-[80px] mx-auto mb-[24px] rounded-full bg-red-500/20 flex items-center justify-center">
-            <svg
-              className="w-[40px] h-[40px] text-red-500"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="text-[28px] font-semibold mb-[12px]">
-            Authorization Error
-          </div>
-          <div className="text-[16px] text-gray-400 max-w-[400px]">
-            {error}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // The approval goes to the current workspace (showorg cookie), so switching
+  // is the app's own: POST /user/change-org, then reload this request
+  const changeWorkspace = useCallback(
+    async (id: string) => {
+      if (id === user?.orgId) {
+        return;
+      }
+      setSwitching(true);
+      await fetch('/user/change-org', {
+        method: 'POST',
+        body: JSON.stringify({ id }),
+      });
+      window.location.reload();
+    },
+    [user?.orgId]
+  );
 
+  if (paramsError || requestError) {
+    return <ErrorCard message={paramsError || requestError.message} />;
+  }
   if (!appInfo) {
-    return null;
+    return <LoadingCard />;
   }
+  if (actionError) {
+    return (
+      <ErrorCard message={actionError} onRetry={() => setActionError('')} />
+    );
+  }
+
+  // Where approve / deny send the browser: dynamic clients go back to their
+  // validated redirect_uri, static apps to the URL stored on the app
+  const target = appInfo.app.dynamic ? redirectUri : appInfo.app.redirectUrl;
+  const known = mcpClientFromRequest(appInfo.app.name, target);
+  const clientName = (known?.label || appInfo.app.name || '').slice(0, 60);
+  const destination = (() => {
+    try {
+      const url = new URL(target || '');
+      const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(
+        url.hostname
+      );
+      return url.protocol === 'https:' && !loopback ? url.hostname : '';
+    } catch (e) {
+      return '';
+    }
+  })();
+
+  const clientMark = known ? (
+    <McpClientIcon client={known.client} size={30} />
+  ) : appInfo.app.picture?.path ? (
+    <img src={appInfo.app.picture.path} alt="" />
+  ) : (
+    <span className="tdw-consent-initial">
+      {clientName[0]?.toUpperCase() || '?'}
+    </span>
+  );
+
+  if (phase === 'approved' || phase === 'denied') {
+    return (
+      <Card busy={true}>
+        <StatusIcon
+          tone={phase === 'approved' ? 'success' : 'muted'}
+          icon={phase === 'approved' ? 'circle-check' : 'x'}
+        />
+        <h1 className="tdw-consent-title is-center" role="status">
+          {phase === 'approved'
+            ? t('tdw_oauth_done_title', '{{client}} is connected', {
+                client: clientName,
+              })
+            : t('tdw_oauth_cancelled_title', 'You cancelled the request')}
+        </h1>
+        <p className="tdw-consent-text is-center tdw-consent-redirecting">
+          <Spinner size={16} label={t('tdw_oauth_redirecting', 'Redirecting')} />
+          {t('tdw_oauth_taking_back', 'Taking you back to {{client}}…', {
+            client: clientName,
+          })}
+        </p>
+      </Card>
+    );
+  }
+
+  const scopes = (appInfo.scope || 'mcp:read mcp:write').split(/\s+/);
+  const rows = scopes.flatMap((scope) => SCOPE_ROWS[scope] || []);
+  const busy = phase !== 'idle' || switching;
 
   return (
-    <div className="flex flex-1 items-center justify-center text-white relative overflow-hidden">
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-[#612BD3] rounded-full blur-[120px]" />
-        <div className="absolute bottom-[20%] right-[10%] w-[250px] h-[250px] bg-[#FC69FF] rounded-full blur-[120px]" />
-      </div>
+    <Card
+      label={t('tdw_oauth_title', '{{client}} wants to access your {{brand}} workspace', {
+        client: clientName,
+        brand: brand.name,
+      })}
+    >
+      <LogoPair client={clientMark} />
+      <h1 className="tdw-consent-title is-center">
+        {t('tdw_oauth_title', '{{client}} wants to access your {{brand}} workspace', {
+          client: clientName,
+          brand: brand.name,
+        })}
+      </h1>
+      {appInfo.app.description && !known ? (
+        <p className="tdw-consent-text is-center">
+          {appInfo.app.description.slice(0, 200)}
+        </p>
+      ) : null}
 
-      <div className="relative z-10 w-full max-w-[500px] mx-auto px-[20px]">
-        <div className="flex justify-center mb-[32px]">
-          <Logo />
-        </div>
-
-        <div className="bg-[#1A1919] rounded-[16px] p-[32px] flex flex-col gap-[24px]">
-          <div className="flex flex-col items-center gap-[16px]">
-            {appInfo.app.picture?.path ? (
-              <img
-                src={appInfo.app.picture.path}
-                alt={appInfo.app.name}
-                className="w-[64px] h-[64px] rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-[64px] h-[64px] rounded-full bg-[#2A2929] flex items-center justify-center text-[24px] text-gray-400">
-                {appInfo.app.name?.[0]?.toUpperCase() || '?'}
+      {selfHosted ? (
+        <OAuthSelfHosted
+          appName={clientName}
+          askEmail={!!appInfo.selfHostedEmail}
+          params={{
+            client_id: clientId,
+            state,
+            redirect_uri: redirectUri,
+            code_challenge: codeChallenge,
+            code_challenge_method: codeChallengeMethod,
+            resource,
+          }}
+          onBack={() => setSelfHosted(false)}
+        />
+      ) : (
+        <>
+          {logged ? (
+            <div className="tdw-consent-who">
+              <div className="tdw-consent-account">
+                {user ? (
+                  <Avatar name={user.name || user.email || ''} size={36} />
+                ) : (
+                  <Skeleton width={36} height={36} radius={18} />
+                )}
+                <div className="tdw-consent-account-text">
+                  <span className="tdw-consent-label">
+                    {t('tdw_oauth_signed_in_as', 'Signed in as')}
+                  </span>
+                  <strong dir="auto">
+                    {user ? user.email || user.name : <Skeleton width={160} height={14} />}
+                  </strong>
+                </div>
+                <button
+                  type="button"
+                  className="tdw-consent-link-btn"
+                  onClick={switchAccount}
+                  disabled={busy}
+                >
+                  {t('tdw_oauth_switch_account', 'Not you?')}
+                </button>
               </div>
-            )}
-            <h2 className="text-[24px] font-semibold text-center">
-              {appInfo.app.name}
+              <div className="tdw-consent-workspace">
+                <span className="tdw-consent-label" id="tdw-consent-ws">
+                  {t('tdw_oauth_workspace', 'Workspace')}
+                </span>
+                {workspaces.length > 1 ? (
+                  <Select
+                    aria-label={t('tdw_oauth_workspace', 'Workspace')}
+                    value={user?.orgId}
+                    disabled={busy}
+                    onChange={changeWorkspace}
+                    options={workspaces.map((w) => ({
+                      value: w.id,
+                      label: w.name,
+                    }))}
+                  />
+                ) : (
+                  <strong dir="auto" aria-labelledby="tdw-consent-ws">
+                    {workspace?.name || <Skeleton width={120} height={14} />}
+                  </strong>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="tdw-consent-scopes">
+            <h2>
+              {t('tdw_oauth_will_be_able', 'This will let {{client}}:', {
+                client: clientName,
+              })}
             </h2>
-            {appInfo.app.description && (
-              <div className="text-gray-400 text-center text-[14px]">
-                {appInfo.app.description}
-              </div>
-            )}
+            <ul>
+              {rows.map((row) => (
+                <li key={row.key}>
+                  <span className="tdw-consent-scope-icon" aria-hidden="true">
+                    <Icon name={row.icon} size={16} />
+                  </span>
+                  {t(row.key, row.text)}
+                </li>
+              ))}
+              <li className="is-quiet">
+                <span className="tdw-consent-scope-icon" aria-hidden="true">
+                  <Icon name="lock" size={16} />
+                </span>
+                {t('tdw_oauth_scope_password', 'It never sees your password')}
+              </li>
+            </ul>
           </div>
 
-          {selfHosted ? (
-            <OAuthSelfHosted
-              appName={appInfo.app.name}
-              askEmail={!!appInfo.selfHostedEmail}
-              params={{
-                client_id: clientId,
-                state,
-                redirect_uri: redirectUri,
-                code_challenge: codeChallenge,
-                code_challenge_method: codeChallengeMethod,
-                resource,
-              }}
-              onBack={() => setSelfHosted(false)}
-            />
+          <p className="tdw-consent-destination">
+            <Icon name="external-link" size={14} />
+            <span>
+              {destination
+                ? t('tdw_oauth_sent_back_to', 'You’ll be sent back to {{host}}', {
+                    host: destination,
+                  })
+                : t(
+                    'tdw_oauth_sent_back_to_app',
+                    'You’ll be sent back to {{client}} on this device',
+                    { client: clientName }
+                  )}
+            </span>
+          </p>
+
+          {logged ? (
+            <div className="tdw-consent-actions is-pair">
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={() => handleAction('deny')}
+                disabled={busy}
+                loading={phase === 'deny'}
+                loadingLabel={t('tdw_oauth_cancelling', 'Cancelling…')}
+              >
+                {t('cancel', 'Cancel')}
+              </Button>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => handleAction('approve')}
+                disabled={busy}
+                loading={phase === 'approve'}
+                loadingLabel={t('tdw_oauth_allowing', 'Allowing…')}
+              >
+                {t('tdw_oauth_allow', 'Allow')}
+              </Button>
+            </div>
           ) : (
-            <>
-              <div className="border-t border-[#2A2929] pt-[16px]">
-                <div className="text-[14px] text-gray-400 mb-[12px]">
-                  This application is requesting access to your Postiz
-                  account. It will be able to:
-                </div>
-                <ul className="text-[14px] list-disc list-inside space-y-[4px]">
-                  <li>Access your integrations and channels</li>
-                  <li>Create and schedule posts on your behalf</li>
-                  <li>Read your post analytics</li>
-                </ul>
-              </div>
-
-              {logged ? (
-                <div className="flex gap-[12px]">
-                  <button
-                    onClick={() => handleAction('approve')}
-                    disabled={submitting}
-                    className="flex-1 bg-[#612BD3] hover:bg-[#7B3FF2] disabled:opacity-50 text-white rounded-[8px] py-[10px] px-[16px] text-[14px] font-semibold transition-colors"
-                  >
-                    Authorize
-                  </button>
-                  <button
-                    onClick={() => handleAction('deny')}
-                    disabled={submitting}
-                    className="flex-1 bg-[#2A2929] hover:bg-[#3A3939] disabled:opacity-50 text-white rounded-[8px] py-[10px] px-[16px] text-[14px] font-semibold transition-colors"
-                  >
-                    Deny
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={signIn}
-                  className="bg-[#612BD3] hover:bg-[#7B3FF2] text-white rounded-[8px] py-[10px] px-[16px] text-[14px] font-semibold transition-colors"
-                >
-                  Sign in to Postiz
-                </button>
-              )}
-
-              {!!appInfo.selfHosted && (
-                <button
-                  onClick={() => setSelfHosted(true)}
-                  disabled={submitting}
-                  className="text-[14px] text-gray-400 hover:text-white disabled:opacity-50 transition-colors"
-                >
-                  Use self-hosted
-                </button>
-              )}
-            </>
+            <div className="tdw-consent-actions">
+              <Button variant="primary" size="lg" onClick={signIn}>
+                {t('tdw_oauth_sign_in', 'Sign in to continue')}
+              </Button>
+              <p className="tdw-consent-hint">
+                {t(
+                  'tdw_oauth_sign_in_hint',
+                  'New to {{brand}}? You can create an account on the next screen.',
+                  { brand: brand.name }
+                )}
+              </p>
+            </div>
           )}
-        </div>
-      </div>
-    </div>
+
+          {!!appInfo.selfHosted && (
+            <button
+              type="button"
+              className="tdw-consent-link-btn is-center"
+              onClick={() => setSelfHosted(true)}
+              disabled={busy}
+            >
+              {t('tdw_oauth_use_self_hosted', 'Use a self-hosted instance')}
+            </button>
+          )}
+        </>
+      )}
+
+      <Footnote logged={logged} />
+    </Card>
   );
 };

@@ -145,7 +145,7 @@ export const AdminOverviewPage = () => {
             description={
               plans?.plans.length
                 ? `${plans.plans.filter((p) => p.active).length} on sale`
-                : 'Using Postiz’s built-in pricing'
+                : 'Using the built-in pricing'
             }
             control={
               plans?.plans.length ? (
@@ -162,7 +162,7 @@ export const AdminOverviewPage = () => {
         </Section>
       </div>
 
-      <Section title="Tools" description="Postiz’s existing admin screens.">
+      <Section title="Tools" description="The built-in admin screens.">
         <Row
           label={
             <span className="inline-flex items-center gap-[8px]">

@@ -544,24 +544,65 @@ export const McpClientIcon: FC<{ client: string; size?: number }> = ({
 // picks a logo and a display name; the redirect itself is validated server
 // side. A web callback must be on the client's own domain (anyone can register
 // a client called "ChatGPT"); native callbacks (loopback, cursor://) can't be
-// verified anyway, so those match by registered name or scheme.
+// verified anyway, so those match by registered name or scheme, and only
+// clients that have no web domain of their own.
 const clientMatchers: {
   client: string;
   label: string;
   name: RegExp;
   domains?: string[];
+  // a desktop app that also calls back natively (cursor://, vscode://)
+  native?: boolean;
 }[] = [
   { client: 'Claude Code', label: 'Claude Code', name: /claude[\s-]?code/i },
-  { client: 'Claude', label: 'Claude', name: /claude|anthropic/i, domains: ['claude.ai', 'claude.com', 'anthropic.com'] },
-  { client: 'ChatGPT', label: 'ChatGPT', name: /chatgpt|openai/i, domains: ['chatgpt.com', 'openai.com'] },
+  {
+    client: 'Claude',
+    label: 'Claude',
+    name: /claude|anthropic/i,
+    domains: ['claude.ai', 'claude.com', 'anthropic.com'],
+  },
+  {
+    client: 'ChatGPT',
+    label: 'ChatGPT',
+    name: /chatgpt|openai/i,
+    domains: ['chatgpt.com', 'openai.com'],
+  },
   { client: 'Codex', label: 'Codex', name: /codex/i },
-  { client: 'Cursor', label: 'Cursor', name: /cursor/i, domains: ['cursor.com', 'cursor.sh'] },
-  { client: 'VS Code / Copilot', label: 'VS Code', name: /vscode|vs code|visual studio code|copilot/i, domains: ['vscode.dev'] },
-  { client: 'Windsurf', label: 'Windsurf', name: /windsurf|codeium/i, domains: ['windsurf.com', 'codeium.com'] },
+  {
+    client: 'Cursor',
+    label: 'Cursor',
+    name: /cursor/i,
+    domains: ['cursor.com', 'cursor.sh'],
+    native: true,
+  },
+  {
+    client: 'VS Code / Copilot',
+    label: 'VS Code',
+    name: /vscode|vs code|visual studio code|copilot/i,
+    domains: ['vscode.dev'],
+    native: true,
+  },
+  {
+    client: 'Windsurf',
+    label: 'Windsurf',
+    name: /windsurf|codeium/i,
+    domains: ['windsurf.com', 'codeium.com'],
+    native: true,
+  },
   { client: 'Gemini CLI', label: 'Gemini', name: /gemini/i },
-  { client: 'Grok Bot', label: 'Grok', name: /grok/i, domains: ['grok.com', 'x.ai'] },
+  {
+    client: 'Grok Bot',
+    label: 'Grok',
+    name: /grok/i,
+    domains: ['grok.com', 'x.ai'],
+  },
   { client: 'Warp', label: 'Warp', name: /warp/i, domains: ['warp.dev'] },
-  { client: 'Amp', label: 'Amp', name: /^amp\b|ampcode/i, domains: ['ampcode.com'] },
+  {
+    client: 'Amp',
+    label: 'Amp',
+    name: /^amp\b|ampcode/i,
+    domains: ['ampcode.com'],
+  },
   { client: 'OpenClaw', label: 'OpenClaw', name: /openclaw/i },
   { client: 'NanoClaw', label: 'NanoClaw', name: /nanoclaw/i },
   { client: 'Hermes', label: 'Hermes', name: /hermes/i },
@@ -588,9 +629,12 @@ export const mcpClientFromRequest = (
     return clientMatchers.find((m) => onDomain(host, m.domains)) || null;
   }
   const scheme = url?.protocol.replace(/:$/, '') || '';
+  // a web-only client (ChatGPT, Claude…) is never recognised by name alone:
+  // anyone can register a native client called "ChatGPT"
+  const native = clientMatchers.filter((m) => !m.domains || m.native);
   return (
-    clientMatchers.find((m) => m.name.test(name || '')) ||
-    clientMatchers.find((m) => !!scheme && m.name.test(scheme)) ||
+    native.find((m) => m.name.test(name || '')) ||
+    native.find((m) => !!scheme && m.name.test(scheme)) ||
     null
   );
 };

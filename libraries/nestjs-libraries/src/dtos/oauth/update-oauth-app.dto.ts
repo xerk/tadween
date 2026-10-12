@@ -17,6 +17,11 @@ export class UpdateOAuthAppDto {
 
   @IsString()
   @IsOptional()
-  @IsUrl({ require_tld: false })
+  // the consent screen sends the browser here: web addresses only
+  @IsUrl({
+    protocols: ['https', 'http'],
+    require_protocol: true,
+    require_tld: false,
+  })
   redirectUrl?: string;
 }

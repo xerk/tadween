@@ -339,7 +339,8 @@ const McpSection = ({
     auth,
     mcpBase,
     user.publicApi,
-    backendUrl
+    backendUrl,
+    brand.slug
   );
 
   const baseUrl = auth === 'oauth' ? getMcpOauthUrl(mcpBase) : `${mcpBase}/mcp`;

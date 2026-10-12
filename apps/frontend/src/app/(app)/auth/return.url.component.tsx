@@ -17,7 +17,16 @@ export const useReturnUrl = () => {
     getAndClear: useCallback(() => {
       const data = localStorage.getItem('returnUrl');
       localStorage.removeItem('returnUrl');
-      return data;
+      // only ever back into this app, never to another site
+      try {
+        return data &&
+          new URL(data, window.location.origin).origin ===
+            window.location.origin
+          ? data
+          : null;
+      } catch (e) {
+        return null;
+      }
     }, []),
   };
 };

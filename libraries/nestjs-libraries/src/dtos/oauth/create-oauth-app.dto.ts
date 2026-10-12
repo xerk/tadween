@@ -1,4 +1,10 @@
-import { IsDefined, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import {
+  IsDefined,
+  IsOptional,
+  IsString,
+  IsUrl,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateOAuthAppDto {
   @IsString()
@@ -17,6 +23,11 @@ export class CreateOAuthAppDto {
 
   @IsString()
   @IsDefined()
-  @IsUrl({ require_tld: false })
+  // the consent screen sends the browser here: web addresses only
+  @IsUrl({
+    protocols: ['https', 'http'],
+    require_protocol: true,
+    require_tld: false,
+  })
   redirectUrl: string;
 }

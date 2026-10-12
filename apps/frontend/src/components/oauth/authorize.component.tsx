@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
 import { OAuthSelfHosted } from '@gitroom/frontend/components/oauth/self.hosted.component';
 import {
@@ -13,12 +12,15 @@ import {
   mcpClientFromRequest,
 } from '@gitroom/frontend/components/public-api/mcp.client.icons';
 import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import { useLegalLinks } from '@gitroom/frontend/components/tadween/auth/auth.parts';
+import { useOrganizations } from '@gitroom/frontend/components/tadween/shell/sidebar';
 import {
   Avatar,
   Button,
   cx,
   Icon,
   IconName,
+  LinkButton,
   Select,
   Skeleton,
   Spinner,
@@ -73,31 +75,25 @@ const useAuthorizeRequest = (query: string | null) => {
 
 // The signed-in account. A session that expired answers 401, which sends the
 // browser to sign in (layout.context); the stored returnUrl brings it back here.
-const useConsentUser = (logged: boolean) => {
+const useConsentUser = () => {
   const fetch = useFetch();
   const load = useCallback(async () => {
     localStorage.setItem('returnUrl', window.location.href);
-    const data = await (await fetch('/user/self')).json();
+    const res = await fetch('/user/self');
+    if (!res.ok) {
+      throw new Error('session expired');
+    }
     localStorage.removeItem('returnUrl');
-    return data as { name?: string; email?: string; orgId?: string };
+    return (await res.json()) as {
+      name?: string;
+      email?: string;
+      orgId?: string;
+    };
   }, []);
-  return useSWR(logged ? 'oauth-consent-user' : null, load, {
+  return useSWR('/user/self', load, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     shouldRetryOnError: false,
-  });
-};
-
-// Same SWR key and endpoint as the sidebar's workspace switcher
-const useWorkspaces = (logged: boolean) => {
-  const fetch = useFetch();
-  const load = useCallback(async () => {
-    return await (await fetch('/user/organizations')).json();
-  }, []);
-  return useSWR(logged ? 'organizations' : null, load, {
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
   });
 };
 
@@ -137,8 +133,10 @@ const REQUEST_ERRORS: Record<string, [string, string, string, string]> = {
 };
 
 const requestErrorKey = (message: string) =>
-  message.startsWith('Missing required parameters') ||
-  message.startsWith('Only response_type')
+  message === 'Failed to process authorization'
+    ? 'action'
+    : message.startsWith('Missing required parameters') ||
+      message.startsWith('Only response_type')
     ? 'missing'
     : message.startsWith('code_challenge') || message.includes('S256')
     ? 'pkce'
@@ -207,10 +205,10 @@ const LogoPair: FC<{ client: ReactNode }> = ({ client }) => (
   </div>
 );
 
-const StatusIcon: FC<{ tone: 'error' | 'success' | 'muted'; icon: IconName }> = ({
-  tone,
-  icon,
-}) => (
+const StatusIcon: FC<{
+  tone: 'error' | 'success' | 'muted';
+  icon: IconName;
+}> = ({ tone, icon }) => (
   <span className={cx('tdw-consent-status', `is-${tone}`)} aria-hidden="true">
     <Icon name={icon} size={24} />
   </span>
@@ -218,17 +216,11 @@ const StatusIcon: FC<{ tone: 'error' | 'success' | 'muted'; icon: IconName }> = 
 
 const Footnote: FC<{ logged: boolean }> = ({ logged }) => {
   const t = useT();
-  const brand = useBrandLinks();
-  const env = useVariables();
-  const termsUrl = brand.termsUrl || env.termsUrl;
-  const privacyUrl = brand.privacyUrl || env.privacyUrl;
+  const { termsUrl, privacyUrl } = useLegalLinks();
   return (
     <footer className="tdw-consent-foot">
       <p>
-        {t(
-          'tdw_oauth_revoke_hint',
-          'You can remove access any time in'
-        )}{' '}
+        {t('tdw_oauth_revoke_hint', 'You can remove access any time in')}{' '}
         {logged ? (
           <a href="/settings?tab=approved_apps">
             {t('tdw_oauth_revoke_link', 'Settings → Approved apps')}
@@ -241,19 +233,115 @@ const Footnote: FC<{ logged: boolean }> = ({ logged }) => {
       {termsUrl || privacyUrl ? (
         <p className="tdw-consent-legal">
           {privacyUrl ? (
-            <a href={privacyUrl} target="_blank" rel="noopener noreferrer nofollow">
+            <a
+              href={privacyUrl}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+            >
               {t('privacy_policy', 'Privacy Policy')}
             </a>
           ) : null}
           {termsUrl && privacyUrl ? <span aria-hidden="true">·</span> : null}
           {termsUrl ? (
-            <a href={termsUrl} target="_blank" rel="noopener noreferrer nofollow">
+            <a
+              href={termsUrl}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+            >
               {t('terms_of_service', 'Terms of Service')}
             </a>
           ) : null}
         </p>
       ) : null}
     </footer>
+  );
+};
+
+/* Signed-in account and the workspace the approval goes to. Only mounted for
+   signed-in visitors: both requests need a session. */
+const ConsentAccount: FC<{ busy: boolean }> = ({ busy }) => {
+  const t = useT();
+  const fetch = useFetch();
+  const { data: user } = useConsentUser();
+  const { data: workspaceData } = useOrganizations();
+  const [switching, setSwitching] = useState(false);
+  const workspaces: Workspace[] = Array.isArray(workspaceData)
+    ? workspaceData
+    : [];
+  const workspace = workspaces.find((w) => w.id === user?.orgId);
+
+  // Sign out and in as someone else, then come back (same returnUrl the
+  // sign-in page stores)
+  const switchAccount = useCallback(() => {
+    localStorage.setItem('returnUrl', window.location.href);
+    window.location.href = '/auth/logout';
+  }, []);
+
+  // The approval goes to the current workspace (showorg cookie), so switching
+  // is the app's own: POST /user/change-org, then reload this request
+  const changeWorkspace = useCallback(
+    async (id: string) => {
+      if (id === user?.orgId) {
+        return;
+      }
+      setSwitching(true);
+      await fetch('/user/change-org', {
+        method: 'POST',
+        body: JSON.stringify({ id }),
+      });
+      window.location.reload();
+    },
+    [user?.orgId]
+  );
+
+  return (
+    <div className="tdw-consent-who">
+      <div className="tdw-consent-account">
+        {user ? (
+          <Avatar name={user.name || user.email || ''} size={36} />
+        ) : (
+          <Skeleton width={36} height={36} radius={18} />
+        )}
+        <div className="tdw-consent-account-text">
+          <span className="tdw-consent-label">
+            {t('tdw_oauth_signed_in_as', 'Signed in as')}
+          </span>
+          <strong dir="auto">
+            {user ? (
+              user.email || user.name
+            ) : (
+              <Skeleton width={160} height={14} />
+            )}
+          </strong>
+        </div>
+        <button
+          type="button"
+          className="tdw-consent-link-btn"
+          onClick={switchAccount}
+          disabled={busy || switching || !user}
+        >
+          {t('tdw_oauth_switch_account', 'Not you?')}
+        </button>
+      </div>
+      <div className="tdw-consent-workspace">
+        <span className="tdw-consent-label" id="tdw-consent-ws">
+          {t('tdw_oauth_workspace', 'Workspace')}
+        </span>
+        {workspaces.length > 1 ? (
+          <Select
+            aria-label={t('tdw_oauth_workspace', 'Workspace')}
+            value={user?.orgId}
+            disabled={busy || switching}
+            onChange={changeWorkspace}
+            options={workspaces.map((w) => ({ value: w.id, label: w.name }))}
+          />
+        ) : (
+          <strong dir="auto" aria-labelledby="tdw-consent-ws">
+            {workspace?.name || <Skeleton width={120} height={14} />}
+          </strong>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -278,7 +366,7 @@ const LoadingCard: FC = () => {
         <Skeleton height={44} radius={12} />
         <Skeleton height={44} radius={12} />
       </div>
-      <span className="tdw-consent-sr" role="status">
+      <span className="sr-only" role="status">
         {t('tdw_oauth_loading', 'Checking the request…')}
       </span>
     </Card>
@@ -296,7 +384,9 @@ const ErrorCard: FC<{
     <Card>
       <StatusIcon tone="error" icon="triangle-alert" />
       <h1 className="tdw-consent-title is-center" role="alert">
-        {known ? t(known[0], known[1]) : t('tdw_oauth_err_title', 'This connection can’t continue')}
+        {known
+          ? t(known[0], known[1])
+          : t('tdw_oauth_err_title', 'This connection can’t continue')}
       </h1>
       <p className="tdw-consent-text is-center">
         {known ? t(known[2], known[3]) : message}
@@ -313,9 +403,12 @@ const ErrorCard: FC<{
             {t('tdw_oauth_try_again', 'Try again')}
           </Button>
         ) : (
-          <a className="pz-btn pz-btn-secondary pz-btn-lg" href="/">
-            {t('tdw_oauth_open_app', 'Open {{brand}}', { brand: brand.name })}
-          </a>
+          <LinkButton href="/" variant="secondary" size="lg">
+            {t('tdw_oauth_open_app', 'Open {{brand}}', {
+              brand: brand.name,
+              interpolation: { escapeValue: false },
+            })}
+          </LinkButton>
         )}
       </div>
     </Card>
@@ -332,7 +425,6 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
     'idle' | 'approve' | 'deny' | 'approved' | 'denied'
   >('idle');
   const [actionError, setActionError] = useState('');
-  const [switching, setSwitching] = useState(false);
 
   const clientId = searchParams.get('client_id');
   const responseType = searchParams.get('response_type');
@@ -342,11 +434,12 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
   const codeChallengeMethod = searchParams.get('code_challenge_method');
   const resource = searchParams.get('resource');
 
-  const paramsError = !clientId || !responseType
-    ? 'Missing required parameters (client_id, response_type)'
-    : responseType !== 'code'
-    ? 'Only response_type=code is supported'
-    : '';
+  const paramsError =
+    !clientId || !responseType
+      ? 'Missing required parameters (client_id, response_type)'
+      : responseType !== 'code'
+      ? 'Only response_type=code is supported'
+      : '';
 
   const query = useMemo(() => {
     if (paramsError) {
@@ -375,12 +468,6 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
   ]);
 
   const { data: appInfo, error: requestError } = useAuthorizeRequest(query);
-  const { data: user } = useConsentUser(logged);
-  const { data: workspaceData } = useWorkspaces(logged);
-  const workspaces: Workspace[] = Array.isArray(workspaceData)
-    ? workspaceData
-    : [];
-  const workspace = workspaces.find((w) => w.id === user?.orgId);
 
   const handleAction = useCallback(
     async (action: 'approve' | 'deny') => {
@@ -410,8 +497,9 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
           return;
         }
         setActionError(
-          (Array.isArray(result.message) ? result.message[0] : result.message) ||
-            'Failed to process authorization'
+          (Array.isArray(result.message)
+            ? result.message[0]
+            : result.message) || 'Failed to process authorization'
         );
       } catch {
         setActionError('Failed to process authorization');
@@ -427,30 +515,6 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
       window.location.href
     )}`;
   }, []);
-
-  // Sign out and in as someone else, then come back (same returnUrl the
-  // sign-in page stores)
-  const switchAccount = useCallback(() => {
-    localStorage.setItem('returnUrl', window.location.href);
-    window.location.href = '/auth/logout';
-  }, []);
-
-  // The approval goes to the current workspace (showorg cookie), so switching
-  // is the app's own: POST /user/change-org, then reload this request
-  const changeWorkspace = useCallback(
-    async (id: string) => {
-      if (id === user?.orgId) {
-        return;
-      }
-      setSwitching(true);
-      await fetch('/user/change-org', {
-        method: 'POST',
-        body: JSON.stringify({ id }),
-      });
-      window.location.reload();
-    },
-    [user?.orgId]
-  );
 
   if (paramsError || requestError) {
     return <ErrorCard message={paramsError || requestError.message} />;
@@ -475,7 +539,11 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
       const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(
         url.hostname
       );
-      return url.protocol === 'https:' && !loopback ? url.hostname : '';
+      // every web callback names its host; only loopback and private
+      // schemes (cursor://) stay on this device
+      return ['http:', 'https:'].includes(url.protocol) && !loopback
+        ? url.host
+        : '';
     } catch (e) {
       return '';
     }
@@ -502,13 +570,18 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
           {phase === 'approved'
             ? t('tdw_oauth_done_title', '{{client}} is connected', {
                 client: clientName,
+                interpolation: { escapeValue: false },
               })
             : t('tdw_oauth_cancelled_title', 'You cancelled the request')}
         </h1>
         <p className="tdw-consent-text is-center tdw-consent-redirecting">
-          <Spinner size={16} label={t('tdw_oauth_redirecting', 'Redirecting')} />
+          <Spinner
+            size={16}
+            label={t('tdw_oauth_redirecting', 'Redirecting')}
+          />
           {t('tdw_oauth_taking_back', 'Taking you back to {{client}}…', {
             client: clientName,
+            interpolation: { escapeValue: false },
           })}
         </p>
       </Card>
@@ -517,21 +590,31 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
 
   const scopes = (appInfo.scope || 'mcp:read mcp:write').split(/\s+/);
   const rows = scopes.flatMap((scope) => SCOPE_ROWS[scope] || []);
-  const busy = phase !== 'idle' || switching;
+  const busy = phase !== 'idle';
 
   return (
     <Card
-      label={t('tdw_oauth_title', '{{client}} wants to access your {{brand}} workspace', {
-        client: clientName,
-        brand: brand.name,
-      })}
+      label={t(
+        'tdw_oauth_title',
+        '{{client}} wants to access your {{brand}} workspace',
+        {
+          client: clientName,
+          brand: brand.name,
+          interpolation: { escapeValue: false },
+        }
+      )}
     >
       <LogoPair client={clientMark} />
       <h1 className="tdw-consent-title is-center">
-        {t('tdw_oauth_title', '{{client}} wants to access your {{brand}} workspace', {
-          client: clientName,
-          brand: brand.name,
-        })}
+        {t(
+          'tdw_oauth_title',
+          '{{client}} wants to access your {{brand}} workspace',
+          {
+            client: clientName,
+            brand: brand.name,
+            interpolation: { escapeValue: false },
+          }
+        )}
       </h1>
       {appInfo.app.description && !known ? (
         <p className="tdw-consent-text is-center">
@@ -555,59 +638,13 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
         />
       ) : (
         <>
-          {logged ? (
-            <div className="tdw-consent-who">
-              <div className="tdw-consent-account">
-                {user ? (
-                  <Avatar name={user.name || user.email || ''} size={36} />
-                ) : (
-                  <Skeleton width={36} height={36} radius={18} />
-                )}
-                <div className="tdw-consent-account-text">
-                  <span className="tdw-consent-label">
-                    {t('tdw_oauth_signed_in_as', 'Signed in as')}
-                  </span>
-                  <strong dir="auto">
-                    {user ? user.email || user.name : <Skeleton width={160} height={14} />}
-                  </strong>
-                </div>
-                <button
-                  type="button"
-                  className="tdw-consent-link-btn"
-                  onClick={switchAccount}
-                  disabled={busy}
-                >
-                  {t('tdw_oauth_switch_account', 'Not you?')}
-                </button>
-              </div>
-              <div className="tdw-consent-workspace">
-                <span className="tdw-consent-label" id="tdw-consent-ws">
-                  {t('tdw_oauth_workspace', 'Workspace')}
-                </span>
-                {workspaces.length > 1 ? (
-                  <Select
-                    aria-label={t('tdw_oauth_workspace', 'Workspace')}
-                    value={user?.orgId}
-                    disabled={busy}
-                    onChange={changeWorkspace}
-                    options={workspaces.map((w) => ({
-                      value: w.id,
-                      label: w.name,
-                    }))}
-                  />
-                ) : (
-                  <strong dir="auto" aria-labelledby="tdw-consent-ws">
-                    {workspace?.name || <Skeleton width={120} height={14} />}
-                  </strong>
-                )}
-              </div>
-            </div>
-          ) : null}
+          {logged ? <ConsentAccount busy={busy} /> : null}
 
           <div className="tdw-consent-scopes">
             <h2>
               {t('tdw_oauth_will_be_able', 'This will let {{client}}:', {
                 client: clientName,
+                interpolation: { escapeValue: false },
               })}
             </h2>
             <ul>
@@ -632,13 +669,21 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
             <Icon name="external-link" size={14} />
             <span>
               {destination
-                ? t('tdw_oauth_sent_back_to', 'You’ll be sent back to {{host}}', {
-                    host: destination,
-                  })
+                ? t(
+                    'tdw_oauth_sent_back_to',
+                    'You’ll be sent back to {{host}}',
+                    {
+                      host: destination,
+                      interpolation: { escapeValue: false },
+                    }
+                  )
                 : t(
                     'tdw_oauth_sent_back_to_app',
                     'You’ll be sent back to {{client}} on this device',
-                    { client: clientName }
+                    {
+                      client: clientName,
+                      interpolation: { escapeValue: false },
+                    }
                   )}
             </span>
           </p>
@@ -675,7 +720,7 @@ export const OAuthAuthorize: FC<{ logged: boolean }> = ({ logged }) => {
                 {t(
                   'tdw_oauth_sign_in_hint',
                   'New to {{brand}}? You can create an account on the next screen.',
-                  { brand: brand.name }
+                  { brand: brand.name, interpolation: { escapeValue: false } }
                 )}
               </p>
             </div>

@@ -105,14 +105,6 @@ body {
     text-align: center;
   }
   .tdw-consent-error { margin: 0; font-size: 14px; line-height: 20px; color: var(--tdw-destructive); }
-  .tdw-consent-sr {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
 
   // ── Who: account + workspace ───────────────────────────────────────────
   .tdw-consent-who {

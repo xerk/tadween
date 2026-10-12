@@ -66,7 +66,9 @@ export const OAuthSelfHosted: FC<{
                 t('tdw_oauth_sh_failed', 'Could not connect to your instance.')
         );
       } catch {
-        setError(t('tdw_oauth_sh_failed', 'Could not connect to your instance.'));
+        setError(
+          t('tdw_oauth_sh_failed', 'Could not connect to your instance.')
+        );
       }
       setSubmitting(false);
     },
@@ -81,7 +83,7 @@ export const OAuthSelfHosted: FC<{
           {t(
             'tdw_oauth_sh_intro',
             '{{app}} will work with your own instance. This server relays its requests, and your API key is stored encrypted.',
-            { app: appName }
+            { app: appName, interpolation: { escapeValue: false } }
           )}
         </p>
       </div>
@@ -104,7 +106,10 @@ export const OAuthSelfHosted: FC<{
         label={t('tdw_oauth_sh_key', 'API key')}
         value={apiKey}
         onChange={(e) => setApiKey(e.target.value)}
-        placeholder={t('tdw_oauth_sh_key_placeholder', 'Settings > Developers on your instance')}
+        placeholder={t(
+          'tdw_oauth_sh_key_placeholder',
+          'Settings > Developers on your instance'
+        )}
         hint={t(
           'tdw_oauth_sh_key_hint',
           'You can also paste the MCP URL from Settings > Developers in the instance URL, it includes the key.'
@@ -121,7 +126,11 @@ export const OAuthSelfHosted: FC<{
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
-          hint={t('tdw_oauth_sh_email_hint', '{{app}} uses it to identify your account.', { app: appName })}
+          hint={t(
+            'tdw_oauth_sh_email_hint',
+            '{{app}} uses it to identify your account.',
+            { app: appName, interpolation: { escapeValue: false } }
+          )}
           autoComplete="email"
         />
       )}
@@ -133,7 +142,12 @@ export const OAuthSelfHosted: FC<{
       )}
 
       <div className="tdw-consent-actions is-pair">
-        <Button variant="secondary" size="lg" onClick={onBack} disabled={submitting}>
+        <Button
+          variant="secondary"
+          size="lg"
+          onClick={onBack}
+          disabled={submitting}
+        >
           {t('tdw_oauth_sh_back', 'Back')}
         </Button>
         <Button
@@ -149,7 +163,10 @@ export const OAuthSelfHosted: FC<{
       </div>
 
       <p className="tdw-consent-hint">
-        {t('tdw_oauth_sh_https', 'Your instance has to be reachable from the internet over https.')}
+        {t(
+          'tdw_oauth_sh_https',
+          'Your instance has to be reachable from the internet over https.'
+        )}
       </p>
     </form>
   );

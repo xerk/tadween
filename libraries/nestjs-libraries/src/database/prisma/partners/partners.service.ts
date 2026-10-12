@@ -387,7 +387,7 @@ export class PartnersService {
         }
       }
 
-      await this.settle(partner.id, true);
+      await this.settle(partner.id, true, event.paidAt);
     } catch (e) {
       console.error('partners_invoice_not_processed', {
         invoice_id: event.invoiceId,
@@ -556,12 +556,15 @@ export class PartnersService {
   // Evaluated whenever a partner's data is read or one of its events arrives
   // (no cron). `apply` also grants account balance through the payment
   // provider; reads only do the database part.
-  async settle(partnerId: string, apply: boolean) {
+  // `at`: the time of the webhook event being handled. The clock used is the
+  // later of it and now, so Stripe test clocks (events in the future) can
+  // move holds forward in test mode; live events are never ahead of now.
+  async settle(partnerId: string, apply: boolean, at?: Date) {
     const partner = await this._repository.getPartnerById(partnerId);
     if (!partner) {
       return;
     }
-    const now = new Date();
+    const now = new Date(Math.max(Date.now(), at?.getTime() || 0));
 
     // yearly plans count on the ladder 30 days after the first payment
     for (const r of await this._repository.dueYearlyReferrals(
@@ -621,13 +624,13 @@ export class PartnersService {
 
   // Webhook entry for a workspace's own invoice (before it is finalised):
   // apply what the workspace earned so it lands on this invoice
-  async settleForOrganization(organizationId: string) {
+  async settleForOrganization(organizationId: string, at?: Date) {
     try {
       const partner = await this._repository.getPartnerByOrganization(
         organizationId
       );
       if (partner) {
-        await this.settle(partner.id, true);
+        await this.settle(partner.id, true, at);
       }
     } catch (e) {
       console.error('partners_settle_failed', {
@@ -771,7 +774,7 @@ export class PartnersService {
     await this._repository.updatePayout(
       payout.id,
       result.granted
-        ? { amountCents: amount, paidAt: now }
+        ? { amountCents: amount, paidAt: now, status: 'PAID' }
         : { status: 'CANCELLED' }
     );
   }
@@ -983,9 +986,9 @@ export class PartnersService {
       : await this._repository.hasPayoutDetails(partner.id);
     if (body.preference === 'CASH' && !this.cashReady(next, !!details)) {
       throw new HttpException(
-        country === 'SA' && !next.mawthooqNumber
+        next.taxFormAcceptedAt && next.country && next.payoutMethod && details
           ? 'Cash payouts in Saudi Arabia need your Mawthooq licence number.'
-          : 'Cash payouts need the W-8BEN confirmation, your country and payout details.',
+          : 'Cash payouts need the W-8BEN confirmation, your country, a payout method and payout details.',
         400
       );
     }
@@ -1245,16 +1248,15 @@ export class PartnersService {
         partners.filter(Boolean).map((p) => p!.organizationId)
       ),
       this._repository.getUsers(partners.filter(Boolean).map((p) => p!.userId)),
-      withDetails
-        ? this._repository.payoutDetailsFor(balances.map((b) => b.partnerId))
-        : Promise.resolve(new Map<string, string | null>()),
+      this._repository.payoutDetailsFor(balances.map((b) => b.partnerId)),
     ]);
     return balances.map((b, i) => {
       const p = partners[i]!;
       const encrypted = details.get(b.partnerId);
       let plain: string | null = null;
       try {
-        plain = encrypted ? AuthService.fixedDecryption(encrypted) : null;
+        plain =
+          withDetails && encrypted ? AuthService.fixedDecryption(encrypted) : null;
       } catch (e) {
         plain = null;
       }
@@ -1301,6 +1303,15 @@ export class PartnersService {
     if (!partner || partner.kind !== 'AFFILIATE') {
       throw new HttpException('Partner not found', 404);
     }
+    if (
+      partner.payoutPreference !== 'CASH' ||
+      !this.cashReady(partner, !!(await this._repository.hasPayoutDetails(partnerId)))
+    ) {
+      throw new HttpException(
+        'This partner hasn’t completed cash payout details (W-8BEN, country, method, details; Mawthooq in Saudi Arabia).',
+        400
+      );
+    }
     const now = new Date();
     const payout = await this._repository.createPayout({
       partnerId,
@@ -1323,7 +1334,10 @@ export class PartnersService {
       );
     }
     await this._repository.settlePayoutRewards(payout.id, true, now);
-    await this._repository.updatePayout(payout.id, { amountCents: amount });
+    await this._repository.updatePayout(payout.id, {
+      amountCents: amount,
+      status: 'PAID',
+    });
     return { id: payout.id, amountCents: amount };
   }
 

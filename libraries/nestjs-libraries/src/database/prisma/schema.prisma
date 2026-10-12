@@ -2019,6 +2019,7 @@ enum ReferralRewardStatus {
 }
 
 enum PartnerPayoutStatus {
+  PENDING
   PAID
   CANCELLED
 }
@@ -2141,7 +2142,7 @@ model PartnerPayout {
   amountCents Int
   method      String
   reference   String?
-  status      PartnerPayoutStatus @default(PAID)
+  status      PartnerPayoutStatus @default(PENDING)
   paidAt      DateTime?
   createdById String
   createdAt   DateTime            @default(now())

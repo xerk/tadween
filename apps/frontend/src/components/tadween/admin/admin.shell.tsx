@@ -49,6 +49,15 @@ export const ADMIN_NAV: NavGroup[] = [
     ],
   },
   {
+    key: 'tdw_admin_group_growth',
+    label: 'Growth',
+    items: [
+      { href: '/admin/partners', key: 'tdw_admin_partners', label: 'Partners', icon: 'award' },
+      { href: '/admin/referrals', key: 'tdw_admin_referrals', label: 'Referrals', icon: 'user-plus' },
+      { href: '/admin/payouts', key: 'tdw_admin_payouts', label: 'Payouts', icon: 'receipt' },
+    ],
+  },
+  {
     key: 'tdw_admin_group_product',
     label: 'Product',
     items: [

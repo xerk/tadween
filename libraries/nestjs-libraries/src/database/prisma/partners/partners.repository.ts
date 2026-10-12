@@ -633,7 +633,7 @@ export class PartnersRepository {
     id: string,
     data: Partial<{
       amountCents: number;
-      status: 'PAID' | 'CANCELLED';
+      status: 'PENDING' | 'PAID' | 'CANCELLED';
       paidAt: Date | null;
     }>
   ) {

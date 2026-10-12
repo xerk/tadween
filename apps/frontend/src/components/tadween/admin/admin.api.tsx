@@ -431,6 +431,138 @@ export const useAdminMutation = () => {
   );
 };
 
+// ── Growth: partners program (GET /admin/console/partners|referrals|payouts) ──
+export type PartnerKind = 'REFERRER' | 'AFFILIATE';
+export type PartnerStatus = 'ACTIVE' | 'SUSPENDED';
+export type ReferralStatus = 'SIGNED_UP' | 'PAID' | 'QUALIFIED' | 'REJECTED' | 'REFUNDED';
+
+export interface AdminPartner {
+  id: string;
+  organizationId: string;
+  userId: string;
+  kind: PartnerKind;
+  status: PartnerStatus;
+  code: string;
+  tier: number;
+  // percent set by an admin; null = the tier's rate
+  commissionRate: number | null;
+  commissionMonths: number;
+  ambassador: boolean;
+  country: string | null;
+  mawthooqNumber: string | null;
+  payoutPreference: 'BALANCE' | 'CASH';
+  payoutMethod: string | null;
+  taxFormAcceptedAt: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+  organization: { id: string; name: string } | null;
+  user: { id: string; email: string; name: string | null } | null;
+  referrals: number;
+  qualified: number;
+  paying: number;
+  // USD cents
+  pendingCents: number;
+  availableCents: number;
+  paidCents: number;
+  // ladder steps applied by hand in Stripe (next_plan_year, founder_for_life)
+  manualRewards: { id: string; step: number | null; note: string | null; createdAt: string }[];
+}
+
+export interface AdminReferral {
+  id: string;
+  organizationId: string;
+  userId: string | null;
+  source: 'LINK' | 'CODE';
+  status: ReferralStatus;
+  signedUpAt: string;
+  firstPaidAt: string | null;
+  qualifiedAt: string | null;
+  rejectionReason: string | null;
+  // shared_ip, shared_agent
+  fraudFlags: string[];
+  organization: { id: string; name: string | null };
+  partner: {
+    id: string;
+    code: string;
+    kind: PartnerKind;
+    organizationId: string;
+    organizationName: string | null;
+  };
+  invoices: number;
+}
+
+export interface AdminPayoutRow {
+  id: string;
+  partnerId: string;
+  amountCents: number;
+  // wise | payoneer | bank | manual | balance
+  method: string;
+  reference: string | null;
+  status: 'PAID' | 'CANCELLED';
+  paidAt: string | null;
+  createdAt: string;
+  partner: { code: string; organizationId: string };
+  organization: string | null;
+}
+
+// An affiliate due a cash payout this month (details only in the CSV export)
+export interface AdminDuePayout {
+  partnerId: string;
+  code: string;
+  organization: string | null;
+  email: string | null;
+  country: string | null;
+  mawthooqNumber: string | null;
+  method: string | null;
+  ready: boolean;
+  amountCents: number;
+  rewards: number;
+}
+
+export interface AdminPayoutsData extends AdminListPage<AdminPayoutRow> {
+  due: AdminDuePayout[];
+  minimumCents: number;
+}
+
+export const useAdminPartners = (query: string) =>
+  useSWR<AdminListPage<AdminPartner>>(
+    `/admin/console/partners?${query}`,
+    useLoader<AdminListPage<AdminPartner>>(),
+    { ...swrOptions, keepPreviousData: true }
+  );
+
+export const useAdminReferrals = (query: string) =>
+  useSWR<AdminListPage<AdminReferral>>(
+    `/admin/console/referrals?${query}`,
+    useLoader<AdminListPage<AdminReferral>>(),
+    { ...swrOptions, keepPreviousData: true }
+  );
+
+export const useAdminPayouts = (query: string) =>
+  useSWR<AdminPayoutsData>(
+    `/admin/console/payouts?${query}`,
+    useLoader<AdminPayoutsData>(),
+    { ...swrOptions, keepPreviousData: true }
+  );
+
+// A file the API sends as an attachment (CSV exports), saved through the
+// browser with the session cookie
+export const useAdminDownload = () => {
+  const fetch = useFetch();
+  return useCallback(async (path: string, filename: string) => {
+    const res = await fetch(path);
+    if (!res.ok) {
+      throw new Error(await readError(res));
+    }
+    const url = URL.createObjectURL(await res.blob());
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, []);
+};
+
 export const date = (iso?: string | null) =>
   iso
     ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })

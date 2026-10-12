@@ -1431,7 +1431,10 @@ export class StripeService extends PaymentProviderAbstract {
         ? await this._organizationService.getOrgByCustomerId(id)
         : null;
       if (org) {
-        await this._partners.settleForOrganization(org.id);
+        await this._partners.settleForOrganization(
+          org.id,
+          new Date(event.created * 1000)
+        );
       }
     } catch (err) {
       console.error('stripe_invoice_created_failed', {

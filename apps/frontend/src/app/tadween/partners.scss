@@ -1,0 +1,336 @@
+// Tadween partners program: the affiliate dashboard (/partners,
+// components/tadween/referral/partners.page.tsx + partner.stat.tiles.tsx) and
+// the few extras of the Growth pages of the admin console
+// (components/tadween/admin/admin.partners|referrals|payouts.tsx). Scoped to
+// `.tdw-ui`; colours, radii and shadows come only from the --tdw-* tokens, so
+// light and dark follow the theme. Logical properties keep RTL right.
+
+$partners-phone: '(max-width: 640px)';
+
+.tdw-partners-shell {
+  display: flex;
+  justify-content: center;
+  padding: 24px 20px calc(var(--tdw-dock-space, 0px) + 32px);
+
+  @media #{$partners-phone} {
+    padding-inline: 16px;
+    padding-top: 16px;
+  }
+}
+
+.tdw-ui {
+  // Numbers, amounts and dates read left to right in Arabic too
+  .tdw-partners-num {
+    direction: ltr;
+    unicode-bidi: isolate;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // Tables that may be wider than a phone
+  .tdw-partners-scroll {
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tdw-partners-link {
+    color: var(--tdw-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      color: var(--tdw-primary-strong);
+    }
+  }
+
+  // ── Admin: commission row in the partner drawer ─────────────────────────
+  .tdw-partners-admin-commission {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+
+    > .pz-btn {
+      margin-top: 24px;
+    }
+
+    @media #{$partners-phone} {
+      grid-template-columns: minmax(0, 1fr);
+
+      > .pz-btn {
+        margin-top: 0;
+        justify-self: start;
+      }
+    }
+  }
+}
+
+// ── Affiliate dashboard ─────────────────────────────────────────────────────
+.tdw-ui.tdw-partners-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  width: 100%;
+  max-width: 960px;
+  min-width: 0;
+
+  .tdw-partners-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .tdw-partners-title {
+    margin: 0;
+    font-size: 24px;
+    line-height: 30px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    color: var(--tdw-foreground);
+  }
+
+  .tdw-partners-sub {
+    margin: 4px 0 0;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--tdw-muted-foreground);
+  }
+
+  // ── PartnerStatTiles ────────────────────────────────────────────────────
+  .tdw-partners-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+
+    .pz-tile .metric {
+      direction: ltr;
+      unicode-bidi: isolate;
+    }
+
+    @media (max-width: 900px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .tdw-partners-stats-wide {
+    grid-column: 1 / -1;
+  }
+
+  .tdw-partners-tier {
+    display: grid;
+    gap: 16px;
+    padding: 20px;
+    border-radius: var(--tdw-radius-xl);
+    background: var(--tdw-card);
+    box-shadow: 0 0 0 1px var(--tdw-border), var(--tdw-shadow-sm);
+
+    @media #{$partners-phone} {
+      padding: 16px;
+    }
+  }
+
+  .tdw-partners-tier-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .tdw-partners-tier-badge {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--tdw-radius-lg);
+    background: var(--tdw-primary-soft);
+    color: var(--tdw-primary);
+  }
+
+  .tdw-partners-tier-label {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--tdw-muted-foreground);
+  }
+
+  .tdw-partners-tier-rate {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+
+    > [dir='ltr'] {
+      font-size: 28px;
+      line-height: 34px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--tdw-foreground);
+    }
+  }
+
+  .tdw-partners-tier-sub {
+    font-size: 14px;
+    color: var(--tdw-muted-foreground);
+  }
+
+  .tdw-partners-tier-progress {
+    display: grid;
+    gap: 8px;
+  }
+
+  .tdw-partners-tier-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tdw-foreground);
+  }
+
+  .tdw-partners-tier-left {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--tdw-muted-foreground);
+  }
+
+  .tdw-partners-tier-top {
+    margin: 0;
+    font-size: 14px;
+    color: var(--tdw-muted-foreground);
+  }
+
+  // Fills from the inline start (right in Arabic)
+  .tdw-partners-bar {
+    display: block;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--tdw-muted);
+    overflow: hidden;
+
+    > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--tdw-primary);
+      transition: width 420ms var(--tdw-ease-spring);
+    }
+  }
+
+  // ── Payout settings ─────────────────────────────────────────────────────
+  .tdw-partners-form {
+    display: grid;
+    gap: 16px;
+
+    .pz-radios {
+      @media #{$partners-phone} {
+        grid-template-columns: minmax(0, 1fr) !important;
+      }
+    }
+  }
+
+  .tdw-partners-cash {
+    display: grid;
+    gap: 14px;
+    padding: 16px;
+    border-radius: var(--tdw-radius-lg);
+    background: var(--tdw-muted);
+
+    @media #{$partners-phone} {
+      padding: 12px;
+    }
+  }
+
+  .tdw-partners-cash-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+
+    @media #{$partners-phone} {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .tdw-partners-form-foot {
+    display: flex;
+    justify-content: flex-end;
+
+    @media #{$partners-phone} {
+      > .pz-btn {
+        width: 100%;
+      }
+    }
+  }
+
+  // ── Creator kit ─────────────────────────────────────────────────────────
+  .tdw-partners-kit {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+
+    @media #{$partners-phone} {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .tdw-partners-kit-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    border: 1px dashed var(--tdw-border);
+    border-radius: var(--tdw-radius-lg);
+    background: var(--tdw-background);
+  }
+
+  .tdw-partners-kit-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--tdw-radius-md);
+    background: var(--tdw-accent);
+    color: var(--tdw-foreground);
+  }
+
+  .tdw-partners-kit-title {
+    margin: 0;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+    color: var(--tdw-foreground);
+  }
+
+  .tdw-partners-kit-body {
+    margin: 2px 0 0;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--tdw-muted-foreground);
+  }
+
+  // ── Rules ───────────────────────────────────────────────────────────────
+  .tdw-partners-rules {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      line-height: 20px;
+      color: var(--tdw-foreground);
+    }
+
+    .pz-icon {
+      flex: none;
+      margin-top: 2px;
+      color: var(--tdw-success);
+    }
+  }
+}

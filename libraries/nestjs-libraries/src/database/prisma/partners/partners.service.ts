@@ -107,8 +107,16 @@ const addMonths = (date: Date, months: number) => {
   return d;
 };
 
-const mask = (value?: string | null) =>
-  value ? `•••• ${value.replace(/\s+/g, '').slice(-4)}` : null;
+// "l•••@example.com" for an email, "•••• 1234" for an account number
+const mask = (value?: string | null) => {
+  if (!value) {
+    return null;
+  }
+  const at = value.indexOf('@');
+  return at > 0
+    ? `${value[0]}•••${value.slice(at)}`
+    : `•••• ${value.replace(/\s+/g, '').slice(-4)}`;
+};
 
 // Tadween partners program: attribution at sign-up, rewards from paid
 // invoices (webhooks), clawback on refunds, the referrer ladder, affiliate

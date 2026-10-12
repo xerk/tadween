@@ -24,7 +24,7 @@ import {
   useTableQuery,
 } from '@gitroom/frontend/components/tadween/ui';
 import { formatUsd } from '@gitroom/frontend/components/tadween/billing/pricing';
-import { nextPayoutDate } from '@gitroom/frontend/components/tadween/referral/partner.stat.tiles';
+import { nextPayoutDate } from '@gitroom/frontend/components/tadween/referral/partners.api';
 import { AdminPage } from './admin.shell';
 import {
   AdminDuePayout,

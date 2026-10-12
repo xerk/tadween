@@ -300,8 +300,7 @@ $partners-phone: '(max-width: 640px)';
     &:first-child { justify-items: start; transform: none; }
     &:last-child { justify-items: end; transform: translateX(-100%); }
   }
-  [dir='rtl'] & .tdw-partners-tier-mark,
-  &[dir='rtl'] .tdw-partners-tier-mark {
+  html[dir='rtl'] & .tdw-partners-tier-mark {
     transform: translateX(50%);
     &:first-child { transform: none; }
     &:last-child { transform: translateX(100%); }
@@ -535,6 +534,5 @@ $partners-phone: '(max-width: 640px)';
   .tdw-ui.tdw-partners-page .tdw-partners-strip > .pz-tile { padding: var(--space-4); }
   .tdw-ui.tdw-partners-page .tdw-partners-strip .metric { font-size: 22px; line-height: 28px; }
   .tdw-ui.tdw-partners-page .tdw-partners-table .pz-table { min-width: 0; }
-  .tdw-ui.tdw-partners-page .tdw-partners-table .pz-table :is(th, td):nth-child(2) { display: none; }
   .tdw-ui.tdw-partners-page .tdw-partners-pref-btn { justify-self: stretch; justify-content: center; }
 }

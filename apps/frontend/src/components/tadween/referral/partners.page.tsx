@@ -135,18 +135,6 @@ const PayoutHistory: FC<{ affiliate: PartnerAffiliate }> = ({ affiliate }) => {
               },
               { key: 'method', label: t('tdw_partners_col_method', 'Paid as'), render: (p) => methodLabel(p.method) },
               {
-                key: 'status',
-                label: t('tdw_partners_col_status', 'Status'),
-                render: (p) =>
-                  p.status === 'PAID' ? (
-                    <Pill tone="ok" icon="check">
-                      {t('tdw_partners_payout_paid', 'Paid')}
-                    </Pill>
-                  ) : (
-                    <Pill icon="minus">{t('tdw_partners_payout_cancelled', 'Cancelled')}</Pill>
-                  ),
-              },
-              {
                 key: 'amount',
                 label: t('tdw_partners_col_amount', 'Commission'),
                 align: 'right',

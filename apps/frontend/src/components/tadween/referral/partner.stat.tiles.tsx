@@ -9,14 +9,14 @@
 //   (30% → 35% from 10 paying → 40% from 30).
 // Styles: app/tadween/partners.scss (the strip: app/tadween/referral.scss).
 import React, { FC } from 'react';
-import dayjs from 'dayjs';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { cx, Icon, StatTile } from '@gitroom/frontend/components/tadween/ui';
 import { formatUsd } from '@gitroom/frontend/components/tadween/billing/pricing';
-import type {
-  PartnerAffiliate,
-  PartnerAffiliateStats,
-  PartnerTierRate,
+import {
+  nextPayoutDate,
+  type PartnerAffiliate,
+  type PartnerAffiliateStats,
+  type PartnerTierRate,
 } from '@gitroom/frontend/components/tadween/referral/partners.api';
 
 const usd = (cents: number) => formatUsd(cents / 100);
@@ -24,11 +24,6 @@ const usd = (cents: number) => formatUsd(cents / 100);
 // The first tier above the current paying count (null on the top tier)
 export const nextPartnerTier = (tiers: PartnerTierRate[], paying: number) =>
   [...tiers].sort((a, b) => a.minPaying - b.minPaying).find((x) => x.minPaying > paying) || null;
-
-// Cash goes out by hand around the 15th (docs/tadween/partners.md, runbook)
-const PAYOUT_DAY = 15;
-export const nextPayoutDate = (now = dayjs()) =>
-  now.date() <= PAYOUT_DAY ? now.date(PAYOUT_DAY) : now.add(1, 'month').date(PAYOUT_DAY);
 
 // What happens to the available commission next. Derived from the payout
 // settings only; the API has no payout schedule of its own.
@@ -167,7 +162,7 @@ export const PartnerTierCard: FC<{
               aria-valuemin={0}
               aria-valuemax={top}
               aria-valuenow={paying}
-              aria-label={t('tdw_partners_tier_bar', 'Paying customers towards the next tier')}
+              aria-label={t('tdw_partners_tier_bar', 'Paying customers towards the top tier')}
             >
               <span style={{ width: `${pct}%` }} />
             </span>

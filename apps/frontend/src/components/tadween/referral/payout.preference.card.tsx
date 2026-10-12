@@ -3,8 +3,8 @@
 // PayoutPreferenceCard: how an affiliate's commission is paid. The card shows
 // the two choices (Tadween balance worth more, or cash once a month) with the
 // current one marked, whether cash payouts are ready, and a button that opens
-// the payout settings form in a side drawer. One PUT /partners/payout per
-// save. Used on /partners. Styles: app/tadween/partners.scss.
+// the payout settings form in a side drawer (PayoutSettingsDrawer). One
+// PUT /partners/payout per save. Used on /partners. Styles: app/tadween/partners.scss.
 import React, { FC, useEffect, useState } from 'react';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useToaster } from '@gitroom/react/toaster/toaster';
@@ -30,7 +30,6 @@ import {
 const usd = (cents: number) => formatUsd(cents / 100);
 const W8BEN_URL = 'https://www.irs.gov/forms-pubs/about-form-w-8-ben';
 const METHODS: PartnerPayoutMethod[] = ['wise', 'payoneer', 'bank'];
-const FORM_ID = 'tdw-partners-payout-form';
 
 export const useMethodLabel = () => {
   const t = useT();
@@ -46,13 +45,13 @@ export const useMethodLabel = () => {
       : method || '—';
 };
 
-// ── The form (inside the drawer) ────────────────────────────────────────────
-const PayoutSettingsForm: FC<{
+// ── The settings drawer: owns the form, like the other kit drawers ─────────
+const PayoutSettingsDrawer: FC<{
   affiliate: PartnerAffiliate;
-  onSaving: (saving: boolean) => void;
-  onValid: (valid: boolean) => void;
+  open: boolean;
+  onClose: () => void;
   onSaved: () => void;
-}> = ({ affiliate, onSaving, onValid, onSaved }) => {
+}> = ({ affiliate, open, onClose, onSaved }) => {
   const t = useT();
   const toast = useToaster();
   const savePayout = useSavePartnerPayout();
@@ -64,8 +63,9 @@ const PayoutSettingsForm: FC<{
   const [country, setCountry] = useState(saved.country || '');
   const [mawthooq, setMawthooq] = useState(saved.mawthooqNumber || '');
   const [taxForm, setTaxForm] = useState(!!saved.taxFormAcceptedAt);
+  const [saving, setSaving] = useState(false);
 
-  // the saved values, again after each save
+  // the saved values, each time the drawer opens and after each save
   useEffect(() => {
     setPreference(saved.preference);
     setMethod(saved.method || 'wise');
@@ -73,12 +73,11 @@ const PayoutSettingsForm: FC<{
     setCountry(saved.country || '');
     setMawthooq(saved.mawthooqNumber || '');
     setTaxForm(!!saved.taxFormAcceptedAt);
-  }, [saved.preference, saved.method, saved.details, saved.country, saved.mawthooqNumber, saved.taxFormAcceptedAt]);
+  }, [open, saved.preference, saved.method, saved.details, saved.country, saved.mawthooqNumber, saved.taxFormAcceptedAt]);
 
   const saudi = country.toUpperCase() === 'SA';
   const countryValid = !country || /^[A-Za-z]{2}$/.test(country);
   const multiplier = affiliate.balanceMultiplier.toLocaleString('en-US');
-  useEffect(() => onValid(countryValid), [countryValid]);
 
   const placeholder =
     method === 'wise'
@@ -87,9 +86,12 @@ const PayoutSettingsForm: FC<{
       ? t('tdw_partners_details_payoneer', 'Your Payoneer email')
       : t('tdw_partners_details_bank', 'IBAN, SWIFT/BIC and the account holder’s name');
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    onSaving(true);
+  const submit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!countryValid || saving) {
+      return;
+    }
+    setSaving(true);
     try {
       await savePayout({
         preference,
@@ -101,15 +103,36 @@ const PayoutSettingsForm: FC<{
       });
       toast.show(t('tdw_partners_payout_saved', 'Payout settings saved'));
       onSaved();
+      onClose();
     } catch (err) {
       toast.show((err as Error).message, 'warning');
     } finally {
-      onSaving(false);
+      setSaving(false);
     }
   };
 
   return (
-    <form id={FORM_ID} className="tdw-partners-form" onSubmit={submit}>
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title={t('tdw_partners_payout_title', 'How you get paid')}
+      description={t(
+        'tdw_partners_payout_desc',
+        'Commission becomes available {{days}} days after each payment. Take it as Tadween balance, applied automatically and worth {{x}}×, or as cash once a month from {{min}}.',
+        { days: affiliate.holdDays, x: multiplier, min: usd(affiliate.payoutMinimumCents) }
+      )}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            {t('tdw_partners_cancel', 'Cancel')}
+          </Button>
+          <Button variant="primary" loading={saving} disabled={!countryValid} onClick={() => submit()}>
+            {t('tdw_partners_save', 'Save payout settings')}
+          </Button>
+        </>
+      }
+    >
+      <form className="tdw-partners-form" onSubmit={submit}>
       <RadioGroup<PartnerPayoutPreference>
         label={t('tdw_partners_payout_preference', 'Payout preference')}
         value={preference}
@@ -200,7 +223,8 @@ const PayoutSettingsForm: FC<{
           />
         </div>
       ) : null}
-    </form>
+      </form>
+    </Drawer>
   );
 };
 
@@ -213,8 +237,6 @@ export const PayoutPreferenceCard: FC<{
   const t = useT();
   const methodLabel = useMethodLabel();
   const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [valid, setValid] = useState(true);
   const saved = affiliate.payout;
   const multiplier = affiliate.balanceMultiplier.toLocaleString('en-US');
 
@@ -292,36 +314,7 @@ export const PayoutPreferenceCard: FC<{
         {t('tdw_partners_payout_change', 'Change payout settings')}
       </Button>
 
-      <Drawer
-        open={open}
-        onClose={() => setOpen(false)}
-        title={t('tdw_partners_payout_title', 'How you get paid')}
-        description={t(
-          'tdw_partners_payout_desc',
-          'Commission becomes available {{days}} days after each payment. Take it as Tadween balance, applied automatically and worth {{x}}×, or as cash once a month from {{min}}.',
-          { days: affiliate.holdDays, x: multiplier, min: usd(affiliate.payoutMinimumCents) }
-        )}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setOpen(false)}>
-              {t('tdw_partners_cancel', 'Cancel')}
-            </Button>
-            <Button type="submit" form={FORM_ID} variant="primary" loading={saving} disabled={!valid}>
-              {t('tdw_partners_save', 'Save payout settings')}
-            </Button>
-          </>
-        }
-      >
-        <PayoutSettingsForm
-          affiliate={affiliate}
-          onSaving={setSaving}
-          onValid={setValid}
-          onSaved={() => {
-            onSaved();
-            setOpen(false);
-          }}
-        />
-      </Drawer>
+      <PayoutSettingsDrawer affiliate={affiliate} open={open} onClose={() => setOpen(false)} onSaved={onSaved} />
     </section>
   );
 };

@@ -6,6 +6,7 @@
 // hook's error then carries `status: 404`.
 import { useCallback } from 'react';
 import useSWR from 'swr';
+import dayjs from 'dayjs';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 
 export type PartnerKind = 'REFERRER' | 'AFFILIATE';
@@ -193,6 +194,12 @@ export const useInvitedTrial = (enabled: boolean) => {
     shouldRetryOnError: false,
   });
 };
+
+// Cash goes out by hand around the 15th (docs/tadween/partners.md, runbook):
+// the next one, for the affiliate's dashboard and Admin → Payouts
+const PAYOUT_DAY = 15;
+export const nextPayoutDate = (now = dayjs()) =>
+  now.date() <= PAYOUT_DAY ? now.date(PAYOUT_DAY) : now.add(1, 'month').date(PAYOUT_DAY);
 
 // PUT /partners/payout: resolves, or throws with the server's message
 export const useSavePartnerPayout = () => {

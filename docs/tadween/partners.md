@@ -99,7 +99,7 @@ Styles are in `app/tadween/referral.scss` (Invite & earn pieces and the shared s
 | ≤ 1080 / 940px | hero, then strip as 4 across; table and rewards stack | paired rows stack |
 | ≤ 820px | | earnings total above the balance cells |
 | ≤ 760px | ladder turns vertical | audience strip 2 × 2, kit 1 column |
-| ≤ 600px (phones) | strip 2 × 2, link button full width, "First paid" column hidden | balance cells as label/amount rows, "Paid as" column hidden |
+| ≤ 600px (phones) | strip 2 × 2, link button full width, "First paid" column hidden | balance cells as label/amount rows |
 
 ### Stat strip (`.tdw-strip`)
 A wrapper class, not a component: put kit `StatTile`s inside `<div className="tdw-strip">`. The tiles lose their own shadow and are split by 1px hairlines (the strip's border-coloured background shows through a 1px grid gap), so it wraps cleanly at any column count and in RTL. `StatTile` loading skeletons work as usual. Used by the Invite & earn summary (`.tdw-ref-summary`, 2 × 2 beside the link card) and `PartnerStatTiles` (`.tdw-partners-strip`). The admin Growth pages use the admin console's own `tdw-stat-grid` (separate tiles, as on Overview).
@@ -175,7 +175,7 @@ Next payout (`useNextPayout`, derived on the client from the payout settings; th
 - Tadween balance: "Added to your next Tadween invoice as balance, worth 1.5×".
 - Cash without complete details: warning tone, "Add your payout details to get paid in cash".
 - Cash below the $50 minimum: "Paid in cash from $50 available, $X to go".
-- Cash and ready: "Next payout around 15 Oct" (`nextPayoutDate()`: the next 15th, also used by Admin → Payouts).
+- Cash and ready: "Next payout around 15 Oct" (`nextPayoutDate()` in `partners.api.tsx`: the next 15th, also used by Admin → Payouts).
 
 Narrow: the total sits above the cells (≤ 820px); on phones each cell is one label/amount row.
 
@@ -193,11 +193,11 @@ The current rate as a big number, the paying count on the end side, and a progre
 Props: `affiliate: PartnerAffiliate`, `onSaved: () => void`, `className?`.
 
 What it shows: the two ways to be paid as rows (Tadween balance 1.5×, Cash monthly with the saved method and masked details), the current one tinted and marked "Current", a "Ready for cash payouts" / "Details missing" pill when cash is chosen, the 30-day hold, and "Change payout settings".
-The button opens a kit `Drawer` (inline end side; left in Arabic; full width on phones) with the payout form: preference, then for cash the method, country (two letters, validated), payout details (blank keeps the saved value), Mawthooq number for SA and the W-8BEN confirmation. Save is in the drawer footer (`form=` attribute) and sends the same single `PUT /partners/payout` as before; on success the card refreshes and the drawer closes; errors are a warning toast and the drawer stays open. `useMethodLabel()` is exported (payout history uses it).
+The button opens `PayoutSettingsDrawer`, a kit `Drawer` (inline end side; left in Arabic; full width on phones) with the payout form: preference, then for cash the method, country (two letters, validated), payout details (blank keeps the saved value), Mawthooq number for SA and the W-8BEN confirmation. The drawer owns the form state, like the other kit drawers; Save in its footer (or Enter in a field) sends the same single `PUT /partners/payout` as before; on success the card refreshes and the drawer closes; errors are a warning toast and the drawer stays open. `useMethodLabel()` is exported (payout history uses it).
 
 ### Pages
 - `InviteEarn` (`invite.earn.tsx`): hero row (ReferralLinkCard + summary strip: joined, paying, credits earned, next reward for referrers), the partner-dashboard link for affiliates, "Who invited you?" as a compact one-line card while the workspace can add a code (first 7 days) or "You joined with code X", the ladder (referrers), the invited table beside the rewards earned, then "How it works" as a quiet 3-step row and the rules as a footnote. Used at `/invite` and embedded in Settings → Billing group → Invite & earn (`embedded`: no max width).
-- `/partners` (`partners.page.tsx`): page title, EarningsHeader, PartnerStatTiles, the link card beside PartnerTierCard, payout history (table, or an empty state) beside PayoutPreferenceCard, then the creator kit (2 × 2) beside the program rules. Other users see an "invite-only" empty state.
+- `/partners` (`partners.page.tsx`): page title, EarningsHeader, PartnerStatTiles, the link card beside PartnerTierCard, payout history (date, paid as, commission with the 1.5× value for balance payouts; or an empty state) beside PayoutPreferenceCard, then the creator kit (2 × 2) beside the program rules. Other users see an "invite-only" empty state.
 - Admin → Growth (`components/tadween/admin/admin.{partners,referrals,payouts}.tsx`): a summary strip in the admin console's `tdw-stat-grid` above the server-side DataTable. Partners: total, affiliates, referrers, suspended. Referrals: total, paid once, qualified, flagged. Each tile links to the filtered list; the numbers are each list's `total` for that filter (`countQuery()` in `admin.api.tsx`, page size 1), never sums of the visible page. Payouts: due this month (total and count, from the `due` list), ready to pay, next payout day, past payouts.
 
 ## Phase 2 (not built)

@@ -8,10 +8,11 @@ import {
   Put,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { User } from '@prisma/client';
 import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
 import { AuthService as AuthChecker } from '@gitroom/helpers/auth/auth.service';
@@ -39,6 +40,17 @@ import {
 } from '@gitroom/nestjs-libraries/dtos/tadween/admin.list.dto';
 import { FEATURES } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import { PartnersService } from '@gitroom/nestjs-libraries/database/prisma/partners/partners.service';
+import {
+  AdminCreateAffiliateDto,
+  AdminMarkPayoutDto,
+  AdminPartnersQueryDto,
+  AdminReferralsQueryDto,
+  AdminRejectReferralDto,
+  AdminUpdatePartnerDto,
+} from '@gitroom/nestjs-libraries/dtos/partners/partners.dto';
+import { AdminListQueryDto } from '@gitroom/nestjs-libraries/dtos/tadween/admin.list.dto';
+
 
 // Tadween super-admin console. Every route is behind AuthMiddleware (listed in
 // api.module's authenticated controllers) and PlatformAdminGuard (403 otherwise).
@@ -51,7 +63,8 @@ export class AdminConsoleController {
     private _providers: ProviderSettingsService,
     private _plans: PlansService,
     private _console: AdminConsoleService,
-    private _credentials: ProviderCredentialsService
+    private _credentials: ProviderCredentialsService,
+    private _partners: PartnersService
   ) {}
 
   // While impersonating, `user` is the impersonated account; the admin is the
@@ -248,5 +261,79 @@ export class AdminConsoleController {
   @Put('/organizations/:id/tier')
   setTier(@Param('id') id: string, @Body() body: AdminOrgTierDto) {
     return this._console.setOrgTier(id, body.tier);
+  }
+
+  // ── Growth: partners program ───────────────────────────────────────────────
+  @Get('/partners')
+  partners(@Query() query: AdminPartnersQueryDto) {
+    return this._partners.adminPartners(query);
+  }
+
+  // Invite-only affiliates: the user's own workspace becomes an affiliate
+  @Post('/partners')
+  createAffiliate(
+    @GetUserFromRequest() user: User,
+    @Req() req: Request,
+    @Body() body: AdminCreateAffiliateDto
+  ) {
+    return this._partners.createAffiliate(this.adminId(req, user), body);
+  }
+
+  @Put('/partners/:id')
+  updatePartner(@Param('id') id: string, @Body() body: AdminUpdatePartnerDto) {
+    return this._partners.updatePartner(id, body);
+  }
+
+  // Grants what is due now (free months, commission as balance)
+  @Post('/partners/:id/apply')
+  applyPartner(@Param('id') id: string) {
+    return this._partners.applyNow(id);
+  }
+
+  // Next plan for a year / founder price for life, applied by hand in Stripe
+  @Post('/partners/rewards/:id/applied')
+  rewardApplied(@Param('id') id: string) {
+    return this._partners.markRewardApplied(id);
+  }
+
+  @Get('/referrals')
+  referrals(@Query() query: AdminReferralsQueryDto) {
+    return this._partners.adminReferrals(query);
+  }
+
+  @Post('/referrals/:id/reject')
+  rejectReferral(
+    @Param('id') id: string,
+    @Body() body: AdminRejectReferralDto
+  ) {
+    return this._partners.rejectReferral(id, body.reason || '');
+  }
+
+  @Get('/payouts')
+  payouts(@Query() query: AdminListQueryDto) {
+    return this._partners.adminPayouts(query);
+  }
+
+  // The monthly cash list with payout details, for the owner's Wise batch
+  @Get('/payouts/export')
+  async exportPayouts(@Res() res: Response) {
+    const csv = await this._partners.payoutCsv();
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="tadween-payouts-${new Date().toISOString().slice(0, 10)}.csv"`
+    );
+    res.send(csv);
+  }
+
+  @Post('/payouts/:partnerId')
+  markPaid(
+    @GetUserFromRequest() user: User,
+    @Req() req: Request,
+    @Param('partnerId') partnerId: string,
+    @Body() body: AdminMarkPayoutDto
+  ) {
+    return this._partners.markPaid(this.adminId(req, user), partnerId, body);
   }
 }

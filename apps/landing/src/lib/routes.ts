@@ -1,6 +1,7 @@
 import type { Lang } from '@/content/types';
 import { AI_CLIENTS } from './aiClients';
 import { CHANNELS } from './channels';
+import { REFERRAL_PROGRAM } from './config';
 
 /** Paths of the pages that exist in both languages, without the /ar prefix. */
 export const PATHS = {
@@ -13,6 +14,8 @@ export const PATHS = {
   privacy: '/privacy',
   refund: '/refund',
   contact: '/contact',
+  /** Invite & earn; only built when REFERRAL_PROGRAM is on. */
+  referral: '/referral',
 } as const;
 
 /** The legal pages, in the order the footer lists them. */
@@ -43,5 +46,6 @@ export const ALL_PAGES: { path: string; priority: number }[] = [
   { path: PATHS.channels, priority: 0.8 },
   ...CHANNELS.map((c) => ({ path: channelPath(c.slug), priority: c.group === 'professional' ? 0.8 : 0.6 })),
   ...AI_CLIENTS.map((c) => ({ path: clientPath(c.slug), priority: 0.7 })),
+  ...(REFERRAL_PROGRAM ? [{ path: PATHS.referral, priority: 0.5 }] : []),
   ...LEGAL_PAGES.map((key) => ({ path: PATHS[key], priority: 0.3 })),
 ];

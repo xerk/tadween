@@ -28,6 +28,7 @@ import {
   SettingsNavItem,
   SettingsPageHeader,
 } from '@gitroom/frontend/components/tadween/settings/settings.nav';
+import { InviteEarn } from '@gitroom/frontend/components/tadween/referral/invite.earn';
 import {
   DangerSettings,
   NotificationSettings,
@@ -238,6 +239,20 @@ export const SettingsPopup: FC<{
         'Apps and agents you have allowed into this workspace.'
       ),
     });
+    // Tadween partners program, behind its switch
+    if (billingEnabled && isOn('affiliate')) {
+      arr.push({
+        tab: 'invite',
+        group: 'billing',
+        icon: 'gift',
+        label: t('tdw_invite_earn', 'Invite & earn'),
+        description: t(
+          'tdw_invite_earn_desc',
+          'Invite friends: they get AI credits, you climb the rewards ladder.'
+        ),
+        keywords: ['referral', 'affiliate', t('tdw_ref_code', 'Code')],
+      });
+    }
     // Same rule as the account menu's Billing link
     if (
       billingEnabled &&
@@ -374,6 +389,7 @@ export const SettingsPopup: FC<{
           {tab === 'oauth_apps' && <OAuthAppsSettings />}
           {tab === 'approved_apps' && <ApprovedAppsSettings />}
           {tab === 'danger' && <DangerSettings />}
+          {tab === 'invite' && <InviteEarn embedded={true} />}
         </div>
       </div>
     </div>

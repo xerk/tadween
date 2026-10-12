@@ -11,6 +11,7 @@ import { ForgotReturnPasswordDto } from '@gitroom/nestjs-libraries/dtos/auth/for
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { NewsletterService } from '@gitroom/nestjs-libraries/newsletter/newsletter.service';
 import { PlatformSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/platform-settings.service';
+import { PartnersService } from '@gitroom/nestjs-libraries/database/prisma/partners/partners.service';
 
 @Injectable()
 export class AuthService {
@@ -19,7 +20,8 @@ export class AuthService {
     private _organizationService: OrganizationService,
     private _emailService: EmailService,
     private _providerManager: AuthProviderManager,
-    private _platformSettings: PlatformSettingsService
+    private _platformSettings: PlatformSettingsService,
+    private _partners: PartnersService
   ) {}
 
   // Tadween: the mode comes from the super-admin console, falling back to
@@ -76,6 +78,12 @@ export class AuthService {
           body,
           ip,
           userAgent
+        );
+        // never fails the sign-up
+        await this._partners.attributeSignup(
+          create.id,
+          create.users[0].user.id,
+          body.ref
         );
 
         const addedOrg =
@@ -187,6 +195,13 @@ export class AuthService {
       },
       ip,
       userAgent
+    );
+
+    // never fails the sign-up
+    await this._partners.attributeSignup(
+      create.id,
+      create.users[0].user.id,
+      body.ref
     );
 
     this._track('register', providerUser.email, body.datafast_visitor_id).catch(

@@ -18,13 +18,13 @@ export default function GlobalNotFound() {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
-        <main className="pz-lsec" style={{ minHeight: '100svh', display: 'grid', placeItems: 'center' }}>
-          <div className="pz-lsec-head">
+        <main className="pz-sec pz-container" style={{ minHeight: '100svh', display: 'grid', placeItems: 'center' }}>
+          <div className="pz-sec-head">
             <div style={{ justifySelf: 'center' }}>
               <Logo href="/" label={en.nav.home} />
             </div>
-            <h1 className="title-1">This page doesn’t exist.</h1>
-            <p className="pz-lsec-sub" lang="ar" dir="rtl">
+            <h1 className="t-h2">This page doesn’t exist.</h1>
+            <p className="t-lead" lang="ar" dir="rtl" style={{ fontFamily: 'var(--font-arabic)' }}>
               هذه الصفحة غير موجودة.
             </p>
             <p style={{ display: 'flex', gap: 12, justifyContent: 'center', margin: 0 }}>

@@ -1,6 +1,6 @@
 # Tadween marketing site
 
-The public site for Tadween: the landing page in English (`/`) and Arabic (`/ar`, right to left), and pricing (`/pricing`, `/ar/pricing`). It's a separate Next.js app (Next 16, App Router) so that syncing upstream Postiz into `apps/frontend` never touches it.
+The public site for Tadween, in English and in Arabic (under `/ar`, right to left): the landing page (`/`), features (`/features`, one section per tool), channels (`/channels`, with a page for each main network at `/channels/<slug>`), the AI agent (`/ai-agent`), a page for each main AI client (`/chatgpt`, `/claude`, `/cursor`), pricing (`/pricing`) and the legal pages (`/terms`, `/privacy`, `/refund`, `/contact`). Pages the site used to have redirect (308) to the page that replaced them; see `src/lib/redirects.ts`. It's a separate Next.js app (Next 16, App Router) so that syncing upstream Postiz into `apps/frontend` never touches it.
 
 The design is ported from the Tadween design system: tokens, the landing sections and copy, the LinkedIn preview and pricing table, and the motion engine (a three.js 3D hero, GSAP scroll effects and a pinned write → preview → schedule section).
 
@@ -17,15 +17,18 @@ pnpm --filter tadween-landing start   # serves the build on :4300
 
 ## Environment
 
-All three are read at build time (`NEXT_PUBLIC_*` values are inlined into the bundle), so set them before `build`.
+All of these are read at build time (`NEXT_PUBLIC_*` values are inlined into the bundle), so set them before `build`.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:4200` | The Tadween app. Sign-up buttons go to `${APP_URL}/auth` and sign-in to `${APP_URL}/auth/login`. |
 | `NEXT_PUBLIC_SITE_URL` | `http://localhost:4300` | Where this site is served. Used for canonical URLs, hreflang, the sitemap and Open Graph. |
-| `NEXT_PUBLIC_API_URL` | unset | The Tadween API. When set, pricing reads plans from `GET ${API_URL}/instance/settings` (added in PR #4) at build time and refreshes them at most hourly. If it's unset, unreachable or has no plans saved, the site uses its built-in placeholder plans. |
+| `NEXT_PUBLIC_API_URL` | unset | The Tadween API. When set, pricing reads plans from `GET ${API_URL}/instance/settings` (added in PR #4) and the pages that show prices re-read them at most every 60 seconds (ISR), so a change in Admin → Plans is live within a minute. If it's unset, unreachable or has no plans saved, the site quietly shows its built-in plans (`DEFAULT_PRICING` in `src/lib/plans.ts`: Creator, Business and Agency at their founder prices $12, $24 and $49 with the founder offer open and the spots left hidden, 17% off yearly) and logs a warning on the server. The agent and AI client pages also use it for the MCP and API URLs in their examples (a placeholder otherwise). |
+| `NEXT_PUBLIC_MCP_URL` | unset | Where the MCP server is served, when it isn't the API host (the app's `MCP_URL`). The agent and AI client pages build `/mcp` and `/mcp-oauth-dynamic` from it, falling back to `NEXT_PUBLIC_API_URL`. |
+| `NEXT_PUBLIC_SHOW_PROOF_PLACEHOLDERS` | unset | Set to `1` to show the home page's social-proof section with its marked placeholder slots (for previews). Leave it unset in production until real customer logos and quotes replace the placeholders in `src/content`. |
+| `NEXT_PUBLIC_LEGAL_COMPANY`, `NEXT_PUBLIC_LEGAL_STATE`, `NEXT_PUBLIC_LEGAL_ADDRESS`, `NEXT_PUBLIC_SUPPORT_EMAIL`, `NEXT_PUBLIC_LEGAL_GOVERNING_LAW`, `NEXT_PUBLIC_LEGAL_VENUE`, `NEXT_PUBLIC_REFUND_DAYS`, `NEXT_PUBLIC_LEGAL_AI_PROVIDERS`, `NEXT_PUBLIC_LEGAL_EMAIL_PROVIDER`, `NEXT_PUBLIC_LEGAL_HOSTING_PROVIDER`, `NEXT_PUBLIC_LEGAL_ANALYTICS` | unset | The company details the Terms, Privacy Policy, Refund Policy and Contact page name. Each one left unset shows on the page as a marked placeholder such as “[Company legal name]”. `NEXT_PUBLIC_REFUND_DAYS=0` switches the Refund Policy to “no refunds except where the law requires”. See `docs/tadween/legal.md` before going live. |
 
-All prices are placeholders, and the page says so. The API returns USD prices only, so EGP amounts always come from the placeholders in `src/lib/plans.ts`.
+Prices are US dollars for every visitor (payments go through Stripe in USD): the monthly and yearly USD prices of each plan from the API, rendered in the static HTML with no currency detection. The yearly saving in the period toggle comes from the API's `yearlyDiscountPercent`. While the API's `founder` offer is open, each card shows the founder price (what checkout charges), the regular price that follows the first `cap` customers and a "founder spots left" chip from `founder.spotsLeft`; once it closes, only the regular price. Structured data carries no prices, so the pricing FAQ (which feeds FAQPage data) names no dollar amounts.
 
 ## Deploy
 
@@ -45,9 +48,15 @@ The image installs only this app's dependencies (no Prisma, no other workspace a
 
 ## Where things are
 
-- `src/content/en.ts`, `src/content/ar.ts`: all copy. The Arabic is written for Egyptian and Gulf readers in Modern Standard Arabic, not translated word for word.
-- `src/components/sections.tsx`: hero, flow, features, steps, Arabic, CTA and footer. These are server components.
-- `src/components/PricingTable.tsx`: tiers, monthly or yearly, EGP or USD, the compare table and the FAQ.
+- `src/content/en.ts`, `src/content/ar.ts`: all copy.
+- `src/lib/channels.ts`: the focus networks that get a page (`CHANNELS`: LinkedIn profile and page, Instagram, Facebook, Threads, YouTube), with facts taken from the app's provider code (character limits from `maxLength()`, comment support, editor type), and the networks the overview lists under "Also supported" (`OTHER_CHANNELS`, which keep a slug for the redirect anchor, and `MORE_CHANNELS` by name). A channel page shows a composer screenshot only when `CHANNEL_SHOT_SLUGS` in `src/lib/shots.ts` lists it. `src/content/channels.en.ts` and `channels.ar.ts` hold the words. To give a listed network a page, move it from `OTHER_CHANNELS` to `CHANNELS` and add its page copy in both files; the route, sitemap entry, Open Graph card and related links follow, and its redirect goes away.
+- `src/lib/aiClients.ts`: the AI clients that get a page at the top level (`/chatgpt`, `/ar/claude`), each with its connection methods, the exact snippets and the vendor docs that back them, and `MORE_AI_CLIENTS`, the ones the agent page names without a page. `src/content/aiClients.en.ts` and `aiClients.ar.ts` hold the words, one line per step. A client is listed only when its vendor documents adding your own remote MCP server; `docs/tadween/ai-client-pages-notes.md` has the checks and the clients left out. The build fails if a slug matches another route (a folder or file in `src/app` or `public`, a name in `RESERVED_SEGMENTS`, or a redirect in `src/lib/redirects.ts`) or if a copy file’s steps don’t match the snippets; the checks are in `src/lib/clientRoutes.ts`, which only the `[client]` routes import.
+- `src/content/legal.en.ts`, `src/content/legal.ar.ts`: the Terms, Privacy Policy, Refund Policy and Contact page. `{tokens}` in the text are filled from the `NEXT_PUBLIC_LEGAL_*` values in `src/lib/config.ts` or link to the other legal pages and the platform policies; `LegalPage` in `pages.tsx` renders them. Change `LEGAL_UPDATED` in `config.ts` whenever the text changes. The Arabic is a translation; the English prevails.
+- `src/lib/routes.ts`, `src/lib/seo.ts`, `src/lib/jsonld.ts`: paths, per-page metadata (canonical and hreflang), and schema.org data (Organization, SoftwareApplication, FAQPage, BreadcrumbList; no prices).
+- `src/lib/redirects.ts`: permanent redirects for retired URLs (the old tool pages, channel pages and AI client pages), built from the same lists in `routes.ts`, `channels.ts` and `aiClients.ts` and loaded by `next.config.ts`.
+- `src/app/og/[card]/route.tsx`: Open Graph images, generated at build time. They're in English for both languages, because the image renderer can't shape Arabic. The Arabic is written for Egyptian and Gulf readers in Modern Standard Arabic, not translated word for word.
+- `src/components/sections.tsx`: hero, the four-step flow, social proof (placeholders), features, channels, agent, steps, Arabic, FAQ, CTA and footer. These are server components. `pages.tsx` composes them into pages.
+- `src/components/PricingTable.tsx`: the plans side by side, monthly or yearly, in US dollars, their limits row by row, what every plan includes and the FAQ (`compact` on the home page).
 - `src/lib/motion/engine.ts`: GSAP word reveals, the pinned flow, reveals, tilt cards, the Arabic card flip and the CTA clip-path. It loads after hydration with a dynamic import.
 - `src/lib/motion/hero3d.ts`: the three.js week of tiles (one `InstancedMesh`). It's a separate chunk. A CSS poster of the same grid shows until the first frame is drawn, and stays if WebGL is unavailable. The scene renders only while it's on screen and the tab is visible, with the DPR capped at 1.75. Its colours come from the theme tokens.
 - `src/app/tokens.css`, `src/app/landing.css`: design tokens (light and dark) and the ported component styles.

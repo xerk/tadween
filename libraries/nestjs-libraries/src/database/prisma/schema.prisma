@@ -20,6 +20,9 @@ model Organization {
   deletedAt           DateTime?
   allowTrial          Boolean              @default(false)
   isTrailing          Boolean              @default(false)
+  /// Tadween: when the workspace first subscribed at a founder price (null =
+  /// never). Kept after cancelling, so the founder cap counts the first N.
+  founderSince        DateTime?
   shortlink           ShortLinkPreference  @default(ASK)
   autoPost            AutoPost[]
   Comments            Comments[]
@@ -30,6 +33,7 @@ model Organization {
   github              GitHub[]
   Integration         Integration[]
   media               Media[]
+  mediaFolders        MediaFolder[]
   buyerOrganization   MessagesGroup[]
   notifications       Notifications[]
   plugs               Plugs[]
@@ -50,6 +54,7 @@ model Organization {
   @@index([streakSince])
   @@index([paymentId])
   @@index([deletedAt])
+  @@index([founderSince])
 }
 
 model Tags {
@@ -228,7 +233,9 @@ model Media {
   thumbnailTimestamp Int?
   status             String              @default("ready")
   processingError    String?
+  folderId           String?
   organization       Organization        @relation(fields: [organizationId], references: [id])
+  folder             MediaFolder?        @relation(fields: [folderId], references: [id])
   agencies           SocialMediaAgency[]
   userPicture        User[]
   oauthApps          OAuthApp[]
@@ -236,6 +243,7 @@ model Media {
   @@index([name])
   @@index([organizationId])
   @@index([type])
+  @@index([folderId])
 }
 
 model SocialMediaAgency {
@@ -282,6 +290,12 @@ model Credits {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   type           String       @default("ai_images")
+  /// Tadween AI credits (type "ai_credits"): what was charged (write,
+  /// agent_message, image, image_hd). Null on older rows.
+  action         String?
+  /// Tadween AI credits: the part of `credits` taken from purchased top-ups
+  /// rather than the monthly allowance.
+  purchased      Int          @default(0)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId])
@@ -342,6 +356,15 @@ model Subscription {
   period           Period
   totalChannels    Int
   isLifetime       Boolean          @default(false)
+  /// Tadween: the payment provider's own status (Stripe: trialing, active,
+  /// past_due, unpaid…), written by its webhooks. Null = not reported yet
+  /// (rows from before this column, admin-granted and lifetime plans).
+  status           String?
+  /// Tadween: when the provider's free trial ends (null = no trial)
+  trialEndsAt      DateTime?
+  /// Tadween: what the subscription's provider price charges per period, in
+  /// USD cents (keeps showing a locked founder price after list prices change)
+  priceCents       Int?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   deletedAt        DateTime?
@@ -1851,12 +1874,38 @@ model PlatformSetting {
 }
 
 // "Add channel" enablement and order per provider identifier (linkedin, x…).
-// No OAuth secrets here: provider credentials stay in env vars.
+// No OAuth secrets here: see ProviderCredential.
 model ProviderSetting {
   identifier String   @id
   enabled    Boolean  @default(true)
   position   Int      @default(0)
   updatedAt  DateTime @updatedAt
+}
+
+// Super-admin override for one provider app credential, keyed by the env var
+// it replaces (LINKEDIN_CLIENT_SECRET…). `value` is encrypted with
+// AuthService.fixedEncryption and is never sent to the browser. No row = the
+// env var is used.
+model ProviderCredential {
+  name      String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+// AI credits bought as a one-time top-up. `id` is the payment provider's
+// checkout session id, so a webhook delivered twice credits the pack once.
+// Purchased credits never expire; they are spent after the monthly allowance.
+model AiCreditPurchase {
+  id             String   @id
+  organizationId String
+  credits        Int
+  amount         Int
+  currency       String
+  provider       String
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
 }
 
 // A sellable plan. `tier` maps it onto Postiz's SubscriptionTier so Stripe,
@@ -1868,8 +1917,18 @@ model Plan {
   name                   String
   description            String?
   tier                   SubscriptionTier
+  /// The regular ("list") price; checkout charges it unless a founder offer is open
   monthlyPriceUsd        Int              @default(0)
   yearlyPriceUsd         Int              @default(0)
+  /// Founder price charged instead of the list price while the founder window
+  /// (platform settings, billing) is open. Null = no founder offer. The yearly
+  /// founder price is derived with the yearly discount, like the list one.
+  founderMonthlyPriceUsd Int?
+  /// Webhooks allowed on this plan (-1 unlimited, 0 none). Null = the tier's
+  /// static value from pricing.ts.
+  webhooks               Int?
+  /// Deprecated, unused: Tadween sells in USD only. Kept so existing rows and
+  /// deployments are untouched; drop in a later migration.
   monthlyPriceEgp        Int              @default(0)
   yearlyPriceEgp         Int              @default(0)
   trialDays              Int              @default(7)
@@ -1889,4 +1948,25 @@ model Plan {
 
   @@index([deletedAt])
 }
+
+// Tadween: media library folders. Media.folderId (nullable) points here; media
+// without a folder sit at the top level, which is where all existing rows stay.
+model MediaFolder {
+  id             String        @id @default(uuid())
+  name           String
+  organizationId String
+  parentId       String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  parent         MediaFolder?  @relation("mediaFolderParent", fields: [parentId], references: [id])
+  children       MediaFolder[] @relation("mediaFolderParent")
+  media          Media[]
+
+  @@index([organizationId])
+  @@index([parentId])
+  @@index([deletedAt])
+}
+
 // ─── end Tadween ─────────────────────────────────────────────────────────────

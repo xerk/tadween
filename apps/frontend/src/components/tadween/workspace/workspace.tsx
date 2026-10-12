@@ -4,7 +4,8 @@
 // floats around it:
 //   · WorkspaceToolbar — date, navigation, channel chips, view switch, Create
 //   · the canvas — Postiz's own <Calendar /> (drag & drop, slots, previews,
-//     statistics…), restyled in app/tadween/workspace.scss
+//     statistics…), restyled in app/tadween/workspace.scss; or, for
+//     display=list, the board (components/tadween/board)
 //   · WorkspaceSidePanel — Up next, mini month, Drafts (≥ 1100px)
 //   · ChannelsSheet — every channel feature from Postiz's old channel column
 //   · phones: a week-day strip, swipe between days, a floating Create button
@@ -14,12 +15,12 @@ import useCookie from 'react-use-cookie';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Calendar } from '@gitroom/frontend/components/launches/calendar';
+import { PostsBoard } from '@gitroom/frontend/components/tadween/board/posts.board';
 import { useCalendarNavigation } from '@gitroom/frontend/components/launches/filters';
-import { NewPost } from '@gitroom/frontend/components/launches/new.post';
 import { GeneratorComponent } from '@gitroom/frontend/components/launches/generator/generator';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
 import { useAddProvider } from '@gitroom/frontend/components/launches/add.provider.component';
-import { Icon } from '@gitroom/frontend/components/tadween/ui';
+import { usePresence } from '@gitroom/frontend/components/tadween/ui';
 import { WorkspaceToolbar } from '@gitroom/frontend/components/tadween/workspace/toolbar';
 import { ChannelsSheet } from '@gitroom/frontend/components/tadween/workspace/channels.sheet';
 import {
@@ -208,12 +209,20 @@ export const CalendarWorkspace: FC<{
   const isPhone = useMedia('(max-width: 768px)');
   // The side panel (and its requests) only exists where it's shown
   const showSide = useMedia('(min-width: 1100px)') && side === '1';
+  // stays mounted through its exit, so the panel slides out instead of vanishing
+  const sidePanel = usePresence(showSide, 360);
 
   const swipe = useDaySwipe(isPhone && calendar.display === 'day', nav.previous, nav.next);
   const closeSheet = useCallback(() => setSheet(null), []);
 
   return (
-    <div className={clsx('tdw-ws', showSide && 'has-side', `is-${calendar.display}`)}>
+    <div
+      className={clsx(
+        'tdw-ws',
+        sidePanel.state === 'open' && 'has-side',
+        `is-${calendar.display}`
+      )}
+    >
       <div className="tdw-ws-main">
         <WorkspaceToolbar
           hasChannels={hasChannels}
@@ -226,25 +235,25 @@ export const CalendarWorkspace: FC<{
         {isPhone && calendar.display === 'day' && <DayStrip />}
         <div className="tdw-ws-canvas">
           <div ref={swipe.ref} className="tdw-ws-cal" {...swipe.handlers}>
-            <Calendar />
+            {calendar.display === 'list' ? <PostsBoard /> : <Calendar />}
           </div>
         </div>
-        <div className="tdw-ws-fab">
-          {hasChannels && showGenerator && (
+        {/* phones: the AI generator floats above the dock; Create post is
+            the dock's centre button (tadween/shell/dock.tsx) */}
+        {hasChannels && showGenerator && (
+          <div className="tdw-ws-fab">
             <span className="tdw-ws-fab-gen">
               <GeneratorComponent />
             </span>
-          )}
-          {hasChannels ? (
-            <NewPost />
-          ) : (
-            <button type="button" onClick={addProvider} aria-label={t('add_channel', 'Add Channel')}>
-              <Icon name="plus" size={24} />
-            </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-      {showSide && <WorkspaceSidePanel onClose={() => setSide('0')} />}
+      {sidePanel.mounted && (
+        <WorkspaceSidePanel
+          state={sidePanel.state}
+          onClose={() => setSide('0')}
+        />
+      )}
       <ChannelsSheet open={!!sheet} anchor={isPhone ? null : sheet} onClose={closeSheet}>
         {hasChannels && (
           <div className="tdw-ws-sheet-filter">

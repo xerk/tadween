@@ -170,10 +170,21 @@ export const MiniMonth: FC = () => {
   const { startDate, endDate, display } = useCalendar();
   const { goTo } = useCalendarNavigation();
   const [month, setMonth] = useState(newDayjs(startDate).startOf('month').format('YYYY-MM-DD'));
+  // Follow the calendar, but stay on the month shown while the range still
+  // touches it (a click on 2 Oct opening 28 Sep – 4 Oct keeps October)
   useEffect(() => {
-    setMonth(newDayjs(startDate).startOf('month').format('YYYY-MM-DD'));
-  }, [startDate]);
+    setMonth((m) =>
+      m <= endDate && newDayjs(m).endOf('month').format('YYYY-MM-DD') >= startDate
+        ? m
+        : newDayjs(startDate).startOf('month').format('YYYY-MM-DD')
+    );
+  }, [startDate, endDate]);
   const busy = useMonthPostDays(month);
+  // The day last clicked stays marked while it is in the range shown
+  const [picked, setPicked] = useState<string | null>(null);
+  useEffect(() => {
+    setPicked((p) => (p && p >= startDate && p <= endDate ? p : null));
+  }, [startDate, endDate]);
 
   const first = newDayjs(month);
   const gridStart = first.startOf('isoWeek');
@@ -183,7 +194,7 @@ export const MiniMonth: FC = () => {
   const weekdays = Array.from({ length: 7 }, (_, i) => gridStart.add(i, 'day').format('dd'));
 
   const pick = (date: dayjs.Dayjs) =>
-    goTo(display === 'list' ? 'week' : (display as 'day' | 'week' | 'month'), date.format('YYYY-MM-DD'));
+    goTo(display as 'day' | 'week' | 'month' | 'list', date.format('YYYY-MM-DD'));
 
   return (
     <section aria-labelledby="tdw-ws-mini">
@@ -214,7 +225,7 @@ export const MiniMonth: FC = () => {
         ))}
         {days.map((date) => {
           const key = date.format('YYYY-MM-DD');
-          const inRange = display !== 'list' && key >= startDate && key <= endDate;
+          const inRange = key >= startDate && key <= endDate;
           return (
             <button
               key={key}
@@ -222,11 +233,15 @@ export const MiniMonth: FC = () => {
               className={clsx(
                 date.month() !== first.month() && 'is-out',
                 inRange && 'is-range',
+                key === picked && 'is-picked',
                 key === today && 'is-today'
               )}
               aria-current={key === today ? 'date' : undefined}
               aria-label={date.format('LL')}
-              onClick={() => pick(date)}
+              onClick={() => {
+                setPicked(key);
+                pick(date);
+              }}
             >
               {date.date()}
               {busy.has(key) && <i />}
@@ -274,7 +289,10 @@ const DraftRow: FC<{ post: any; onDropped: () => void }> = ({ post, onDropped })
   );
 };
 
-export const WorkspaceSidePanel: FC<{ onClose: () => void }> = ({ onClose }) => {
+export const WorkspaceSidePanel: FC<{
+  state: 'open' | 'closed';
+  onClose: () => void;
+}> = ({ state, onClose }) => {
   const t = useT();
   const upNext = useUpNextPosts();
   const drafts = useDraftPosts();
@@ -289,7 +307,11 @@ export const WorkspaceSidePanel: FC<{ onClose: () => void }> = ({ onClose }) => 
   const draftList = drafts.data?.posts || [];
 
   return (
-    <aside className="tdw-ui tdw-ws-side" aria-label={t('tdw_ws_side_panel', 'Up next and drafts')}>
+    <aside
+      className="tdw-ui tdw-ws-side"
+      data-state={state}
+      aria-label={t('tdw_ws_side_panel', 'Up next and drafts')}
+    >
       <UpNext posts={upNext.data?.posts || []} loading={upNext.isLoading} onClose={onClose} />
       <MiniMonth />
       <section aria-labelledby="tdw-ws-drafts">

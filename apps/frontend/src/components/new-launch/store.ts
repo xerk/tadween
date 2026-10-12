@@ -6,6 +6,7 @@ import { Integrations } from '@gitroom/frontend/components/launches/calendar.con
 import { createRef, RefObject } from 'react';
 import { PostComment } from '@gitroom/frontend/components/new-launch/providers/post-comment.enum';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import { omitBy } from 'lodash';
 
 interface Values {
   id: string;
@@ -17,6 +18,14 @@ interface Values {
 export interface Internal {
   integration: Integrations;
   integrationValue: Values[];
+}
+
+// what `/posts/valid` rejected on the last save, per channel, until the
+// content changes or the next save checks again
+export interface ServerCheck {
+  id: string;
+  message: string;
+  settings: boolean;
 }
 
 export interface SelectedIntegrations {
@@ -135,6 +144,10 @@ interface StoreState {
   setChars: (id: string, chars: number) => void;
   chars: Record<string, number>;
   setComments: (comments: boolean | 'no-media') => void;
+  baseline?: string;
+  setBaseline: () => void;
+  serverChecks: ServerCheck[];
+  setServerChecks: (serverChecks: ServerCheck[]) => void;
 }
 
 const initialState = {
@@ -158,10 +171,56 @@ const initialState = {
   global: [] as Values[],
   internal: [] as Internal[],
   chars: {},
+  baseline: undefined as undefined | string,
+  serverChecks: [] as ServerCheck[],
 };
+
+// everything the user can change in the composer, to tell if closing it loses work
+const valuesSnapshot = (values: Values[]) =>
+  values.map((p) => ({
+    content: p.content,
+    delay: p.delay || 0,
+    media: (p.media || []).map((m) => m.id || m.path),
+  }));
+
+// settings fields fill in empty defaults when they mount, an empty value is no change
+const settingsSnapshot = (settings: Record<string, any> = {}) =>
+  omitBy(
+    settings,
+    (value) =>
+      value === undefined ||
+      value === null ||
+      value === '' ||
+      (Array.isArray(value) && !value.length)
+  );
+
+const composerSnapshot = (state: StoreState) =>
+  JSON.stringify({
+    date: state.date?.valueOf(),
+    repeater: state.repeater || 0,
+    tags: state.tags.map((p) => p.value),
+    postComment: state.postComment,
+    global: valuesSnapshot(state.global),
+    internal: state.internal
+      .map((p) => ({
+        id: p.integration.id,
+        values: valuesSnapshot(p.integrationValue),
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+    selectedIntegrations: state.selectedIntegrations
+      .map((p) => ({
+        id: p.integration.id,
+        settings: settingsSnapshot(p.ref?.current?.getValues?.()?.settings),
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+  });
 
 export const useLaunchStore = create<StoreState>()((set) => ({
   ...initialState,
+  setBaseline: () =>
+    set((state) => ({
+      baseline: composerSnapshot(state),
+    })),
   setCurrent: (current: string) =>
     set((state) => ({
       current: current,
@@ -640,6 +699,10 @@ export const useLaunchStore = create<StoreState>()((set) => ({
     set((state) => ({
       comments,
     })),
+  setServerChecks: (serverChecks: ServerCheck[]) =>
+    set(() => ({
+      serverChecks,
+    })),
   setGlobalDelay: (index: number, minutes: number) =>
     set((state) => ({
       global: state.global.map((item, i) =>
@@ -660,3 +723,9 @@ export const useLaunchStore = create<StoreState>()((set) => ({
       ),
     })),
 }));
+
+// no baseline yet means the user has not touched the composer
+export const hasUnsavedPostChanges = () => {
+  const state = useLaunchStore.getState();
+  return !!state.baseline && state.baseline !== composerSnapshot(state);
+};

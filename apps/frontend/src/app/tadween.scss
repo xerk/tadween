@@ -23,6 +23,28 @@
   --tdw-radius-md: 10px;
   --tdw-radius-lg: 14px;
   --tdw-radius-xl: 20px;
+  // Layers, low to high. Page chrome that sticks (calendar bar, admin bar);
+  // modals and the composer drawer (new-modal.tsx adds the stack index); the
+  // phone's bottom dock; menus anchored to a trigger (top bar, account,
+  // workspace), portalled to <body> so no page layer can cover them; bottom
+  // sheets; design-system dialogs (Dialog in tadween/ui, above every modal and
+  // sheet, since a confirm or the upgrade paywall can open from any of them);
+  // toasts; tooltips.
+  --tdw-z-sticky: 30;
+  --tdw-z-modal: 200;
+  --tdw-z-nav: 490;
+  --tdw-z-popover: 500;
+  --tdw-z-sheet: 600;
+  --tdw-z-dialog: 700;
+  --tdw-z-toast: 900;
+  --tdw-z-tooltip: 1000;
+  // Room the phone's bottom dock (tadween/shell/dock.tsx) takes at the foot
+  // of the screen; 0 above the phone breakpoint
+  --tdw-dock-space: 0px;
+
+  @media (max-width: 1025px) {
+    --tdw-dock-space: calc(84px + env(safe-area-inset-bottom, 0px));
+  }
 
   .light {
     --tdw-background: #f5f5f7;
@@ -46,6 +68,7 @@
     --tdw-destructive: #cc1f2f;
     --tdw-ring: #0b7062;
     --tdw-scrim: rgba(0, 0, 0, 0.32);
+    --tdw-material: rgba(255, 255, 255, 0.72);
     --tdw-shadow-sm: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.04);
     --tdw-shadow-md: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.08);
     --tdw-shadow-lg: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 16px 48px rgba(0, 0, 0, 0.14);
@@ -124,6 +147,7 @@
     --tdw-destructive: #ff6b6b;
     --tdw-ring: #3fcfb4;
     --tdw-scrim: rgba(0, 0, 0, 0.56);
+    --tdw-material: rgba(22, 22, 24, 0.72);
     --tdw-shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.5);
     --tdw-shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 4px 16px rgba(0, 0, 0, 0.6);
     --tdw-shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px rgba(0, 0, 0, 0.7);
@@ -231,9 +255,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
+// Arabic pages use the same stack as English ones (.tdw-font below). Geist comes
+// first and has no Arabic glyphs, so Arabic letters fall through to
+// --font-arabic (loaded with its Arabic subset only) while Latin words and
+// digits inside Arabic text stay on Geist. Arabic inside English UI gets the
+// same fallback. Form controls inherit it (Tailwind preflight).
 html[dir='rtl'] body,
 html[lang='ar'] body {
-  font-family: var(--font-plex-arabic), var(--font-geist), system-ui, sans-serif;
+  font-family: 'Geist', var(--font-arabic), var(--font-geist), system-ui, sans-serif;
 }
 
 // Postiz removes every outline (`body * { outline: none !important }`).
@@ -275,7 +304,7 @@ body button:not(:disabled):active {
 // Typeface: the variables come from app/fonts.ts on <body class="tdw-font …">
 body.tdw-font,
 .tdw-font {
-  font-family: var(--font-geist), var(--font-plex-arabic), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: 'Geist', var(--font-arabic), var(--font-geist), system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 // ── Calendar post chip (launches/calendar.tsx → CalendarItem) ─────────────
@@ -315,6 +344,7 @@ body {
   .tdw-chip-published { background: var(--tdw-success); cursor: default; }
   .tdw-chip-acts { position: absolute; top: 3px; inset-inline-end: 3px; z-index: 5; display: flex; gap: 2px; opacity: 0; transform: translateY(-2px); pointer-events: none; transition: opacity 160ms ease, transform 200ms var(--tdw-ease-spring); }
   .tdw-chip:hover .tdw-chip-acts, .tdw-chip:focus-within .tdw-chip-acts { opacity: 1; transform: none; pointer-events: auto; }
+  @media (hover: none) { .tdw-chip-acts { opacity: 1; transform: none; pointer-events: auto; } }
   .tdw-chip-act { display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: var(--tdw-popover); color: var(--tdw-foreground); box-shadow: var(--tdw-shadow-sm); cursor: pointer; }
   .tdw-chip-act:hover { color: var(--tdw-primary); }
   .tdw-chip-act.is-danger:hover { color: var(--tdw-destructive); }

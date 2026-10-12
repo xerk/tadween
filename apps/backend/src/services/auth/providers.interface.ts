@@ -10,6 +10,12 @@ export abstract class AuthProviderAbstract {
     providerToken: string,
     orgId: string
   ): Promise<void> {}
+  // Whether the instance has what this provider needs to sign people in (its
+  // env vars). Read by the public /instance/settings so the sign-in page only
+  // shows buttons that work. Providers without configuration stay true.
+  isConfigured(): boolean {
+    return true;
+  }
 }
 
 export interface AuthProviderParams {

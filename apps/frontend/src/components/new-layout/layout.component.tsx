@@ -1,17 +1,26 @@
 'use client';
 
-import React, { ReactNode, useCallback, useEffect, useState } from 'react';
+import React, { ReactNode, useCallback, useEffect } from 'react';
 import { tadweenFont as jakartaSans } from '@gitroom/frontend/app/fonts';
 import {
   SidebarHeader,
   useSidebarCollapsed,
 } from '@gitroom/frontend/components/tadween/shell/sidebar';
 import { AccountMenu } from '@gitroom/frontend/components/tadween/shell/account.menu';
+import { MobileDock } from '@gitroom/frontend/components/tadween/shell/dock';
+import { usePhoneLayout } from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
+import {
+  SidebarChannels,
+  SidebarCreatePost,
+} from '@gitroom/frontend/components/tadween/shell/sidebar.channels';
 
 import clsx from 'clsx';
-import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import {
+  useCopilotConnection,
+  useFetch,
+} from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { CheckPayment } from '@gitroom/frontend/components/layout/check.payment';
 import { ToolTip } from '@gitroom/frontend/components/layout/top.tip';
@@ -24,18 +33,24 @@ import { NewSubscription } from '@gitroom/frontend/components/layout/new.subscri
 import { Support } from '@gitroom/frontend/components/layout/support';
 import { ContinueProvider } from '@gitroom/frontend/components/layout/continue.provider';
 import { ContextWrapper } from '@gitroom/frontend/components/layout/user.context';
-import { CopilotKit } from '@copilotkit/react-core';
+import { AiProvider } from '@gitroom/frontend/components/tadween/instance/ai.guard';
 import { MantineWrapper } from '@gitroom/react/helpers/mantine.wrapper';
 import { Impersonate } from '@gitroom/frontend/components/layout/impersonate';
 import { AnnouncementBanner } from '@gitroom/frontend/components/layout/announcement.banner';
-import { Title } from '@gitroom/frontend/components/layout/title';
+import {
+  isBareTopBar,
+  Title,
+} from '@gitroom/frontend/components/layout/title';
+import { TrialBanner } from '@gitroom/frontend/components/tadween/billing/trial.banner';
+import { PaywallModal } from '@gitroom/frontend/components/tadween/billing/paywall.modal';
 import { TopMenu } from '@gitroom/frontend/components/layout/top.menu';
-import { ChromeExtensionComponent } from '@gitroom/frontend/components/layout/chrome.extension.component';
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
-import { OrganizationSelector } from '@gitroom/frontend/components/layout/organization.selector';
 import { StreakComponent } from '@gitroom/frontend/components/layout/streak.component';
+import {
+  UpgradeButton,
+  UpgradeTrialLine,
+} from '@gitroom/frontend/components/tadween/billing/upgrade.link';
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
-import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
 import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
 import { TrialTracker } from '@gitroom/frontend/components/layout/gtm.component';
 import { setSentryUser } from '@gitroom/react/sentry/initialize.sentry.client';
@@ -43,17 +58,16 @@ import { setSentryUser } from '@gitroom/react/sentry/initialize.sentry.client';
 
 export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   const fetch = useFetch();
+  const copilotConnection = useCopilotConnection();
 
   const { backendUrl, billingEnabled, isGeneral } = useVariables();
 
-  // Feedback icon component attaches Sentry feedback to a top-bar icon when DSN is present
+  // The Sentry feedback button lives in the account menu (tadween/shell/account.menu.tsx)
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const router = useRouter();
   const sidebar = useSidebarCollapsed();
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
+  const phone = usePhoneLayout();
   const load = useCallback(async (path: string) => {
     return await (await fetch(path)).json();
   }, []);
@@ -71,15 +85,30 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     );
   }, [user]);
 
+  // A workspace without a plan lives on /billing (full screen, no app chrome),
+  // like Postiz's first-billing screen; super admins are never held there
+  const needsPlan =
+    !!user &&
+    user.tier === 'FREE' &&
+    isGeneral &&
+    billingEnabled &&
+    !user.billingExempt;
+  useEffect(() => {
+    if (needsPlan && pathname !== '/billing') {
+      router.replace('/billing');
+    }
+  }, [needsPlan, pathname]);
+
   if (!user) return null;
 
   return (
     <ContextWrapper user={user}>
-      <CopilotKit
-        credentials="include"
+      <AiProvider
+        {...copilotConnection}
         runtimeUrl={backendUrl + '/copilot/chat'}
         useSingleEndpoint={true}
         showDevConsole={false}
+        enableInspector={false}
       >
         <MantineWrapper>
           <ToolTip />
@@ -92,91 +121,92 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             <ShowPostSelector />
             <PreConditionComponent />
             <NewSubscription />
+            <PaywallModal />
             <ContinueProvider />
             <div
               className={clsx(
-                'flex flex-col min-h-screen min-w-screen text-newTextColor p-[12px] mobile:p-[8px] mobile:pb-[80px]',
+                'tdw-shell flex flex-col min-h-screen min-w-screen text-newTextColor p-[12px] mobile:p-[8px]',
                 jakartaSans.className
               )}
             >
-              <div>{user?.admin ? <Impersonate /> : <div />}</div>
-              {user.tier === 'FREE' && isGeneral && billingEnabled ? (
+              {/* Tadween: the full admin bar while impersonating; otherwise the
+                  admin tools are one pill in the top bar (here only when the
+                  billing screen replaces the top bar) */}
+              <div>
+                {user?.admin && (user?.impersonate || needsPlan) ? (
+                  <Impersonate />
+                ) : (
+                  <div />
+                )}
+              </div>
+              {needsPlan ? (
                 <FirstBillingComponent />
               ) : (
                 <>
                   <AnnouncementBanner />
                   <div className="flex-1 flex gap-[8px] mobile:gap-0">
                     <Support />
-                    {menuOpen && (
+                    {/* phones: the bottom dock in place of the sidebar */}
+                    {phone ? (
+                      <MobileDock />
+                    ) : (
                       <div
-                        className="hidden mobile:block fixed inset-0 bg-newBackdrop opacity-60 z-[490]"
-                        onClick={() => setMenuOpen(false)}
-                      />
-                    )}
-                    <div
-                      className={clsx(
-                        'tdw-side flex flex-col bg-newBgColorInner rounded-[12px] mobile:fixed mobile:top-0 mobile:bottom-0 mobile:start-0 mobile:z-[491] mobile:rounded-none mobile:overflow-y-auto mobile:overflow-x-hidden',
-                        !menuOpen && 'mobile:hidden',
-                        sidebar.collapsed && 'is-collapsed'
-                      )}
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <div
-                        id="left-menu"
                         className={clsx(
-                          'tdw-side-inner fixed h-full flex flex-1 top-0 mobile:static mobile:h-auto mobile:min-h-full mobile:mx-auto',
-                          user?.admin && 'pt-[60px] max-h-[1000px]:w-[500px]'
+                          'tdw-side flex flex-col bg-newBgColorInner rounded-[12px]',
+                          sidebar.collapsed && 'is-collapsed'
                         )}
                       >
-                        <div className="tdw-side-body flex flex-col h-full gap-[32px] mobile:gap-[16px] flex-1 py-[12px]">
-                          <SidebarHeader
-                            collapsed={sidebar.collapsed}
-                            onToggle={sidebar.toggle}
-                          />
-                          <TopMenu />
-                          <AccountMenu />
+                        <div
+                          id="left-menu"
+                          className={clsx(
+                            'tdw-side-inner fixed h-full flex flex-1 top-0',
+                            user?.admin &&
+                              user?.impersonate &&
+                              'pt-[60px] max-h-[1000px]:w-[500px]'
+                          )}
+                        >
+                          <div className="tdw-side-body flex flex-col h-full gap-[32px] flex-1 py-[12px]">
+                            <SidebarHeader
+                              collapsed={sidebar.collapsed}
+                              onToggle={sidebar.toggle}
+                            />
+                            <SidebarCreatePost />
+                            <TopMenu>
+                              <SidebarChannels collapsed={sidebar.collapsed} />
+                            </TopMenu>
+                            <UpgradeTrialLine />
+                            <AccountMenu />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                     <div className="flex-1 min-w-0 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
-                      <div className="flex bg-newBgColorInner h-[80px] mobile:h-[64px] px-[20px] mobile:px-[12px] gap-[12px] items-center">
-                        <button
-                          className="hidden mobile:flex items-center justify-center w-[36px] h-[36px] -ms-[6px] rounded-[8px] text-textItemBlur hover:text-newTextColor hover:bg-boxFocused"
-                          onClick={() => setMenuOpen(true)}
-                          aria-label="Open menu"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="22"
-                            height="22"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <path
-                              d="M3 6H21M3 12H21M3 18H21"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </button>
-                        <div className="text-[24px] mobile:text-[20px] font-[600] flex flex-1 min-w-0">
+                      <div
+                        className={clsx(
+                          'tdw-topbar flex bg-newBgColorInner px-[20px] mobile:px-[12px] gap-[12px] items-center',
+                          isBareTopBar(pathname)
+                            ? 'is-bare h-[48px] mobile:h-[56px]'
+                            : 'h-[68px] mobile:h-[56px]'
+                        )}
+                      >
+                        <div className="tdw-topbar-title flex flex-1 min-w-0">
                           <Title />
                         </div>
-                        <div className="flex gap-[20px] mobile:gap-[14px] mobile:items-center text-textItemBlur">
+                        <div className="tdw-topbar-actions flex items-center gap-[6px] text-textItemBlur">
+                          {/* the admin tools pill only inside the admin console;
+                              elsewhere the sidebar's Admin item leads there */}
+                          {user?.admin &&
+                          !user?.impersonate &&
+                          /^\/admin(\/|$)/.test(pathname) ? (
+                            <Impersonate />
+                          ) : null}
+                          <UpgradeButton />
                           <StreakComponent />
-                          <div className="w-[1px] h-[20px] bg-blockSeparator mobile:hidden" />
-                          <OrganizationSelector />
-                          <div className="contents mobile:hidden">
-                            <ChromeExtensionComponent />
-                          </div>
-                          <div className="w-[1px] h-[20px] bg-blockSeparator mobile:hidden" />
-                          <div className="contents mobile:hidden">
-                            <AttachToFeedbackIcon />
-                          </div>
                           <NotificationComponent />
                         </div>
                       </div>
+                      {/* inside the page card: above the shell it ran under the fixed sidebar */}
+                      {billingEnabled && <TrialBanner />}
                       <div className="flex flex-1 min-w-0 gap-[1px] mobile:flex-col">
                         {children}
                       </div>
@@ -187,7 +217,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             </div>
           </CheckPayment>
         </MantineWrapper>
-      </CopilotKit>
+      </AiProvider>
     </ContextWrapper>
   );
 };

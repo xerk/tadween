@@ -18,6 +18,7 @@ import {
 } from '@prisma/client';
 import { GetPostsDto } from '@gitroom/nestjs-libraries/dtos/posts/get.posts.dto';
 import { GetPostsListDto } from '@gitroom/nestjs-libraries/dtos/posts/get.posts.list.dto';
+import { GetPublishedPostsDto } from '@gitroom/nestjs-libraries/dtos/analytics/get.published.posts.dto';
 import { shuffle } from 'lodash';
 import { CreateGeneratedPostsDto } from '@gitroom/nestjs-libraries/dtos/generator/create.generated.posts.dto';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
@@ -56,6 +57,12 @@ import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validatio
 import { postContentPlainText } from '@gitroom/helpers/utils/sanitize.post.content';
 import { CreatePublicCommentDto } from '@gitroom/nestjs-libraries/dtos/comments/add.comment.dto';
 import { countLength } from '@gitroom/helpers/utils/count.length';
+
+// Tadween analytics (getPublishedPostsSummary): the longest range, the most
+// dated rows and the newest posts with text one request returns
+const PUBLISHED_MAX_DAYS = 366;
+const PUBLISHED_DATES_LIMIT = 5000;
+const PUBLISHED_POSTS_LIMIT = 10;
 
 type PostWithConditionals = Post & {
   integration?: Integration;
@@ -440,6 +447,62 @@ export class PostsService {
     );
   }
 
+  // Tadween analytics: what the organisation published between `from` and
+  // `to` (the client's local day boundaries) and how many posts the same
+  // length of time before had, so the page can show "posts published" with a
+  // delta even for networks whose API has no analytics. `published` carries
+  // each post's date and channel for the per-day and per-network counts,
+  // `posts` the newest few with their text and live link.
+  async getPublishedPostsSummary(orgId: string, query: GetPublishedPostsDto) {
+    const from = dayjs.utc(query.from);
+    const to = dayjs.utc(query.to);
+    if (!from.isBefore(to) || to.diff(from, 'day') > PUBLISHED_MAX_DAYS) {
+      throw new BadRequestException(
+        `from must be before to, at most ${PUBLISHED_MAX_DAYS} days apart`
+      );
+    }
+    const previousFrom = from.subtract(to.diff(from), 'millisecond');
+
+    const [published, posts, total, previous] = await Promise.all([
+      this._postRepository.getPublishedPostDates(
+        orgId,
+        from.toDate(),
+        to.toDate(),
+        PUBLISHED_DATES_LIMIT,
+        query.integration
+      ),
+      this._postRepository.getPublishedPosts(
+        orgId,
+        from.toDate(),
+        to.toDate(),
+        PUBLISHED_POSTS_LIMIT,
+        query.integration
+      ),
+      this._postRepository.countPublishedPosts(
+        orgId,
+        from.toDate(),
+        to.toDate(),
+        query.integration
+      ),
+      this._postRepository.countPublishedPosts(
+        orgId,
+        previousFrom.toDate(),
+        from.toDate(),
+        query.integration
+      ),
+    ]);
+
+    return {
+      total,
+      previous,
+      published,
+      posts: posts.map(({ content, ...post }) => ({
+        ...post,
+        excerpt: postContentPlainText(content).trim().slice(0, 280),
+      })),
+    };
+  }
+
   async updateMedia(id: string, imagesList: any[], convertToJPEG = false) {
     try {
       let imageUpdateNeeded = false;
@@ -668,6 +731,18 @@ export class PostsService {
     return list;
   }
 
+  // The streak popover asks for a year; never read more than 13 months
+  async getPublishedDates(orgId: string, query: GetPostsDto) {
+    const earliest = dayjs.utc(query.endDate).subtract(13, 'month');
+    const list = await this._postRepository.getPublishedDates(orgId, {
+      ...query,
+      startDate: dayjs.utc(query.startDate).isBefore(earliest)
+        ? earliest.format()
+        : query.startDate,
+    });
+    return list.map((p) => p.publishDate);
+  }
+
   async getOldPosts(orgId: string, date: string) {
     return this._postRepository.getOldPosts(orgId, date);
   }
@@ -770,7 +845,14 @@ export class PostsService {
       });
   }
 
-  async deletePost(orgId: string, group: string) {
+  // `unpublish` is only set by the explicit "delete this post" endpoints:
+  // removing a whole channel also deletes its posts here, and that must not
+  // take the published content down from the platform.
+  async deletePost(orgId: string, group: string, unpublish = false) {
+    if (unpublish) {
+      await this.unpublishGroup(orgId, group);
+    }
+
     const post = await this._postRepository.deletePost(orgId, group);
 
     if (post?.id) {
@@ -799,6 +881,50 @@ export class PostsService {
     }
 
     return { error: true };
+  }
+
+  // Best effort: asks each provider that supports it to remove the published
+  // post. A failure never blocks deleting the post here; a rejected token
+  // flags the channel for reconnection like a failed publish does.
+  private async unpublishGroup(orgId: string, group: string) {
+    const posts = await this._postRepository.getPostsByGroup(orgId, group);
+
+    for (const post of posts) {
+      if (
+        post.state !== 'PUBLISHED' ||
+        !post.releaseId ||
+        !post.integration ||
+        post.integration.deletedAt
+      ) {
+        continue;
+      }
+
+      const provider = this._integrationManager.getSocialIntegration(
+        post.integration.providerIdentifier
+      );
+      if (!provider?.deletePost) {
+        continue;
+      }
+
+      try {
+        await provider.deletePost(
+          post.integration.token,
+          post.integration,
+          post.releaseId,
+          post.id
+        );
+      } catch (err) {
+        console.log(
+          `Could not unpublish post ${post.id} from ${post.integration.providerIdentifier}`,
+          err instanceof Error ? err.message : err
+        );
+        if (err instanceof RefreshToken) {
+          await this._integrationService
+            .refreshNeeded(orgId, post.integration.id)
+            .catch(() => {});
+        }
+      }
+    }
   }
 
   async countPostsFromDay(orgId: string, date: Date) {

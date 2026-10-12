@@ -8,15 +8,33 @@ import {
 const defaultRedirect = () =>
   `${process.env.FRONTEND_URL}/integrations/social/youtube`;
 
+// Sign-in can use its own Google OAuth client (GOOGLE_LOGIN_CLIENT_ID /
+// GOOGLE_LOGIN_CLIENT_SECRET) and falls back to the YouTube channel client,
+// which is what Postiz always used.
+const credentials = () =>
+  process.env.GOOGLE_LOGIN_CLIENT_ID && process.env.GOOGLE_LOGIN_CLIENT_SECRET
+    ? {
+        clientId: process.env.GOOGLE_LOGIN_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_LOGIN_CLIENT_SECRET,
+      }
+    : {
+        clientId: process.env.YOUTUBE_CLIENT_ID,
+        clientSecret: process.env.YOUTUBE_CLIENT_SECRET,
+      };
+
 const makeClient = (redirectUri: string) =>
   new google.auth.OAuth2({
-    clientId: process.env.YOUTUBE_CLIENT_ID,
-    clientSecret: process.env.YOUTUBE_CLIENT_SECRET,
+    ...credentials(),
     redirectUri,
   });
 
 @AuthProvider({ provider: 'GOOGLE' })
 export class GoogleProvider extends AuthProviderAbstract {
+  override isConfigured() {
+    const { clientId, clientSecret } = credentials();
+    return !!clientId && !!clientSecret;
+  }
+
   generateLink(query?: { redirect_uri?: string; state?: string }) {
     const redirectUri = query?.redirect_uri || defaultRedirect();
     return makeClient(redirectUri).generateAuthUrl({

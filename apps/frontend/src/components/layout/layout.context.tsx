@@ -1,5 +1,6 @@
 'use client';
 
+import { openPaywall } from '@gitroom/frontend/components/tadween/billing/paywall.modal';
 import { ReactNode, useCallback } from 'react';
 import { FetchWrapperComponent } from '@gitroom/helpers/utils/custom.fetch';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
@@ -104,21 +105,14 @@ function LayoutContextInner(params: { children: ReactNode }) {
       }
 
       if (response.status === 402) {
-        if (
-          await deleteDialog(
-            (
-              await response
-                .clone()
-                .json()
-                .catch(() => ({}))
-            ).message,
-            'Move to billing',
-            'Payment Required'
-          )
-        ) {
-          window.open('/billing', '_blank');
-          return false;
-        }
+        // Tadween: a plan limit opens the upgrade paywall (section from the
+        // backend's SubscriptionExceptionFilter)
+        const body = await response
+          .clone()
+          .json()
+          .catch(() => ({}));
+        openPaywall({ section: body.section, message: body.message });
+        // Let the caller receive the 402 so its loading state ends
         return true;
       }
       return true;

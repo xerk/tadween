@@ -22,6 +22,7 @@ import {
   PlusIcon,
   DelayIcon,
 } from '@gitroom/frontend/components/ui/icons';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -187,9 +188,16 @@ export const TimeTable: FC<{
         </div>
 
         {times.length === 0 ? (
-          <div className="text-center py-[32px] text-newTextColor/40 text-[14px] border border-dashed border-newTableBorder rounded-[12px]">
-            {t('no_time_slots', 'No time slots added yet')}
-          </div>
+          <TadweenEmptyState
+            size="sm"
+            icon="clock"
+            className="border border-dashed border-newTableBorder rounded-[12px]"
+            title={t('no_time_slots', 'No time slots added yet')}
+            body={t(
+              'tdw_no_time_slots_body',
+              'Add a time above and new posts for this channel will snap to it.'
+            )}
+          />
         ) : (
           <div className="flex flex-col gap-[8px]">
             {times.map((timeSlot, index) => (

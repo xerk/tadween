@@ -1,105 +1,198 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import type { Dict } from '@/content/types';
 import { SIGN_UP_URL } from '@/lib/config';
-import type { PlanView } from '@/lib/plans';
+import { CARD_ROWS, CREDIT_PACK_FROM_USD, FEATURE_KEYS, type FeatureKey, type Pricing, type PlanView } from '@/lib/plans';
 import { Accordion } from './Accordion';
 import { Icon, cx } from './Icon';
+import { Segmented } from './Segmented';
 
 type Period = 'monthly' | 'yearly';
-type Currency = 'EGP' | 'USD';
 
-function Segmented<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
-  const i = Math.max(0, options.findIndex((o) => o.value === value));
-  return (
-    <div className="pz-seg" role="group" aria-label={label} style={{ ['--n' as string]: options.length, ['--i' as string]: i }}>
-      <span className="pz-seg-thumb" aria-hidden="true" />
-      {options.map((o) => (
-        <button key={o.value} type="button" className="pz-seg-item" aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
+/** "{name}" in a template replaced with a node (an amount kept left-to-right in Arabic). */
+const fill = (template: string, name: string, node: ReactNode) =>
+  template.split(`{${name}}`).map((part, i) => (
+    <Fragment key={i}>
+      {i > 0 ? node : null}
+      {part}
+    </Fragment>
+  ));
+
+/** One row of the cards: a generated feature line every plan shows in the same place. */
+interface Row {
+  key: FeatureKey;
+  /** The value per plan key: a number (-1 = unlimited), true = included without a number,
+      undefined = the plan doesn't have it. */
+  values: Record<string, number | true | undefined>;
+  /** The plans differ on this row, so their values are emphasised. */
+  differs: boolean;
 }
 
-/** PricingTable from the design system: tiers with a Most popular flag, monthly or
-    yearly, EGP or USD, the compare table and the FAQ. Every price is a placeholder. */
+/* The card rows (CARD_ROWS) stay in the cards, row for row, so the plans compare at a glance;
+   the other lines every plan has move to the "Every plan includes" strip. */
+function splitRows(plans: PlanView[]) {
+  const rows: Row[] = FEATURE_KEYS.flatMap((key) => {
+    const values: Row['values'] = {};
+    for (const plan of plans) {
+      const item = plan.featureItems.find((f) => f.key === key);
+      values[plan.key] = item ? (item.value ?? true) : undefined;
+    }
+    const all = Object.values(values);
+    if (all.every((v) => v === undefined)) return [];
+    return [{ key, values, differs: all.some((v) => v !== all[0]) }];
+  });
+  return {
+    cardRows: CARD_ROWS.flatMap((key) => rows.filter((r) => r.key === key)),
+    shared: rows.filter((r) => !CARD_ROWS.includes(r.key) && Object.values(r.values).every((v) => v === true)).map((r) => r.key),
+  };
+}
+
+/** The pricing cards: the plans side by side (the most popular one highlighted), monthly or
+    yearly in US dollars, from Admin → Plans (lib/plans.ts). While the founder offer is open
+    the big price is the founder price, with the regular price under it. `compact` is the home page
+    version: the cards and a link to the pricing page. */
 export function PricingTable({
   p,
-  lang,
   numberLocale,
-  plans,
-  source,
-  compare = true,
-  faq = true,
-  compareHref,
+  pricing,
+  compact = false,
+  moreHref,
+  agree,
 }: {
   p: Dict['pricing'];
-  lang: Dict['lang'];
   numberLocale: string;
-  plans: PlanView[];
-  source: 'api' | 'static';
-  compare?: boolean;
-  faq?: boolean;
-  compareHref?: string;
+  pricing: Pricing;
+  compact?: boolean;
+  moreHref?: string;
+  /** "By subscribing you agree to the Terms and the Refund Policy", with its links. */
+  agree?: ReactNode;
 }) {
+  const { plans, yearlyDiscountPercent, founder } = pricing;
   const [period, setPeriod] = useState<Period>('monthly');
-  const [currency, setCurrency] = useState<Currency>('EGP');
-  const fmt = new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 2 });
   const yearly = period === 'yearly';
-
-  const priceOf = (plan: PlanView) => {
-    const c = currency === 'EGP' && plan.egp ? 'EGP' : 'USD';
-    const prices = c === 'EGP' ? plan.egp! : plan.usd;
-    const perMonth = yearly ? prices.yearly / 12 : prices.monthly;
-    return { cur: p.currencies[c], perMonth: fmt.format(Math.round(perMonth * 100) / 100), total: fmt.format(prices.yearly) };
-  };
-  const copyOf = (plan: PlanView) => {
-    const c = p.plans.find((x) => x.key === plan.key);
-    // Translated copy for the known plans; plans added in the app show their own text.
-    if (c && (lang === 'ar' || !plan.features?.length)) return c;
-    return { key: plan.key, name: plan.name ?? c?.name ?? plan.key, for: plan.description ?? c?.for ?? '', features: plan.features?.length ? plan.features : c?.features ?? [] };
-  };
+  const fmt = new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 0 });
+  // A yearly price a month, to the cent when it isn't whole ($182 a year → $15.17).
+  const fmtCents = new Intl.NumberFormat(numberLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const plural = new Intl.PluralRules(numberLocale);
+  const days = (n: number) => (p.days[plural.select(n)] ?? p.days.other).replace('{n}', fmt.format(n));
+  const usd = (n: number) => (
+    <bdi dir="ltr" className="pz-usd">
+      ${fmt.format(n)}
+    </bdi>
+  );
+  const { cardRows, shared } = splitRows(plans);
+  // Extra lines the admin added: on every plan → the strip, otherwise under that plan's rows.
+  const sharedExtras = plans[0]?.extraFeatures.filter((f) => plans.every((plan) => plan.extraFeatures.includes(f))) ?? [];
+  const spots = founder.open && founder.spotsLeft !== null && plans.some((plan) => plan.founderPrice) ? founder.spotsLeft : null;
+  const describe = (plan: PlanView) => (plan.description ? p.descriptions[plan.description] ?? plan.description : null);
+  // The team row says "Just you" for a plan for one person; the webhooks row is a yes or no
+  // (its label covers approvals too), not the number of webhooks.
+  const value = (key: FeatureKey, v: number | true | undefined) =>
+    key === 'team' && v === 0 ? (
+      p.justYou
+    ) : v === undefined ? (
+      <Icon name="minus" className="pz-no" label={p.notIncluded} />
+    ) : v === true || key === 'webhooks' ? (
+      <Icon name="check" className="pz-yes" label={p.included} />
+    ) : v < 0 ? (
+      p.unlimited
+    ) : (
+      fmt.format(v)
+    );
 
   return (
-    <div className="pz-pricing">
+    <div className={cx('pz-pricing', compact && 'is-compact')}>
       <div className="pz-pricing-toggle">
-        <Segmented label={p.periodLabel} value={period} onChange={setPeriod} options={[{ value: 'monthly', label: p.monthly }, { value: 'yearly', label: p.yearly }]} />
-        <Segmented label={p.currencyLabel} value={currency} onChange={setCurrency} options={[{ value: 'EGP', label: p.currencies.EGP }, { value: 'USD', label: p.currencies.USD }]} />
-        <span className="pz-billtoggle-save caption">{p.save}</span>
-        <span className="pz-placeholder caption">{p.placeholder}</span>
+        {plans.some((plan) => plan.usd.yearly > 0) ? (
+          <Segmented
+            label={p.periodLabel}
+            value={period}
+            onChange={setPeriod}
+            options={[
+              { value: 'monthly', label: p.monthly },
+              {
+                value: 'yearly',
+                label: (
+                  <>
+                    {p.yearly}
+                    {yearlyDiscountPercent > 0 ? <span className="pz-save">{p.save.replace('{pct}', fmt.format(yearlyDiscountPercent))}</span> : null}
+                  </>
+                ),
+              },
+            ]}
+          />
+        ) : null}
+        {spots !== null ? (
+          <p className="pz-founder-chip">
+            <span className="pz-founder-dot" aria-hidden="true" />
+            {(p.spotsLeft[plural.select(spots)] ?? p.spotsLeft.other).replace('{n}', fmt.format(spots))}
+          </p>
+        ) : null}
       </div>
-      <div className="pz-tiers">
+      <div className="pz-tiers" style={{ ['--n' as string]: plans.length }}>
         {plans.map((plan) => {
-          const c = copyOf(plan);
-          const price = priceOf(plan);
+          // A plan without a yearly price stays monthly.
+          const planYearly = yearly && plan.usd.yearly > 0;
+          const perMonth = planYearly ? Math.round((plan.usd.yearly / 12) * 100) / 100 : plan.usd.monthly;
+          const extras = plan.extraFeatures.filter((f) => !sharedExtras.includes(f));
           return (
             <section key={plan.key} className={cx('pz-tier', plan.popular && 'is-popular')} aria-labelledby={`tier-${plan.key}`}>
-              {plan.popular ? (
-                <span className="pz-tier-flag">
-                  <Icon name="star" size={12} />
-                  {p.mostPopular}
-                </span>
-              ) : null}
-              <h3 id={`tier-${plan.key}`} className="title-2 pz-tier-name">
-                {c.name}
-              </h3>
-              <p className="pz-tier-for">{c.for}</p>
-              <div className="pz-tier-price">
-                <span className="pz-tier-cur caption">{price.cur}</span>
-                <span key={`${period}-${currency}`} className="metric pz-tier-amount">
-                  {price.perMonth}
-                </span>
-                <span className="pz-tier-per">{p.perMonth}</span>
+              <div className="pz-tier-head">
+                <h3 id={`tier-${plan.key}`} className="pz-tier-name">
+                  {plan.name}
+                </h3>
+                {plan.popular ? <span className="pz-tier-flag">{p.mostPopular}</span> : null}
               </div>
-              <p className="caption pz-muted pz-tier-bill">{yearly ? p.billedYearly.replace('{amount}', `${price.cur} ${price.total}`) : p.billedMonthly}</p>
+              <p className="pz-tier-for">{describe(plan)}</p>
+              <div className="pz-tier-pricing">
+                <div className="pz-tier-price">
+                  <span key={period} className="pz-tier-amount" dir="ltr">
+                    <span className="pz-tier-cur">$</span>
+                    {Number.isInteger(perMonth)
+                      ? fmt.format(perMonth)
+                      : fmtCents.formatToParts(perMonth).map((part, i) =>
+                          part.type === 'decimal' || part.type === 'fraction' ? (
+                            <span key={i} className="pz-tier-cents">
+                              {part.value}
+                            </span>
+                          ) : (
+                            part.value
+                          )
+                        )}
+                  </span>
+                  <span className="pz-tier-per">{p.perMonth}</span>
+                </div>
+                <p className="pz-tier-bill">{planYearly ? fill(p.billedYearly, 'amount', usd(plan.usd.yearly)) : p.billedMonthly}</p>
+                {plan.founderPrice && founder.open && founder.cap > 0 ? (
+                  <div className="pz-tier-founder">
+                    <p className="pz-tier-locked">
+                      <Icon name="lock" size={14} />
+                      <span>{p.founderLocked}</span>
+                    </p>
+                    <p className="pz-tier-regular">
+                      {fill(
+                        (planYearly ? p.regularYearly : p.regularMonthly).replace('{cap}', fmt.format(founder.cap)),
+                        'price',
+                        usd(planYearly ? plan.list.yearly : plan.list.monthly)
+                      )}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
               <a className={cx('pz-btn pz-tier-cta', plan.popular ? 'pz-btn-primary' : 'pz-btn-secondary')} href={`${SIGN_UP_URL}?plan=${encodeURIComponent(plan.key)}`}>
-                {p.trial}
+                {plan.trialDays > 0 ? p.trial.replace('{days}', days(plan.trialDays)) : p.subscribe}
               </a>
-              <ul className="pz-plan-list">
-                {c.features.map((f) => (
+              <dl className="pz-tier-rows">
+                {cardRows.map((r) => (
+                  <div key={r.key} className={cx('pz-tier-row', r.differs && 'is-diff')}>
+                    <dt>{p.features[r.key]}</dt>
+                    <dd>{value(r.key, r.values[plan.key])}</dd>
+                  </div>
+                ))}
+              </dl>
+              <ul className="pz-plan-list pz-tier-extras">
+                {extras.map((f) => (
                   <li key={f}>
                     <Icon name="check" />
                     {f}
@@ -110,77 +203,51 @@ export function PricingTable({
           );
         })}
       </div>
-      <p className="caption pz-muted pz-pricing-note">{source === 'api' ? p.noteApi : p.note}</p>
-      {compare ? (
-        <div className="pz-compare">
-          <h3 className="title-2">{p.compareTitle}</h3>
-          <div className="pz-compare-scroll" role="region" aria-label={p.compareTitle} tabIndex={0}>
-            <table className="pz-compare-table">
-              <thead>
-                <tr>
-                  <td />
-                  {plans.map((plan) => {
-                    const price = priceOf(plan);
-                    return (
-                      <th key={plan.key} scope="col" className={cx(plan.popular && 'is-popular')}>
-                        {copyOf(plan).name}
-                        <span className="caption pz-muted">
-                          {price.cur} {price.perMonth}
-                          {p.perMonthShort}
-                        </span>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {p.compare.map((r, ri) => (
-                  <tr key={r.label}>
-                    <th scope="row">
-                      <span className="pz-compare-label">
-                        {r.label}
-                        <span className="pz-tip-wrap">
-                          <span className="pz-compare-help" tabIndex={0} aria-label={r.help}>
-                            <Icon name="circle-help" size={14} />
-                          </span>
-                          <span role="tooltip" className="pz-tip">
-                            {r.help}
-                          </span>
-                        </span>
-                      </span>
-                    </th>
-                    {plans.map((plan) => {
-                      // The first row is the channel limit, which the API may have changed.
-                      const v = ri === 0 ? fmt.format(plan.channels) : r.values[plan.key];
-                      return (
-                        <td key={plan.key} className={cx(plan.popular && 'is-popular')}>
-                          {v === true ? (
-                            <Icon name="check" className="pz-yes" label={p.included} />
-                          ) : v === false ? (
-                            <Icon name="minus" className="pz-no" label={p.notIncluded} />
-                          ) : v === undefined ? (
-                            <span className="pz-muted" aria-label={p.notListed}>
-                              –
-                            </span>
-                          ) : (
-                            <span className="time">{v}</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : compareHref ? (
-        <a className="pz-more-link" href={compareHref}>
-          {p.compareLink}
-          <Icon name="arrow-right" className="pz-flip-rtl" />
-        </a>
+      {!compact && plans.some((plan) => plan.featureItems.some((f) => f.key === 'ai_images')) ? (
+        <p className="pz-credit-packs">
+          <Icon name="sparkles" size={16} />
+          <span>{fill(p.creditPacks, 'amount', usd(CREDIT_PACK_FROM_USD))}</span>
+        </p>
       ) : null}
-      {faq ? (
+      {!compact && (shared.length || sharedExtras.length) ? (
+        <section className="pz-includes" aria-labelledby="pricing-includes">
+          <h3 id="pricing-includes" className="pz-includes-title">
+            {p.includedTitle}
+          </h3>
+          <ul className="pz-includes-list">
+            {shared.map((k) => (
+              <li key={k}>
+                <Icon name="check" />
+                {p.features[k]}
+              </li>
+            ))}
+            {sharedExtras.map((label) => (
+              <li key={`x:${label}`}>
+                <Icon name="check" />
+                {label}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      <div className="pz-pricing-foot">
+        <ul className="pz-trust">
+          {p.trust.map((x) => (
+            <li key={x.label}>
+              <Icon name={x.icon} size={14} />
+              {x.label}
+            </li>
+          ))}
+        </ul>
+        {agree ? <p className="caption pz-muted pz-pricing-note">{agree}</p> : null}
+        {compact && moreHref ? (
+          <a className="pz-more-link" href={moreHref}>
+            {p.seeAll}
+            <Icon name="arrow-right" className="pz-flip-rtl" />
+          </a>
+        ) : null}
+      </div>
+      {!compact ? (
         <div className="pz-faq">
           <h3 className="title-2">{p.faqTitle}</h3>
           <Accordion items={p.faq} />

@@ -37,6 +37,12 @@ export interface Branding {
   supportEmail: string;
   defaultLanguage: string;
   defaultTimezone: string;
+  websiteUrl: string;
+  termsUrl: string;
+  privacyUrl: string;
+  docsUrl: string;
+  supportUrl: string;
+  tutorialVideoUrl: string;
 }
 
 export interface AdminSettings {
@@ -57,13 +63,30 @@ export interface AdminProvider {
   enabled: boolean;
   position: number;
   saved: boolean;
+  // In the focus list (FOCUS_PROVIDERS or TADWEEN_ENABLED_PROVIDERS)
+  focus: boolean;
   hiddenByEnv: boolean;
   credentials: {
     needsCredentials: boolean;
     configured: boolean;
     env: { name: string; set: boolean }[];
     note?: string;
+    fields: CredentialField[];
   };
+}
+
+// One provider app credential as the console sees it: never the value.
+export interface CredentialField {
+  name: string;
+  set: boolean;
+  source: 'console' | 'env' | null;
+  unreadable: boolean;
+  secret: boolean;
+  last4: string | null;
+  updatedAt: string | null;
+  editable: boolean;
+  envOnlyReason: string | null;
+  usedBy: string[];
 }
 
 export interface AdminPlan {
@@ -72,10 +95,14 @@ export interface AdminPlan {
   name: string;
   description: string | null;
   tier: Tier;
+  // The list price
   monthlyPriceUsd: number;
+  // Derived on the server from the monthly price and the yearly discount
   yearlyPriceUsd: number;
-  monthlyPriceEgp: number;
-  yearlyPriceEgp: number;
+  // Charged instead while the founder window is open (null: no offer)
+  founderMonthlyPriceUsd: number | null;
+  // -1 unlimited, 0 none, null = the tier's static value
+  webhooks: number | null;
   trialDays: number;
   mostPopular: boolean;
   channels: number;
@@ -112,18 +139,131 @@ export interface AdminUser {
         isLifetime: boolean;
         provider: string;
         cancelAt: string | null;
+        deletedAt: string | null;
       } | null;
       _count: { Integration: number };
     };
   }[];
 }
 
-export interface AdminUsersPage {
+// Every server-side admin list answers in this shape.
+export interface AdminListPage<T> {
   total: number;
   page: number;
   pageSize: number;
   pages: number;
-  users: AdminUser[];
+  items: T[];
+}
+
+export type AdminUsersPage = AdminListPage<AdminUser>;
+
+export type SubscriptionStatus =
+  | 'active'
+  | 'trialing'
+  | 'past_due'
+  | 'cancelled'
+  | 'lifetime'
+  | 'none';
+
+interface AdminSubscription {
+  subscriptionTier: Tier;
+  period: 'MONTHLY' | 'YEARLY';
+  isLifetime: boolean;
+  provider: string;
+  identifier: string | null;
+  cancelAt: string | null;
+  totalChannels: number;
+  // Stripe's status (null before it reported one) and the price it charges
+  status: string | null;
+  priceCents: number | null;
+  createdAt: string;
+  updatedAt?: string;
+  deletedAt: string | null;
+}
+
+interface AdminLimits {
+  planName: string | null;
+  channels: number | null;
+  members: number | null; // seats including the owner, -1 unlimited
+}
+
+export interface AdminOrganization {
+  id: string;
+  name: string;
+  createdAt: string;
+  paymentId: string | null;
+  isTrailing: boolean;
+  allowTrial: boolean;
+  subscription: AdminSubscription | null;
+  status: SubscriptionStatus;
+  tier: Tier | null;
+  owner: {
+    membershipId: string;
+    id: string;
+    email: string;
+    name: string | null;
+  } | null;
+  usage: { channels: number; members: number };
+  limits: AdminLimits;
+}
+
+export interface AdminOrganizationDetail
+  extends Omit<AdminOrganization, 'owner' | 'usage'> {
+  users: {
+    id: string; // UserOrganization id — what impersonation takes
+    role: 'USER' | 'ADMIN' | 'SUPERADMIN';
+    disabled: boolean;
+    createdAt: string;
+    user: {
+      id: string;
+      email: string;
+      name: string | null;
+      lastName: string | null;
+      activated: boolean;
+      isSuperAdmin: boolean;
+      lastOnline: string;
+    };
+  }[];
+  Integration: {
+    id: string;
+    name: string;
+    providerIdentifier: string;
+    picture: string | null;
+    disabled: boolean;
+    refreshNeeded: boolean;
+    inBetweenSteps: boolean;
+    createdAt: string;
+  }[];
+  usage: {
+    publishedMonth: number;
+    publishedTotal: number;
+    scheduled: number;
+    failed30d: number;
+  };
+}
+
+// Postiz's own GET /admin/errors (already server-side paged and filtered).
+export interface AdminErrorRow {
+  id: string;
+  message: string;
+  body: string;
+  platform: string;
+  postId: string;
+  createdAt: string;
+  organization: {
+    id: string;
+    name: string;
+    users: { user: { id: string; email: string; name: string | null } }[];
+  };
+  post: { id: string; content: string | null };
+}
+
+export interface AdminErrorsPage {
+  items: AdminErrorRow[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
 }
 
 const useLoader = <T,>() => {
@@ -151,19 +291,109 @@ export const useAdminSettings = () =>
 export const useAdminProviders = () =>
   useSWR<AdminProvider[]>('/admin/console/providers', useLoader<AdminProvider[]>(), swrOptions);
 
+export interface AdminPlansData {
+  plans: AdminPlan[];
+  yearlyDiscountPercent: number;
+  // Live subscriptions per tier
+  subscribers: Record<string, number>;
+  postizPricing: PricingInterface;
+  founderWindow: { cap: number; startsAt: string | null; endsAt: string | null };
+  founder: { open: boolean; cap: number; spotsLeft: number; endsAt: string | null };
+}
+
 export const useAdminPlans = () =>
-  useSWR<{ plans: AdminPlan[]; postizPricing: PricingInterface }>(
+  useSWR<AdminPlansData>(
     '/admin/console/plans',
-    useLoader<{ plans: AdminPlan[]; postizPricing: PricingInterface }>(),
+    useLoader<AdminPlansData>(),
     swrOptions
   );
 
-export const useAdminUsers = (search: string, page: number) =>
+// `query` is tableQueryString(...) from the DataTable.
+export const useAdminUsers = (query: string) =>
   useSWR<AdminUsersPage>(
-    `/admin/console/users?search=${encodeURIComponent(search)}&page=${page}`,
+    `/admin/console/users?${query}`,
     useLoader<AdminUsersPage>(),
     { ...swrOptions, keepPreviousData: true }
   );
+
+// A user that isn't on the current page (opened from search or a link).
+export const useAdminUser = (id: string | null) =>
+  useSWR<AdminUser>(
+    id ? `/admin/console/users/${encodeURIComponent(id)}` : null,
+    useLoader<AdminUser>(),
+    swrOptions
+  );
+
+export const useAdminOrganizations = (query: string) =>
+  useSWR<AdminListPage<AdminOrganization>>(
+    `/admin/console/organizations?${query}`,
+    useLoader<AdminListPage<AdminOrganization>>(),
+    { ...swrOptions, keepPreviousData: true }
+  );
+
+export const useAdminOrganization = (id: string | null) =>
+  useSWR<AdminOrganizationDetail>(
+    id ? `/admin/console/organizations/${id}` : null,
+    useLoader<AdminOrganizationDetail>(),
+    swrOptions
+  );
+
+export const useAdminErrors = (query: string) =>
+  useSWR<AdminErrorsPage>(
+    `/admin/errors?${query}`,
+    useLoader<AdminErrorsPage>(),
+    { ...swrOptions, keepPreviousData: true }
+  );
+
+export const useAdminErrorPlatforms = () =>
+  useSWR<string[]>('/admin/errors/platforms', useLoader<string[]>(), swrOptions);
+
+// Top-bar search: a few organizations and users matching the text.
+export const useAdminSearchOrganizations = (search: string) =>
+  useSWR<AdminListPage<AdminOrganization>>(
+    search
+      ? `/admin/console/organizations?pageSize=5&search=${encodeURIComponent(search)}`
+      : null,
+    useLoader<AdminListPage<AdminOrganization>>(),
+    { ...swrOptions, keepPreviousData: true }
+  );
+
+export const useAdminSearchUsers = (search: string) =>
+  useSWR<AdminUsersPage>(
+    search
+      ? `/admin/console/users?pageSize=5&search=${encodeURIComponent(search)}`
+      : null,
+    useLoader<AdminUsersPage>(),
+    { ...swrOptions, keepPreviousData: true }
+  );
+
+// CSV export of a whole server-side query: every page at the maximum size,
+// capped so a click can't pull an unbounded table.
+const EXPORT_MAX_PAGES = 50;
+export const useExportAll = () => {
+  const fetch = useFetch();
+  return useCallback(
+    async <T,>(path: string, query: string, sizeParam = 'pageSize'): Promise<T[]> => {
+      const all: T[] = [];
+      const params = new URLSearchParams(query);
+      params.set(sizeParam, '100');
+      for (let page = 0; page < EXPORT_MAX_PAGES; page++) {
+        params.set('page', String(page));
+        const res = await fetch(`${path}?${params.toString()}`);
+        if (!res.ok) {
+          throw new Error(await readError(res));
+        }
+        const body: { items: T[]; total: number } = await res.json();
+        all.push(...body.items);
+        if (all.length >= body.total || !body.items.length) {
+          break;
+        }
+      }
+      return all;
+    },
+    []
+  );
+};
 
 // Nest returns { message } (string or validation list) on errors.
 export const readError = async (res: Response) => {
@@ -200,6 +430,11 @@ export const useAdminMutation = () => {
     []
   );
 };
+
+export const date = (iso?: string | null) =>
+  iso
+    ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '—';
 
 export const TIER_LABEL: Record<string, string> = {
   FREE: 'Free',

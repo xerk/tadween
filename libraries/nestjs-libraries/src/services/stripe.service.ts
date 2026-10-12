@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { placeholderEmailDomain } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { BadRequestException } from '@nestjs/common';
 import { Organization, User } from '@prisma/client';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
@@ -8,6 +9,7 @@ import { BillingSubscribeDto } from '@gitroom/nestjs-libraries/dtos/billing/bill
 import { groupBy } from 'lodash';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
+import { aiCreditPacks } from '@gitroom/nestjs-libraries/openai/ai.config';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { TrackService } from '@gitroom/nestjs-libraries/track/track.service';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
@@ -51,12 +53,15 @@ export class StripeService extends PaymentProviderAbstract {
   }
 
   async processWebhook(event: Stripe.Event) {
-    // Maybe it comes from another stripe webhook
+    // Maybe it comes from another stripe webhook. Invoices don't carry the
+    // subscription's metadata: their handlers check it on the subscription.
     if (
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       event?.data?.object?.metadata?.service !== 'gitroom' &&
-      event.type !== 'invoice.payment_succeeded'
+      event.type !== 'invoice.payment_succeeded' &&
+      event.type !== 'invoice.payment_failed' &&
+      event.type !== 'invoice.paid'
     ) {
       return { ok: true };
     }
@@ -64,12 +69,18 @@ export class StripeService extends PaymentProviderAbstract {
     switch (event.type) {
       case 'invoice.payment_succeeded':
         return this.paymentSucceeded(event);
+      case 'invoice.payment_failed':
+      case 'invoice.paid':
+        return this.invoiceStatusChanged(event);
       case 'customer.subscription.created':
         return this.createSubscription(event);
       case 'customer.subscription.updated':
         return this.updateSubscription(event);
       case 'customer.subscription.deleted':
         return this.deleteSubscription(event);
+      case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded':
+        return this.aiCreditsPaid(event);
       default:
         return { ok: true };
     }
@@ -111,7 +122,9 @@ export class StripeService extends PaymentProviderAbstract {
     );
 
     if (!latestMethod.id) {
-      return false;
+      // A trial started without a card ("Skip for now") has nothing to check;
+      // Stripe cancels it at the end of the trial if no card is added.
+      return event.data.object.status === 'trialing';
     }
 
     try {
@@ -125,9 +138,16 @@ export class StripeService extends PaymentProviderAbstract {
         confirm: true, // Confirm the PaymentIntent
       });
 
+      // The bank asks for 3-D Secure on every payment: the hold can't be
+      // placed off-session, but the customer just passed 3-D Secure in Checkout
+      if (paymentIntent.status === 'requires_action') {
+        await stripe.paymentIntents.cancel(paymentIntent.id).catch(() => {});
+        return true;
+      }
+
       if (paymentIntent.status !== 'requires_capture') {
         console.error('Cant charge');
-        await stripe.paymentMethods.detach(paymentMethods.data[0].id);
+        await stripe.paymentMethods.detach(latestMethod.id);
         await stripe.subscriptions.cancel(event.data.object.id as string);
         return false;
       }
@@ -135,8 +155,17 @@ export class StripeService extends PaymentProviderAbstract {
       await stripe.paymentIntents.cancel(paymentIntent.id as string);
       return true;
     } catch (err) {
+      // Same 3-D Secure case, reported as an error by the off-session confirm
+      const stripeError = err as Stripe.errors.StripeError;
+      if (stripeError?.code === 'authentication_required') {
+        const intent = stripeError.payment_intent;
+        if (intent?.id) {
+          await stripe.paymentIntents.cancel(intent.id).catch(() => {});
+        }
+        return true;
+      }
       try {
-        await stripe.paymentMethods.detach(paymentMethods.data[0].id);
+        await stripe.paymentMethods.detach(latestMethod.id);
         await stripe.subscriptions.cancel(event.data.object.id as string);
       } catch (err) {
         /*dont do anything*/
@@ -183,16 +212,28 @@ export class StripeService extends PaymentProviderAbstract {
       return { ok: false };
     }
 
-    return this._subscriptionService.createOrUpdateSubscription(
+    const plan = (await this._plans.getPricing())[billing];
+    if (!plan || !period) {
+      console.error('stripe_subscription_metadata_missing', {
+        stripe_event_type: event.type,
+        stripe_event_id: event.id,
+        stripe_subscription_id: event.data.object.id,
+      });
+      return { ok: false };
+    }
+
+    const saved = await this._subscriptionService.createOrUpdateSubscription(
       STRIPE_PROVIDER,
       event.data.object.status !== 'active',
       uniqueId,
       event.data.object.customer as string,
-      (await this._plans.getPricing())[billing].channel!,
+      plan.channel!,
       billing,
       period,
       event.data.object.cancel_at
     );
+    await this.saveProviderState(event.data.object);
+    return saved;
   }
   async updateSubscription(event: Stripe.CustomerSubscriptionUpdatedEvent) {
     const { uniqueId, billing, period } = event.data.object.metadata as {
@@ -201,21 +242,37 @@ export class StripeService extends PaymentProviderAbstract {
       uniqueId: string;
     };
 
-    const check = await this.checkValidCard(event);
-    if (!check) {
+    try {
+      const check = await this.checkValidCard(event);
+      if (!check) {
+        return { ok: false };
+      }
+    } catch (err) {
       return { ok: false };
     }
 
-    return this._subscriptionService.createOrUpdateSubscription(
+    const plan = (await this._plans.getPricing())[billing];
+    if (!plan || !period) {
+      console.error('stripe_subscription_metadata_missing', {
+        stripe_event_type: event.type,
+        stripe_event_id: event.id,
+        stripe_subscription_id: event.data.object.id,
+      });
+      return { ok: false };
+    }
+
+    const saved = await this._subscriptionService.createOrUpdateSubscription(
       STRIPE_PROVIDER,
       event.data.object.status !== 'active',
       uniqueId,
       event.data.object.customer as string,
-      (await this._plans.getPricing())[billing].channel!,
+      plan.channel!,
       billing,
       period,
       event.data.object.cancel_at
     );
+    await this.saveProviderState(event.data.object);
+    return saved;
   }
 
   async deleteSubscription(event: Stripe.CustomerSubscriptionDeletedEvent) {
@@ -234,27 +291,120 @@ export class StripeService extends PaymentProviderAbstract {
       period: 'MONTHLY' | 'YEARLY';
       uniqueId: string;
     };
+    const plan = (await this._plans.getPricing())[billing];
     console.log('stripe_subscription_deleted_survivor_kept', {
       stripe_event_type: event.type,
       stripe_event_id: event.id,
       stripe_subscription_id: event.data.object.id,
       stripe_survivor_id: survivor.id,
-      outcome: pricing[billing] && period ? 'resynced' : 'metadata_missing',
+      outcome: plan && period ? 'resynced' : 'metadata_missing',
     });
-    if (!pricing[billing] || !period) {
+    if (!plan || !period) {
       return;
     }
 
-    return this._subscriptionService.createOrUpdateSubscription(
+    const saved = await this._subscriptionService.createOrUpdateSubscription(
       STRIPE_PROVIDER,
       survivor.status !== 'active',
       uniqueId,
       customer,
-      pricing[billing].channel!,
+      plan.channel!,
       billing,
       period,
       survivor.cancel_at
     );
+    await this.saveProviderState(survivor);
+    return saved;
+  }
+
+  // Stripe's status, trial end and price on the workspace's subscription row,
+  // so the app can tell a failed renewal (past_due) from a trial. Reached from
+  // webhooks: never throws.
+  private async saveProviderState(subscription: Stripe.Subscription) {
+    try {
+      const customer =
+        typeof subscription.customer === 'string'
+          ? subscription.customer
+          : subscription.customer?.id;
+      if (!customer) {
+        return;
+      }
+      const priceCents =
+        subscription.items?.data?.[0]?.price?.unit_amount ?? null;
+      await this._subscriptionService.updateProviderState(
+        customer,
+        STRIPE_PROVIDER,
+        {
+          status: subscription.status,
+          trialEndsAt: subscription.trial_end
+            ? new Date(subscription.trial_end * 1000)
+            : null,
+          priceCents,
+        }
+      );
+      // A subscription at a founder price takes a founder spot (trials too)
+      if (
+        subscription.metadata?.billing &&
+        ['trialing', 'active', 'past_due'].includes(subscription.status)
+      ) {
+        await this._plans.recordFounderSpot(
+          customer,
+          subscription.metadata.billing,
+          priceCents
+        );
+      }
+    } catch (err) {
+      console.error('stripe_subscription_state_not_saved', {
+        stripe_subscription_id: subscription?.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  async refreshSubscriptionState(organizationId: string): Promise<void> {
+    try {
+      const org = await this._organizationService.getOrgById(organizationId);
+      const [subscription] = await this.getLiveSubscriptions(
+        this.stripeCustomerId(org)
+      );
+      if (subscription) {
+        await this.saveProviderState(subscription);
+      }
+    } catch (err) {
+      console.error('stripe_subscription_state_not_refreshed', {
+        organization_id: organizationId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  // A renewal failed (the subscription goes past_due) or an invoice got paid
+  // (back to active): refresh the stored status from the subscription itself.
+  // customer.subscription.updated reports the same change; this is the belt.
+  async invoiceStatusChanged(
+    event: Stripe.InvoicePaymentFailedEvent | Stripe.InvoicePaidEvent
+  ) {
+    try {
+      const subscriptionId =
+        event.data.object.parent?.subscription_details?.subscription;
+      if (!subscriptionId) {
+        return { ok: true };
+      }
+      const subscription = await stripe.subscriptions.retrieve(
+        typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id
+      );
+      if (subscription.metadata?.service !== 'gitroom') {
+        return { ok: true };
+      }
+      await this.saveProviderState(subscription);
+    } catch (err) {
+      console.error('stripe_invoice_status_not_saved', {
+        stripe_event_type: event.type,
+        stripe_event_id: event.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return { ok: true };
   }
 
   // After a login swap, move each Stripe customer's email to the login that
@@ -286,16 +436,26 @@ export class StripeService extends PaymentProviderAbstract {
       [...emailByCustomer].map(([customerId, email]) =>
         stripe.customers
           .update(customerId, {
-            email: email.indexOf('@') > -1 ? email : `${email}@postiz.com`,
+            email: email.indexOf('@') > -1 ? email : `${email}@${placeholderEmailDomain()}`,
           })
           .catch(() => {})
       )
     );
   }
 
+  // Plans granted by an admin used to store the owner's user id in paymentId
+  // (Postiz's add-subscription). Only a `cus_…` id is a Stripe customer; any
+  // other value means the workspace has no customer yet.
+  private stripeCustomerId(organization?: { paymentId?: string | null } | null) {
+    return organization?.paymentId?.startsWith('cus_')
+      ? organization.paymentId
+      : undefined;
+  }
+
   async createOrGetCustomer(organization: Organization) {
-    if (organization.paymentId) {
-      return organization.paymentId;
+    const existing = this.stripeCustomerId(organization);
+    if (existing) {
+      return existing;
     }
 
     const users = await this._organizationService.getTeam(organization.id);
@@ -303,7 +463,7 @@ export class StripeService extends PaymentProviderAbstract {
       email:
         users.users[0].user.email.indexOf('@') > -1
           ? users.users[0].user.email
-          : `${users.users[0].user.email}@postiz.com`,
+          : `${users.users[0].user.email}@${placeholderEmailDomain()}`,
       name: organization.name,
     });
     await this._subscriptionService.updateCustomerId(
@@ -340,51 +500,7 @@ export class StripeService extends PaymentProviderAbstract {
   async prorate(organizationId: string, body: BillingSubscribeDto) {
     const org = await this._organizationService.getOrgById(organizationId);
     const customer = await this.createOrGetCustomer(org!);
-    const priceData = (await this._plans.getPricing())[body.billing];
-    const allProducts = await stripe.products.list({
-      active: true,
-      expand: ['data.prices'],
-    });
-
-    const findProduct =
-      allProducts.data.find(
-        (product) => product.name.toUpperCase() === body.billing.toUpperCase()
-      ) ||
-      (await stripe.products.create({
-        active: true,
-        name: body.billing,
-      }));
-
-    const pricesList = await stripe.prices.list({
-      active: true,
-      product: findProduct!.id,
-    });
-
-    const findPrice =
-      pricesList.data.find(
-        (p) =>
-          p?.recurring?.interval?.toLowerCase() ===
-            (body.period === 'MONTHLY' ? 'month' : 'year') &&
-          p?.nickname === body.billing + ' ' + body.period &&
-          p?.unit_amount ===
-            (body.period === 'MONTHLY'
-              ? priceData.month_price
-              : priceData.year_price) *
-              100
-      ) ||
-      (await stripe.prices.create({
-        active: true,
-        product: findProduct!.id,
-        currency: 'usd',
-        nickname: body.billing + ' ' + body.period,
-        unit_amount:
-          (body.period === 'MONTHLY'
-            ? priceData.month_price
-            : priceData.year_price) * 100,
-        recurring: {
-          interval: body.period === 'MONTHLY' ? 'month' : 'year',
-        },
-      }));
+    const findPrice = await this.findOrCreatePrice(body);
 
     const currentUserSubscription = {
       data: (
@@ -422,9 +538,12 @@ export class StripeService extends PaymentProviderAbstract {
 
   async getCustomerSubscriptions(organizationId: string) {
     const org = (await this._organizationService.getOrgById(organizationId))!;
-    const customer = org.paymentId;
+    const customer = this.stripeCustomerId(org);
+    if (!customer) {
+      return { data: [] as Stripe.Subscription[] };
+    }
     return stripe.subscriptions.list({
-      customer: customer!,
+      customer,
       status: 'all',
     });
   }
@@ -527,12 +646,13 @@ export class StripeService extends PaymentProviderAbstract {
     // getOrgById must not filter deletedAt, this can run for an organization
     // that was already soft deleted by an account deletion
     const org = await this._organizationService.getOrgById(organizationId);
-    if (!org?.paymentId) {
+    const customer = this.stripeCustomerId(org);
+    if (!org || !customer) {
       return;
     }
 
     const subscriptions = await stripe.subscriptions.list({
-      customer: org.paymentId,
+      customer,
       status: 'all',
       limit: 100,
     });
@@ -544,14 +664,14 @@ export class StripeService extends PaymentProviderAbstract {
     }
 
     await this._subscriptionService.deleteSubscription(
-      org.paymentId,
+      customer,
       STRIPE_PROVIDER
     );
   }
 
   async getCustomerByOrganizationId(organizationId: string) {
     const org = (await this._organizationService.getOrgById(organizationId))!;
-    return org.paymentId;
+    return this.stripeCustomerId(org);
   }
 
   async createBillingPortalLink(customer: string) {
@@ -564,7 +684,7 @@ export class StripeService extends PaymentProviderAbstract {
   /**
    * Find an active promotion code with autoapply: true metadata
    * Only returns codes that are active and not expired
-   * Returns the promotion code string (not the ID) for frontend auto-apply
+   * Returns the promotion code id, applied to the Checkout Session
    */
   private async findAutoApplyPromotionCode(): Promise<string | null> {
     try {
@@ -602,8 +722,8 @@ export class StripeService extends PaymentProviderAbstract {
         )
           continue;
 
-        // Found a valid auto-apply promotion code - return the code string for frontend
-        return promoCode.code;
+        // Found a valid auto-apply promotion code
+        return promoCode.id;
       }
 
       return null;
@@ -629,7 +749,7 @@ export class StripeService extends PaymentProviderAbstract {
         email:
           user.email.indexOf('@') > -1
             ? user.email
-            : `${user.email}@postiz.com`,
+            : `${user.email}@${placeholderEmailDomain()}`,
         ...(body.dub
           ? {
               metadata: {
@@ -647,16 +767,21 @@ export class StripeService extends PaymentProviderAbstract {
       autoApplyPromoCode = await this.findAutoApplyPromotionCode();
     }
 
-    const isUtm = body.utm ? `&utm_source=${body.utm}` : '';
+    const trialDays = allowTrial
+      ? await this._plans.getTrialDays(body.billing)
+      : 0;
+    // Stripe Embedded Checkout, mounted inside the billing page. The app waits
+    // for the webhook (GET /billing/check/:uniqueId) before showing success.
     const { client_secret } = await stripe.checkout.sessions.create({
-      ui_mode: 'custom',
+      ui_mode: 'embedded',
+      redirect_on_completion: 'never',
       customer,
-      return_url:
-        process.env['FRONTEND_URL'] +
-        `/launches?onboarding=true&trialStart=true&check=${uniqueId}${isUtm}`,
       mode: 'subscription',
+      // Local currency at checkout (also needs Adaptive Pricing on in the
+      // Stripe Dashboard); prices stay USD in Stripe and in the app.
+      adaptive_pricing: { enabled: true },
       subscription_data: {
-        ...(allowTrial ? { trial_period_days: 7 } : {}),
+        ...(trialDays > 0 ? { trial_period_days: trialDays } : {}),
         metadata: {
           service: 'gitroom',
           ...body,
@@ -673,7 +798,10 @@ export class StripeService extends PaymentProviderAbstract {
             },
           }
         : {}),
-      allow_promotion_codes: body.period === 'MONTHLY',
+      // Stripe allows either a pre-applied promotion or the code field
+      ...(autoApplyPromoCode
+        ? { discounts: [{ promotion_code: autoApplyPromoCode }] }
+        : { allow_promotion_codes: body.period === 'MONTHLY' }),
       line_items: [
         {
           price,
@@ -682,10 +810,9 @@ export class StripeService extends PaymentProviderAbstract {
       ],
     });
 
-    // Return auto-apply promo code for frontend to apply
     return {
       client_secret,
-      ...(autoApplyPromoCode ? { auto_apply_coupon: autoApplyPromoCode } : {}),
+      check: uniqueId,
     };
   }
 
@@ -709,6 +836,7 @@ export class StripeService extends PaymentProviderAbstract {
       });
     }
 
+    const trialDays = await this._plans.getTrialDays(body.billing);
     const { url } = await stripe.checkout.sessions.create({
       customer,
       cancel_url: process.env['FRONTEND_URL'] + `/billing?cancel=true${isUtm}`,
@@ -716,8 +844,11 @@ export class StripeService extends PaymentProviderAbstract {
         process.env['FRONTEND_URL'] +
         `/launches?onboarding=true&trialStart=true&check=${uniqueId}${isUtm}`,
       mode: 'subscription',
+      adaptive_pricing: { enabled: true },
       subscription_data: {
-        ...(allowTrial ? { trial_period_days: 7 } : {}),
+        ...(allowTrial && trialDays > 0
+          ? { trial_period_days: trialDays }
+          : {}),
         metadata: {
           service: 'gitroom',
           ...body,
@@ -744,9 +875,13 @@ export class StripeService extends PaymentProviderAbstract {
   }
 
   async finishTrial(organization: Organization) {
+    const customer = this.stripeCustomerId(organization);
+    if (!customer) {
+      return;
+    }
     const list = (
       await stripe.subscriptions.list({
-        customer: organization.paymentId,
+        customer,
       })
     ).data.filter((f) => f.status === 'trialing');
 
@@ -756,7 +891,7 @@ export class StripeService extends PaymentProviderAbstract {
   }
 
   async checkDiscount(organization: Organization) {
-    const customer = organization.paymentId;
+    const customer = this.stripeCustomerId(organization);
     if (!process.env.STRIPE_DISCOUNT_ID || !customer) {
       return false;
     }
@@ -796,7 +931,7 @@ export class StripeService extends PaymentProviderAbstract {
   }
 
   async applyDiscount(organization: Organization) {
-    const customer = organization.paymentId;
+    const customer = this.stripeCustomerId(organization);
     const check = this.checkDiscount(organization);
     if (!check) {
       return false;
@@ -851,6 +986,212 @@ export class StripeService extends PaymentProviderAbstract {
     return 0;
   }
 
+  // The Stripe price for a plan and period: found by amount on the tier's
+  // product, created when the admin changed the plan's price.
+  private async findOrCreatePrice(body: BillingSubscribeDto) {
+    const priceData = (await this._plans.getPricing())[body.billing];
+    const amount =
+      (body.period === 'MONTHLY'
+        ? priceData.month_price
+        : priceData.year_price) * 100;
+    const allProducts = await stripe.products.list({
+      active: true,
+      limit: 100,
+    });
+
+    // Products are keyed by tier (metadata, or the name on older products)
+    // and carry the plan's name, which Checkout, invoices and the portal show.
+    const name = await this._plans.getPlanName(body.billing);
+    const existing =
+      allProducts.data.find((product) => product.metadata?.tier === body.billing) ||
+      allProducts.data.find(
+        // Products created before plan names: named exactly as the tier
+        (product) => !product.metadata?.tier && product.name === body.billing
+      );
+    const findProduct = existing
+      ? existing.name === name && existing.metadata?.tier === body.billing
+        ? existing
+        : await stripe.products.update(existing.id, {
+            name,
+            metadata: { tier: body.billing },
+          })
+      : await stripe.products.create({
+          active: true,
+          name,
+          metadata: { tier: body.billing },
+        });
+
+    const pricesList = await stripe.prices.list({
+      active: true,
+      product: findProduct!.id,
+      limit: 100,
+    });
+
+    return (
+      pricesList.data.find(
+        (p) =>
+          p?.recurring?.interval?.toLowerCase() ===
+            (body.period === 'MONTHLY' ? 'month' : 'year') &&
+          p?.unit_amount === amount
+      ) ||
+      (await stripe.prices.create({
+        active: true,
+        product: findProduct!.id,
+        currency: 'usd',
+        nickname: body.billing + ' ' + body.period,
+        unit_amount: amount,
+        recurring: {
+          interval: body.period === 'MONTHLY' ? 'month' : 'year',
+        },
+      }))
+    );
+  }
+
+  // "Skip for now": the plan's free trial without a card. Stripe cancels the
+  // subscription when the trial ends without a payment method, and the
+  // deleted webhook puts the workspace back on the paywall.
+  async startTrial(
+    uniqueId: string,
+    organizationId: string,
+    userId: string,
+    body: BillingSubscribeDto,
+    allowTrial: boolean
+  ) {
+    // Only a plan on sale can be tried, and only with its own trial length
+    const plan = await this._plans.getActivePlan(body.billing);
+    const trialDays = allowTrial && plan ? plan.trialDays : 0;
+    if (!trialDays) {
+      throw new BadRequestException('This plan has no free trial to start');
+    }
+    const id = makeId(10);
+    const org = await this._organizationService.getOrgById(organizationId);
+    const customer = await this.createOrGetCustomer(org!);
+    if ((await this.getLiveSubscriptions(customer)).length) {
+      return { blocked: true };
+    }
+    const price = await this.findOrCreatePrice(body);
+    await stripe.subscriptions.create({
+      customer,
+      items: [{ price: price.id, quantity: 1 }],
+      trial_period_days: trialDays,
+      trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },
+      payment_settings: { save_default_payment_method: 'on_subscription' },
+      metadata: {
+        service: 'gitroom',
+        ...body,
+        userId,
+        uniqueId: id,
+        ud: uniqueId,
+      },
+    });
+    return { check: id };
+  }
+
+  // Trial end and whether a card is on file, for the in-app trial banner
+  async getTrialInfo(organizationId: string) {
+    const org = await this._organizationService.getOrgById(organizationId);
+    const [subscription] = await this.getLiveSubscriptions(
+      this.stripeCustomerId(org)
+    );
+    if (!subscription || subscription.status !== 'trialing') {
+      return null;
+    }
+    const methods = await stripe.paymentMethods.list({
+      customer: subscription.customer as string,
+      limit: 1,
+    });
+    return {
+      trialEnd: subscription.trial_end
+        ? new Date(subscription.trial_end * 1000)
+        : null,
+      hasPaymentMethod:
+        !!subscription.default_payment_method || methods.data.length > 0,
+    };
+  }
+
+  // AI credits top-up: a one-time payment in Embedded Checkout. The pack and
+  // the workspace travel in the session metadata; the webhook credits them.
+  async embeddedAiCredits(
+    organizationId: string,
+    userId: string,
+    packId: string
+  ) {
+    const pack = aiCreditPacks.find((p) => p.id === packId)!;
+    const org = await this._organizationService.getOrgById(organizationId);
+    const customer = await this.createOrGetCustomer(org!);
+
+    const { id, client_secret } = await stripe.checkout.sessions.create({
+      ui_mode: 'embedded',
+      redirect_on_completion: 'never',
+      customer,
+      mode: 'payment',
+      adaptive_pricing: { enabled: true },
+      metadata: {
+        service: 'gitroom',
+        type: 'ai_credits',
+        organizationId,
+        userId,
+        credits: String(pack.credits),
+      },
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: 'usd',
+            unit_amount: pack.amount,
+            product_data: {
+              name: `${pack.credits} AI credits`,
+            },
+          },
+        },
+      ],
+    });
+
+    return {
+      client_secret,
+      check: id,
+    };
+  }
+
+  // Webhook: credits a paid top-up once (keyed by the session id). Must not
+  // throw: a failure is logged with what is needed to credit it by hand.
+  async aiCreditsPaid(
+    event:
+      | Stripe.CheckoutSessionCompletedEvent
+      | Stripe.CheckoutSessionAsyncPaymentSucceededEvent
+  ) {
+    try {
+      const session = event.data.object;
+      if (
+        session.mode !== 'payment' ||
+        session.metadata?.type !== 'ai_credits' ||
+        session.payment_status !== 'paid' ||
+        !session.metadata?.organizationId
+      ) {
+        return { ok: true };
+      }
+
+      const credits = parseInt(session.metadata.credits || '', 10);
+      if (!Number.isFinite(credits) || credits <= 0) {
+        console.error('AI credits checkout without a credits amount', session.id);
+        return { ok: true };
+      }
+
+      await this._subscriptionService.addAiCreditPurchase(
+        session.id,
+        session.metadata.organizationId,
+        credits,
+        session.amount_total || 0,
+        session.currency || 'usd',
+        'stripe'
+      );
+    } catch (e) {
+      console.error('Error processing AI credits payment:', e);
+    }
+
+    return { ok: true };
+  }
+
   async embedded(
     uniqueId: string,
     organizationId: string,
@@ -859,55 +1200,12 @@ export class StripeService extends PaymentProviderAbstract {
     allowTrial: boolean
   ) {
     const id = makeId(10);
-    const priceData = (await this._plans.getPricing())[body.billing];
     const org = await this._organizationService.getOrgById(organizationId);
     const customer = await this.createOrGetCustomer(org!);
     if ((await this.getLiveSubscriptions(customer)).length) {
       return { blocked: true };
     }
-    const allProducts = await stripe.products.list({
-      active: true,
-      expand: ['data.prices'],
-    });
-
-    const findProduct =
-      allProducts.data.find(
-        (product) => product.name.toUpperCase() === body.billing.toUpperCase()
-      ) ||
-      (await stripe.products.create({
-        active: true,
-        name: body.billing,
-      }));
-
-    const pricesList = await stripe.prices.list({
-      active: true,
-      product: findProduct!.id,
-    });
-
-    const findPrice =
-      pricesList.data.find(
-        (p) =>
-          p?.recurring?.interval?.toLowerCase() ===
-            (body.period === 'MONTHLY' ? 'month' : 'year') &&
-          p?.unit_amount ===
-            (body.period === 'MONTHLY'
-              ? priceData.month_price
-              : priceData.year_price) *
-              100
-      ) ||
-      (await stripe.prices.create({
-        active: true,
-        product: findProduct!.id,
-        currency: 'usd',
-        nickname: body.billing + ' ' + body.period,
-        unit_amount:
-          (body.period === 'MONTHLY'
-            ? priceData.month_price
-            : priceData.year_price) * 100,
-        recurring: {
-          interval: body.period === 'MONTHLY' ? 'month' : 'year',
-        },
-      }));
+    const findPrice = await this.findOrCreatePrice(body);
 
     return this.createEmbeddedCheckout(
       uniqueId,
@@ -928,52 +1226,9 @@ export class StripeService extends PaymentProviderAbstract {
     allowTrial: boolean
   ) {
     const id = makeId(10);
-    const priceData = (await this._plans.getPricing())[body.billing];
     const org = await this._organizationService.getOrgById(organizationId);
     const customer = await this.createOrGetCustomer(org!);
-    const allProducts = await stripe.products.list({
-      active: true,
-      expand: ['data.prices'],
-    });
-
-    const findProduct =
-      allProducts.data.find(
-        (product) => product.name.toUpperCase() === body.billing.toUpperCase()
-      ) ||
-      (await stripe.products.create({
-        active: true,
-        name: body.billing,
-      }));
-
-    const pricesList = await stripe.prices.list({
-      active: true,
-      product: findProduct!.id,
-    });
-
-    const findPrice =
-      pricesList.data.find(
-        (p) =>
-          p?.recurring?.interval?.toLowerCase() ===
-            (body.period === 'MONTHLY' ? 'month' : 'year') &&
-          p?.unit_amount ===
-            (body.period === 'MONTHLY'
-              ? priceData.month_price
-              : priceData.year_price) *
-              100
-      ) ||
-      (await stripe.prices.create({
-        active: true,
-        product: findProduct!.id,
-        currency: 'usd',
-        nickname: body.billing + ' ' + body.period,
-        unit_amount:
-          (body.period === 'MONTHLY'
-            ? priceData.month_price
-            : priceData.year_price) * 100,
-        recurring: {
-          interval: body.period === 'MONTHLY' ? 'month' : 'year',
-        },
-      }));
+    const findPrice = await this.findOrCreatePrice(body);
 
     const getCurrentSubscriptions =
       await this._subscriptionService.getSubscription(organizationId);
@@ -988,6 +1243,12 @@ export class StripeService extends PaymentProviderAbstract {
         userId,
         allowTrial
       );
+    }
+
+    // A plan granted by an admin has no Stripe subscription to change: the
+    // app takes the workspace through Checkout for the new plan instead
+    if (!(await this.getLiveSubscriptions(customer)).length) {
+      return { checkout: true };
     }
 
     const currentUserSubscription = {
@@ -1052,12 +1313,13 @@ export class StripeService extends PaymentProviderAbstract {
 
   async getCharges(organizationId: string) {
     const org = await this._organizationService.getOrgById(organizationId);
-    if (!org?.paymentId) {
+    const customer = this.stripeCustomerId(org);
+    if (!customer) {
       return [];
     }
 
     const charges = await stripe.charges.list({
-      customer: org.paymentId,
+      customer,
       limit: 100,
     });
 
@@ -1103,7 +1365,7 @@ export class StripeService extends PaymentProviderAbstract {
 
   async refundCharges(organizationId: string, chargeIds: string[]) {
     const org = await this._organizationService.getOrgById(organizationId);
-    if (!org?.paymentId) {
+    if (!this.stripeCustomerId(org)) {
       throw new Error('No payment customer found for this organization');
     }
 
@@ -1124,11 +1386,10 @@ export class StripeService extends PaymentProviderAbstract {
 
   async cancelSubscription(organizationId: string) {
     const org = await this._organizationService.getOrgById(organizationId);
-    if (!org?.paymentId) {
+    const customer = this.stripeCustomerId(org);
+    if (!customer) {
       throw new Error('No payment customer found for this organization');
     }
-
-    const customer = org.paymentId;
 
     const subscriptions = await this.getLiveSubscriptions(customer);
 
@@ -1196,20 +1457,29 @@ export class StripeService extends PaymentProviderAbstract {
       );
 
     const stripeSubscription = await this.getActiveStripeSubscription(
-      org?.paymentId
+      this.stripeCustomerId(org)
     );
 
     const coupons = this.mapSubscriptionDiscounts(stripeSubscription);
     const priceData = subscription
       ? (await this._plans.getPricing())[subscription.subscriptionTier]
       : undefined;
-    const monthlyPrice = priceData?.month_price || 0;
+    // A locked founder price stays what the subscription pays after the
+    // plan's price changed: Stripe's price (stored by the webhooks) wins
+    const paid =
+      typeof subscription?.priceCents === 'number'
+        ? subscription.priceCents / 100
+        : null;
+    const monthlyPrice =
+      paid !== null && subscription?.period === 'MONTHLY'
+        ? paid
+        : priceData?.month_price || 0;
 
     let nextPayment: number | null = null;
     if (stripeSubscription) {
       try {
         const preview = await stripe.invoices.createPreview({
-          customer: org!.paymentId!,
+          customer: this.stripeCustomerId(org)!,
           subscription: stripeSubscription.id,
         });
         nextPayment = preview.total / 100;
@@ -1225,7 +1495,7 @@ export class StripeService extends PaymentProviderAbstract {
       monthlyPrice,
       planPrice:
         subscription?.period === 'YEARLY'
-          ? priceData?.year_price || 0
+          ? paid ?? (priceData?.year_price || 0)
           : monthlyPrice,
       nextPayment,
       coupons,
@@ -1319,14 +1589,13 @@ export class StripeService extends PaymentProviderAbstract {
 
   async chatbaseRefundPreview(organizationId: string) {
     const org = await this._organizationService.getOrgById(organizationId);
-    if (!org?.paymentId) {
+    const customer = this.stripeCustomerId(org);
+    if (!customer) {
       return {
         eligible: false as const,
         reason: 'No payment customer found for this organization',
       };
     }
-
-    const customer = org.paymentId;
 
     const subscriptions = (
       await stripe.subscriptions.list({

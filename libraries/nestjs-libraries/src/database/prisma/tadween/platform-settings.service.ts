@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PlatformSettingsRepository } from '@gitroom/nestjs-libraries/database/prisma/tadween/platform-settings.repository';
 import {
+  BRAND_LINK_KEYS,
   Branding,
   brandingDefaults,
+  DEFAULT_FOUNDER_CAP,
+  DEFAULT_YEARLY_DISCOUNT_PERCENT,
   FEATURE_KEYS,
   FeatureKey,
   featureDefaultsFromEnv,
@@ -15,6 +18,7 @@ const KEYS = {
   registration: 'registration',
   features: 'features',
   branding: 'branding',
+  billing: 'billing',
 } as const;
 
 // Settings are read on hot paths (sign-up, every page load), so they are kept
@@ -81,14 +85,79 @@ export class PlatformSettingsService {
     return (await this.values())[KEYS.branding] || {};
   }
 
-  // What any visitor may read: no secrets, nothing per-user.
+  // Percent off 12 monthly payments when paying yearly (default 17).
+  async getYearlyDiscountPercent(): Promise<number> {
+    const stored = (await this.values())[KEYS.billing]?.yearlyDiscountPercent;
+    return Number.isInteger(stored) && stored >= 0 && stored <= 90
+      ? stored
+      : DEFAULT_YEARLY_DISCOUNT_PERCENT;
+  }
+
+  async setYearlyDiscountPercent(percent: number, userId: string) {
+    return this.save(
+      KEYS.billing,
+      {
+        ...((await this.values())[KEYS.billing] || {}),
+        yearlyDiscountPercent: percent,
+      },
+      userId
+    );
+  }
+
+  // The founder offer's window: open for the first `cap` paying workspaces
+  // (counted from `startsAt`, all time when unset) and until `endsAt` when
+  // set. cap 0 = no founder offer.
+  async getFounderWindow(): Promise<{
+    cap: number;
+    startsAt: string | null;
+    endsAt: string | null;
+  }> {
+    const stored = (await this.values())[KEYS.billing]?.founder || {};
+    const date = (value: unknown) =>
+      typeof value === 'string' && !isNaN(Date.parse(value)) ? value : null;
+    return {
+      cap:
+        Number.isInteger(stored.cap) && stored.cap >= 0
+          ? stored.cap
+          : DEFAULT_FOUNDER_CAP,
+      startsAt: date(stored.startsAt),
+      endsAt: date(stored.endsAt),
+    };
+  }
+
+  async setFounderWindow(
+    founder: { cap: number; startsAt: string | null; endsAt: string | null },
+    userId: string
+  ) {
+    return this.save(
+      KEYS.billing,
+      {
+        ...((await this.values())[KEYS.billing] || {}),
+        founder: {
+          cap: founder.cap,
+          startsAt: founder.startsAt || null,
+          endsAt: founder.endsAt || null,
+        },
+      },
+      userId
+    );
+  }
+
+  // What any visitor may read: no secrets, nothing per-user. `ai.available`
+  // only says whether an OpenAI key is set, so the app can hide the assistant
+  // instead of mounting it against a runtime that can't answer.
   async getPublicSettings() {
     const [mode, features, branding] = await Promise.all([
       this.getRegistrationMode(),
       this.getFeatures(),
       this.getBranding(),
     ]);
-    return { registration: { mode }, features, branding };
+    return {
+      registration: { mode },
+      features,
+      branding,
+      ai: { available: !!process.env.OPENAI_API_KEY },
+    };
   }
 
   setRegistrationMode(mode: RegistrationMode, userId: string) {
@@ -115,6 +184,10 @@ export class PlatformSettingsService {
         supportEmail: branding.supportEmail || '',
         defaultLanguage: branding.defaultLanguage,
         defaultTimezone: branding.defaultTimezone || '',
+        ...BRAND_LINK_KEYS.reduce(
+          (all, key) => ({ ...all, [key]: (branding[key] || '').trim() }),
+          {} as Record<string, string>
+        ),
       },
       userId
     );

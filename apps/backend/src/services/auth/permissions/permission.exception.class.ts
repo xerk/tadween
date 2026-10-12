@@ -9,6 +9,7 @@ export enum Sections {
   COMMUNITY_FEATURES = 'community_features',
   FEATURED_BY_GITROOM = 'featured_by_gitroom',
   AI = 'ai',
+  AI_CREDITS = 'ai_credits',
   IMPORT_FROM_CHANNELS = 'import_from_channels',
   ADMIN = 'admin',
   WEBHOOKS = 'webhooks',

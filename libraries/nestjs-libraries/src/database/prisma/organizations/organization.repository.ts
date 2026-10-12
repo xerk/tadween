@@ -1,4 +1,5 @@
 import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
+import { placeholderEmailDomain } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { Role, ShortLinkPreference, SubscriptionTier } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
@@ -40,7 +41,7 @@ export class OrganizationRepository {
                 activated: true,
                 email: email
                   ? email.split('@').join(`+${saasName}@`)
-                  : `${saasName}+` + makeId(10) + '@postiz.com',
+                  : `${saasName}+` + makeId(10) + '@' + placeholderEmailDomain(),
                 name: name ? `${name}###${id}` : `Unnamed User###${id}`,
                 providerName: 'LOCAL',
                 password: AuthService.hashPassword(makeSecureId(500)),
@@ -272,6 +273,8 @@ export class OrganizationRepository {
             totalChannels: true,
             isLifetime: true,
             createdAt: true,
+            status: true,
+            trialEndsAt: true,
           },
         },
       },
@@ -402,6 +405,33 @@ export class OrganizationRepository {
         email,
       },
     });
+  }
+
+  // The org's tier and how many members it has besides its owners.
+  async getTeamSeats(orgId: string) {
+    const org = await this._organization.model.organization.findFirst({
+      where: { id: orgId },
+      select: {
+        subscription: { select: { subscriptionTier: true, deletedAt: true } },
+        _count: {
+          select: {
+            users: {
+              where: {
+                role: { not: 'SUPERADMIN' },
+                disabled: false,
+                user: { deletedAt: null },
+              },
+            },
+          },
+        },
+      },
+    });
+    return {
+      tier: org?.subscription?.deletedAt
+        ? undefined
+        : org?.subscription?.subscriptionTier,
+      members: org?._count.users || 0,
+    };
   }
 
   async addUserToOrg(

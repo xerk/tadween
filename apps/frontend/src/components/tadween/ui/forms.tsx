@@ -208,18 +208,16 @@ export function SegmentedControl<T extends string>({
     defaultValue ?? options[0]?.value,
     onChange
   );
-  const i = Math.max(
-    0,
-    options.findIndex((o) => o.value === v)
-  );
+  // a value that isn't one of the options selects nothing (no thumb)
+  const i = options.findIndex((o) => o.value === v);
   return (
     <div
       className={cx('pz-seg', `pz-seg-${size}`)}
       role="tablist"
       aria-label={label}
-      style={{ ['--n' as string]: options.length, ['--i' as string]: i }}
+      style={{ ['--n' as string]: options.length, ['--i' as string]: Math.max(0, i) }}
     >
-      <span className="pz-seg-thumb" aria-hidden="true" />
+      {i >= 0 ? <span className="pz-seg-thumb" aria-hidden="true" /> : null}
       {options.map((o) => (
         <button
           key={o.value}

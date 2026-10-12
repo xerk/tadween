@@ -14,16 +14,6 @@
 $tdw-ws-phone: '(max-width: 768px)';
 $tdw-ws-side: '(max-width: 1099px)';
 
-// Hidden from sight, still read by screen readers (icon-only Create)
-@mixin tdw-ws-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 // ── 1. Layout ───────────────────────────────────────────────────────────────
 .tdw-ws {
   --ws-line: color-mix(in srgb, var(--tdw-foreground) 8%, transparent);
@@ -33,21 +23,25 @@ $tdw-ws-side: '(max-width: 1099px)';
   flex: 1;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  // the side panel's track opens and closes on the spring curve (the panel
+  // keeps its width and slides out of the clipped edge)
+  grid-template-columns: minmax(0, 1fr) 0px;
+  overflow-x: clip;
+  transition: grid-template-columns 360ms var(--tdw-ease-spring);
   background: var(--tdw-background);
   color: var(--tdw-foreground);
 
   &.has-side {
-    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-columns: minmax(0, 1fr) 288px;
 
     @media (max-width: 1360px) {
-      grid-template-columns: minmax(0, 1fr) 264px;
+      grid-template-columns: minmax(0, 1fr) 260px;
     }
   }
 
   @media #{$tdw-ws-side} {
     &.has-side {
-      grid-template-columns: minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) 0px;
     }
   }
 }
@@ -91,7 +85,7 @@ $tdw-ws-side: '(max-width: 1099px)';
 // it the containing block of Postiz's position:fixed menus inside it.
 .tdw-ws-bar {
   position: relative;
-  z-index: 30;
+  z-index: var(--tdw-z-sticky);
   margin: 12px 16px 0;
   padding: 10px 10px 10px 18px;
   border-radius: 18px;
@@ -533,6 +527,12 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
     color: var(--tdw-muted-foreground);
   }
 
+  // The month says the whole day name; phones use the short one (section 10)
+  .tdw-ws-month .tdw-ws-dh-short,
+  .tdw-ws-more-short {
+    display: none;
+  }
+
   .tdw-ws-week .tdw-ws-dh {
     flex-direction: row;
     align-items: center;
@@ -579,11 +579,16 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
     display: none;
   }
 
+  .tdw-ws-month .tdw-ws-dh-long {
+    display: inline;
+  }
+
   // Hour labels sit on the line that starts their hour
   .tdw-ws-hour {
     align-items: flex-start;
     justify-content: flex-end;
-    padding: 0 10px 0 0;
+    padding-block: 0;
+    padding-inline: 6px 12px; // the gap sits on the grid side in both directions
     font-size: 11px;
     line-height: 14px;
     color: var(--tdw-muted-foreground);
@@ -650,7 +655,8 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
     color: #fff;
   }
 
-  // Postiz's slot cell: no inner border, past hours quiet instead of striped.
+  // Postiz's slot cell: no inner border. Past hours are disabled the way
+  // Postiz shows them (no "+", no drop): hairline stripes on a muted fill.
   // The cell stretches its column; min-h-full (a % of an auto-height grid
   // item) would otherwise stop tall content from growing the row.
   .tdw-ws-cell {
@@ -666,12 +672,17 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
   }
 
   .repeated-strip {
-    background-image: none;
-    background-color: color-mix(in srgb, var(--tdw-muted) 38%, transparent);
+    background-color: color-mix(in srgb, var(--tdw-muted) 45%, transparent);
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 6px,
+      color-mix(in srgb, var(--tdw-foreground) 6%, transparent) 6px 7px
+    );
   }
 
-  .tdw-ws-cell.is-today .repeated-strip {
-    background-color: color-mix(in srgb, var(--tdw-muted) 30%, transparent);
+  // Today's tint only covers the hours still ahead; the now-line is the edge
+  .tdw-ws-cell.is-today:has(> .repeated-strip) {
+    background: none;
   }
 
   .col-calendar {
@@ -731,6 +742,8 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
   .tdw-ws-day-list {
     display: grid;
     grid-template-columns: 72px minmax(0, 1fr);
+    // Rows hug their posts, so a tall post never runs into the next slot
+    grid-auto-rows: max-content;
     align-content: start;
     column-gap: 14px;
     padding-block: 16px 24px;
@@ -894,9 +907,6 @@ html[dir] body .tdw-ws .tdw-chip {
     transform: scale(0.98);
   }
 
-  &[data-state='published'] {
-    opacity: 0.8;
-  }
 
   &[data-state='draft'] {
     background: color-mix(in srgb, var(--tdw-muted) 55%, var(--tdw-card));
@@ -907,9 +917,15 @@ html[dir] body .tdw-ws .tdw-chip {
     background: color-mix(in oklab, var(--tdw-destructive) 7%, var(--tdw-card));
   }
 
+  // The drag source sets an inline `opacity`, so past posts fade through
+  // `filter` instead (it composes with it)
   &.is-past {
-    filter: saturate(0.5);
-    opacity: 0.72;
+    filter: saturate(0.45) opacity(0.7);
+  }
+
+  &.is-past:hover,
+  &.is-past:focus-within {
+    filter: none;
   }
 }
 html[dir='rtl'] body .tdw-ws .tdw-chip::before {
@@ -1036,6 +1052,22 @@ html[dir='rtl'] body .tdw-ws .tdw-chip::before {
   display: none !important;
 }
 
+// Touch screens have no hover: every chip shows only ⋯, which opens the same
+// actions, and the chip's text keeps clear of it
+@media (hover: none) {
+  .tdw-chip-acts > .tdw-chip-act:not(.tdw-chip-more) {
+    display: none;
+  }
+
+  .tdw-chip-acts > .tdw-chip-more {
+    display: grid !important;
+  }
+
+  .tdw-ws .tdw-chip-meta {
+    padding-inline-end: 24px;
+  }
+}
+
 @container (max-width: 210px) {
   .tdw-chip-acts > .tdw-chip-act:not(.tdw-chip-more) {
     display: none;
@@ -1049,6 +1081,42 @@ html[dir='rtl'] body .tdw-ws .tdw-chip::before {
 
   .tdw-chip-acts > .tdw-chip-more {
     display: grid !important;
+  }
+}
+
+// A month chip on a phone is a day column wide: only the avatar shows (the
+// status edge stays) and a tap opens the post as before
+@container (max-width: 64px) {
+  .tdw-ws .tdw-chip--month .tdw-chip-main,
+  .tdw-ws .tdw-chip--month .tdw-chip-acts,
+  .tdw-ws .tdw-chip--month .tdw-chip-published,
+  .tdw-ws .tdw-chip--month .tdw-chip-error {
+    display: none !important;
+  }
+
+  .tdw-ws .tdw-chip--month .tdw-chip-body {
+    display: flex;
+    justify-content: center;
+    padding: 4px 2px 4px 5px;
+  }
+
+  .tdw-ws .tdw-chip--month .tdw-chip-avatar,
+  .tdw-ws .tdw-chip--month .tdw-chip-avatar > img:first-child {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+// Touch screens: ⋯ keeps its 22px look but takes a 40px tap
+@media (hover: none) {
+  .tdw-chip-act.tdw-chip-more {
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -9px;
+    }
   }
 }
 
@@ -1116,24 +1184,261 @@ html[dir='rtl'] body .tdw-ws .tdw-chip::before {
   }
 }
 
-// ── 7. Side panel ───────────────────────────────────────────────────────────
-.tdw-ws-side {
-  display: none;
-  flex-direction: column;
-  gap: 28px;
-  min-width: 0;
-  padding: 24px 20px 28px;
-  border-inline-start: 1px solid var(--ws-line);
-  background: var(--tdw-background);
+// Hover card: the whole post beside its chip (chip.preview.tsx, portalled)
+.tdw-chip-card {
+  --card-ink: var(--tdw-primary);
+  position: fixed;
+  z-index: 170;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--tdw-popover) 96%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 0 0 1px var(--tdw-border), var(--tdw-shadow-lg);
+  color: var(--tdw-foreground);
+  font-size: 13px;
+  line-height: 1.45;
+  transform-origin: top left;
+  animation: tdw-ws-pop 200ms var(--tdw-ease-spring) both;
 
-  .tdw-ws.has-side & {
-    display: flex;
+  &.is-start {
+    transform-origin: top right;
   }
 
+  &[data-state='published'] {
+    --card-ink: var(--tdw-success);
+  }
+
+  &[data-state='failed'] {
+    --card-ink: var(--tdw-destructive);
+  }
+
+  &[data-state='draft'] {
+    --card-ink: var(--tdw-muted-foreground);
+  }
+}
+html[dir='rtl'] .tdw-chip-card {
+  transform-origin: top right;
+
+  &.is-start {
+    transform-origin: top left;
+  }
+}
+
+.tdw-chip-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tdw-chip-card-who {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  line-height: 1.3;
+
+  b,
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  b {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  span {
+    font-size: 12px;
+    color: var(--tdw-muted-foreground);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.tdw-chip-card-state {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--card-ink) 12%, transparent);
+  color: var(--card-ink);
+  font-size: 11px;
+  font-weight: 600;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+}
+
+.tdw-chip-card-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tdw-destructive) 9%, transparent);
+  color: var(--tdw-destructive);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+
+  svg {
+    flex: none;
+    margin-top: 1px;
+  }
+}
+
+// About eight lines, then it scrolls and fades out at the bottom
+.tdw-chip-card-text {
+  max-height: calc(1.45em * 8);
+  margin: 0;
+  overflow-y: auto;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  unicode-bidi: plaintext;
+  text-align: start;
+  scrollbar-width: thin;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+  padding-bottom: 10px;
+
+  &:focus-visible {
+    outline: 2px solid var(--tdw-ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.tdw-chip-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 11px;
+    background: var(--tdw-muted);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+}
+
+.tdw-chip-card-acts {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--tdw-border);
+}
+
+.tdw-chip-card-grow {
+  flex: 1;
+}
+
+.tdw-chip-card-edit,
+.tdw-chip-card-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--tdw-muted-foreground);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--tdw-accent);
+    color: var(--tdw-foreground);
+    outline: none;
+  }
+
+  &.is-danger:hover,
+  &.is-danger:focus-visible {
+    color: var(--tdw-destructive);
+  }
+}
+
+.tdw-chip-card-edit {
+  gap: 6px;
+  padding: 0 12px;
+  background: var(--tdw-primary-strong);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--tdw-primary-strong);
+    color: #fff;
+    filter: brightness(1.08);
+  }
+}
+
+.tdw-chip-card-act {
+  width: 30px;
+
+  svg {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+// ── 7. Side panel ───────────────────────────────────────────────────────────
+.tdw-ws-side {
+  flex-direction: column;
+  gap: 18px;
+  // fixed width: the grid track animates, the content doesn't reflow
+  width: 276px;
+  min-width: 0;
+  padding: 16px 14px;
+  // a floating card, like the sidebar on the other side of the page
+  margin-inline-start: 12px;
+  transition: opacity 240ms ease, transform 360ms var(--tdw-ease-spring);
+
+  &[data-state='closed'] {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+
+  @media (max-width: 1360px) {
+    width: 248px;
+  }
+  margin-bottom: 12px;
+  border-radius: 20px;
+  background: var(--tdw-card);
+  box-shadow: inset 0 0 0 1px var(--tdw-border),
+    0 8px 24px -16px rgb(0 0 0 / 0.35);
+
+  // mounted only while open or sliding out (workspace.tsx)
+  display: flex;
+
   @media #{$tdw-ws-side} {
-    .tdw-ws.has-side & {
-      display: none;
-    }
+    display: none;
   }
 
   section {
@@ -1317,7 +1622,7 @@ html[dir='rtl'] .tdw-ws-draft {
 .tdw-mini {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px 0;
+  gap: 2px;
   text-align: center;
 
   em {
@@ -1352,9 +1657,16 @@ html[dir='rtl'] .tdw-ws-draft {
       opacity: 0.5;
     }
 
+    // The days shown on the calendar, each its own soft tile
     &.is-range {
-      border-radius: 0;
       background: var(--tdw-muted);
+    }
+
+    // The day last clicked
+    &.is-picked {
+      border-radius: 9px;
+      box-shadow: inset 0 0 0 1.5px var(--tdw-primary);
+      font-weight: 600;
     }
 
     &.is-today {
@@ -1444,6 +1756,12 @@ html[dir='rtl'] .tdw-ws-sheet {
   display: none;
 }
 
+// double-clicking a chip ("show only that one") mustn't select the text around it
+.tdw-ws-sheet-head,
+.tdw-ws-sheet-filter {
+  user-select: none;
+}
+
 .tdw-ws-sheet-head {
   display: flex;
   align-items: center;
@@ -1524,7 +1842,7 @@ html[dir='rtl'] .tdw-ws-sheet-head {
 // Tablets: Postiz's own `mobile` shell (the page scrolls), desktop workspace
 @media (min-width: 769px) and (max-width: 1025px) {
   .tdw-ws-cal {
-    min-height: calc(100dvh - 190px);
+    min-height: calc(100dvh - 190px - var(--tdw-dock-space));
   }
 }
 
@@ -1617,6 +1935,21 @@ html[dir='rtl'] .tdw-ws-sheet-head {
 }
 
 @media #{$tdw-ws-phone} {
+  // All seven days on screen, with short day names and a short "+n"
+  .tdw-ws .tdw-ws-month {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .tdw-ws .tdw-ws-month .tdw-ws-dh-long,
+  .tdw-ws .tdw-ws-month .tdw-ws-more-long {
+    display: none;
+  }
+
+  .tdw-ws .tdw-ws-month .tdw-ws-dh-short,
+  .tdw-ws .tdw-ws-month .tdw-ws-more-short {
+    display: inline;
+  }
+
   .tdw-ws-bar {
     margin: 8px 8px 0;
     padding: 10px 10px 10px 14px;
@@ -1631,10 +1964,11 @@ html[dir='rtl'] .tdw-ws-sheet-head {
     line-height: 24px;
   }
 
+  // Day view moves between days by swiping (and the day strip), so its arrows
+  // go; week and month keep previous / next
   .tdw-ws.is-day .tdw-ws-range,
-  .tdw-ws-arrow,
-  .tdw-ws-create,
-  .tdw-ws-liststate {
+  .tdw-ws.is-day .tdw-ws-arrow,
+  .tdw-ws-create {
     display: none !important;
   }
 
@@ -1647,15 +1981,39 @@ html[dir='rtl'] .tdw-ws-sheet-head {
   }
 
 
-  // The view switch gets its own full-width row
-  .tdw-ws-views {
+  // Row 1 holds the title and navigation (with the arrows of week and month
+  // it has no room for more); row 2 the view switch with Channels beside it;
+  // the list view's post-state filter gets a row of its own below
+  .tdw-ws-views,
+  .tdw-ws-liststate {
     order: 10;
-    flex-basis: 100%;
+    // The view switch: too wide to share row 1, narrow enough to share row 2
+    // with Channels (the list filter overrides the basis below)
+    flex: 1 1 220px;
+    min-width: 0;
 
     .pz-seg {
       display: grid;
       width: 100%;
     }
+
+    // a finger-sized switch
+    .pz-seg-item {
+      min-height: 36px;
+    }
+  }
+
+  .tdw-ui.tdw-ws-bar .pz-btn-sm {
+    min-height: 36px;
+  }
+
+  .tdw-ws-channels {
+    order: 11;
+  }
+
+  .tdw-ws-liststate {
+    order: 12;
+    flex-basis: 100%;
   }
 
   .tdw-ws-canvas {
@@ -1671,7 +2029,10 @@ html[dir='rtl'] .tdw-ws-sheet-head {
     min-height: calc(100dvh - 310px);
   }
 
+  // Rows take their full content height even when the day overflows the
+  // scroller, so a slot's posts and its "+" never spill into the next slot
   .tdw-ws .tdw-ws-day-list {
+    grid-auto-rows: max-content;
     grid-template-columns: 62px minmax(0, 1fr);
     column-gap: 8px;
     padding-block: 12px 96px;
@@ -1712,8 +2073,18 @@ html[dir='rtl'] .tdw-ws-sheet-head {
     }
   }
 
-  .tdw-ws .tdw-ws-day-slot:has(.tdw-chip) div:has(> div > .tdw-ws-day-add) {
-    display: none;
+  // A slot that has posts keeps a slim "+" under them to add another
+  .tdw-ws .tdw-ws-day-slot:has(.tdw-chip) div:has(> .tdw-ws-day-add) {
+    min-height: 0;
+  }
+
+  .tdw-ws .tdw-ws-day-slot:has(.tdw-chip) .tdw-ws-day-add {
+    min-height: 30px;
+    opacity: 0.55;
+
+    &::after {
+      font-size: 17px;
+    }
   }
 
   .tdw-ws .tdw-ws-day-slot:has(.tdw-chip) > div:not(.repeated-strip) {
@@ -1724,11 +2095,12 @@ html[dir='rtl'] .tdw-ws-sheet-head {
     min-height: 44px;
   }
 
-  // Floating Create button above the safe area (the AI generator above it)
+  // The AI generator floats above the dock (Create post is the dock's own
+  // centre button, tadween/shell/dock.tsx)
   .tdw-ws-fab {
     position: fixed;
     inset-inline-end: 18px;
-    bottom: calc(22px + env(safe-area-inset-bottom));
+    bottom: calc(var(--tdw-dock-space) + 8px);
     z-index: 60;
     display: flex;
     flex-direction: column;
@@ -1740,35 +2112,6 @@ html[dir='rtl'] .tdw-ws-sheet-head {
       height: 44px;
       border-radius: 50%;
       box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.35);
-    }
-
-    > button {
-      display: grid;
-      place-items: center;
-      width: 56px !important;
-      height: 56px;
-      min-height: 56px !important;
-      max-height: 56px !important;
-      padding: 0 !important;
-      border: 0;
-      border-radius: 50% !important;
-      background: var(--tdw-primary-strong);
-      color: #fff;
-      box-shadow: 0 10px 24px -8px color-mix(in srgb, var(--tdw-primary-strong) 70%, transparent), 0 2px 6px rgba(0, 0, 0, 0.18);
-      transition: transform 220ms var(--tdw-ease-spring);
-
-      &:active {
-        transform: scale(0.92);
-      }
-
-      > div {
-        @include tdw-ws-sr-only;
-      }
-
-      svg {
-        width: 24px;
-        height: 24px;
-      }
     }
   }
 
@@ -1853,8 +2196,8 @@ html[dir='rtl'] .tdw-ws-sheet-head {
   .tdw-ws-sheet,
   .tdw-ws-scrim,
   .tdw-ws-menu,
+  .tdw-chip-card,
   .tdw-ws-dayitem,
-  .tdw-ws-fab > button,
   html body .tdw-ws .tdw-chip {
     animation: none !important;
     transition-duration: 1ms !important;
@@ -1864,5 +2207,16 @@ html[dir='rtl'] .tdw-ws-sheet-head {
   .tdw-ws-nextrow:hover,
   html body .tdw-ws .tdw-chip:hover {
     transform: none;
+  }
+}
+
+html[dir='rtl'] .tdw-ws-side[data-state='closed'] {
+  transform: translateX(-24px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tdw-ws,
+  .tdw-ws-side {
+    transition: none;
   }
 }

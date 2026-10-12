@@ -40,6 +40,7 @@ import SkoolProvider from '@gitroom/frontend/components/new-launch/providers/sko
 import WhopProvider from '@gitroom/frontend/components/new-launch/providers/whop/whop.provider';
 import MeweProvider from '@gitroom/frontend/components/new-launch/providers/mewe/mewe.provider';
 import TumblrProvider from '@gitroom/frontend/components/new-launch/providers/tumblr/tumblr.provider';
+import WebsiteProvider from '@gitroom/frontend/components/new-launch/providers/website/website.provider';
 
 export const Providers = [
   {
@@ -182,8 +183,21 @@ export const Providers = [
     identifier: 'tumblr',
     component: TumblrProvider,
   },
+  {
+    identifier: 'website',
+    component: WebsiteProvider,
+  },
 ];
-export const ShowAllProviders = forwardRef((props, ref) => {
+// a channel the composer has a preview for
+export const hasPreview = (identifier: string) =>
+  Providers.some((provider) => provider.identifier === identifier);
+
+// previewIntegration: the channel the inspector shows while editing "All
+// channels" (the first selected one when unset)
+export const ShowAllProviders = forwardRef<
+  unknown,
+  { previewIntegration?: string }
+>((props, ref) => {
   const { date, current, global, selectedIntegrations, allIntegrations } =
     useLaunchStore(
       useShallow((state) => ({
@@ -196,6 +210,12 @@ export const ShowAllProviders = forwardRef((props, ref) => {
     );
 
   const t = useT();
+  const previewable = selectedIntegrations.filter((p) =>
+    hasPreview(p.integration.identifier)
+  );
+  const previewed =
+    previewable.find((p) => p.integration.id === props.previewIntegration) ||
+    previewable[0];
 
   useImperativeHandle(ref, () => ({
     checkAllValid: async () => {
@@ -217,7 +237,7 @@ export const ShowAllProviders = forwardRef((props, ref) => {
 
   return (
     <div className="w-full flex flex-col flex-1">
-      {current === 'global' && (
+      {current === 'global' && !previewed && (
         <IntegrationContext.Provider
           value={{
             date,
@@ -240,7 +260,7 @@ export const ShowAllProviders = forwardRef((props, ref) => {
             </div>
           ) : (
             <div className="border border-borderPreview rounded-[12px] shadow-previewShadow">
-              <GeneralPreviewComponent maximumCharacters={100000000} />
+              <GeneralPreviewComponent maximumCharacters={100000000} global />
             </div>
           )}
         </IntegrationContext.Provider>
@@ -258,6 +278,10 @@ export const ShowAllProviders = forwardRef((props, ref) => {
             ref={integration.ref}
             key={integration.integration.id}
             id={integration.integration.id}
+            previewed={
+              current === 'global' &&
+              previewed?.integration.id === integration.integration.id
+            }
           />
         );
       })}

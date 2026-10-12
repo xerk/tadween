@@ -16,6 +16,7 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 import clsx from 'clsx';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 export const Webhooks: FC = () => {
   const fetch = useFetch();
@@ -99,6 +100,18 @@ export const Webhooks: FC = () => {
               ))}
             </div>
           )}
+          {data && !data.length ? (
+            <TadweenEmptyState
+              size="sm"
+              icon="webhook"
+              className="tdw-empty-with-next"
+              title={t('tdw_no_webhooks', 'No webhooks yet')}
+              body={t(
+                'tdw_no_webhooks_body',
+                'Add one to get an HTTP call whenever a post is published.'
+              )}
+            />
+          ) : null}
           <div>
             <Button
               onClick={addWebhook()}
@@ -216,7 +229,7 @@ export const AddOrEditWebhook: FC<{
               id: 'cm6s4uyou0001i2r47pxix6z1',
               name: 'test',
               providerIdentifier: 'instagram',
-              picture: 'https://uploads.gitroom.com/F6LSCD8wrrQ.jpeg',
+              picture: `${window.location.origin}/no-picture.jpg`,
               type: 'social',
             },
           },
@@ -230,7 +243,7 @@ export const AddOrEditWebhook: FC<{
               id: 'cm6s4uyou0001i2r47pxix6z1',
               name: 'test2',
               providerIdentifier: 'facebook',
-              picture: 'https://uploads.gitroom.com/F6LSCD8wrrQ.jpeg',
+              picture: `${window.location.origin}/no-picture.jpg`,
               type: 'social',
             },
           },

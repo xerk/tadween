@@ -36,8 +36,14 @@ export const Popover: FC<{
     const h = ref.current.offsetHeight;
     const w = ref.current.offsetWidth;
     setUp(a.bottom + h + 12 > window.innerHeight && a.top - h - 12 > 0);
+    // `start` / `end` follow the reading direction: in RTL the start edge is the right one
+    const rtl = getComputedStyle(anchor.current).direction === 'rtl';
+    const overflowsRight = a.left + w > window.innerWidth - 8;
+    const overflowsLeft = a.right - w < 8;
     setFlip(
-      align === 'start' ? a.left + w > window.innerWidth - 8 : a.right - w < 8
+      align === 'start'
+        ? rtl ? overflowsLeft : overflowsRight
+        : rtl ? overflowsRight : overflowsLeft
     );
   }, [open, mounted]);
   useEffect(() => {

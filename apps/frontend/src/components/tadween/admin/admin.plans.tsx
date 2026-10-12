@@ -7,7 +7,6 @@ import {
   Banner,
   Button,
   ConfirmDialog,
-  cx,
   Dialog,
   EmptyState,
   Icon,
@@ -18,13 +17,19 @@ import {
   SegmentedControl,
   Select,
   Switch,
-  Table,
+  DataTable,
   Textarea,
 } from '@gitroom/frontend/components/tadween/ui';
-import { INSTANCE_SETTINGS_KEY } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import {
+  INSTANCE_SETTINGS_KEY,
+  useTadweenPricing,
+} from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import { PlanCard } from '@gitroom/frontend/components/tadween/billing/plans.view';
+import { formatUsd } from '@gitroom/frontend/components/tadween/billing/pricing';
 import { AdminPage } from './admin.shell';
 import {
   AdminPlan,
+  AdminPlansData,
   Tier,
   TIER_LABEL,
   useAdminMutation,
@@ -32,6 +37,10 @@ import {
 } from './admin.api';
 
 const TIERS: Tier[] = ['STANDARD', 'TEAM', 'PRO', 'ULTIMATE'];
+
+// Same rule as the server (PlansService yearlyPriceFrom)
+const yearlyFrom = (monthly: number, discount: number) =>
+  Math.round(monthly * 12 * (1 - discount / 100));
 
 const limit = (v: number, unit: string) =>
   v < 0 ? `Unlimited ${unit}` : `${v.toLocaleString('en-US')} ${unit}`;
@@ -43,15 +52,16 @@ type FormState = {
   description: string;
   tier: Tier;
   monthlyPriceUsd: string;
-  yearlyPriceUsd: string;
-  monthlyPriceEgp: string;
-  yearlyPriceEgp: string;
+  // '' = no founder offer
+  founderMonthlyPriceUsd: string;
   trialDays: string;
   mostPopular: boolean;
   channels: string;
   teamMembers: string;
   postsPerMonth: string;
   aiCredits: string;
+  // '' = the tier's static value
+  webhooks: string;
   features: string;
   providerPriceIdMonthly: string;
   providerPriceIdYearly: string;
@@ -65,15 +75,18 @@ const toForm = (p?: AdminPlan, position = 0): FormState => ({
   description: p?.description || '',
   tier: p?.tier || 'STANDARD',
   monthlyPriceUsd: String(p?.monthlyPriceUsd ?? 0),
-  yearlyPriceUsd: String(p?.yearlyPriceUsd ?? 0),
-  monthlyPriceEgp: String(p?.monthlyPriceEgp ?? 0),
-  yearlyPriceEgp: String(p?.yearlyPriceEgp ?? 0),
+  founderMonthlyPriceUsd:
+    p?.founderMonthlyPriceUsd === null || p?.founderMonthlyPriceUsd === undefined
+      ? ''
+      : String(p.founderMonthlyPriceUsd),
   trialDays: String(p?.trialDays ?? 7),
   mostPopular: !!p?.mostPopular,
   channels: String(p?.channels ?? 5),
   teamMembers: String(p?.teamMembers ?? 0),
   postsPerMonth: String(p?.postsPerMonth ?? -1),
   aiCredits: String(p?.aiCredits ?? 0),
+  webhooks:
+    p?.webhooks === null || p?.webhooks === undefined ? '' : String(p.webhooks),
   features: (p?.features || []).join('\n'),
   providerPriceIdMonthly: p?.providerPriceIdMonthly || '',
   providerPriceIdYearly: p?.providerPriceIdYearly || '',
@@ -87,7 +100,7 @@ const validate = (f: FormState) => {
   const errors: Partial<Record<keyof FormState, string>> = {};
   if (!/^[a-z0-9-]{2,32}$/.test(f.key)) errors.key = 'Lowercase letters, numbers and dashes, 2 to 32 characters.';
   if (!f.name.trim()) errors.name = 'Give the plan a name.';
-  (['monthlyPriceUsd', 'yearlyPriceUsd', 'monthlyPriceEgp', 'yearlyPriceEgp', 'trialDays', 'channels', 'position'] as const).forEach((k) => {
+  (['monthlyPriceUsd', 'trialDays', 'channels', 'position'] as const).forEach((k) => {
     const n = int(f[k]);
     if (!Number.isInteger(n) || n < 0) errors[k] = 'A whole number, 0 or more.';
   });
@@ -95,6 +108,15 @@ const validate = (f: FormState) => {
     const n = int(f[k]);
     if (!Number.isInteger(n) || n < -1) errors[k] = 'A whole number; -1 means unlimited.';
   });
+  if (f.webhooks.trim() !== '') {
+    const n = int(f.webhooks);
+    if (!Number.isInteger(n) || n < -1) errors.webhooks = 'Empty for the tier default, or a whole number; -1 means unlimited.';
+  }
+  if (f.founderMonthlyPriceUsd.trim() !== '') {
+    const n = int(f.founderMonthlyPriceUsd);
+    if (!Number.isInteger(n) || n < 0) errors.founderMonthlyPriceUsd = 'Empty for no founder price, or a whole number.';
+    else if (n >= int(f.monthlyPriceUsd)) errors.founderMonthlyPriceUsd = 'Lower than the list price, or empty.';
+  }
   return errors;
 };
 
@@ -104,15 +126,14 @@ const toBody = (f: FormState) => ({
   description: f.description.trim() || undefined,
   tier: f.tier,
   monthlyPriceUsd: int(f.monthlyPriceUsd),
-  yearlyPriceUsd: int(f.yearlyPriceUsd),
-  monthlyPriceEgp: int(f.monthlyPriceEgp),
-  yearlyPriceEgp: int(f.yearlyPriceEgp),
+  founderMonthlyPriceUsd: f.founderMonthlyPriceUsd.trim() === '' ? null : int(f.founderMonthlyPriceUsd),
   trialDays: int(f.trialDays),
   mostPopular: f.mostPopular,
   channels: int(f.channels),
   teamMembers: int(f.teamMembers),
   postsPerMonth: int(f.postsPerMonth),
   aiCredits: int(f.aiCredits),
+  webhooks: f.webhooks.trim() === '' ? null : int(f.webhooks),
   features: f.features.split('\n').map((x) => x.trim()).filter(Boolean),
   providerPriceIdMonthly: f.providerPriceIdMonthly.trim() || undefined,
   providerPriceIdYearly: f.providerPriceIdYearly.trim() || undefined,
@@ -124,10 +145,11 @@ const PlanDialog: FC<{
   open: boolean;
   plan?: AdminPlan;
   nextPosition: number;
+  discount: number;
   stripePrice: (tier: Tier) => { month: number; year: number } | undefined;
   onClose: () => void;
   onSaved: () => void;
-}> = ({ open, plan, nextPosition, stripePrice, onClose, onSaved }) => {
+}> = ({ open, plan, nextPosition, discount, stripePrice, onClose, onSaved }) => {
   const [form, setForm] = useState<FormState>(toForm(plan, nextPosition));
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -142,6 +164,10 @@ const PlanDialog: FC<{
     error: shownErrors[k],
   });
   const postiz = stripePrice(form.tier);
+  const monthly = int(form.monthlyPriceUsd);
+  const yearly = Number.isInteger(monthly) ? yearlyFrom(monthly, discount) : NaN;
+  const founder = int(form.founderMonthlyPriceUsd);
+  const founderYearly = Number.isInteger(founder) ? yearlyFrom(founder, discount) : NaN;
 
   const submit = async () => {
     setSubmitted(true);
@@ -165,7 +191,7 @@ const PlanDialog: FC<{
       onClose={onClose}
       size="lg"
       title={plan ? `Edit ${plan.name}` : 'Add plan'}
-      description="Prices are whole numbers. Checkout charges the USD price through Stripe."
+      description="Prices are whole US dollars. Checkout charges the founder price while the founder offer is open, then the list price; the yearly price follows the yearly discount."
       footer={
         <>
           <span className="flex-1" />
@@ -200,30 +226,52 @@ const PlanDialog: FC<{
 
         <div className="grid gap-[8px]">
           <span className="pz-label">Prices</span>
-          <div className="grid grid-cols-4 gap-[12px] mobile:grid-cols-2">
-            <Input label="USD / month" inputMode="numeric" icon="credit-card" {...text('monthlyPriceUsd')} />
-            <Input label="USD / year" inputMode="numeric" {...text('yearlyPriceUsd')} />
-            <Input label="EGP / month" inputMode="numeric" {...text('monthlyPriceEgp')} />
-            <Input label="EGP / year" inputMode="numeric" {...text('yearlyPriceEgp')} />
+          <div className="grid grid-cols-2 gap-[12px] mobile:grid-cols-1">
+            <Input label="List price, USD / month" inputMode="numeric" icon="credit-card" hint="The regular price." {...text('monthlyPriceUsd')} />
+            <Input
+              label="List price, USD / year"
+              value={Number.isNaN(yearly) ? '' : String(yearly)}
+              readOnly
+              hint={
+                Number.isNaN(yearly)
+                  ? `${discount}% off 12 months`
+                  : `= ${formatUsd(yearly)}/yr, save ${formatUsd(monthly * 12 - yearly)} (${discount}% off)`
+              }
+            />
+            <Input
+              label="Founder price, USD / month"
+              inputMode="numeric"
+              icon="star"
+              placeholder="No founder price"
+              hint="Charged instead while the founder offer is open. Empty: no founder price."
+              {...text('founderMonthlyPriceUsd')}
+            />
+            <Input
+              label="Founder price, USD / year"
+              value={Number.isNaN(founderYearly) ? '' : String(founderYearly)}
+              readOnly
+              hint={`${discount}% off 12 founder months`}
+            />
           </div>
           <p className="pz-note">
             {postiz
-              ? `Without this plan, Stripe charges $${postiz.month}/month or $${postiz.year}/year for ${TIER_LABEL[form.tier]}. New checkouts use the USD prices above; existing subscribers keep their price.`
-              : null}{' '}
-            EGP prices are stored for the pricing page; charging in EGP needs a local payment provider (later phase).
+              ? `Without this plan, Stripe charges $${postiz.month}/month or $${postiz.year}/year for the ${TIER_LABEL[form.tier]} tier. `
+              : null}
+            New checkouts use these prices; people already subscribed keep what they pay.
           </p>
         </div>
 
-        <div className="grid grid-cols-4 gap-[12px] mobile:grid-cols-2">
+        <div className="grid grid-cols-5 gap-[12px] mobile:grid-cols-2">
           <Input label="Channels" inputMode="numeric" {...text('channels')} />
-          <Input label="Team members" inputMode="numeric" hint="0 none, -1 unlimited" {...text('teamMembers')} />
+          <Input label="Team members" inputMode="numeric" hint="Besides the owner. 0 none, -1 unlimited" {...text('teamMembers')} />
           <Input label="Posts / month" inputMode="numeric" hint="-1 unlimited" {...text('postsPerMonth')} />
           <Input label="AI credits / month" inputMode="numeric" hint="0 turns AI off, -1 unlimited" {...text('aiCredits')} />
+          <Input label="Webhooks" inputMode="numeric" placeholder="Tier default" hint="0 none, -1 unlimited, empty = tier default" {...text('webhooks')} />
         </div>
 
         <Textarea
-          label="Feature bullets"
-          hint="One per line, shown on the pricing page. Leave empty to list the limits automatically."
+          label="Extra feature bullets"
+          hint="One per line. Billing and the website list the plan's limits and features automatically; these lines come after them."
           rows={5}
           {...text('features')}
         />
@@ -247,68 +295,179 @@ const PlanDialog: FC<{
   );
 };
 
-// ── Preview (design system PricingTable) ────────────────────────────────────
-const PricingPreview: FC<{ plans: AdminPlan[] }> = ({ plans }) => {
-  const [period, setPeriod] = useState<'monthly' | 'yearly'>('monthly');
-  const [currency, setCurrency] = useState<'USD' | 'EGP'>('USD');
-  const yearly = period === 'yearly';
-  const onSale = plans.filter((p) => p.active);
-  if (!onSale.length) return null;
-  const price = (p: AdminPlan) => {
-    const m = currency === 'USD' ? p.monthlyPriceUsd : p.monthlyPriceEgp;
-    const y = currency === 'USD' ? p.yearlyPriceUsd : p.yearlyPriceEgp;
-    return yearly ? Math.round(y / 12) : m;
-  };
+// ── Preview: the cards customers see (Billing and the paywall) ─────────────
+const PricingPreview: FC = () => {
+  const { plans } = useTadweenPricing();
+  const [period, setPeriod] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
+  if (!plans.length) return null;
+  const rows = plans.reduce<string[]>((all, p) => {
+    p.featureItems
+      .filter((i) => i.value !== undefined)
+      .forEach((i) => !all.includes(i.key) && all.push(i.key));
+    return all;
+  }, []);
   return (
     <Section
       title="Preview"
-      description="How the plans read on the pricing page."
+      description="The plan cards as Billing shows them, with the feature lists generated from each plan's limits."
       action={
-        <div className="flex gap-[8px]">
-          <SegmentedControl size="sm" label="Currency" value={currency} onChange={setCurrency} options={[{ value: 'USD', label: 'USD' }, { value: 'EGP', label: 'EGP' }]} />
-          <SegmentedControl size="sm" label="Billing period" value={period} onChange={setPeriod} options={[{ value: 'monthly', label: 'Monthly' }, { value: 'yearly', label: 'Yearly' }]} />
-        </div>
+        <SegmentedControl size="sm" label="Billing period" value={period} onChange={setPeriod} options={[{ value: 'MONTHLY', label: 'Monthly' }, { value: 'YEARLY', label: 'Yearly' }]} />
       }
     >
-      <div className="pz-tiers pt-[14px]" style={{ gridTemplateColumns: `repeat(${Math.min(onSale.length, 4)}, minmax(0, 1fr))` }}>
-        {onSale.map((p) => (
-          <section key={p.id} className={cx('pz-tier', p.mostPopular && 'is-popular')}>
-            {p.mostPopular ? (
-              <span className="pz-tier-flag">
-                <Icon name="star" size={12} />
-                Most popular
-              </span>
-            ) : null}
-            <h3 className="title-2 pz-tier-name">{p.name}</h3>
-            <p className="pz-tier-for">{p.description}</p>
-            <div className="pz-tier-price">
-              <span className="pz-tier-cur caption">{currency}</span>
-              <span key={period + currency} className="metric pz-tier-amount">
-                {price(p).toLocaleString('en-US')}
-              </span>
-              <span className="pz-tier-per">/ month</span>
-            </div>
-            <p className="caption pz-muted pz-tier-bill">
-              {yearly
-                ? `Billed ${currency} ${(currency === 'USD' ? p.yearlyPriceUsd : p.yearlyPriceEgp).toLocaleString('en-US')} yearly`
-                : 'Billed monthly'}
-            </p>
-            <Button variant={p.mostPopular ? 'primary' : 'secondary'} className="pz-tier-cta" tabIndex={-1}>
-              {p.trialDays ? `Start ${p.trialDays}-day trial` : 'Choose plan'}
-            </Button>
-            <ul className="pz-plan-list list-none p-0 m-0 grid gap-[8px] text-[14px]">
-              {(p.features.length
-                ? p.features
-                : [limit(p.channels, 'channels'), limit(p.postsPerMonth, 'posts a month'), p.teamMembers ? limit(p.teamMembers, 'team members') : 'Just you']
-              ).map((f) => (
-                <li key={f} className="flex gap-[8px] items-start">
-                  <Icon name="check" className="text-[var(--tdw-primary)] mt-[2px]" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-          </section>
+      <div className="tdw-plans-grid pt-[14px]" data-count={plans.length}>
+        {plans.map((p) => (
+          <PlanCard
+            key={p.key}
+            plan={p}
+            period={period}
+            rows={rows}
+            cta={
+              <Button variant={p.mostPopular ? 'primary' : 'secondary'} size="lg" className="w-full" tabIndex={-1}>
+                {p.trialDays ? `Start ${p.trialDays}-day trial` : `Choose ${p.name}`}
+              </Button>
+            }
+          />
         ))}
+      </div>
+    </Section>
+  );
+};
+
+// The founder offer: founder prices for the first `cap` paying workspaces,
+// optionally until an end date. Counted from the database.
+const dateInput = (iso: string | null) => (iso ? iso.slice(0, 10) : '');
+
+const FounderWindow: FC<{
+  window: AdminPlansData['founderWindow'];
+  offer?: AdminPlansData['founder'];
+  onSaved: () => void;
+}> = ({ window: current, offer, onSaved }) => {
+  const save = useAdminMutation();
+  const toast = useToaster();
+  const [cap, setCap] = useState(String(current.cap));
+  const [startsAt, setStartsAt] = useState(dateInput(current.startsAt));
+  const [endsAt, setEndsAt] = useState(dateInput(current.endsAt));
+  const [saving, setSaving] = useState(false);
+  const n = Number(cap);
+  const valid = cap.trim() !== '' && Number.isInteger(n) && n >= 0;
+  const changed =
+    n !== current.cap ||
+    startsAt !== dateInput(current.startsAt) ||
+    endsAt !== dateInput(current.endsAt);
+  return (
+    <Section
+      title="Founder offer"
+      description="Founder prices are charged for the first paying workspaces, counted from active Stripe subscriptions (trials and granted plans don't count). When the cap or the end date is reached, checkout charges the list price and the founder copy disappears. Founders keep their price while they stay subscribed."
+      action={
+        <Button
+          variant="primary"
+          size="sm"
+          loading={saving}
+          disabled={!valid || !changed}
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await save('/admin/console/plans/founder', 'PUT', {
+                cap: n,
+                startsAt: startsAt ? new Date(startsAt).toISOString() : null,
+                endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+              });
+              onSaved();
+              toast.show('Founder offer saved');
+            } catch (e) {
+              toast.show((e as Error).message, 'warning');
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          Save
+        </Button>
+      }
+    >
+      <div className="grid grid-cols-3 gap-[12px] pt-[8px] mobile:grid-cols-1">
+        <Input
+          label="Paying workspaces"
+          inputMode="numeric"
+          value={cap}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCap(e.target.value)}
+          hint="0 turns the founder offer off."
+          error={valid ? undefined : 'A whole number, 0 or more.'}
+        />
+        <Input
+          label="Count from"
+          type="date"
+          value={startsAt}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStartsAt(e.target.value)}
+          hint="Empty: every paying workspace counts."
+        />
+        <Input
+          label="Ends on"
+          type="date"
+          value={endsAt}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEndsAt(e.target.value)}
+          hint="Empty: no end date."
+        />
+      </div>
+      {offer ? (
+        <p className="pz-note mt-[8px]">
+          {offer.open
+            ? `Open: ${offer.spotsLeft.toLocaleString('en-US')} of ${offer.cap.toLocaleString('en-US')} founder spots left.`
+            : offer.cap === 0
+            ? 'Off: checkout charges list prices.'
+            : 'Closed: checkout charges list prices.'}
+        </p>
+      ) : null}
+    </Section>
+  );
+};
+
+// The one discount every plan's yearly price follows
+const YearlyDiscount: FC<{ value: number; onSaved: () => void }> = ({
+  value,
+  onSaved,
+}) => {
+  const save = useAdminMutation();
+  const toast = useToaster();
+  const [draft, setDraft] = useState(String(value));
+  const [saving, setSaving] = useState(false);
+  const n = Number(draft);
+  const valid = draft.trim() !== '' && Number.isInteger(n) && n >= 0 && n <= 90;
+  return (
+    <Section
+      title="Yearly discount"
+      description="Yearly price = 12 × the monthly price, minus this discount. Saving reprices every plan; existing subscriptions keep what they pay."
+      action={
+        <Button
+          variant="primary"
+          size="sm"
+          loading={saving}
+          disabled={!valid || n === value}
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await save('/admin/console/plans/yearly-discount', 'PUT', { yearlyDiscountPercent: n });
+              onSaved();
+              toast.show('Yearly prices updated');
+            } catch (e) {
+              toast.show((e as Error).message, 'warning');
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          Save
+        </Button>
+      }
+    >
+      <div className="max-w-[220px] pt-[8px]">
+        <Input
+          label="Discount (%)"
+          inputMode="numeric"
+          value={draft}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
+          error={valid ? undefined : 'A whole number from 0 to 90.'}
+        />
       </div>
     </Section>
   );
@@ -323,7 +482,10 @@ export const AdminPlansPage = () => {
   const [editing, setEditing] = useState<AdminPlan | 'new' | null>(null);
   const [removing, setRemoving] = useState<AdminPlan | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [confirmSeed, setConfirmSeed] = useState(false);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const plans = data?.plans || [];
+  const discount = data?.yearlyDiscountPercent ?? 17;
 
   const refresh = async () => {
     await mutate();
@@ -341,9 +503,10 @@ export const AdminPlansPage = () => {
   const seed = async () => {
     setSeeding(true);
     try {
-      await save('/admin/console/plans/defaults', 'POST');
+      const result = await save<{ warnings?: string[] }>('/admin/console/plans/defaults', 'POST');
       await refresh();
-      toast.show('Added Creator, Pro, Team and Agency with placeholder prices');
+      setWarnings(result?.warnings || []);
+      toast.show(result?.warnings?.length ? 'Default plans loaded, with warnings' : 'Default plans loaded: Creator, Business and Agency');
     } catch (e) {
       toast.show((e as Error).message, 'warning');
     } finally {
@@ -357,9 +520,14 @@ export const AdminPlansPage = () => {
       description="What workspaces can buy. Billing and the pricing page read these plans; without any, Postiz’s built-in pricing is used."
       action={
         plans.length ? (
-          <Button variant="primary" icon="plus" onClick={() => setEditing('new')}>
-            Add plan
-          </Button>
+          <div className="flex gap-[8px]">
+            <Button variant="ghost" loading={seeding} onClick={() => setConfirmSeed(true)}>
+              Load default plans
+            </Button>
+            <Button variant="primary" icon="plus" onClick={() => setEditing('new')}>
+              Add plan
+            </Button>
+          </div>
         ) : null
       }
     >
@@ -374,10 +542,10 @@ export const AdminPlansPage = () => {
           <EmptyState
             icon="credit-card"
             title="Billing uses Postiz’s built-in pricing"
-            body="Load the four Tadween plans with placeholder prices, then set your real EGP and USD prices before you sell."
+            body="Load the three Tadween plans, Creator, Business and Agency. They differ in limits; Business and Agency add webhooks. Prices are in US dollars, with founder prices for the first paying workspaces; yearly is the monthly price with the yearly discount."
             action={
               <Button variant="primary" loading={seeding} loadingLabel="Adding…" onClick={seed}>
-                Add the Tadween plans
+                Add Creator, Business and Agency
               </Button>
             }
             secondary={
@@ -389,14 +557,36 @@ export const AdminPlansPage = () => {
         </Section>
       ) : (
         <>
-          <Banner tone="warning" title="Check prices before you sell.">
-            The Tadween defaults are placeholders. New Stripe checkouts charge the USD price of the plan for its tier;
-            people already subscribed keep what they pay.
+          {warnings.length ? (
+            <Banner tone="warning" title="Some plans were left as they are.">
+              <ul className="list-disc ps-[18px]">
+                {warnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            </Banner>
+          ) : null}
+          <Banner tone="info" title="How prices and limits apply.">
+            New Stripe checkouts charge the plan’s USD price for its tier; people already subscribed keep what they
+            pay. Limits apply to everyone on the tier, so they can’t go below today’s while a workspace is subscribed to it.
           </Banner>
-          <Table
+          <YearlyDiscount key={discount} value={discount} onSaved={refresh} />
+          {data?.founderWindow ? (
+            <FounderWindow
+              key={JSON.stringify(data.founderWindow)}
+              window={data.founderWindow}
+              offer={data.founder}
+              onSaved={refresh}
+            />
+          ) : null}
+          <DataTable
+            id="admin-plans"
             loading={isLoading}
             rowKey={(p) => p.id}
             rows={plans}
+            paginate={false}
+            searchable={false}
+            onRowClick={(p) => setEditing(p)}
             columns={[
               {
                 key: 'name',
@@ -417,18 +607,23 @@ export const AdminPlansPage = () => {
                 key: 'usd',
                 label: 'USD',
                 render: (p) => (
-                  <span className="time">
-                    ${p.monthlyPriceUsd}/mo · ${p.yearlyPriceUsd}/yr
+                  <span className="grid">
+                    <span className="time">
+                      ${p.monthlyPriceUsd}/mo · ${p.yearlyPriceUsd}/yr
+                    </span>
+                    {p.founderMonthlyPriceUsd !== null ? (
+                      <span className="caption pz-muted time">
+                        Founder ${p.founderMonthlyPriceUsd}/mo · ${yearlyFrom(p.founderMonthlyPriceUsd, discount)}/yr
+                      </span>
+                    ) : null}
                   </span>
                 ),
               },
               {
-                key: 'egp',
-                label: 'EGP',
+                key: 'subscribers',
+                label: 'Subscribed',
                 render: (p) => (
-                  <span className="time">
-                    {p.monthlyPriceEgp.toLocaleString('en-US')}/mo · {p.yearlyPriceEgp.toLocaleString('en-US')}/yr
-                  </span>
+                  <span className="time">{data?.subscribers?.[p.tier] || 0}</span>
                 ),
               },
               {
@@ -441,6 +636,13 @@ export const AdminPlansPage = () => {
                     </span>
                     <span>
                       {limit(p.postsPerMonth, 'posts/mo')} · {p.aiCredits === 0 ? 'AI off' : limit(p.aiCredits, 'AI credits')}
+                    </span>
+                    <span>
+                      {p.webhooks === null
+                        ? 'Tier webhooks'
+                        : p.webhooks === 0
+                        ? 'No webhooks'
+                        : limit(p.webhooks, 'webhooks')}
                     </span>
                   </span>
                 ),
@@ -462,7 +664,7 @@ export const AdminPlansPage = () => {
                 label: '',
                 align: 'right',
                 render: (p) => (
-                  <span className="pz-row-actions">
+                  <span className="pz-row-actions" onClick={(e) => e.stopPropagation()}>
                     <IconButton size="sm" icon="pencil" label={`Edit ${p.name}`} onClick={() => setEditing(p)} />
                     <IconButton size="sm" icon="trash-2" label={`Delete ${p.name}`} onClick={() => setRemoving(p)} />
                   </span>
@@ -470,7 +672,7 @@ export const AdminPlansPage = () => {
               },
             ]}
           />
-          <PricingPreview plans={plans} />
+          <PricingPreview />
         </>
       )}
 
@@ -480,6 +682,7 @@ export const AdminPlansPage = () => {
           open={!!editing}
           plan={editing === 'new' ? undefined : editing}
           nextPosition={plans.length}
+          discount={discount}
           stripePrice={stripePrice}
           onClose={() => setEditing(null)}
           onSaved={() => {
@@ -490,10 +693,22 @@ export const AdminPlansPage = () => {
       ) : null}
 
       <ConfirmDialog
+        open={confirmSeed}
+        onClose={() => setConfirmSeed(false)}
+        title="Load the default plans?"
+        description="Creator, Business and Agency are added, or reset to their defaults if they exist: each takes over the plan already selling its tier (Business the old Pro on TEAM, Agency the old Business on PRO), so subscribers stay on one plan. The yearly discount goes back to 17%. Other plans are hidden, except on tiers with subscribers, which stay on sale. Nobody already subscribed loses a limit or their price."
+        confirmLabel="Load defaults"
+        onConfirm={() => {
+          setConfirmSeed(false);
+          seed();
+        }}
+      />
+
+      <ConfirmDialog
         open={!!removing}
         onClose={() => setRemoving(null)}
         title={`Delete ${removing?.name || 'plan'}?`}
-        description="It disappears from billing and the pricing page. Workspaces already on its tier keep their subscription and fall back to Postiz’s limits for that tier."
+        description="It disappears from billing and the pricing page. Workspaces already on its tier keep their subscription and fall back to Postiz’s limits for that tier. If those are lower than the plan’s, the plan can’t be deleted while anyone is subscribed."
         confirmLabel="Delete plan"
         onConfirm={async () => {
           try {

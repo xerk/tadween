@@ -7,6 +7,29 @@ export interface Params {
     response: Response
   ) => Promise<boolean>;
 }
+// With NOT_SECURED the session lives in readable cookies and travels in
+// headers instead of credentialed requests (the backend's CORS doesn't allow
+// credentials then).
+const nonSecuredCookie = (name: string) =>
+  typeof document === 'undefined'
+    ? null
+    : document.cookie
+        .split(';')
+        .find((p) => p.includes(`${name}=`))
+        ?.split('=')[1];
+
+// The same session headers, for clients that don't go through customFetch.
+export const nonSecuredAuthHeaders = (): Record<string, string> => {
+  const auth = nonSecuredCookie('auth');
+  const showorg = nonSecuredCookie('showorg');
+  const impersonate = nonSecuredCookie('impersonate');
+  return {
+    ...(auth ? { auth } : {}),
+    ...(showorg ? { showorg } : {}),
+    ...(impersonate ? { impersonate } : {}),
+  };
+};
+
 export const customFetch = (
   params: Params,
   auth?: string,
@@ -19,29 +42,9 @@ export const customFetch = (
         ? undefined
         : new URL(window.location.href).searchParams.get('loggedAuth');
     const newRequestObject = await params?.beforeRequest?.(url, options);
-    const authNonSecuredCookie =
-      typeof document === 'undefined'
-        ? null
-        : document.cookie
-            .split(';')
-            .find((p) => p.includes('auth='))
-            ?.split('=')[1];
-
-    const authNonSecuredOrg =
-      typeof document === 'undefined'
-        ? null
-        : document.cookie
-            .split(';')
-            .find((p) => p.includes('showorg='))
-            ?.split('=')[1];
-
-    const authNonSecuredImpersonate =
-      typeof document === 'undefined'
-        ? null
-        : document.cookie
-            .split(';')
-            .find((p) => p.includes('impersonate='))
-            ?.split('=')[1];
+    const authNonSecuredCookie = nonSecuredCookie('auth');
+    const authNonSecuredOrg = nonSecuredCookie('showorg');
+    const authNonSecuredImpersonate = nonSecuredCookie('impersonate');
 
     const fetchRequest = await fetch(params.baseUrl + url, {
       ...(secured ? { credentials: 'include' } : {}),

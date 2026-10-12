@@ -17,6 +17,8 @@ import {
   PreviewComment,
   usePreviewComments,
 } from '@gitroom/frontend/components/preview/preview.comments.context';
+import { Avatar, EmptyState } from '@gitroom/frontend/components/tadween/ui';
+import { RelativeTime } from '@gitroom/frontend/components/tadween/post-page/post.time';
 
 const REVIEWER_NAME_KEY = 'preview-reviewer-name';
 
@@ -306,14 +308,21 @@ const CommentComposer: FC<{
 
 const CommentBody: FC<{ comment: PreviewComment }> = ({ comment }) => {
   const t = useT();
+  const name = comment.name || t('reviewer', 'Reviewer');
   return (
-    <div className="flex flex-col gap-[4px]">
-      <div className="text-[14px] whitespace-pre-wrap break-words">
-        {comment.content}
-      </div>
-      <div className="text-[12px] text-textItemBlur">
-        {comment.name || t('reviewer', 'Reviewer')} ·{' '}
-        {dayjs(comment.createdAt).format('MMM D, YYYY HH:mm')}
+    <div className="tdw-pc-body flex gap-[10px]">
+      <Avatar name={name} size={32} />
+      <div className="flex flex-col gap-[2px] min-w-0 flex-1">
+        <div className="tdw-pc-meta flex items-baseline gap-[6px] flex-wrap text-[12px] text-textItemBlur">
+          <span className="text-[13px] font-[600] text-newTextColor">{name}</span>
+          <RelativeTime date={comment.createdAt} />
+        </div>
+        <div
+          dir="auto"
+          className="tdw-pc-text text-[14px] whitespace-pre-wrap break-words"
+        >
+          {comment.content}
+        </div>
       </div>
     </div>
   );
@@ -372,7 +381,7 @@ const ThreadCard: FC<{
       onMouseEnter={() => !resolved && setHoveredThread(comment.id)}
       onMouseLeave={() => setHoveredThread(null)}
       className={clsx(
-        'flex flex-col gap-[8px] rounded-[8px] border p-[12px] transition-colors',
+        'tdw-pc-thread flex flex-col gap-[8px] rounded-[8px] border p-[12px] transition-colors',
         resolved && 'opacity-50',
         flash || hoveredThread === comment.id || activeThread?.id === comment.id
           ? 'border-btnPrimary'
@@ -500,15 +509,23 @@ export const CommentsComponents: FC<{ previewId: string }> = () => {
 
   return (
     <div className="flex flex-col gap-[16px]">
-      <div className="text-[18px] font-[600]">{t('comments', 'Comments')}</div>
+      <div className="tdw-pc-title flex items-center gap-[8px] text-[18px] font-[600]">
+        {t('comments', 'Comments')}
+        {!!comments.length && (
+          <span className="tdw-pc-count">{comments.length}</span>
+        )}
+      </div>
       <CommentComposer />
       {!isLoading && !threads.length && (
-        <div className="text-[13px] text-textItemBlur">
-          {t(
-            'preview_no_comments_yet',
-            'No comments yet. Select some text in the post to comment on it, or add a general comment.'
+        <EmptyState
+          size="sm"
+          icon="message-circle"
+          title={t('tdw_no_comments', 'No comments yet')}
+          body={t(
+            'tdw_no_comments_body',
+            'Select some text in the post to comment on it, or add a general comment.'
           )}
-        </div>
+        />
       )}
       <div className="flex flex-col gap-[10px]">
         {threads.map(({ comment, replies }) => (

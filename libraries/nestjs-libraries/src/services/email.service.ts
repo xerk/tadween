@@ -82,6 +82,8 @@ export class EmailService {
       .catch(() => ({} as { instanceName?: string; supportEmail?: string }));
     const fromName = branding.instanceName || process.env.EMAIL_FROM_NAME;
     replyTo = replyTo || branding.supportEmail || undefined;
+    // The digest workflow (unchangeable once deployed) hard-codes "[Postiz]"
+    subject = subject.replace(/^\[Postiz\]/, `[${fromName}]`);
 
     const modifiedHtml = `
     <div style="

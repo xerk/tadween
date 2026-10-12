@@ -1,114 +1,51 @@
 'use client';
 
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC, useState } from 'react';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import {
   Avatar,
   Banner,
   Button,
   ConfirmDialog,
-  Dialog,
-  Input,
-  Pagination,
+  DataColumn,
+  DataTable,
+  Drawer,
   Pill,
-  RadioGroup,
   Section,
   Table,
+  tableQueryString,
+  useOpenRow,
+  useTableQuery,
 } from '@gitroom/frontend/components/tadween/ui';
 import { AdminPage } from './admin.shell';
 import {
   AdminUser,
   TIER_LABEL,
   useAdminMutation,
-  useAdminPlans,
+  date,
+  useAdminUser,
   useAdminUsers,
+  useExportAll,
 } from './admin.api';
+import { ChangePlanDialog, PlanTarget } from './admin.change.plan';
 
 type Workspace = AdminUser['organizations'][number];
 
-const date = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-
 const fullName = (u: AdminUser) => [u.name, u.lastName].filter(Boolean).join(' ') || u.email;
 
-const tierOf = (w: Workspace) => w.organization.subscription?.subscriptionTier || 'FREE';
+const liveSub = (w: Workspace) =>
+  w.organization.subscription && !w.organization.subscription.deletedAt
+    ? w.organization.subscription
+    : null;
+
+const tierOf = (w: Workspace) => liveSub(w)?.subscriptionTier || 'FREE';
 
 // No subscription row: Free when billing is on, everything when Stripe is off.
-const planLabel = (w: Workspace) =>
-  w.organization.subscription ? TIER_LABEL[tierOf(w)] : 'No subscription';
-
-// ── Change plan ─────────────────────────────────────────────────────────────
-const ChangePlanDialog: FC<{
-  workspace: Workspace | null;
-  onClose: () => void;
-  onDone: () => void;
-}> = ({ workspace, onClose, onDone }) => {
-  const { data: plans } = useAdminPlans();
-  const save = useAdminMutation();
-  const toast = useToaster();
-  const [tier, setTier] = useState<string>('FREE');
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState('');
-  useEffect(() => {
-    if (workspace) {
-      setTier(tierOf(workspace));
-      setErr('');
-    }
-  }, [workspace]);
-  const planName = (t: string) => plans?.plans.find((p) => p.tier === t && p.active)?.name;
-  const options = ['FREE', 'STANDARD', 'TEAM', 'PRO', 'ULTIMATE'].map((t) => ({
-    value: t,
-    label: planName(t) ? `${planName(t)} · ${TIER_LABEL[t]}` : TIER_LABEL[t],
-    description:
-      t === 'FREE'
-        ? 'Removes an admin-granted plan. Channels above the free limit are disabled.'
-        : undefined,
-  }));
-  const submit = async () => {
-    setSaving(true);
-    setErr('');
-    try {
-      await save(`/admin/console/organizations/${workspace!.organization.id}/tier`, 'PUT', { tier });
-      toast.show(`${workspace!.organization.name} is now on ${planName(tier) || TIER_LABEL[tier]}`);
-      onDone();
-      onClose();
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  };
-  return (
-    <Dialog
-      open={!!workspace}
-      onClose={onClose}
-      title="Change plan"
-      description={`For ${workspace?.organization.name || ''}. This grants the plan without a payment, like Postiz’s admin “add subscription”.`}
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="primary" loading={saving} loadingLabel="Changing…" disabled={!!workspace && tier === tierOf(workspace)} onClick={submit}>
-            Change plan
-          </Button>
-        </>
-      }
-    >
-      <div className="grid gap-[12px]">
-        {err ? (
-          <Banner tone="error" title="Couldn’t change the plan.">
-            {err}
-          </Banner>
-        ) : null}
-        <RadioGroup label="Plan" columns={1} value={tier} onChange={setTier} options={options} />
-      </div>
-    </Dialog>
-  );
-};
+const planLabel = (w: Workspace) => (liveSub(w) ? TIER_LABEL[tierOf(w)] : 'No subscription');
 
 // ── User detail ─────────────────────────────────────────────────────────────
-const UserDialog: FC<{
+const UserDrawer: FC<{
   user: AdminUser | null;
   onClose: () => void;
   onChanged: () => void;
@@ -116,7 +53,7 @@ const UserDialog: FC<{
   const save = useAdminMutation();
   const toast = useToaster();
   const [confirm, setConfirm] = useState(false);
-  const [planFor, setPlanFor] = useState<Workspace | null>(null);
+  const [planFor, setPlanFor] = useState<PlanTarget | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   // Reuses Postiz's impersonation: POST /user/impersonate with the
@@ -144,7 +81,7 @@ const UserDialog: FC<{
 
   return (
     <>
-      <Dialog
+      <Drawer
         open={!!user && !planFor && !confirm}
         onClose={onClose}
         size="lg"
@@ -165,7 +102,7 @@ const UserDialog: FC<{
         }
       >
         {user ? (
-          <div className="grid gap-[12px]">
+          <div className="grid gap-[16px]">
             <div className="flex gap-[8px] flex-wrap">
               {user.activated ? (
                 <Pill tone="ok" icon="check">Active</Pill>
@@ -175,54 +112,61 @@ const UserDialog: FC<{
               {user.isSuperAdmin ? <Pill tone="brand" icon="shield-check">Super admin</Pill> : null}
               <Pill icon="clock">Last seen {date(user.lastOnline)}</Pill>
             </div>
-            <Table
-              rowKey={(w) => w.id}
-              rows={user.organizations}
-              empty="Not a member of any workspace"
-              columns={[
-                {
-                  key: 'org',
-                  label: 'Workspace',
-                  render: (w) => (
-                    <span className="grid">
-                      <span className="pz-set-label">{w.organization.name}</span>
-                      <span className="caption pz-muted">
-                        {w.role.toLowerCase()} · {w.organization._count.Integration} channels
-                        {w.disabled ? ' · disabled member' : ''}
+            <Section title={`Workspaces · ${user.organizations.length}`}>
+              <Table
+                dense
+                rowKey={(w) => w.id}
+                rows={user.organizations}
+                empty="Not a member of any workspace"
+                columns={[
+                  {
+                    key: 'org',
+                    label: 'Workspace',
+                    render: (w) => (
+                      <a href={`/admin/organizations?open=${w.organization.id}`} className="grid no-underline text-inherit">
+                        <span className="pz-set-label">{w.organization.name}</span>
+                        <span className="caption pz-muted">
+                          {w.role.toLowerCase()} · {w.organization._count.Integration} channels
+                          {w.disabled ? ' · disabled member' : ''}
+                        </span>
+                      </a>
+                    ),
+                  },
+                  {
+                    key: 'plan',
+                    label: 'Plan',
+                    render: (w) => (
+                      <span className="inline-flex gap-[6px] items-center flex-wrap">
+                        <Pill tone={liveSub(w) ? 'brand' : 'neutral'}>{planLabel(w)}</Pill>
+                        {liveSub(w)?.isLifetime ? <Pill>Lifetime</Pill> : null}
                       </span>
-                    </span>
-                  ),
-                },
-                {
-                  key: 'plan',
-                  label: 'Plan',
-                  render: (w) => (
-                    <span className="inline-flex gap-[6px] items-center flex-wrap">
-                      <Pill tone={w.organization.subscription ? 'brand' : 'neutral'}>{planLabel(w)}</Pill>
-                      {w.organization.subscription?.isLifetime ? <Pill>Lifetime</Pill> : null}
-                    </span>
-                  ),
-                },
-                {
-                  key: 'actions',
-                  label: '',
-                  align: 'right',
-                  render: (w) => (
-                    <span className="inline-flex gap-[6px]">
-                      <Button size="sm" variant="ghost" onClick={() => setPlanFor(w)}>
-                        Change plan
-                      </Button>
-                      <Button size="sm" icon="user" loading={busy === w.id} loadingLabel="Opening…" onClick={() => impersonate(w)}>
-                        Impersonate
-                      </Button>
-                    </span>
-                  ),
-                },
-              ]}
-            />
+                    ),
+                  },
+                  {
+                    key: 'actions',
+                    label: '',
+                    align: 'right',
+                    render: (w) => (
+                      <span className="inline-flex gap-[6px]">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setPlanFor({ id: w.organization.id, name: w.organization.name, tier: tierOf(w) })}
+                        >
+                          Change plan
+                        </Button>
+                        <Button size="sm" icon="user" loading={busy === w.id} loadingLabel="Opening…" onClick={() => impersonate(w)}>
+                          Impersonate
+                        </Button>
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+            </Section>
           </div>
         ) : null}
-      </Dialog>
+      </Drawer>
       <ConfirmDialog
         open={confirm}
         onClose={() => setConfirm(false)}
@@ -238,25 +182,95 @@ const UserDialog: FC<{
 
 // ── Page ────────────────────────────────────────────────────────────────────
 export const AdminUsersPage = () => {
-  const [query, setQuery] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
-  const [openId, setOpenId] = useState<string | null>(null);
-  const { data, error, isLoading, mutate } = useAdminUsers(search, page);
+  const t = useT();
+  const toast = useToaster();
+  const save = useAdminMutation();
+  const { query, setQuery } = useTableQuery({ filters: ['status', 'role'] });
+  const qs = tableQueryString(query);
+  const { data, error, isLoading, isValidating, mutate } = useAdminUsers(qs);
+  const [openId, setOpenId] = useOpenRow();
+  const exportAll = useExportAll();
+  const [bulk, setBulk] = useState<{ users: AdminUser[]; activated: boolean } | null>(null);
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setSearch(query.trim());
-      setPage(0);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [query]);
+  const onPage = data?.items.find((u) => u.id === openId) || null;
+  const { data: single, mutate: mutateSingle } = useAdminUser(
+    openId && data && !onPage ? openId : null
+  );
+  const open = onPage || (single?.id === openId ? single : null);
 
-  const open = data?.users.find((u) => u.id === openId) || null;
+  // One request per user through the same endpoint as the drawer; super
+  // admins and your own account are refused by the server and counted.
+  const applyBulk = async () => {
+    const results = await Promise.allSettled(
+      bulk!.users.map((u) =>
+        save(`/admin/console/users/${u.id}/activation`, 'PUT', { activated: bulk!.activated })
+      )
+    );
+    const failed = results.filter((r) => r.status === 'rejected').length;
+    toast.show(
+      failed
+        ? `${results.length - failed} updated, ${failed} skipped (super admins and your own account can’t be changed)`
+        : `${results.length} users ${bulk!.activated ? 'activated' : 'deactivated'}`,
+      failed ? 'warning' : 'success'
+    );
+    mutate();
+  };
+
+  const columns: DataColumn<AdminUser>[] = [
+    {
+      key: 'name',
+      label: t('tdw_admin_user', 'User'),
+      title: 'User',
+      sortable: true,
+      hideable: false,
+      csv: (u) => fullName(u),
+      render: (u) => (
+        <span className="pz-cell-person">
+          <Avatar name={fullName(u)} size={28} />
+          <span className="min-w-0">
+            <span className="pz-set-label truncate">{fullName(u)}</span>
+            <span className="caption pz-muted truncate">{u.email}</span>
+          </span>
+        </span>
+      ),
+    },
+    { key: 'email', label: t('tdw_admin_email', 'Email'), title: 'Email', sortable: true, defaultHidden: true, csv: (u) => u.email, render: (u) => u.email },
+    {
+      key: 'workspaces',
+      label: t('tdw_admin_workspaces', 'Workspaces'),
+      title: 'Workspaces',
+      csv: (u) => u.organizations.map((w) => `${w.organization.name} (${planLabel(w)})`).join('; '),
+      render: (u) => (
+        <span className="caption grid">
+          {u.organizations.slice(0, 2).map((w) => (
+            <span key={w.id}>
+              {w.organization.name} <span className="pz-muted">· {planLabel(w)}</span>
+            </span>
+          ))}
+          {u.organizations.length > 2 ? <span className="pz-muted">+{u.organizations.length - 2} more</span> : null}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      label: t('tdw_admin_col_status', 'Status'),
+      title: 'Status',
+      csv: (u) => (u.activated ? 'active' : 'inactive') + (u.isSuperAdmin ? ' super admin' : ''),
+      render: (u) => (
+        <span className="inline-flex gap-[6px] flex-wrap">
+          {u.activated ? <Pill tone="ok" icon="check">Active</Pill> : <Pill tone="warn" icon="lock">Inactive</Pill>}
+          {u.isSuperAdmin ? <Pill tone="brand" icon="shield-check">Admin</Pill> : null}
+        </span>
+      ),
+    },
+    { key: 'provider', label: t('tdw_admin_sign_in', 'Sign-in'), title: 'Sign-in', defaultHidden: true, csv: (u) => u.providerName, render: (u) => <span className="caption">{u.providerName.toLowerCase()}</span> },
+    { key: 'lastOnline', label: t('tdw_admin_last_seen', 'Last seen'), title: 'Last seen', sortable: true, csv: (u) => u.lastOnline, render: (u) => <span className="time">{date(u.lastOnline)}</span> },
+    { key: 'createdAt', label: t('tdw_admin_joined', 'Joined'), title: 'Joined', sortable: true, csv: (u) => u.createdAt, render: (u) => <span className="time">{date(u.createdAt)}</span> },
+  ];
 
   return (
     <AdminPage
-      title="Users"
+      title={t('tdw_admin_users', 'Users')}
       description="Everyone with an account on this instance. Open a user to impersonate them, change a workspace’s plan or deactivate them."
     >
       {error ? (
@@ -264,81 +278,73 @@ export const AdminUsersPage = () => {
           {error.message}
         </Banner>
       ) : null}
-      <Section
-        title={data ? `${data.total.toLocaleString('en-US')} users` : 'Users'}
-        action={
-          <Input
-            aria-label="Search users"
-            icon="search"
-            placeholder="Name, email, workspace or ID"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+      <DataTable
+        id="admin-users"
+        columns={columns}
+        rows={data?.items || []}
+        total={data?.total || 0}
+        rowKey={(u) => u.id}
+        query={query}
+        onQueryChange={setQuery}
+        loading={isLoading || isValidating}
+        error={error ? error.message : null}
+        onRetry={() => mutate()}
+        searchPlaceholder="Name, email, workspace or ID"
+        filters={[
+          {
+            key: 'status',
+            label: t('tdw_admin_col_status', 'Status'),
+            options: [
+              { value: 'active', label: 'Active' },
+              { value: 'inactive', label: 'Inactive' },
+            ],
+          },
+          {
+            key: 'role',
+            label: t('tdw_admin_role', 'Role'),
+            options: [
+              { value: 'superadmin', label: 'Super admin' },
+              { value: 'member', label: 'Everyone else' },
+            ],
+          },
+        ]}
+        onRowClick={(u) => setOpenId(u.id)}
+        activeKey={openId}
+        selectable
+        bulkActions={(rows, clear) => (
+          <>
+            <button type="button" className="pz-link-btn" onClick={() => { setBulk({ users: rows, activated: true }); clear(); }}>
+              Activate
+            </button>
+            <button type="button" className="pz-link-btn" onClick={() => { setBulk({ users: rows, activated: false }); clear(); }}>
+              Deactivate
+            </button>
+          </>
+        )}
+        exportAll={() => exportAll<AdminUser>('/admin/console/users', qs)}
+        empty="No users yet"
+      />
+      <UserDrawer
+        user={open}
+        onClose={() => setOpenId(null)}
+        onChanged={() => {
+          mutate();
+          mutateSingle();
+        }}
+      />
+      <ConfirmDialog
+        open={!!bulk}
+        onClose={() => setBulk(null)}
+        tone={bulk?.activated ? 'primary' : 'destructive'}
+        title={`${bulk?.activated ? 'Activate' : 'Deactivate'} ${bulk?.users.length || 0} users?`}
+        description={
+          bulk?.activated
+            ? 'They can sign in again.'
+            : 'They’re signed out on their next request and can’t sign in until you activate them again. Super admins and your own account are skipped.'
         }
-      >
-        <Table
-          loading={isLoading && !data}
-          rowKey={(u) => u.id}
-          rows={data?.users || []}
-          empty={search ? `No users match “${search}”` : 'No users yet'}
-          columns={[
-            {
-              key: 'person',
-              label: 'User',
-              render: (u) => (
-                <span className="pz-cell-person">
-                  <Avatar name={fullName(u)} size={28} />
-                  <span>
-                    <span className="pz-set-label">{fullName(u)}</span>
-                    <span className="caption pz-muted">{u.email}</span>
-                  </span>
-                </span>
-              ),
-            },
-            {
-              key: 'workspaces',
-              label: 'Workspaces',
-              render: (u) => (
-                <span className="caption grid">
-                  {u.organizations.slice(0, 2).map((w) => (
-                    <span key={w.id}>
-                      {w.organization.name} <span className="pz-muted">· {planLabel(w)}</span>
-                    </span>
-                  ))}
-                  {u.organizations.length > 2 ? <span className="pz-muted">+{u.organizations.length - 2} more</span> : null}
-                </span>
-              ),
-            },
-            {
-              key: 'status',
-              label: 'Status',
-              render: (u) => (
-                <span className="inline-flex gap-[6px] flex-wrap">
-                  {u.activated ? <Pill tone="ok" icon="check">Active</Pill> : <Pill tone="warn" icon="lock">Inactive</Pill>}
-                  {u.isSuperAdmin ? <Pill tone="brand" icon="shield-check">Admin</Pill> : null}
-                </span>
-              ),
-            },
-            { key: 'joined', label: 'Joined', render: (u) => <span className="time">{date(u.createdAt)}</span> },
-            {
-              key: 'open',
-              label: '',
-              align: 'right',
-              render: (u) => (
-                <Button size="sm" iconEnd="chevron-right" onClick={() => setOpenId(u.id)}>
-                  Manage
-                </Button>
-              ),
-            },
-          ]}
-        />
-        {data ? (
-          <div className="pt-[12px]">
-            <Pagination page={data.page + 1} pages={data.pages} onChange={(p) => setPage(p - 1)} />
-          </div>
-        ) : null}
-      </Section>
-      <UserDialog user={open} onClose={() => setOpenId(null)} onChanged={() => mutate()} />
+        confirmLabel={bulk?.activated ? 'Activate' : 'Deactivate'}
+        onConfirm={applyBulk}
+      />
     </AdminPage>
   );
 };

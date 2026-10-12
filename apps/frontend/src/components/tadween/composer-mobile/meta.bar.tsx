@@ -7,7 +7,7 @@ import { isUSCitizen } from '@gitroom/frontend/components/launches/helpers/isusc
 import { Icon } from '@gitroom/frontend/components/tadween/ui/primitives';
 
 // The row under the channels on phones: when the post goes out (opens the
-// schedule sheet), Write / Preview, and the settings sheet.
+// schedule sheet), Write / Preview, the AI assistant and the settings sheet.
 export const ComposerMetaBar: FC<{
   date: dayjs.Dayjs;
   repeats: boolean;
@@ -15,7 +15,17 @@ export const ComposerMetaBar: FC<{
   preview: boolean;
   onPreview: (preview: boolean) => void;
   onSettings?: () => void;
-}> = ({ date, repeats, onDate, preview, onPreview, onSettings }) => {
+  // opens the AI assistant; only passed when AI is available
+  onAssistant?: () => void;
+}> = ({
+  date,
+  repeats,
+  onDate,
+  preview,
+  onPreview,
+  onSettings,
+  onAssistant,
+}) => {
   const t = useT();
   // Read after mount: localStorage / navigator don't exist during SSR.
   const [us, setUs] = useState(false);
@@ -60,6 +70,17 @@ export const ComposerMetaBar: FC<{
           {t('preview', 'Preview')}
         </button>
       </div>
+      {!!onAssistant && (
+        <button
+          type="button"
+          className="tdw-cm-icon-btn"
+          aria-label={t('tdw_cm_assistant', 'Assistant')}
+          aria-haspopup="dialog"
+          onClick={onAssistant}
+        >
+          <Icon name="sparkles" size={20} />
+        </button>
+      )}
       {!!onSettings && (
         <button
           type="button"

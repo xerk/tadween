@@ -4,7 +4,7 @@ import {
   PrismaTransaction,
 } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import dayjs from 'dayjs';
-import { Organization } from '@prisma/client';
+import { Organization, Prisma } from '@prisma/client';
 
 @Injectable()
 export class SubscriptionRepository {
@@ -13,7 +13,9 @@ export class SubscriptionRepository {
     private readonly _organization: PrismaRepository<'organization'>,
     private readonly _user: PrismaRepository<'user'>,
     private readonly _credits: PrismaRepository<'credits'>,
-    private _usedCodes: PrismaRepository<'usedCodes'>
+    private _usedCodes: PrismaRepository<'usedCodes'>,
+    private readonly _aiCreditPurchase: PrismaRepository<'aiCreditPurchase'>,
+    private readonly _transaction: PrismaTransaction
   ) {}
 
   getUserAccount(userId: string) {
@@ -128,6 +130,29 @@ export class SubscriptionRepository {
       data: {
         cancelAt: cancelAt ? new Date(cancelAt * 1000) : null,
       },
+    });
+  }
+
+  // What the payment provider reports about the live subscription (status,
+  // trial end, price), keyed like the other customer-keyed writes
+  updateProviderState(
+    customerId: string,
+    provider: string,
+    state: {
+      status: string;
+      trialEndsAt: Date | null;
+      priceCents: number | null;
+    }
+  ) {
+    return this._subscription.model.subscription.updateMany({
+      where: {
+        provider,
+        deletedAt: null,
+        organization: {
+          paymentId: customerId,
+        },
+      },
+      data: state,
     });
   }
 
@@ -327,6 +352,144 @@ export class SubscriptionRepository {
       where: {
         id,
         organizationId,
+      },
+    });
+  }
+
+  // Tadween AI credits. Rows of type "ai_credits" hold the credits an action
+  // cost; older "ai_images" rows are one image each and are counted, not summed
+  async getAiCreditsUsage(
+    organizationId: string,
+    from: Date,
+    db: Pick<Prisma.TransactionClient, 'credits' | 'aiCreditPurchase'> = this
+      ._credits.model as any
+  ) {
+    const [monthly, legacyImages, purchasedSpent, purchasedTotal] =
+      await Promise.all([
+        db.credits.aggregate({
+          where: {
+            organizationId,
+            type: 'ai_credits',
+            createdAt: { gte: from },
+          },
+          _sum: { credits: true, purchased: true },
+        }),
+        db.credits.count({
+          where: {
+            organizationId,
+            type: 'ai_images',
+            createdAt: { gte: from },
+          },
+        }),
+        db.credits.aggregate({
+          where: { organizationId, type: 'ai_credits' },
+          _sum: { purchased: true },
+        }),
+        db.aiCreditPurchase.aggregate({
+          where: { organizationId },
+          _sum: { credits: true },
+        }),
+      ]);
+
+    return {
+      monthlyUsed:
+        (monthly._sum.credits || 0) - (monthly._sum.purchased || 0),
+      legacyImages,
+      purchasedUsed: purchasedSpent._sum.purchased || 0,
+      purchasedTotal: purchasedTotal._sum.credits || 0,
+    };
+  }
+
+  // Reads the usage and writes the charge in one serializable transaction, so
+  // two parallel calls can't both spend the last credits. `split` answers the
+  // part paid from top-ups, or null to refuse. A conflicting transaction is
+  // retried.
+  async chargeAiCredits(
+    organizationId: string,
+    action: string,
+    credits: number,
+    from: Date,
+    split: (
+      usage: Awaited<ReturnType<SubscriptionRepository['getAiCreditsUsage']>>
+    ) => number | null
+  ) {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await this._transaction.model.$transaction(
+          async (tx) => {
+            const purchased = split(
+              await this.getAiCreditsUsage(organizationId, from, tx)
+            );
+            if (purchased === null) {
+              return null;
+            }
+
+            return tx.credits.create({
+              data: {
+                organizationId,
+                type: 'ai_credits',
+                action,
+                credits,
+                purchased,
+              },
+              select: {
+                id: true,
+              },
+            });
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+        );
+      } catch (err) {
+        if (
+          attempt < 5 &&
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === 'P2034'
+        ) {
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
+
+  // The checkout session id is the primary key: a webhook delivered twice
+  // credits the pack once
+  addAiCreditPurchase(
+    id: string,
+    organizationId: string,
+    credits: number,
+    amount: number,
+    currency: string,
+    provider: string
+  ) {
+    return this._aiCreditPurchase.model.aiCreditPurchase.upsert({
+      where: {
+        id,
+      },
+      create: {
+        id,
+        organizationId,
+        credits,
+        amount,
+        currency,
+        provider,
+      },
+      update: {},
+      select: {
+        id: true,
+      },
+    });
+  }
+
+  getAiCreditPurchase(organizationId: string, id: string) {
+    return this._aiCreditPurchase.model.aiCreditPurchase.findFirst({
+      where: {
+        id,
+        organizationId,
+      },
+      select: {
+        id: true,
+        credits: true,
       },
     });
   }

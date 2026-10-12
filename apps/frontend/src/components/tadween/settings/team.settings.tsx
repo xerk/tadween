@@ -95,6 +95,10 @@ const InviteMember = () => {
         body: JSON.stringify(values),
       });
       if (!response.ok) {
+        // No free seat: the upgrade paywall already opened (layout.context)
+        if (response.status === 402) {
+          return;
+        }
         const { message } = await response.json().catch(() => ({} as any));
         toast.show(
           (Array.isArray(message) ? message[0] : message) ||
@@ -354,13 +358,6 @@ export const TeamSettings = () => {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                // The settings page wraps every tab in the profile <form>;
-                // Enter here must not submit it.
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                }
-              }}
               placeholder={t('tdw_team_search', 'Search by name or email')}
               aria-label={t('tdw_team_search', 'Search by name or email')}
             />

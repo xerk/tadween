@@ -5,6 +5,10 @@ import {
 
 @AuthProvider({ provider: 'GITHUB' })
 export class GithubProvider extends AuthProviderAbstract {
+  override isConfigured() {
+    return !!process.env.GITHUB_CLIENT_ID && !!process.env.GITHUB_CLIENT_SECRET;
+  }
+
   generateLink(query?: { state?: string }): string {
     return `https://github.com/login/oauth/authorize?client_id=${
       process.env.GITHUB_CLIENT_ID

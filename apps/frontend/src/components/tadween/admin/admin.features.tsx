@@ -143,7 +143,7 @@ export const AdminFeaturesPage = () => {
                   <Row
                     key={f.key}
                     label={
-                      <span className="inline-flex items-center gap-[8px]">
+                      <span className="inline-flex flex-wrap items-center gap-[8px]">
                         {f.label}
                         {!f.applied ? (
                           <Pill icon="clock">Saved only, applied in a later release</Pill>

@@ -7,3 +7,5 @@ export * from './pickers';
 export * from './overlays';
 export * from './layout';
 export * from './feedback';
+export * from './drawer';
+export * from './data.table';

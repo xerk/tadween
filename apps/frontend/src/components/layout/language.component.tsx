@@ -9,16 +9,13 @@ import {
 import i18next from 'i18next';
 import useCookie from 'react-use-cookie';
 import ReactCountryFlag from 'react-country-flag';
-import { List, Box, Group, Text } from '@mantine/core';
 import React, { useCallback } from 'react';
 import countries from 'i18n-iso-countries';
 
 // Register required locales
 import countriesEn from 'i18n-iso-countries/langs/en.json';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { ModalWrapperComponent } from '../new-launch/modal.wrapper.component';
 
-import clsx from 'clsx';
 countries.registerLocale(countriesEn);
 
 const getCountryCodeForFlag = (languageCode: string) => {
@@ -27,7 +24,6 @@ const getCountryCodeForFlag = (languageCode: string) => {
   if (languageCode === 'es') return 'ES';
   if (languageCode === 'ar') return 'SA';
   if (languageCode === 'zh') return 'CN';
-  if (languageCode === 'he') return 'IL';
   if (languageCode === 'ja') return 'JP';
   if (languageCode === 'ko') return 'KR';
   if (languageCode === 'vi') return 'VN';
@@ -72,7 +68,7 @@ export const ChangeLanguageComponent = () => {
     setCookie(language);
     i18next.changeLanguage(language);
     modals.closeCurrent();
-    const rtlLanguages = ['he', 'ar'];
+    const rtlLanguages = ['ar'];
     const dir = rtlLanguages.includes(language) ? 'rtl' : 'ltr';
     document.documentElement.setAttribute('dir', dir);
   };
@@ -81,10 +77,10 @@ export const ChangeLanguageComponent = () => {
   const getLanguageName = useCallback((code: string) => {
     try {
       // Use browser's Intl API to get language name in native script
-      const displayNames = new Intl.DisplayNames([code], {
+      const displayNames = new Intl.DisplayNames([code.replace('_', '-')], {
         type: 'language',
       });
-      return displayNames.of(code);
+      return displayNames.of(code.replace('_', '-'));
     } catch (error) {
       // Fallback to language code if the API isn't supported or language is not found
       return code;
@@ -92,32 +88,32 @@ export const ChangeLanguageComponent = () => {
   }, []);
 
   return (
-    <div className="relative">
-      <div className="grid grid-cols-4 gap-2">
-        {availableLanguages.map((language) => (
-          <div
-            className={clsx(
-              'flex items-center flex-col bg-newTableHeader hover:bg-newTableBorder p-[20px] cursor-pointer gap-2',
-              language === currentLanguage ? 'border border-textColor' : ''
-            )}
+    <div className="tdw-lang-grid" role="listbox" aria-label={t('change_language', 'Change Language')}>
+      {availableLanguages.map((language) => {
+        const selected = language === currentLanguage;
+        return (
+          <button
+            type="button"
+            role="option"
+            aria-selected={selected}
+            className="tdw-lang-tile"
             key={language}
             onClick={() => handleLanguageChange(language)}
           >
-            <ReactCountryFlag
-              countryCode={getCountryCodeForFlag(language)}
-              svg
-              style={{
-                width: '1.5em',
-                height: '1.5em',
-              }}
-              title={language}
-            />
-            <Text weight={language === currentLanguage ? 'bold' : 'normal'}>
+            <span className="tdw-lang-flag">
+              <ReactCountryFlag
+                countryCode={getCountryCodeForFlag(language)}
+                svg
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                title={language}
+              />
+            </span>
+            <span className="tdw-lang-name" lang={language.replace('_', '-')}>
               {getLanguageName(language)}
-            </Text>
-          </div>
-        ))}
-      </div>
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 };
@@ -133,24 +129,18 @@ export const LanguageComponent = () => {
     });
   };
   return (
-    <div
+    <button
+      type="button"
       onClick={openModal}
-      className="rounded-full overflow-hidden h-[22px] w-[22px] relative cursor-pointer"
+      className="tdw-lang-trigger"
+      aria-label={t('change_language', 'Change Language')}
     >
       <ReactCountryFlag
         countryCode={getCountryCodeForFlag(currentLanguage)}
         svg
-        style={{
-          width: '22px',
-          height: '22px',
-          position: 'absolute',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          objectFit: 'cover',
-        }}
+        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         title={currentLanguage}
       />
-    </div>
+    </button>
   );
 };

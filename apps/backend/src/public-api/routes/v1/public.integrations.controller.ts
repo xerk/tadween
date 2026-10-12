@@ -55,6 +55,10 @@ import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/adm
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { GetOrgActivityDto } from '@gitroom/nestjs-libraries/dtos/analytics/get.org.activity.dto';
 import dayjs from 'dayjs';
+import {
+  PROVIDER_NOT_AVAILABLE,
+  ProviderSettingsService,
+} from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-settings.service';
 
 @ApiTags('Public API')
 @Controller('/public/v1')
@@ -69,7 +73,8 @@ export class PublicIntegrationsController {
     private _usersService: UsersService,
     private _adminStatsService: AdminStatsService,
     private _organizationService: OrganizationService,
-    private _clippingService: ClippingService
+    private _clippingService: ClippingService,
+    private _providerSettings: ProviderSettingsService
   ) {}
 
   @Post('/upload')
@@ -212,7 +217,7 @@ export class PublicIntegrationsController {
   ) {
     Sentry.metrics.count('public_api-request', 1);
     const getPostById = await this._postsService.getPost(org.id, id);
-    return this._postsService.deletePost(org.id, getPostById.group);
+    return this._postsService.deletePost(org.id, getPostById.group, true);
   }
 
   @Delete('/posts/group/:group')
@@ -221,7 +226,7 @@ export class PublicIntegrationsController {
     @Param('group') group: string
   ) {
     Sentry.metrics.count('public_api-request', 1);
-    return this._postsService.deletePost(org.id, group);
+    return this._postsService.deletePost(org.id, group, true);
   }
 
   @Get('/is-connected')
@@ -297,6 +302,15 @@ export class PublicIntegrationsController {
         .includes(integration)
     ) {
       throw new HttpException({ msg: 'Integration not allowed' }, 400);
+    }
+
+    // Tadween: only providers the super admin made available (on, with app
+    // keys) can be newly connected; channels the workspace already has can
+    // still reconnect.
+    if (
+      !(await this._providerSettings.canConnect(org.id, integration, refresh))
+    ) {
+      throw new HttpException({ msg: PROVIDER_NOT_AVAILABLE }, 400);
     }
 
     // A provider migrated via MIGRATE_PROVIDERS reconnects through its target

@@ -14,13 +14,13 @@ const PlatformBadge: FC<{ integration: Integrations }> = ({ integration }) => {
   return integration.identifier === 'youtube' ? (
     <img
       src="/icons/platforms/youtube.svg"
-      className="absolute z-10 bottom-0 -end-[5px] min-w-[16px]"
+      className="tdw-pick-net absolute z-10 bottom-0 -end-[5px] min-w-[16px]"
       width={16}
     />
   ) : (
     <SafeImage
       src={`/icons/platforms/${integration.identifier}.png`}
-      className="rounded-[4px] absolute z-10 bottom-0 -end-[5px] min-w-[16px] min-h-[16px]"
+      className="tdw-pick-net rounded-[4px] absolute z-10 bottom-0 -end-[5px] min-w-[16px] min-h-[16px]"
       alt={integration.identifier}
       width={16}
       height={16}
@@ -117,8 +117,15 @@ export const PicksSocialsComponent: FC<{
                   'data-tooltip-content': integration.name,
                 })}
               >
-                <div
+                <button
+                  type="button"
                   onClick={toggleIntegration(integration)}
+                  aria-pressed={
+                    selectedIntegrations.findIndex(
+                      (p) => p.integration.id === integration.id
+                    ) !== -1
+                  }
+                  aria-label={integration.name}
                   className={clsx(
                     'cursor-pointer border-[2px] relative rounded-full flex justify-center items-center bg-fifth filter transition-all duration-500',
                     selectedIntegrations.findIndex(
@@ -144,7 +151,7 @@ export const PicksSocialsComponent: FC<{
                     height={42}
                   />
                   <PlatformBadge integration={integration} />
-                </div>
+                </button>
               </div>
             ))}
           </div>

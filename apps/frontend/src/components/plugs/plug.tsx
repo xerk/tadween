@@ -18,7 +18,7 @@ import {
   useFormContext,
 } from 'react-hook-form';
 import { Input } from '@gitroom/react/form/input';
-import { CopilotTextarea } from '@copilotkit/react-textarea';
+import { AiTextarea } from '@gitroom/frontend/components/tadween/instance/ai.guard';
 import clsx from 'clsx';
 import { string, object } from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -42,7 +42,7 @@ export const TextArea: FC<{
   return (
     <>
       <textarea className="hidden" {...all}></textarea>
-      <CopilotTextarea
+      <AiTextarea
         disableBranding={true}
         placeholder={props.placeHolder}
         value={value}
@@ -198,11 +198,11 @@ export const PlugItem: FC<{
     <div
       onClick={() => addPlug(data)}
       key={plug.title}
-      className="w-full h-[300px] mobile:h-auto rounded-[8px] bg-newTableHeader hover:bg-newTableBorder"
+      className="tdw-tile w-full h-[300px] mobile:h-auto rounded-[8px] bg-newTableHeader hover:bg-newTableBorder"
     >
       <div key={plug.title} className="p-[16px] h-full flex flex-col flex-1 mobile:gap-[16px]">
         <div className="flex">
-          <div className="text-[20px] mb-[8px] flex-1">{plug.title}</div>
+          <div className="tdw-tile-title text-[20px] mb-[8px] flex-1">{plug.title}</div>
           {!!data && (
             <div onClick={(e) => e.stopPropagation()}>
               <Slider
@@ -213,7 +213,7 @@ export const PlugItem: FC<{
             </div>
           )}
         </div>
-        <div className="flex-1">{plug.description}</div>
+        <div className="tdw-tile-desc flex-1">{plug.description}</div>
         <Button>{!data ? 'Set Plug' : 'Edit Plug'}</Button>
       </div>
     </div>

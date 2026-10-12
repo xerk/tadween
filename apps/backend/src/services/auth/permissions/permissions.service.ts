@@ -10,6 +10,14 @@ import { AuthorizationActions, Sections } from './permission.exception.class';
 
 export type AppAbility = Ability<[AuthorizationActions, Sections]>;
 
+// A super admin acting as themselves skips the paywall and plan limits; an
+// impersonation session shows the impersonated workspace as it really is.
+export const isBillingExempt = (
+  user: { isSuperAdmin?: boolean } | undefined,
+  req: { cookies?: Record<string, string>; headers: Record<string, any> }
+) =>
+  !!user?.isSuperAdmin && !(req.cookies?.impersonate || req.headers.impersonate);
+
 @Injectable()
 export class PermissionsService {
   constructor(

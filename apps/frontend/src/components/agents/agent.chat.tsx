@@ -28,20 +28,55 @@ import {
 } from '@gitroom/frontend/components/agents/agent';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useParams } from 'next/navigation';
-import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import {
+  useCopilotConnection,
+  useFetch,
+} from '@gitroom/helpers/utils/custom.fetch';
+import { AiOnly } from '@gitroom/frontend/components/tadween/instance/ai.guard';
 import {
   Message as CopilotMessage,
   TextMessage,
 } from '@copilotkit/runtime-client-gql';
 import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.modal';
+import { hasUnsavedPostChanges } from '@gitroom/frontend/components/new-launch/store';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { ExistingDataContextProvider } from '@gitroom/frontend/components/launches/helpers/use.existing.data';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
+import { useUser } from '@gitroom/frontend/components/layout/user.context';
+import {
+  AiCreditsBadge,
+  useAiCredits,
+} from '@gitroom/frontend/components/tadween/billing/ai.credits';
+import { openPaywall } from '@gitroom/frontend/components/tadween/billing/paywall.modal';
 
 export const AgentChat: FC = () => {
+  const t = useT();
+  return (
+    <AiOnly
+      fallback={
+        <div className="flex-1 flex flex-col items-center justify-center gap-[8px] p-[24px] text-center">
+          <div className="text-[16px] font-[600]">
+            {t('tdw_ai_not_configured', "AI isn't configured")}
+          </div>
+          <div className="text-[14px] text-textItemBlur max-w-[420px]">
+            {t(
+              'tdw_ai_not_configured_description',
+              'The agent needs an AI provider on this server. Ask your administrator to set it up.'
+            )}
+          </div>
+        </div>
+      }
+    >
+      <AgentChatRuntime />
+    </AiOnly>
+  );
+};
+
+const AgentChatRuntime: FC = () => {
   const { backendUrl } = useVariables();
+  const copilotConnection = useCopilotConnection();
   const params = useParams<{ id: string }>();
   const { properties } = useContext(PropertiesContext);
   const t = useT();
@@ -49,10 +84,11 @@ export const AgentChat: FC = () => {
   return (
     <CopilotKit
       {...(params.id === 'new' ? {} : { threadId: params.id })}
-      credentials="include"
+      {...copilotConnection}
       runtimeUrl={backendUrl + '/copilot/agent'}
       useSingleEndpoint={true}
       showDevConsole={false}
+      enableInspector={false}
       agent="postiz"
       properties={{
         integrations: properties,
@@ -94,7 +130,7 @@ You can also use me as an MCP Server, check Settings >> Public API
   );
 };
 
-const LoadMessages: FC<{ id: string }> = ({ id }) => {
+export const LoadMessages: FC<{ id: string }> = ({ id }) => {
   const { messages, setMessages } = useCopilotMessagesContext();
   const fetch = useFetch();
   const currentId = useRef<string | null>(null);
@@ -190,6 +226,17 @@ const NewInput: FC<InputProps> = (props) => {
   const [media, setMedia] = useState([] as { path: string; id: string }[]);
   const [value, setValue] = useState('');
   const { properties } = useContext(PropertiesContext);
+  const { billingEnabled } = useVariables();
+  const user = useUser();
+  const { data: credits, mutate: reloadCredits } = useAiCredits();
+
+  // A message is charged when its answer ends: refresh the balance then
+  useEffect(() => {
+    if (!props.inProgress) {
+      reloadCredits();
+    }
+  }, [props.inProgress]);
+
   return (
     <>
       <MediaPortal
@@ -197,10 +244,24 @@ const NewInput: FC<InputProps> = (props) => {
         media={media}
         setMedia={(e) => setMedia(e.target.value)}
       />
+      <div className="flex justify-end px-[4px] pb-[6px]">
+        <AiCreditsBadge />
+      </div>
       <Input
         {...props}
         onChange={setValue}
         onSend={(text) => {
+          // The agent's requests don't go through useFetch, so its 402 never
+          // reaches the paywall: check the balance before sending instead
+          if (
+            billingEnabled &&
+            !user?.billingExempt &&
+            credits &&
+            credits.available < credits.costs.agent_message
+          ) {
+            openPaywall({ section: 'ai_credits' });
+            return Promise.resolve(undefined as any);
+          }
           const send = props.onSend(
             text +
               (media.length > 0
@@ -330,11 +391,12 @@ const OpenModal: FC<{
         const group = makeId(10);
         modals.openModal({
           id: 'add-edit-modal',
-          closeOnClickOutside: false,
+          closeOnClickOutside: true,
           removeLayout: true,
+          drawer: true,
           closeOnEscape: false,
           withCloseButton: false,
-          askClose: true,
+          askClose: hasUnsavedPostChanges,
           size: '80%',
           title: ``,
           classNames: {

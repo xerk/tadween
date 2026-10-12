@@ -7,6 +7,7 @@ import { Button } from '@gitroom/react/form/button';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 const useApprovedApps = () => {
   const fetch = useFetch();
@@ -67,16 +68,22 @@ export const ApprovedAppsComponent: FC = () => {
         <div className="text-customColor18 mt-[4px]">
           {t(
             'apps_you_have_authorized',
-            'Applications you have authorized to access your Postiz account.'
+            'Applications you have authorized to access your account.'
           )}
         </div>
       </div>
 
       <div className="bg-sixth border-fifth border rounded-[4px] p-[24px]">
         {!apps?.length ? (
-          <div className="text-customColor18">
-            {t('no_approved_apps', 'No approved apps yet.')}
-          </div>
+          <TadweenEmptyState
+            size="sm"
+            icon="key"
+            title={t('no_approved_apps', 'No approved apps yet.')}
+            body={t(
+              'tdw_no_approved_apps_body',
+              'Apps you allow to sign in with your account will be listed here, and you can revoke them any time.'
+            )}
+          />
         ) : (
           <div className="flex flex-col gap-[16px]">
             {apps.map((app: any) => (

@@ -6,6 +6,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   Req,
   Res,
@@ -14,25 +15,32 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
-import { Organization } from '@prisma/client';
+import { Organization, User } from '@prisma/client';
+import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
+import { isBillingExempt } from '@gitroom/backend/services/auth/permissions/permissions.service';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 import { ApiTags } from '@nestjs/swagger';
 import handleR2Upload from '@gitroom/nestjs-libraries/upload/r2.uploader';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { streamUploadOptions } from '@gitroom/nestjs-libraries/upload/multer.stream.engine';
-import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/save.media.information.dto';
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
 import { VideoFunctionDto } from '@gitroom/nestjs-libraries/dtos/videos/video.function.dto';
+import { GetMediaDto } from '@gitroom/nestjs-libraries/dtos/media/get.media.dto';
+import {
+  CreateMediaFolderDto,
+  MoveMediaDto,
+  RenameMediaDto,
+  UpdateMediaFolderDto,
+} from '@gitroom/nestjs-libraries/dtos/media/media.folder.dto';
 
 @ApiTags('Media')
 @Controller('/media')
 export class MediaController {
   private storage = UploadFactory.createStorage();
   constructor(
-    private _mediaService: MediaService,
-    private _subscriptionService: SubscriptionService
+    private _mediaService: MediaService
   ) {}
 
   @Delete('/:id')
@@ -49,35 +57,35 @@ export class MediaController {
     return this._mediaService.generateVideo(org, body);
   }
 
+  // Paid with AI credits: out of credits answers 402 (the app's paywall)
   @Post('/generate-image')
   async generateImage(
     @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
     @Req() req: Request,
     @Body('prompt') prompt: string,
     isPicturePrompt = false
   ) {
-    const total = await this._subscriptionService.checkCredits(org);
-    if (process.env.STRIPE_PUBLISHABLE_KEY && total.credits <= 0) {
-      return false;
-    }
-
     return {
       output:
         'data:image/png;base64,' +
-        (await this._mediaService.generateImage(prompt, org, isPicturePrompt)),
+        (await this._mediaService.generateImage(
+          prompt,
+          org,
+          isPicturePrompt,
+          isBillingExempt(user, req)
+        )),
     };
   }
 
   @Post('/generate-image-with-prompt')
   async generateImageFromText(
     @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
     @Req() req: Request,
     @Body('prompt') prompt: string
   ) {
-    const image = await this.generateImage(org, req, prompt, true);
-    if (!image) {
-      return false;
-    }
+    const image = await this.generateImage(org, user, req, prompt, true);
 
     const file = await this.storage.uploadSimple(image.output);
 
@@ -150,6 +158,62 @@ export class MediaController {
     );
   }
 
+  // Declared before POST /:endpoint, which would otherwise take these paths
+  @Get('/folders')
+  getFolders(@GetOrgFromRequest() org: Organization) {
+    return this._mediaService.getFolders(org.id);
+  }
+
+  @Post('/folders')
+  createFolder(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: CreateMediaFolderDto
+  ) {
+    return this._mediaService.createFolder(org.id, body);
+  }
+
+  @Put('/folders/:id')
+  updateFolder(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string,
+    @Body() body: UpdateMediaFolderDto
+  ) {
+    return this._mediaService.updateFolder(org.id, id, body);
+  }
+
+  @Delete('/folders/:id')
+  deleteFolder(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string
+  ) {
+    return this._mediaService.deleteFolder(org.id, id);
+  }
+
+  @Post('/move')
+  moveMedia(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: MoveMediaDto
+  ) {
+    return this._mediaService.moveMedia(org.id, body);
+  }
+
+  @Put('/:id')
+  renameMedia(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string,
+    @Body() body: RenameMediaDto
+  ) {
+    return this._mediaService.renameMedia(org.id, id, body.name);
+  }
+
+  @Get('/:id/usage')
+  getMediaUsage(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string
+  ) {
+    return this._mediaService.getMediaUsage(org.id, id);
+  }
+
   @Post('/:endpoint')
   async uploadFile(
     @GetOrgFromRequest() org: Organization,
@@ -189,10 +253,9 @@ export class MediaController {
   @Get('/')
   getMedia(
     @GetOrgFromRequest() org: Organization,
-    @Query('page') page: number,
-    @Query('search') search?: string
+    @Query() query: GetMediaDto
   ) {
-    return this._mediaService.getMedia(org.id, page, search);
+    return this._mediaService.getMedia(org.id, query);
   }
 
   @Get('/video-options')

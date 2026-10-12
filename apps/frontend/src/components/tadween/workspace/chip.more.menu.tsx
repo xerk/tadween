@@ -17,7 +17,11 @@ export interface ChipAction {
   danger?: boolean;
 }
 
-export const ChipMoreMenu: FC<{ actions: ChipAction[] }> = ({ actions }) => {
+// `className` styles the ⋯ button for another host (the board card)
+export const ChipMoreMenu: FC<{ actions: ChipAction[]; className?: string }> = ({
+  actions,
+  className = 'tdw-chip-act tdw-chip-more',
+}) => {
   const t = useT();
   const button = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -83,7 +87,7 @@ export const ChipMoreMenu: FC<{ actions: ChipAction[] }> = ({ actions }) => {
       <button
         ref={button}
         type="button"
-        className="tdw-chip-act tdw-chip-more"
+        className={className}
         aria-label={t('tdw_ws_more_actions', 'More actions')}
         aria-haspopup="menu"
         aria-expanded={!!pos}

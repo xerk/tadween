@@ -11,6 +11,9 @@ import { ApiKeyDto } from '@gitroom/nestjs-libraries/dtos/integrations/api.key.d
 import { useRouter } from 'next/navigation';
 import { TopTitle } from '@gitroom/frontend/components/launches/helpers/top.title.component';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
+import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import { useUser } from '@gitroom/frontend/components/layout/user.context';
+import { openPaywall } from '@gitroom/frontend/components/tadween/billing/paywall.modal';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { object, string } from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -24,7 +27,23 @@ const resolver = classValidatorResolver(ApiKeyDto);
 export const useAddProvider = (update?: () => void, invite?: boolean) => {
   const modal = useModals();
   const fetch = useFetch();
+  const user = useUser();
+  const { billingEnabled } = useVariables();
   return useCallback(async () => {
+    // Tadween: at the plan's channel limit, show the upgrade paywall first
+    // (the server refuses the connection anyway)
+    if (billingEnabled && !invite && user && !user.billingExempt) {
+      const { integrations = [] } = await (
+        await fetch('/integrations/list')
+      ).json();
+      if (
+        integrations.filter((i: { disabled?: boolean }) => !i.disabled)
+          .length >= user.totalChannels
+      ) {
+        openPaywall({ section: 'channel' });
+        return;
+      }
+    }
     const data = await (await fetch('/integrations')).json();
     modal.openModal({
       title: 'Add Channel',
@@ -33,7 +52,7 @@ export const useAddProvider = (update?: () => void, invite?: boolean) => {
         <AddProviderComponent invite={!!invite} update={update} {...data} />
       ),
     });
-  }, []);
+  }, [user, billingEnabled]);
 };
 export const AddProviderButton: FC<{
   update?: () => void;
@@ -277,28 +296,31 @@ export const CustomVariables: FC<{
 const ExtensionNotFound: FC = () => {
   const modals = useModals();
   const t = useT();
+  // Tadween: our own store listing (CHROME_EXTENSION_URL), never Postiz's
+  const { chromeExtensionUrl } = useVariables();
+  const brand = useBrandLinks();
   return (
     <div className="flex flex-col gap-[16px] pt-[8px]">
       <p className="text-[14px] text-textColor/80">
         {t(
           'extension_not_available',
-          'The Postiz browser extension is not installed. You need to install it before connecting this channel.'
+          'The {{name}} browser extension is not installed. You need to install it before connecting this channel.',
+          { name: brand.name }
         )}
       </p>
       <div className="flex gap-[10px]">
+        {!!chromeExtensionUrl && (
         <Button
           type="button"
           className="flex-1"
           onClick={() => {
-            window.open(
-              'https://chromewebstore.google.com/detail/postiz/cidhffagahknaeodkplfbcpfeielnkjl?hl=en',
-              '_blank'
-            );
+            window.open(chromeExtensionUrl, '_blank');
             modals.closeCurrent();
           }}
         >
           {t('install_extension', 'Install Extension')}
         </Button>
+        )}
         <Button
           type="button"
           className="flex-1 !bg-transparent border border-tableBorder text-textColor"
@@ -348,7 +370,7 @@ const ChromeExtensionWarning: FC<{
           We will store your cookies securely to facilitate the connection.
         </li>
         <li>
-          Postiz does not take responsibility for any issues arising or account
+          We do not take responsibility for any issues arising or account
           termination due to the use of this method.
         </li>
       </ul>
@@ -584,7 +606,7 @@ export const AddProviderComponent: FC<{
             toaster.show(
               t(
                 'extension_not_installed',
-                'Postiz browser extension is not installed or not reachable.'
+                'The browser extension is not installed or not reachable.'
               ),
               'warning'
             );
@@ -770,6 +792,14 @@ export const AddProviderComponent: FC<{
               </div>
             ))}
         </div>
+        {!social.length && !onboarding && (
+          <div className="py-[24px] text-center text-[14px] text-textColor/80">
+            {t(
+              'tdw_add_channel_none',
+              'No channel types are available to add yet. Ask your administrator to set them up.'
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

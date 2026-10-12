@@ -9,15 +9,23 @@ import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { AgentMediaModal } from '@gitroom/frontend/components/layout/agent.media.modal';
 import { useFeatures } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { AdminMenuIcon } from '@gitroom/frontend/components/tadween/admin/admin.menu.icon';
+import { useUpgradeOffer } from '@gitroom/frontend/components/tadween/billing/upgrade.link';
+import { Icon } from '@gitroom/frontend/components/tadween/ui';
 
 interface MenuItemInterface {
   name: string;
   icon: ReactNode;
   path: string;
+  // Tadween: one line under the page title in the top bar
+  description?: string;
   role?: string[];
   hide?: boolean;
   requireBilling?: boolean;
   onClick?: () => void;
+  // Tadween: an extra class on the sidebar item
+  className?: string;
+  // Tadween: false keeps the entry out of the top bar's page title
+  pageTitle?: boolean;
 }
 
 export const useMenuItem = () => {
@@ -27,6 +35,7 @@ export const useMenuItem = () => {
   // Tadween: features the super admin switched off are hidden from the menu
   const isOn = useFeatures();
   const user = useUser();
+  const upgrade = useUpgradeOffer();
 
   const handleAgentMediaClick = useCallback(() => {
     openModal({
@@ -83,6 +92,7 @@ export const useMenuItem = () => {
     },
     {
       name: 'Agent',
+      description: t('tdw_agent_desc', 'Ask the agent to draft, schedule and manage posts for you.'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -102,6 +112,7 @@ export const useMenuItem = () => {
     },
     {
       name: t('analytics', 'Analytics'),
+      description: t('tdw_analytics_desc', 'How each connected channel is growing and what your posts earn.'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -124,6 +135,7 @@ export const useMenuItem = () => {
     },
     {
       name: t('media', 'Media'),
+      description: t('tdw_media_desc', 'Images and videos you can attach to any post.'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -146,6 +158,7 @@ export const useMenuItem = () => {
     },
     {
       name: t('plugs', 'Plugs'),
+      description: t('tdw_plugs_desc', 'Automations that run on a channel after a post goes out.'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -168,6 +181,7 @@ export const useMenuItem = () => {
     },
     {
       name: t('integrations', 'Integrations'),
+      description: t('tdw_integrations_desc', 'Third-party tools that create media and content for your posts.'),
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -294,7 +308,18 @@ export const useMenuItem = () => {
       onClick: handleAgentMediaClick,
     },
     {
+      // Tadween: tadween/billing/upgrade.link.tsx decides when it shows; the
+      // trial's days left sit on the trial line under it
+      name: t('tdw_upgrade', 'Upgrade'),
+      icon: <Icon name="sparkles" size={20} />,
+      path: '/billing',
+      hide: !upgrade,
+      className: 'is-upgrade',
+      pageTitle: false,
+    },
+    {
       name: t('admin', 'Admin'),
+      description: t('tdw_admin_desc', 'Run the instance: users, plans, channels and features.'),
       icon: <AdminMenuIcon />,
       path: '/admin',
       hide: !(user as { admin?: boolean })?.admin,
@@ -337,71 +362,66 @@ export const useMenuItem = () => {
   };
 };
 
-export const TopMenu: FC = () => {
+// Tadween: the menu entries this user sees (the sidebar and the phone dock)
+export const useVisibleMenu = () => {
   const user = useUser();
   const { firstMenu, secondMenu } = useMenuItem();
   const { isGeneral, billingEnabled } = useVariables();
+  const visible = (f: MenuItemInterface) => {
+    if (f.hide) {
+      return false;
+    }
+    if (f.requireBilling && !billingEnabled) {
+      return false;
+    }
+    if (f.name === 'Billing' && user?.isLifetime) {
+      return false;
+    }
+    if (f.role) {
+      return f.role.includes(user?.role!);
+    }
+    return true;
+  };
+  return {
+    firstMenu:
+      // @ts-ignore
+      user?.orgId &&
+      // @ts-ignore
+      (user.tier !== 'FREE' || !isGeneral || !billingEnabled)
+        ? firstMenu.filter(visible)
+        : [],
+    secondMenu: secondMenu.filter(visible),
+  };
+};
+
+// Tadween: `children` (the sidebar's channels) sit between the two lists
+export const TopMenu: FC<{ children?: ReactNode }> = ({ children }) => {
+  const { firstMenu, secondMenu } = useVisibleMenu();
   return (
     <>
-      <div className="tdw-side-nav flex flex-1 flex-col minCustom:gap-[16px] blurMe">
-        {
-          // @ts-ignore
-          user?.orgId &&
-            // @ts-ignore
-            (user.tier !== 'FREE' || !isGeneral || !billingEnabled) &&
-            firstMenu
-              .filter((f) => {
-                if (f.hide) {
-                  return false;
-                }
-                if (f.requireBilling && !billingEnabled) {
-                  return false;
-                }
-                if (f.name === 'Billing' && user?.isLifetime) {
-                  return false;
-                }
-                if (f.role) {
-                  return f.role.includes(user?.role!);
-                }
-                return true;
-              })
-              .map((item, index) => (
-                <MenuItem
-                  path={item.path}
-                  label={item.name}
-                  icon={item.icon}
-                  key={item.name}
-                  onClick={item.onClick}
-                />
-              ))
-        }
+      <div className="tdw-side-nav flex flex-col minCustom:gap-[16px] blurMe">
+        {firstMenu.map((item) => (
+          <MenuItem
+            path={item.path}
+            label={item.name}
+            icon={item.icon}
+            key={item.name}
+            onClick={item.onClick}
+          />
+        ))}
       </div>
+      {children}
       <div className="tdw-side-nav is-secondary flex flex-col minCustom:gap-[20px] custom:gap-[8px] blurMe">
-        {secondMenu
-          .filter((f) => {
-            if (f.hide) {
-              return false;
-            }
-            if (f.requireBilling && !billingEnabled) {
-              return false;
-            }
-            if (f.name === 'Billing' && user?.isLifetime) {
-              return false;
-            }
-            if (f.role) {
-              return f.role.includes(user?.role!);
-            }
-            return true;
-          })
-          .map((item, index) => (
-            <MenuItem
-              path={item.path}
-              label={item.name}
-              icon={item.icon}
-              key={item.name}
-              onClick={item.onClick}
-            />
-          ))}
+        {secondMenu.map((item) => (
+          <MenuItem
+            path={item.path}
+            label={item.name}
+            icon={item.icon}
+            key={item.name}
+            onClick={item.onClick}
+            className={item.className}
+          />
+        ))}
       </div>
     </>
   );

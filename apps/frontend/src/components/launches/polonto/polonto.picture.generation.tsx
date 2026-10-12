@@ -54,7 +54,10 @@ const GenerateTab = observer(({ store }: any) => {
     });
     setLoading(false);
     if (!req.ok) {
-      alert('Something went wrong, please try again later...');
+      // 402: out of AI credits, the paywall is already open
+      if (req.status !== 402) {
+        alert('Something went wrong, please try again later...');
+      }
       return;
     }
     mutate();

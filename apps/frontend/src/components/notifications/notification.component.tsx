@@ -1,13 +1,14 @@
 'use client';
 
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { TadweenNotifications } from '@gitroom/frontend/components/tadween/notifications/notifications.panel';
 import useSWR from 'swr';
-import { FC, useCallback, useState } from 'react';
+import { FC, useCallback, useRef, useState } from 'react';
 import clsx from 'clsx';
 import dayjs from 'dayjs';
-import { useClickAway } from '@uidotdev/usehooks';
 import ReactLoading from '@gitroom/frontend/components/layout/loading';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 function replaceLinks(text: string) {
   const urlRegex =
     /(\bhttps?:\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/gi;
@@ -63,10 +64,10 @@ export const NotificationOpenComponent = () => {
   return (
     <div
       id="notification-popup"
-      className="opacity-0 animate-normalFadeDown mt-[10px] absolute w-[420px] max-w-[calc(100vw-24px)] min-h-[200px] top-[100%] end-0 bg-third text-textColor rounded-[16px] flex flex-col border border-tableBorder z-[600]"
+      className="tdw-popover-panel opacity-0 animate-normalFadeDown mt-[10px] absolute w-[420px] max-w-[calc(100vw-24px)] min-h-[200px] top-[100%] end-0 bg-third text-textColor rounded-[16px] flex flex-col border border-tableBorder z-[600]"
     >
       <div
-        className={`p-[16px] border-b border-tableBorder font-bold`}
+        className="tdw-popover-head p-[16px] border-b border-tableBorder font-bold"
       >
         {t('notifications', 'Notifications')}
       </div>
@@ -78,9 +79,15 @@ export const NotificationOpenComponent = () => {
           </div>
         )}
         {!isLoading && !data.notifications.length && (
-          <div className="text-center p-[16px] text-textColor flex-1 flex justify-center items-center mt-[20px]">
-            {t('no_notifications', 'No notifications')}
-          </div>
+          <TadweenEmptyState
+            size="sm"
+            icon="bell"
+            title={t('no_notifications', 'No notifications')}
+            body={t(
+              'tdw_no_notifications_body',
+              'Publishing results, failures and team activity will show up here.'
+            )}
+          />
         )}
         {!isLoading &&
           data.notifications.map(
@@ -104,6 +111,7 @@ export const NotificationOpenComponent = () => {
 };
 const NotificationComponent = () => {
   const fetch = useFetch();
+  const t = useT();
   const [show, setShow] = useState(false);
   const loadNotifications = useCallback(async () => {
     return await (await fetch('/notifications')).json();
@@ -121,10 +129,18 @@ const NotificationComponent = () => {
     );
     setShow(!show);
   }, [show, data]);
-  const ref = useClickAway<HTMLDivElement>(() => setShow(false));
+  const ref = useRef<HTMLButtonElement>(null);
+  const close = useCallback(() => setShow(false), []);
   return (
-    <div className="relative cursor-pointer select-none" ref={ref}>
-      <div onClick={changeShow}>
+    <div className="relative cursor-pointer select-none">
+      <button
+        ref={ref}
+        type="button"
+        onClick={changeShow}
+        aria-expanded={show}
+        aria-label={t('notifications', 'Notifications')}
+        className={clsx('tdw-topbar-icon', show && 'is-open')}
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -151,8 +167,8 @@ const NotificationComponent = () => {
             />
           )}
         </svg>
-      </div>
-      {show && <NotificationOpenComponent />}
+      </button>
+      <TadweenNotifications open={show} onClose={close} anchor={ref} />
     </div>
   );
 };

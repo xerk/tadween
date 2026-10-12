@@ -51,6 +51,7 @@ import { MissingReleaseModal } from '@gitroom/frontend/components/launches/missi
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import i18next from 'i18next';
 import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.modal';
+import { hasUnsavedPostChanges } from '@gitroom/frontend/components/new-launch/store';
 import { CreationMethodBadge } from '@gitroom/frontend/components/launches/creation.method.badge';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
@@ -58,8 +59,8 @@ import copy from 'copy-to-clipboard';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { Button } from '@gitroom/react/form/button';
-import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 import { ChipMoreMenu } from '@gitroom/frontend/components/tadween/workspace/chip.more.menu';
+import { ChipPreview } from '@gitroom/frontend/components/tadween/workspace/chip.preview';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -94,6 +95,21 @@ export const hours = Array.from(
   },
   (_, i) => i
 );
+
+// Which per-post actions apply; shared by the calendar chip and the Tadween board card
+export const canOpenPost = (post: Post) =>
+  (post.state === 'PUBLISHED' || post.state === 'ERROR') &&
+  !post.intervalInDays &&
+  !!post.releaseURL?.startsWith('http');
+
+export const canShowStatistics = (
+  post: Post & { integration: Integration },
+  disableXAnalytics?: boolean
+) =>
+  !(
+    (post.integration.providerIdentifier === 'x' && disableXAnalytics) ||
+    !post.releaseId
+  );
 
 // Shared hook for post actions (edit, delete, statistics)
 export const usePostActions = (onMutate?: () => void) => {
@@ -132,11 +148,12 @@ export const usePostActions = (onMutate?: () => void) => {
         : Fragment;
       modal.openModal({
         id: 'add-edit-modal',
-        closeOnClickOutside: false,
+        closeOnClickOutside: true,
         removeLayout: true,
+        drawer: true,
         closeOnEscape: false,
         withCloseButton: false,
-        askClose: true,
+        askClose: hasUnsavedPostChanges,
         fullScreen: true,
         classNames: {
           modal: 'w-[100%] max-w-[1400px] text-textColor',
@@ -287,6 +304,25 @@ export const usePostActions = (onMutate?: () => void) => {
   return { editPost, deletePost, copyDebugJson, openStatistics, openMissingRelease, openPost };
 };
 
+// Tadween: the clock the views mark "now" with (header, now-line, hour label)
+const useNow = (everyMs = 60000) => {
+  const [now, setNow] = useState(() => newDayjs());
+  useEffect(() => {
+    const id = setInterval(() => setNow(newDayjs()), everyMs);
+    return () => clearInterval(id);
+  }, [everyMs]);
+  return now;
+};
+
+// Tadween: the current time across today's column, at the exact minute
+const NowLine: FC<{ now: dayjs.Dayjs }> = ({ now }) => (
+  <span
+    className="tdw-ws-now"
+    aria-hidden="true"
+    style={{ top: `${(now.minute() / 60) * 100}%` }}
+  />
+);
+
 export const DayView = () => {
   const calendar = useCalendar();
   const { integrations, posts, startDate } = calendar;
@@ -332,8 +368,9 @@ export const DayView = () => {
   }, [integrations, posts]);
 
   // Tadween: the current-time marker sits before the first slot still ahead
-  const nowSlot = currentDay.format('YYYY-MM-DD') === newDayjs().format('YYYY-MM-DD')
-    ? options.find((option) => currentDay.startOf('day').add(option[0].time, 'minute').local().isAfter(newDayjs()))?.[0]?.time
+  const now = useNow();
+  const nowSlot = currentDay.format('YYYY-MM-DD') === now.format('YYYY-MM-DD')
+    ? options.find((option) => currentDay.startOf('day').add(option[0].time, 'minute').local().isAfter(now))?.[0]?.time
     : undefined;
 
   return (
@@ -375,17 +412,32 @@ export const DayView = () => {
   );
 };
 export const WeekView = () => {
-  const { startDate, endDate } = useCalendar();
+  const { startDate, endDate, posts, loading } = useCalendar();
   const t = useT();
-  // Tadween: open the week scrolled to the working day (7:00, or an hour before now if later)
+  // Tadween: once per week shown, scroll to now (this week) or to the first
+  // post of the week (7:00 when it has none), so no post sits above the fold
   const weekScrollRef = React.useRef<HTMLDivElement>(null);
+  const scrolledWeek = React.useRef('');
   useEffect(() => {
     const el = weekScrollRef.current;
-    if (!el) return;
-    const target = Math.max(7, newDayjs().hour() - 1);
+    if (!el || loading || scrolledWeek.current === startDate) return;
+    const today = newDayjs().format('YYYY-MM-DD');
+    const thisWeek = today >= startDate && today <= endDate;
+    // The posts land a render after `loading` clears: an empty list may
+    // still fill in, so only a week with posts (or this week) is done
+    const done = thisWeek || posts.length ? startDate : `${startDate}:empty`;
+    if (scrolledWeek.current === done) return;
+    scrolledWeek.current = done;
+    const target = thisWeek
+      ? Math.max(0, newDayjs().hour() - 1)
+      : posts.length
+      ? Math.min(...posts.map((p) => dayjs.utc(p.publishDate).local().hour()))
+      : 7;
     const row = el.querySelector<HTMLElement>(`[data-tdw-hour="${target}"]`);
     if (row) el.scrollTop = row.offsetTop - 70;
-  }, [startDate]);
+  }, [startDate, endDate, posts, loading]);
+  const now = useNow();
+  const todayKey = now.format('L');
 
   // Use dayjs to get localized day names
   const localizedDays = useMemo(() => {
@@ -415,7 +467,7 @@ export const WeekView = () => {
               key={day.name}
               className={clsx(
                 'tdw-ws-dh p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 z-[20]',
-                day.day === newDayjs().format('L') && 'is-today'
+                day.day === todayKey && 'is-today'
               )}
             >
               <div className="text-[14px] font-[500] text-newTableText">
@@ -425,11 +477,11 @@ export const WeekView = () => {
               <div
                 className={clsx(
                   'text-[14px] font-[600] flex items-center justify-center gap-[6px]',
-                  day.day === newDayjs().format('L') &&
+                  day.day === todayKey &&
                     'text-newTableTextFocused'
                 )}
               >
-                {day.day === newDayjs().format('L') && (
+                {day.day === todayKey && (
                   <div className="w-[6px] h-[6px] bg-newTableTextFocused rounded-full" />
                 )}
                 <span className="tdw-ws-dh-long">{day.day}</span>
@@ -443,7 +495,9 @@ export const WeekView = () => {
                 data-tdw-hour={hour}
                 className={clsx(
                   'tdw-ws-hour p-2 pe-4 tablet:px-[4px] text-center items-center justify-center flex text-[14px] tablet:text-[12px] tablet:whitespace-nowrap text-newTableText',
-                  hour === newDayjs().hour() && 'tdw-now-hour'
+                  hour === now.hour() &&
+                    localizedDays.some((day) => day.day === todayKey) &&
+                    'tdw-now-hour'
                 )}
               >
                 {convertTimeFormatBasedOnLocality(hour)}
@@ -455,12 +509,15 @@ export const WeekView = () => {
                   <div
                     className={clsx(
                       'tdw-ws-cell relative',
-                      day.day === newDayjs().format('L') && 'is-today'
+                      day.day === todayKey && 'is-today'
                     )}
                   >
                     <CalendarColumn
                       getDate={day.date.hour(hour).startOf('hour')}
                     />
+                    {day.day === todayKey && hour === now.hour() && (
+                      <NowLine now={now} />
+                    )}
                   </div>
                 </Fragment>
               ))}
@@ -483,7 +540,8 @@ export const MonthView = () => {
     const days = [];
     // Starting from Monday (1) to Sunday (7)
     for (let i = 1; i <= 7; i++) {
-      days.push(newDayjs().day(i).format('dddd'));
+      const day = newDayjs().day(i);
+      days.push({ name: day.format('dddd'), short: day.format('ddd') });
     }
     return days;
   }, [i18next.resolvedLanguage]);
@@ -526,10 +584,13 @@ export const MonthView = () => {
         <div className="tdw-ws-month grid grid-cols-7 tablet:[grid-template-columns:repeat(7,_minmax(100px,_1fr))] grid-rows-[62px_auto] gap-[4px] rounded-[10px] absolute start-0 top-0 overflow-auto w-full h-full scrollbar scrollbar-thumb-tableBorder scrollbar-track-secondary">
           {localizedDays.map((day) => (
             <div
-              key={day}
+              key={day.name}
               className="tdw-ws-dh z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"
             >
-              <div>{day}</div>
+              <div>
+                <span className="tdw-ws-dh-long">{day.name}</span>
+                <span className="tdw-ws-dh-short">{day.short}</span>
+              </div>
             </div>
           ))}
           {calendarDays.map((date, index) => (
@@ -552,100 +613,12 @@ export const MonthView = () => {
     </div>
   );
 };
-export const ListView = () => {
-  const t = useT();
-  const user = useUser();
-  const { integrations, loading, listPosts, listState } = useCalendar();
-  const emptyMessage =
-    listState === 'scheduled'
-      ? t('no_upcoming_posts', 'No upcoming posts scheduled')
-      : listState === 'draft'
-      ? t('no_draft_posts', 'No draft posts')
-      : listState === 'published'
-      ? t('no_published_posts', 'No published posts')
-      : t('no_posts', 'No posts');
-
-  // Use shared post actions hook
-  const { editPost, deletePost, copyDebugJson, openStatistics, openMissingRelease, openPost } = usePostActions();
-
-  // Group posts by date
-  const groupedPosts = useMemo(() => {
-    const groups: { [key: string]: any[] } = {};
-    listPosts.forEach((post) => {
-      const dateKey = newDayjs(post.publishDate).local().format('YYYY-MM-DD');
-      if (!groups[dateKey]) {
-        groups[dateKey] = [];
-      }
-      groups[dateKey].push(post);
-    });
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [listPosts]);
-
-  if (loading) {
-    return (
-      <div className="tdw-list-skeleton flex flex-col flex-1 gap-[10px] pt-[10px]" aria-busy="true" aria-label={t('loading', 'Loading...')}>
-        {[0, 1, 2, 3].map((i) => (
-          <span key={i} className="tdw-skeleton" style={{ height: 72, animationDelay: `${i * 80}ms` }} />
-        ))}
-      </div>
-    );
-  }
-
-  if (listPosts.length === 0) {
-    return (
-      <div className="flex flex-col flex-1 items-center justify-center">
-        <TadweenEmptyState
-          icon={listState === 'draft' ? 'drafts' : 'calendar'}
-          title={emptyMessage}
-          body={t('empty_list_hint', 'Posts you create will show up here, grouped by day.')}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="tdw-ws-list flex flex-col gap-[10px] flex-1 relative">
-      <div className="absolute start-0 top-0 w-full h-full flex flex-col overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
-        {groupedPosts.map(([dateKey, datePosts]) => (
-          <Fragment key={dateKey}>
-            <div className="tdw-ws-list-date text-center text-[14px] min-h-[21px] text-textColor font-[500] mt-[10px]">
-              {newDayjs(dateKey).format(isUSCitizen() ? 'dddd, MMMM D, YYYY' : 'dddd, D MMMM YYYY')}
-            </div>
-            <div className="flex flex-col gap-[10px] mb-[20px] px-[10px]">
-              {datePosts.map((post) => (
-                <CalendarItem
-                  key={post.id}
-                  display="day"
-                  isBeforeNow={false}
-                  date={newDayjs(post.publishDate)}
-                  state={post.state}
-                  statistics={openStatistics(post.id)}
-                  missingRelease={openMissingRelease(post.id)}
-                  openPost={openPost(post)}
-                  editPost={editPost(post, false)}
-                  duplicatePost={editPost(post, true)}
-                  copyDebugJson={user?.isSuperAdmin ? copyDebugJson(post) : undefined}
-                  post={post}
-                  integrations={integrations}
-                  deletePost={deletePost(post)}
-                  showTime={true}
-                />
-              ))}
-            </div>
-          </Fragment>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 export const Calendar = () => {
   const { display } = useCalendar();
   return (
     <>
-      {display === 'list' ? (
-        <ListView />
-      ) : display === 'day' ? (
+      {/* display=list is the Tadween board, rendered by the workspace */}
+      {display === 'list' ? null : display === 'day' ? (
         <DayView />
       ) : display === 'week' ? (
         <WeekView />
@@ -719,7 +692,7 @@ export const CalendarColumn: FC<{
       if (isBeforeNow) {
         return;
       }
-      setNum(num + 1);
+      setNum((n) => n + 1);
     }, [isBeforeNow]),
     random(120000, 150000)
   );
@@ -863,11 +836,12 @@ export const CalendarColumn: FC<{
 
     modal.openModal({
       id: 'add-edit-modal',
-      closeOnClickOutside: false,
+      closeOnClickOutside: true,
       removeLayout: true,
+      drawer: true,
       closeOnEscape: false,
       withCloseButton: false,
-      askClose: true,
+      askClose: hasUnsavedPostChanges,
       fullScreen: true,
       classNames: {
         modal: 'w-[100%] max-w-[1400px] text-textColor',
@@ -919,14 +893,6 @@ export const CalendarColumn: FC<{
       )}
       ref={drop as any}
     >
-      {display === 'week' &&
-        getDate.format('YYYY-MM-DD HH') === newDayjs().format('YYYY-MM-DD HH') && (
-          <span
-            className="tdw-ws-now"
-            aria-hidden="true"
-            style={{ top: `${(newDayjs().minute() / 60) * 100}%` }}
-          />
-        )}
       {display === 'month' && (
         <div className={clsx('tdw-ws-mnum pt-[6px] text-[14px]')}>{getDate.date()}</div>
       )}
@@ -979,7 +945,12 @@ export const CalendarColumn: FC<{
               className="text-center hover:underline py-[5px] text-textColor"
               onClick={showAllFunc}
             >
-              {t('show_more', '+ Show more')} ({postList.length - 3})
+              <span className="tdw-ws-more-long">
+                {t('show_more', '+ Show more')} ({postList.length - 3})
+              </span>
+              <span className="tdw-ws-more-short" dir="ltr">
+                +{postList.length - 3}
+              </span>
             </div>
           )}
           {showAll && postList.length > 3 && (
@@ -1131,7 +1102,7 @@ const CalendarItem: FC<{
   const stateKey =
     state === 'ERROR' ? 'failed' : state === 'DRAFT' ? 'draft' : state === 'PUBLISHED' ? 'published' : 'scheduled';
   const tagColor = post?.tags?.[0]?.tag?.color;
-  const canStats = !((post.integration.providerIdentifier === 'x' && disableXAnalytics) || !post.releaseId);
+  const canStats = canShowStatistics(post, disableXAnalytics);
   const onStats = post.releaseId === 'missing' ? missingRelease : statistics;
   // One list feeds the hover buttons and, on narrow chips, the ⋯ menu
   const actions = [
@@ -1153,9 +1124,7 @@ const CalendarItem: FC<{
       label: t('preview_post', 'Preview Post'),
       onClick: preview,
     },
-    (state === 'PUBLISHED' || state === 'ERROR') &&
-      !post.intervalInDays &&
-      post.releaseURL?.startsWith('http') && {
+    canOpenPost(post) && {
         key: 'open',
         icon: <OpenPost />,
         label: t('open_post', 'Open Post'),
@@ -1182,14 +1151,29 @@ const CalendarItem: FC<{
     onClick: () => void;
     danger?: boolean;
   }[];
+  // Tadween: the chip element, for the hover card
+  const chipRef = React.useRef<HTMLDivElement>(null);
+  const setChipRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      dragRef(el);
+      chipRef.current = el;
+    },
+    [dragRef]
+  );
   return (
     <div
-      // @ts-ignore
-      ref={dragRef}
+      ref={setChipRef}
       data-state={stateKey}
       className={clsx('tdw-chip group', `tdw-chip--${display}`, isBeforeNow && 'is-past')}
       style={{ opacity }}
     >
+      <ChipPreview
+        anchor={chipRef}
+        post={post}
+        stateKey={stateKey}
+        onEdit={editPost}
+        actions={actions}
+      />
       {state === 'ERROR' && (
         <div
           className="tdw-chip-error"

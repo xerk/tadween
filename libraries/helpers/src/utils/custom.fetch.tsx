@@ -5,10 +5,15 @@ import {
   FC,
   ReactNode,
   useContext,
+  useMemo,
   useRef,
   useState,
 } from 'react';
-import { customFetch, Params } from './custom.fetch.func';
+import {
+  customFetch,
+  nonSecuredAuthHeaders,
+  Params,
+} from './custom.fetch.func';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 
 const FetchProvider = createContext(
@@ -43,4 +48,19 @@ export const FetchWrapperComponent: FC<Params & { children: ReactNode }> = (
 
 export const useFetch = () => {
   return useContext(FetchProvider);
+};
+
+// How CopilotKit should reach the backend, matching customFetch: cookies with
+// credentials normally, the session headers when NOT_SECURED.
+export const useCopilotConnection = ():
+  | { credentials: RequestCredentials }
+  | { headers: Record<string, string> } => {
+  const { isSecured } = useVariables();
+  return useMemo(
+    () =>
+      isSecured
+        ? { credentials: 'include' as const }
+        : { headers: nonSecuredAuthHeaders() },
+    [isSecured]
+  );
 };

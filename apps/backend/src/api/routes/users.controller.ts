@@ -15,6 +15,7 @@ import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/s
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
 import { Response, Request } from 'express';
+import { isBillingExempt } from '@gitroom/backend/services/auth/permissions/permissions.service';
 import { AuthService } from '@gitroom/backend/services/auth/auth.service';
 import { AuthService as AuthChecker } from '@gitroom/helpers/auth/auth.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
@@ -61,7 +62,8 @@ export class UsersController {
       {
         user_id: organization.id,
         email: user.email,
-        ...(organization.paymentId
+        // only a real Stripe customer (granted plans once stored a user id)
+        ...(organization.paymentId?.startsWith('cus_')
           ? {
               stripe_accounts: [
                 {
@@ -107,11 +109,14 @@ export class UsersController {
     }
 
     const impersonate = req.cookies.impersonate || req.headers.impersonate;
+    const billingExempt = isBillingExempt(user, req);
     // @ts-ignore
     return {
       ...user,
       orgId: organization.id,
-      totalChannels: !process.env.STRIPE_PUBLISHABLE_KEY
+      // The real tier stays in `tier` (Billing shows it); the app is not gated
+      billingExempt,
+      totalChannels: !process.env.STRIPE_PUBLISHABLE_KEY || billingExempt
         ? 10000
         : // @ts-ignore
           organization?.subscription?.totalChannels || pricing.FREE.channel,
@@ -128,6 +133,16 @@ export class UsersController {
       isTrailing: !process.env.STRIPE_PUBLISHABLE_KEY
         ? false
         : organization?.isTrailing,
+      // Tadween: the payment provider's status (past_due = the last renewal
+      // failed, not a trial) and the real trial end, for the app's banner
+      subscriptionStatus: !process.env.STRIPE_PUBLISHABLE_KEY
+        ? null
+        : // @ts-ignore
+          organization?.subscription?.status || null,
+      trialEndsAt: !process.env.STRIPE_PUBLISHABLE_KEY
+        ? null
+        : // @ts-ignore
+          organization?.subscription?.trialEndsAt || null,
       allowTrial: organization?.allowTrial,
       streakSince: organization?.streakSince || null,
       publicApi:

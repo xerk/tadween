@@ -8,6 +8,8 @@ import { PlansRepository } from '@gitroom/nestjs-libraries/database/prisma/tadwe
 import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
 import { AdminConsoleRepository } from '@gitroom/nestjs-libraries/database/prisma/tadween/admin-console.repository';
 import { AdminConsoleService } from '@gitroom/nestjs-libraries/database/prisma/tadween/admin-console.service';
+import { ProviderCredentialsRepository } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-credentials.repository';
+import { ProviderCredentialsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-credentials.service';
 
 export const TADWEEN_DATABASE_PROVIDERS = [
   PlatformSettingsRepository,
@@ -18,4 +20,6 @@ export const TADWEEN_DATABASE_PROVIDERS = [
   PlansService,
   AdminConsoleRepository,
   AdminConsoleService,
+  ProviderCredentialsRepository,
+  ProviderCredentialsService,
 ];

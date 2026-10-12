@@ -63,6 +63,28 @@ export class PostsRepository {
     });
   }
 
+  // The streak popover: when this organization published, nothing else
+  getPublishedDates(orgId: string, query: GetPostsDto) {
+    return this._post.model.post.findMany({
+      where: {
+        organizationId: orgId,
+        state: 'PUBLISHED',
+        deletedAt: null,
+        parentPostId: null,
+        publishDate: {
+          gte: dayjs.utc(query.startDate).toDate(),
+          lte: dayjs.utc(query.endDate).toDate(),
+        },
+      },
+      orderBy: {
+        publishDate: 'asc',
+      },
+      select: {
+        publishDate: true,
+      },
+    });
+  }
+
   getOldPosts(orgId: string, date: string) {
     return this._post.model.post.findMany({
       where: {
@@ -357,6 +379,92 @@ export class PostsRepository {
       limit,
       hasMore: skip + posts.length < total,
     };
+  }
+
+  // Tadween analytics: top-level published posts of the organisation between
+  // two dates, optionally for one channel (same filters as getPostsList)
+  private publishedWhere(
+    orgId: string,
+    from: Date,
+    to: Date,
+    integrationId?: string
+  ) {
+    return {
+      organizationId: orgId,
+      state: State.PUBLISHED,
+      deletedAt: null as Date | null,
+      parentPostId: null as string | null,
+      publishDate: { gte: from, lt: to },
+      integration: {
+        deletedAt: null as Date | null,
+        organizationId: orgId,
+        ...(integrationId ? { id: integrationId } : {}),
+      },
+    };
+  }
+
+  getPublishedPosts(
+    orgId: string,
+    from: Date,
+    to: Date,
+    limit: number,
+    integrationId?: string
+  ) {
+    return this._post.model.post.findMany({
+      where: this.publishedWhere(orgId, from, to, integrationId),
+      orderBy: { publishDate: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        content: true,
+        publishDate: true,
+        releaseURL: true,
+        integration: {
+          select: {
+            id: true,
+            name: true,
+            picture: true,
+            providerIdentifier: true,
+          },
+        },
+      },
+    });
+  }
+
+  // just when and where each post went out, for per-day and per-network counts
+  getPublishedPostDates(
+    orgId: string,
+    from: Date,
+    to: Date,
+    limit: number,
+    integrationId?: string
+  ) {
+    return this._post.model.post.findMany({
+      where: this.publishedWhere(orgId, from, to, integrationId),
+      orderBy: { publishDate: 'desc' },
+      take: limit,
+      select: {
+        publishDate: true,
+        integration: {
+          select: {
+            id: true,
+            name: true,
+            providerIdentifier: true,
+          },
+        },
+      },
+    });
+  }
+
+  countPublishedPosts(
+    orgId: string,
+    from: Date,
+    to: Date,
+    integrationId?: string
+  ) {
+    return this._post.model.post.count({
+      where: this.publishedWhere(orgId, from, to, integrationId),
+    });
   }
 
   async deletePost(orgId: string, group: string) {

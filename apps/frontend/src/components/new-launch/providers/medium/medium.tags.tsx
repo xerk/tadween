@@ -8,6 +8,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 export const MediumTags: FC<{
   name: string;
   label: string;
+  maxTags?: number;
   onChange: (event: {
     target: {
       value: any[];
@@ -15,7 +16,7 @@ export const MediumTags: FC<{
     };
   }) => void;
 }> = (props) => {
-  const { onChange, name, label } = props;
+  const { onChange, name, label, maxTags = 3 } = props;
   const { getValues } = useSettings();
   const [tagValue, setTagValue] = useState<any[]>([]);
   const [suggestions, setSuggestions] = useState<string>('');
@@ -36,7 +37,7 @@ export const MediumTags: FC<{
   );
   const onAddition = useCallback(
     (newTag: any) => {
-      if (tagValue.length >= 3) {
+      if (tagValue.length >= maxTags) {
         return;
       }
       const modify = [...tagValue, newTag];
@@ -48,7 +49,7 @@ export const MediumTags: FC<{
         },
       });
     },
-    [tagValue]
+    [tagValue, maxTags]
   );
   useEffect(() => {
     const settings = getValues()[props.name];

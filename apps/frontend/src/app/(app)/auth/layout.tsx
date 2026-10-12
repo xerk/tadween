@@ -1,33 +1,54 @@
-import { getT } from '@gitroom/react/translation/get.translation.service.backend';
-
 export const dynamic = 'force-dynamic';
 import { ReactNode } from 'react';
 import loadDynamic from 'next/dynamic';
-import { AuthShowcase } from '@gitroom/frontend/components/tadween/auth.showcase';
-import { LogoTextComponent } from '@gitroom/frontend/components/ui/logo-text.component';
+import { cookies, headers } from 'next/headers';
+import {
+  cookieName,
+  fallbackLng,
+  headerName,
+} from '@gitroom/react/translation/i18n.config';
 import { MantineWrapper } from '@gitroom/react/helpers/mantine.wrapper';
 import { Toaster } from '@gitroom/react/toaster/toaster';
+import { Logo } from '@gitroom/frontend/components/new-layout/logo';
+import { AuthBrand } from '@gitroom/frontend/components/tadween/auth/auth.brand';
+import { AuthControls } from '@gitroom/frontend/components/tadween/auth/auth.parts';
 const ReturnUrlComponent = loadDynamic(() => import('./return.url.component'));
+
+// Tadween sign-in / sign-up shell: the form pane (lockup + language/theme
+// controls, then the card) beside the brand pane. Styles: app/tadween/auth.scss.
+// Theme and direction are read from the same cookies the app uses and painted on
+// the shell itself, so the first render is already right (no dark/LTR flash);
+// AuthControls keeps <body>/<html> and the shell in sync after that.
 export default async function AuthLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const t = await getT();
+  const cookieStore = await cookies();
+  const mode = cookieStore.get('mode')?.value === 'light' ? 'light' : 'dark';
+  // no cookie yet (first visit): proxy.ts detected the language from the country / browser
+  const language =
+    cookieStore.get(cookieName)?.value ||
+    (await headers()).get(headerName) ||
+    fallbackLng;
+  const dir = language === 'ar' ? 'rtl' : 'ltr';
 
   return (
     <MantineWrapper>
       <Toaster />
-      <div className="bg-[#0E0E0E] flex flex-1 p-[12px] gap-[12px] min-h-screen w-screen text-white">
-        {/*<style>{`html, body {overflow-x: hidden;}`}</style>*/}
-        <ReturnUrlComponent />
-        <div className="flex flex-col py-[40px] px-[20px] flex-1 lg:w-[600px] lg:flex-none rounded-[12px] text-white p-[12px] bg-[#1A1919]">
-          <div className="w-full max-w-[440px] mx-auto justify-center gap-[20px] h-full flex flex-col text-white">
-            <LogoTextComponent />
-            <div className="flex">{children}</div>
-          </div>
-        </div>
-        <AuthShowcase />
+      <ReturnUrlComponent />
+      <div className={`tdw-ui tdw-auth ${mode}`} dir={dir} lang={language}>
+        <header className="tdw-auth-top">
+          <span className="tdw-auth-lockup">
+            <Logo />
+            <span>Tadween</span>
+          </span>
+          <AuthControls />
+        </header>
+        <main className="tdw-auth-main">
+          <div className="tdw-auth-card">{children}</div>
+        </main>
+        <AuthBrand />
       </div>
     </MantineWrapper>
   );

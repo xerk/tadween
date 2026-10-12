@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCookieUrlFromDomain } from '@gitroom/helpers/subdomain/subdomain.management';
 import { internalFetch } from '@gitroom/helpers/utils/internal.fetch';
+import { isGenericOauth } from '@gitroom/helpers/utils/is.generic.oauth';
 import acceptLanguage from 'accept-language';
 import {
   cookieName,
@@ -9,6 +10,30 @@ import {
   languages,
 } from '@gitroom/react/translation/i18n.config';
 acceptLanguage.languages(languages);
+
+// Tadween: a first visit (no language cookie) opens in the visitor's country language when the
+// edge in front of the app reports the country (Cloudflare `cf-ipcountry`, Vercel
+// `x-vercel-ip-country`, or a reverse proxy setting `x-country-code`). Without that header the
+// browser's Accept-Language decides, as before. An explicit choice (the cookie) always wins.
+const COUNTRY_LANGUAGE: Record<string, string> = {
+  ...Object.fromEntries(
+    ['EG', 'SA', 'AE', 'KW', 'QA', 'BH', 'OM', 'JO', 'LB', 'SY', 'IQ', 'YE', 'PS', 'LY', 'TN', 'DZ', 'MA', 'SD', 'MR'].map(
+      (country) => [country, 'ar']
+    )
+  ),
+  FR: 'fr', DE: 'de', AT: 'de', ES: 'es', MX: 'es', IT: 'it', PT: 'pt', BR: 'pt', TR: 'tr',
+  RU: 'ru', JP: 'ja', KR: 'ko', CN: 'zh', TW: 'zh', VN: 'vi', BD: 'bn', GE: 'ka_ge',
+};
+const countryLanguage = (request: NextRequest) => {
+  const country = (
+    request.headers.get('cf-ipcountry') ||
+    request.headers.get('x-vercel-ip-country') ||
+    request.headers.get('x-country-code') ||
+    ''
+  ).toUpperCase();
+  const lng = COUNTRY_LANGUAGE[country];
+  return lng && languages.includes(lng) ? lng : undefined;
+};
 
 // This function can be marked `async` if using `await` inside
 export async function proxy(request: NextRequest) {
@@ -19,7 +44,8 @@ export async function proxy(request: NextRequest) {
     nextUrl.searchParams.get('loggedAuth');
   const lng = request.cookies.has(cookieName)
     ? acceptLanguage.get(request.cookies.get(cookieName).value)
-    : acceptLanguage.get(
+    : countryLanguage(request) ||
+      acceptLanguage.get(
         request.headers.get('Accept-Language') ||
           request.headers.get('accept-language')
       );
@@ -37,6 +63,10 @@ export async function proxy(request: NextRequest) {
 
   if (lng) {
     topResponse.headers.set(cookieName, lng);
+    // remember the detected language, so the client and later requests agree with it
+    if (!request.cookies.has(cookieName)) {
+      topResponse.cookies.set(cookieName, lng, { path: '/', maxAge: 60 * 60 * 24 * 365 });
+    }
   }
 
   if (nextUrl.pathname.startsWith('/modal/') && !authCookie) {
@@ -48,6 +78,8 @@ export async function proxy(request: NextRequest) {
     nextUrl.pathname.startsWith('/p/') ||
     nextUrl.pathname.startsWith('/provider/') ||
     nextUrl.pathname.startsWith('/icons/') ||
+    // static images of the signed-out pages (public/tadween/)
+    nextUrl.pathname.startsWith('/tadween/') ||
     // the consent screen of MCP / OAuth clients handles signed-out visitors
     // itself (sign in and come back, or connect a self-hosted instance)
     nextUrl.pathname.startsWith('/oauth/authorize')
@@ -98,7 +130,7 @@ export async function proxy(request: NextRequest) {
       ? ''
       : (url.indexOf('?') > -1 ? '&' : '?') +
         `provider=${(findIndex === 'settings'
-          ? process.env.POSTIZ_GENERIC_OAUTH
+          ? isGenericOauth()
             ? 'generic'
             : 'github'
           : findIndex

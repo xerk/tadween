@@ -17,13 +17,14 @@ import {
   getMcpConfig,
   isChatOnlyMcpClient,
   isSelfHosted,
-  localCliSteps,
+  fillCliSteps,
   McpAuth,
   McpClient,
   mcpClients,
   mcpConnectorUrls,
 } from '@gitroom/frontend/components/public-api/public.component';
 import { McpClientIcon } from '@gitroom/frontend/components/public-api/mcp.client.icons';
+import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 
 interface OnboardingModalProps {
   onClose: () => void;
@@ -275,7 +276,6 @@ const otherAgents = mcpClients.filter(
 const apiTab = 'API' as const;
 type OnboardingTab = OnboardingAgent | typeof otherTab | typeof apiTab;
 
-const cliCommands = localCliSteps.map((step) => step.code);
 
 const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
   onBack,
@@ -283,7 +283,8 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
 }) => {
   const t = useT();
   const user = useUser();
-  const { backendUrl, mcpUrl, billingEnabled } = useVariables();
+  const { backendUrl, mcpUrl, mcpOfficialConnectors } = useVariables();
+  const brand = useBrandLinks();
   const [tab, setTab] = useState<OnboardingTab>('Claude');
   const [otherAgent, setOtherAgent] = useState<McpClient>(otherAgents[0]);
   // The client the cards describe: the tab itself, or the pick inside "Other agents"
@@ -294,8 +295,9 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
   const mcpBase = mcpUrl || backendUrl;
   const apiKey = user?.publicApi || '';
   const available = !!apiKey && !!user?.tier?.public_api;
-  // the official connectors work for self-hosted installs too
-  const officialConnectors = billingEnabled || isSelfHosted;
+  // Tadween: directory connectors sign in through Postiz's cloud, opt-in only
+  const officialConnectors = !!mcpOfficialConnectors;
+  const cliCommands = fillCliSteps(backendUrl, apiKey).map((step) => step.code);
 
   const { config, hint } =
     agent === apiTab
@@ -393,7 +395,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         </div>
         <a
           className="cursor-pointer px-[24px] h-[44px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[14px] font-[600] flex items-center gap-[8px] shrink-0"
-          href="https://docs.postiz.com/public-api/introduction"
+          href={brand.docs('/public-api/introduction') || undefined}
           target="_blank"
         >
           <McpClientIcon client={apiTab} size={18} />
@@ -491,7 +493,9 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
                 onClick={() => setAuth(m)}
               >
                 {m === 'oauth'
-                  ? t('sign_in_no_api_key', 'Sign in with Postiz (no API key)')
+                  ? t('sign_in_no_api_key', 'Sign in with {{name}} (no API key)', {
+                      name: brand.name,
+                    })
                   : t('api_key', 'API Key')}
               </button>
             ))}
@@ -694,6 +698,7 @@ const OnboardingStep3: FC<{ onBack: () => void; onFinish: () => void }> = ({
   onFinish,
 }) => {
   const t = useT();
+  const { tutorialVideoUrl } = useBrandLinks();
 
   return (
     <div className="flex flex-col gap-[24px] flex-1">
@@ -714,8 +719,8 @@ const OnboardingStep3: FC<{ onBack: () => void; onFinish: () => void }> = ({
         <div className="absolute left-0 top-0 w-full h-full flex justify-center">
           <iframe
             className="h-full aspect-video"
-            src="https://www.youtube.com/embed/BdsCVvEYgHU?si=vvhaZJ8I5oXXvVJS?autoplay=1"
-            title="Postiz Tutorial"
+            src={tutorialVideoUrl || undefined}
+            title="Tutorial"
             allow="autoplay"
             allowFullScreen
           />

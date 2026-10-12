@@ -5,6 +5,14 @@ import {
 
 @AuthProvider({ provider: 'GENERIC' })
 export class OauthProvider extends AuthProviderAbstract {
+  override isConfigured() {
+    try {
+      return !!this.getConfig();
+    } catch (e) {
+      return false;
+    }
+  }
+
   private getConfig() {
     const {
       POSTIZ_OAUTH_AUTH_URL,

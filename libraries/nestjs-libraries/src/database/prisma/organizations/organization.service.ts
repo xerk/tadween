@@ -4,7 +4,10 @@ import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prism
 import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/notification.service';
 import { AddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/add.team.member.dto';
 import { AdminAddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/admin.add.team.member.dto';
-import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
+import {
+  PlansService,
+  teamSeats,
+} from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
@@ -39,12 +42,29 @@ export class OrganizationService {
     return this._organizationRepository.createMaxUser(id, name, saasName, email);
   }
 
-  addUserToOrg(
+  // A plan with a member count (Plan.teamMembers > 0) is full once that many
+  // members besides the owner joined. Tiers without team members are left to
+  // the TEAM_MEMBERS policy, as before.
+  private async teamIsFull(orgId: string) {
+    const seats = await this._organizationRepository.getTeamSeats(orgId);
+    const values = (await this._plans.getPricing())[
+      seats.tier || (!process.env.STRIPE_PUBLISHABLE_KEY ? 'ULTIMATE' : 'FREE')
+    ];
+    if (!values?.team_members) {
+      return false;
+    }
+    return seats.members >= teamSeats(values);
+  }
+
+  async addUserToOrg(
     userId: string,
     id: string,
     orgId: string,
     role: 'USER' | 'ADMIN'
   ) {
+    if (await this.teamIsFull(orgId)) {
+      return false;
+    }
     return this._organizationRepository.addUserToOrg(userId, id, orgId, role);
   }
 
@@ -102,6 +122,18 @@ export class OrganizationService {
   }
 
   async inviteTeamMember(org: Organization, user: User, body: AddTeamMemberDto) {
+    if (await this.teamIsFull(org.id)) {
+      // 402 with the section, like PoliciesGuard: the app opens its paywall
+      throw new HttpException(
+        {
+          statusCode: 402,
+          message:
+            'Your plan has no free team seats. Upgrade to invite more members.',
+          section: 'team_members',
+        },
+        402
+      );
+    }
     const timeLimit = dayjs().add(2, 'day').format('YYYY-MM-DD HH:mm:ss');
     const id = makeId(5);
     const url =
@@ -137,7 +169,7 @@ export class OrganizationService {
       body.email
     );
     if (!users.length) {
-      throw new HttpException('No Postiz account found for this email', 400);
+      throw new HttpException('No account found for this email', 400);
     }
 
     if (users.length > 1) {

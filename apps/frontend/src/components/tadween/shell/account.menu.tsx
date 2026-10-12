@@ -13,13 +13,21 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import clsx from 'clsx';
+import useSWR from 'swr';
+import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { LanguageComponent } from '@gitroom/frontend/components/layout/language.component';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
+import {
+  TadweenSheetGroup,
+  TadweenSheetRow,
+} from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
+import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
 const ModeComponent = dynamic(
   () => import('@gitroom/frontend/components/layout/mode.component'),
   {
@@ -27,9 +35,10 @@ const ModeComponent = dynamic(
   }
 );
 
-// Account menu at the foot of the sidebar: settings, billing, appearance, language
-// and log out. Appearance, language and log out are Postiz's own components; each
-// row forwards its clicks to that component, so their logic is untouched. The panel stays mounted while closed because
+// Account menu at the foot of the sidebar: settings, billing, appearance, language,
+// feedback (with Sentry) and log out. Appearance, language, feedback and log out
+// are Postiz's own components; each row forwards its clicks to that component,
+// so their logic is untouched. The panel stays mounted while closed because
 // ModeComponent is what applies the saved theme to <body>. It is portalled to
 // <body> so the page content (painted after the fixed #left-menu) can't cover it.
 
@@ -49,6 +58,23 @@ const Icon: FC<{ children: ReactNode }> = ({ children }) => (
     {children}
   </svg>
 );
+
+// The profile photo isn't part of /user/self. Same key and fetch as
+// Settings → Profile, so saving a new photo there updates this avatar.
+const usePersonal = () => {
+  const fetch = useFetch();
+  const load = useCallback(
+    async (path: string) =>
+      (await (await fetch(path)).json()) as {
+        picture?: { path: string } | null;
+      },
+    []
+  );
+  return useSWR('/user/personal', load, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  });
+};
 
 const initials = (value: string) =>
   value
@@ -74,22 +100,29 @@ const pressHost = (e: KeyboardEvent<HTMLDivElement>) => {
   (e.currentTarget.firstElementChild as HTMLElement | null)?.click();
 };
 
-export const AccountMenu: FC = () => {
+// Who is signed in, and whether they get the Billing entry
+const useAccount = () => {
   const user = useUser();
-  const t = useT();
+  const { data: personal } = usePersonal();
   const { billingEnabled } = useVariables();
-  const [open, setOpen] = useState(false);
-  const [style, setStyle] = useState<CSSProperties>({});
-  const wrap = useRef<HTMLDivElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
-
   const name =
     [user?.name, user?.lastName].filter(Boolean).join(' ') || user?.email || '';
   const showBilling =
     billingEnabled &&
     ['ADMIN', 'SUPERADMIN'].includes(user?.role!) &&
     !user?.isLifetime;
+  return { user, name, showBilling, photo: personal?.picture?.path };
+};
+
+export const AccountMenu: FC = () => {
+  const { user, name, showBilling, photo } = useAccount();
+  const t = useT();
+  const { sentryDsn } = useVariables();
+  const [open, setOpen] = useState(false);
+  const [style, setStyle] = useState<CSSProperties>({});
+  const wrap = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
 
   const place = useCallback(() => {
     const r = trigger.current?.getBoundingClientRect();
@@ -113,9 +146,7 @@ export const AccountMenu: FC = () => {
   }, []);
 
   const toggle = useCallback(
-    (e: ReactMouseEvent) => {
-      // The mobile slide-in menu closes on any click inside it.
-      e.stopPropagation();
+    () => {
       if (!open) {
         place();
       }
@@ -172,7 +203,7 @@ export const AccountMenu: FC = () => {
         onClick={toggle}
       >
         <span className="tdw-acct-avatar" aria-hidden="true">
-          {initials(name) || '?'}
+          {photo ? <img src={photo} alt="" /> : initials(name) || '?'}
         </span>
         <span className="tdw-acct-info tdw-side-label">
           <span className="tdw-acct-name">{name}</span>
@@ -235,6 +266,18 @@ export const AccountMenu: FC = () => {
             <LanguageComponent />
             <span>{t('change_language', 'Change Language')}</span>
           </div>
+          {!!sentryDsn && (
+            <div
+              role="menuitem"
+              tabIndex={0}
+              className="tdw-acct-item tdw-acct-host"
+              onClick={clickHost}
+              onKeyDown={pressHost}
+            >
+              <AttachToFeedbackIcon />
+              <span>{t('feedback', 'Feedback')}</span>
+            </div>
+          )}
           <span className="tdw-acct-sep" role="separator" />
           <div
             role="menuitem"
@@ -250,5 +293,75 @@ export const AccountMenu: FC = () => {
         document.body
       )}
     </div>
+  );
+};
+
+// Phones: the same account entries as rows of the dock's More sheet
+// (tadween/shell/dock.tsx), with the same forwarding to Postiz's components.
+// The sheet stays mounted, so ModeComponent keeps applying the saved theme.
+export const AccountSheetGroup: FC<{ onNavigate: () => void }> = ({
+  onNavigate,
+}) => {
+  const { user, name, showBilling, photo } = useAccount();
+  const t = useT();
+  const router = useRouter();
+  const { sentryDsn } = useVariables();
+
+  if (!user) {
+    return null;
+  }
+
+  const host = (children: ReactNode, label: string, danger?: boolean) => (
+    <div
+      role="button"
+      tabIndex={0}
+      className={clsx(
+        'tdw-sheet-row tdw-sheet-host',
+        danger && 'is-destructive'
+      )}
+      onClick={clickHost}
+      onKeyDown={pressHost}
+    >
+      {children}
+      <span className="tdw-sheet-row-label">{label}</span>
+    </div>
+  );
+
+  return (
+    <TadweenSheetGroup
+      label={
+        <span className="tdw-sheet-acct">
+          <span className="tdw-acct-avatar" aria-hidden="true">
+            {photo ? <img src={photo} alt="" /> : initials(name) || '?'}
+          </span>
+          <span className="tdw-acct-info">
+            <span className="tdw-acct-name">{name}</span>
+            {!!user.email && name !== user.email && (
+              <span className="tdw-acct-sub">{user.email}</span>
+            )}
+          </span>
+        </span>
+      }
+    >
+      {showBilling && (
+        <TadweenSheetRow
+          icon={
+            <Icon>
+              <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+              <path d="M2.5 10h19M6.5 15h4" />
+            </Icon>
+          }
+          label={t('billing', 'Billing')}
+          onClick={() => {
+            onNavigate();
+            router.push('/billing');
+          }}
+        />
+      )}
+      {host(<ModeComponent />, t('appearance', 'Appearance'))}
+      {host(<LanguageComponent />, t('change_language', 'Change Language'))}
+      {!!sentryDsn && host(<AttachToFeedbackIcon />, t('feedback', 'Feedback'))}
+      {host(<LogoutComponent isIcon={true} />, t('log_out', 'Log out'), true)}
+    </TadweenSheetGroup>
   );
 };

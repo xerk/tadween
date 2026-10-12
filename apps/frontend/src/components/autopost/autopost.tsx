@@ -14,9 +14,10 @@ import { PickPlatforms } from '@gitroom/frontend/components/launches/helpers/pic
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import clsx from 'clsx';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
-import { CopilotTextarea } from '@copilotkit/react-textarea';
+import { AiTextarea } from '@gitroom/frontend/components/tadween/instance/ai.guard';
 import { Slider } from '@gitroom/react/form/slider';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 export const Autopost: FC = () => {
   const fetch = useFetch();
   const t = useT();
@@ -115,6 +116,18 @@ export const Autopost: FC = () => {
               ))}
             </div>
           )}
+          {data && !data.length ? (
+            <TadweenEmptyState
+              size="sm"
+              icon="rss"
+              className="tdw-empty-with-next"
+              title={t('tdw_no_autoposts', 'No autoposts yet')}
+              body={t(
+                'tdw_no_autoposts_body',
+                'Add an RSS feed and new items will be posted to your channels.'
+              )}
+            />
+          ) : null}
           <div>
             <Button
               onClick={addWebhook()}
@@ -354,7 +367,7 @@ export const AddOrEditWebhook: FC<{
                 <div className={`text-[14px] mb-[6px]`}>
                   {t('post_content', 'Post content')}
                 </div>
-                <CopilotTextarea
+                <AiTextarea
                   disableBranding={true}
                   className={clsx(
                     '!min-h-40 !max-h-80 p-2 overflow-x-hidden scrollbar scrollbar-thumb-[#612AD5] bg-customColor2 outline-none mb-[16px] border-fifth border rounded-[4px]'

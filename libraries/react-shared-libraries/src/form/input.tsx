@@ -50,9 +50,9 @@ export const Input: FC<
     }
   }, [watch]);
   return (
-    <div className="flex flex-col gap-[6px]">
+    <div className="tdw-field flex flex-col gap-[6px]">
       {!!label && (
-        <div className={`text-[14px]`}>
+        <div className="tdw-field-label text-[14px]">
           <TranslatedLabel
             label={label}
             translationKey={translationKey}
@@ -62,7 +62,9 @@ export const Input: FC<
       )}
       <div
         className={clsx(
-          'bg-newBgColorInner h-[42px] border-newTableBorder border rounded-[8px] text-textColor placeholder-textColor flex items-center justify-center',
+          'tdw-field-box bg-newBgColorInner h-[42px] border-newTableBorder border rounded-[8px] text-textColor placeholder-textColor flex items-center justify-center',
+          !!err && 'is-invalid',
+          rest.disabled && 'is-disabled',
           className
         )}
       >
@@ -77,7 +79,9 @@ export const Input: FC<
         />
       </div>
       {!removeError && (
-        <div className="text-red-400 text-[12px]">{err || <>&nbsp;</>}</div>
+        <div className="tdw-field-error text-red-400 text-[12px]">
+          {err || <>&nbsp;</>}
+        </div>
       )}
     </div>
   );

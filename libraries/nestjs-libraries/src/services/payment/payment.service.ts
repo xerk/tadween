@@ -16,8 +16,22 @@ export class PaymentService {
     headers: Record<string, string | string[] | undefined>
   ) {
     const paymentProvider = this._paymentProviderManager.getProvider(provider);
+    // A bad signature is rejected (the request is not from the provider)
     const event = await paymentProvider.validateWebhook(rawBody, headers);
-    return paymentProvider.processWebhook(event);
+    // A failure while applying a genuine event must not throw back to the
+    // provider: log it and answer 2xx so billing state is never half-applied
+    // by a retry storm. Inspect the logs (`payment_webhook_failed`) to replay.
+    try {
+      return await paymentProvider.processWebhook(event);
+    } catch (err) {
+      console.error('payment_webhook_failed', {
+        provider,
+        event_type: event?.type,
+        event_id: event?.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return { ok: false };
+    }
   }
 
   syncSubscription(provider: string, organizationId: string) {
@@ -37,7 +51,7 @@ export class PaymentService {
   // Subscription row + the platform (web / mobile) of the provider that owns it,
   // so clients can tell the user where to manage the subscription.
   async getSubscription(organizationId: string) {
-    const subscription =
+    let subscription =
       await this._subscriptionService.getSubscriptionByOrganizationId(
         organizationId
       );
@@ -49,11 +63,21 @@ export class PaymentService {
     // break reading the subscription
     let platform: PaymentPlatform | undefined;
     try {
-      platform = this._paymentProviderManager.getProvider(
+      const provider = this._paymentProviderManager.getProvider(
         subscription.provider
-      ).platform;
+      );
+      platform = provider.platform;
+      // Rows from before the provider status was stored: read it once, so
+      // the app shows the real state and the price this workspace pays
+      if (subscription.status === null && !subscription.isLifetime) {
+        await provider.refreshSubscriptionState(organizationId);
+        subscription =
+          (await this._subscriptionService.getSubscriptionByOrganizationId(
+            organizationId
+          )) || subscription;
+      }
     } catch (err) {
-      platform = undefined;
+      platform = platform || undefined;
     }
 
     return {

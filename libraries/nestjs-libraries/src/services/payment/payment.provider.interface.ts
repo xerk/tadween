@@ -60,6 +60,40 @@ export abstract class PaymentProviderAbstract {
     return this.notSupported();
   }
 
+  // One-time purchase of an AI credits pack (embedded checkout); credited by
+  // the provider's webhook. Answers { client_secret, check }.
+  async embeddedAiCredits(
+    organizationId: string,
+    userId: string,
+    packId: string
+  ): Promise<any> {
+    return this.notSupported();
+  }
+
+  // Start the plan's free trial without a payment method
+  async startTrial(
+    uniqueId: string,
+    organizationId: string,
+    userId: string,
+    body: BillingSubscribeDto,
+    allowTrial: boolean
+  ): Promise<any> {
+    return this.notSupported();
+  }
+
+  // Store the provider's status, trial end and price on the subscription row
+  // (for rows written before the provider reported them). No-op by default.
+  async refreshSubscriptionState(organizationId: string): Promise<void> {
+    return;
+  }
+
+  // Trial end date and whether a payment method is on file (null: no trial)
+  async getTrialInfo(
+    organizationId: string
+  ): Promise<{ trialEnd: Date | null; hasPaymentMethod: boolean } | null> {
+    return null;
+  }
+
   // Price difference preview when switching plans
   async prorate(
     organizationId: string,

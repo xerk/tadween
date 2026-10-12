@@ -170,8 +170,15 @@ export const useBrandLinks = () => {
   return useMemo(() => {
     const branding = data?.branding;
     const docsUrl = (branding?.docsUrl || '').replace(/\/+$/, '');
+    const name = branding?.instanceName || 'Tadween';
     return {
-      name: branding?.instanceName || 'Tadween',
+      name,
+      // the name an MCP client lists this server under ("tadween")
+      slug:
+        name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'tadween',
       supportEmail: branding?.supportEmail || '',
       websiteUrl: branding?.websiteUrl || '',
       termsUrl: branding?.termsUrl || '',

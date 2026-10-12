@@ -4,7 +4,15 @@
 // (components/auth/*). Presentation only; forms, fetches and redirects stay in
 // those components. Styles live in app/tadween/auth.scss and render inside the
 // `.tdw-ui` scope of the auth layout, so the kit's Field / Button classes apply.
-import { FC, ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
+import {
+  FC,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react';
 import Link from 'next/link';
 import { useFormContext } from 'react-hook-form';
 import useCookie from 'react-use-cookie';
@@ -118,7 +126,15 @@ export const AuthField: FC<{
   aside?: ReactNode;
   /** message shown when the field is left empty */
   required?: string;
-}> = ({ name, label, type = 'text', placeholder, autoComplete, aside, required }) => {
+}> = ({
+  name,
+  label,
+  type = 'text',
+  placeholder,
+  autoComplete,
+  aside,
+  required,
+}) => {
   const form = useFormContext();
   const id = useId();
   const error = useFieldError(name);
@@ -157,7 +173,10 @@ export const AuthSubmit: FC<{
     onClick={onClick}
     disabled={disabled || loading}
     aria-busy={loading || undefined}
-    className={cx('pz-btn pz-btn-primary tdw-auth-submit', loading && 'is-loading')}
+    className={cx(
+      'pz-btn pz-btn-primary tdw-auth-submit',
+      loading && 'is-loading'
+    )}
   >
     {loading ? <Icon name="loader-circle" /> : null}
     <span>{children}</span>
@@ -214,12 +233,18 @@ export const AuthLink: FC<{ href: string; children: ReactNode }> = ({
 /* Terms / Privacy line. Links come from /admin → Branding (public instance
    settings), with NEXT_PUBLIC_TERMS_URL / NEXT_PUBLIC_PRIVACY_URL as fallback;
    the sentence only renders when at least one is configured. */
-export const AuthLegal: FC = () => {
-  const t = useT();
+export const useLegalLinks = () => {
   const brand = useBrandLinks();
   const env = useVariables();
-  const termsUrl = brand.termsUrl || env.termsUrl;
-  const privacyUrl = brand.privacyUrl || env.privacyUrl;
+  return {
+    termsUrl: brand.termsUrl || env.termsUrl,
+    privacyUrl: brand.privacyUrl || env.privacyUrl,
+  };
+};
+
+export const AuthLegal: FC = () => {
+  const t = useT();
+  const { termsUrl, privacyUrl } = useLegalLinks();
   if (!termsUrl && !privacyUrl) {
     return null;
   }
@@ -254,7 +279,9 @@ const shell = () => document.querySelector<HTMLElement>('.tdw-auth');
 const nativeLanguageName = (code: string) => {
   const locale = code.replace('_', '-');
   try {
-    return new Intl.DisplayNames([locale], { type: 'language' }).of(locale) || code;
+    return (
+      new Intl.DisplayNames([locale], { type: 'language' }).of(locale) || code
+    );
   } catch (e) {
     return code;
   }
@@ -331,11 +358,17 @@ export const AuthControls: FC = () => {
           title={t('change_language', 'Change Language')}
         >
           <Icon name="languages" size={16} />
-          <span lang={current.replace('_', '-')}>{nativeLanguageName(current)}</span>
+          <span lang={current.replace('_', '-')}>
+            {nativeLanguageName(current)}
+          </span>
           <Icon name="chevron-down" size={14} />
         </button>
         {open && (
-          <div className="tdw-auth-lang-menu" role="listbox" aria-label={t('change_language', 'Change Language')}>
+          <div
+            className="tdw-auth-lang-menu"
+            role="listbox"
+            aria-label={t('change_language', 'Change Language')}
+          >
             {languages.map((lng) => (
               <button
                 key={lng}
@@ -348,7 +381,9 @@ export const AuthControls: FC = () => {
                   setOpen(false);
                 }}
               >
-                <span lang={lng.replace('_', '-')}>{nativeLanguageName(lng)}</span>
+                <span lang={lng.replace('_', '-')}>
+                  {nativeLanguageName(lng)}
+                </span>
                 {lng === current && <Icon name="check" size={14} />}
               </button>
             ))}
@@ -359,7 +394,10 @@ export const AuthControls: FC = () => {
         type="button"
         className="tdw-auth-control is-icon"
         onClick={toggleMode}
-        aria-label={t('tdw_auth_toggle_theme', 'Switch light or dark appearance')}
+        aria-label={t(
+          'tdw_auth_toggle_theme',
+          'Switch light or dark appearance'
+        )}
       >
         <Icon name={mode === 'light' ? 'moon' : 'sun'} size={16} />
       </button>

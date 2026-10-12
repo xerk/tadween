@@ -672,10 +672,13 @@ export class PartnersService {
       await this.applyFreeMonth(reward);
     }
 
+    // a balance payout still in flight is finished even if the partner has
+    // switched to cash since
     if (
       partner.kind === 'AFFILIATE' &&
       partner.status === 'ACTIVE' &&
-      partner.payoutPreference === 'BALANCE'
+      (partner.payoutPreference === 'BALANCE' ||
+        (await this._repository.pendingBalancePayout(partner.id)))
     ) {
       await this.payCommissionAsBalance(partner);
     }
@@ -848,6 +851,8 @@ export class PartnersService {
     let amount = 0;
     if (pending) {
       amount = await this._repository.payoutTotal(pending.id);
+    } else if (partner.payoutPreference !== 'BALANCE') {
+      return;
     } else {
       const available = await this._repository.rewards({
         partnerId: partner.id,

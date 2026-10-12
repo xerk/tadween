@@ -191,6 +191,30 @@ export abstract class PaymentProviderAbstract {
     return this.notSupported();
   }
 
+  // --- partners program (docs/tadween/partners.md) ------------------------
+
+  // Credit the workspace's account balance, used on its next invoices (a
+  // free month, an affiliate's commission taken as Tadween balance).
+  // `idempotencyKey` is the reward or payout id, so a retry grants once.
+  // Answers granted: false when the platform has no balance (the default) or
+  // the workspace can't take one yet; the reward then stays to apply later.
+  // Throwing means "unknown outcome": the caller retries with the same key,
+  // so an implementation must not grant twice for one key.
+  async grantAccountCredit(
+    organizationId: string,
+    amountCents: number,
+    reason: string,
+    idempotencyKey: string
+  ): Promise<{ granted: boolean; reason?: string }> {
+    return { granted: false, reason: 'not_supported' };
+  }
+
+  // Fingerprints of the cards saved on the workspace's billing account, so
+  // the partners program can refuse a referral paid with the referrer's card
+  async getPaymentFingerprints(organizationId: string): Promise<string[]> {
+    return [];
+  }
+
   // After a login swap, keep the provider's customer email in sync (no-op by default)
   async syncCustomerEmailsAfterSwitch(
     accounts: { id: string; email: string }[]

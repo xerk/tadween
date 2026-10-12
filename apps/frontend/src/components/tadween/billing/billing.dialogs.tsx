@@ -11,8 +11,6 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import {
   Button,
   Dialog,
-  RadioGroup,
-  RadioOption,
   Textarea,
 } from '@gitroom/frontend/components/tadween/ui';
 
@@ -208,67 +206,76 @@ export const useBillingDialogs = () => {
   return { node, confirm, askReason, offerDiscount };
 };
 
-/* Change plan — pick a tier and period; "Pay today" is Postiz's prorate */
-export const ChangePlanDialog = <T extends string>({
-  open,
-  onClose,
-  options,
-  value,
-  onChange,
-  period,
+/* Change plan, inline under the plans on Billing: the plan now and the one
+   picked, Postiz's prorated "Pay today" and the confirm. Without a different
+   plan or period picked, it says how to start. */
+export const ChangePlanPanel = ({
+  now,
+  next,
   payToday,
+  confirmLabel,
   onConfirm,
   loading,
 }: {
-  open: boolean;
-  onClose: () => void;
-  options: RadioOption<T>[];
-  value: T;
-  onChange: (v: T) => void;
-  period: ReactNode;
+  now: ReactNode;
+  // The picked plan and price; null while the picked one is the current plan
+  next: ReactNode | null;
   payToday: ReactNode;
+  confirmLabel: string;
   onConfirm: () => void;
   loading?: boolean;
 }) => {
   const t = useT();
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      size="lg"
-      title={t('tdw_change_plan', 'Change plan')}
-      description={t(
-        'tdw_change_plan_desc',
-        'The new plan starts right away. You pay the difference for the rest of this period.'
-      )}
-      footer={
+    <section
+      id="tdw-change"
+      className="tdw-checkout tdw-change"
+      aria-label={t('tdw_change_plan', 'Change plan')}
+    >
+      <header className="tdw-checkout-head">
+        <h2 className="tdw-checkout-title">
+          {t('tdw_change_plan', 'Change plan')}
+        </h2>
+      </header>
+      <dl className="tdw-change-rows">
+        <div>
+          <dt>{t('tdw_change_now', 'Now')}</dt>
+          <dd>{now}</dd>
+        </div>
+        <div className={next ? 'is-next' : undefined}>
+          <dt>{t('tdw_change_new', 'New')}</dt>
+          <dd>
+            {next ||
+              t(
+                'tdw_change_pick_hint',
+                'Pick another plan or switch the billing period above.'
+              )}
+          </dd>
+        </div>
+      </dl>
+      {next ? (
         <>
-          <span className="pz-pay-today">{payToday}</span>
-          <span className="flex-1" />
-          <Button variant="ghost" onClick={onClose}>
-            {t('tdw_cancel', 'Cancel')}
-          </Button>
+          <p className="tdw-change-desc">
+            {t(
+              'tdw_change_plan_desc',
+              'The new plan starts right away. You pay the difference for the rest of this period.'
+            )}
+          </p>
+          <p className="tdw-change-today pz-pay-today" aria-live="polite">
+            {payToday}
+          </p>
           <Button
             variant="primary"
+            size="lg"
+            className="w-full"
             loading={loading}
             loadingLabel={t('tdw_changing', 'Changing…')}
             onClick={onConfirm}
           >
-            {t('tdw_confirm_change', 'Confirm change')}
+            {confirmLabel}
           </Button>
         </>
-      }
-    >
-      <div className="grid gap-[16px]">
-        {period}
-        <RadioGroup<T>
-          label={t('tdw_plan', 'Plan')}
-          columns={2}
-          value={value}
-          onChange={onChange}
-          options={options}
-        />
-      </div>
-    </Dialog>
+      ) : null}
+    </section>
   );
 };

@@ -39,14 +39,14 @@ const ORGANIZATION_SORT: Record<
   members: (order) => ({ users: { _count: order } }),
 };
 
-const paging = (query: AdminListQueryDto) => {
+export const paging = (query: AdminListQueryDto) => {
   const page = Math.max(0, query.page || 0);
   const pageSize = Math.min(100, Math.max(1, query.pageSize || PAGE_SIZE));
   return { page, pageSize, skip: page * pageSize };
 };
 
 // Whitelisted sort + a stable tie-breaker on id so pages never overlap.
-const sorting = <T>(
+export const sorting = <T>(
   map: Record<string, (order: Prisma.SortOrder) => T>,
   query: AdminListQueryDto
 ): T[] => {

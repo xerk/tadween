@@ -1,4 +1,4 @@
-import { SIGN_IN_URL, SIGN_UP_URL, SOURCE_URL } from '@/lib/config';
+import { REFERRAL_PROGRAM, SIGN_IN_URL, SIGN_UP_URL, SOURCE_URL } from '@/lib/config';
 import { aiClientsEn } from './aiClients.en';
 import { channelsEn } from './channels.en';
 import { featuresEn } from './features.en';
@@ -358,6 +358,63 @@ export const en: Dict = {
     primary: 'Start 7-day trial',
     secondary: 'Sign in',
   },
+  referral: {
+    name: 'Invite & earn',
+    meta: {
+      title: 'Invite & earn: invite friends, earn AI credits | Tadween',
+      description: 'Share your Tadween link. When friends you invite start paying, you earn AI credits, free months and the founder price for life, and each friend gets 300 AI credits.',
+    },
+    title: 'Invite friends, earn AI credits',
+    sub: 'Share your link. Each friend who starts paying moves you up the ladder, and the rewards add up.',
+    more: 'How Invite & earn works',
+    ladderLabel: 'Rewards by number of paying friends',
+    rungs: [
+      { n: 1, unit: 'paying friend', reward: '500 AI credits' },
+      { n: 3, unit: 'paying friends', reward: '1 free month' },
+      { n: 5, unit: 'paying friends', reward: '+1,000 AI credits and the Ambassador badge' },
+      { n: 10, unit: 'paying friends', reward: 'The next plan up, free for 12 months' },
+      { n: 25, unit: 'paying friends', reward: 'Founder price for life' },
+    ],
+    friend: 'Your friend gets 300 AI credits on their first payment.',
+    pricingLink: 'Invite friends and earn AI credits',
+    page: {
+      title: 'Invite friends, earn AI credits',
+      sub: 'Share your link or code. When the people you invite start paying for Tadween, you earn AI credits, free months and, at 25 friends, the founder price for life.',
+      signUp: 'Sign up',
+      openInvite: 'Open Invite & earn',
+      stepsTitle: 'How it works',
+      steps: [
+        { title: 'Share your link or code', body: 'Find both in the app under Invite & earn. Send them to colleagues, clients or anyone who posts on LinkedIn.' },
+        { title: 'Your friend signs up and pays', body: 'They sign up through your link or enter your code. Their first payment earns them 300 AI credits.' },
+        { title: 'You climb the ladder', body: 'Each paying friend counts once their second payment goes through, or 30 days after the first on a yearly plan. Then the reward for that rung lands in your workspace.' },
+      ],
+      ladderTitle: 'The ladder',
+      ladderSub: 'The ladder counts paying friends, not sign-ups. You get each rung’s reward once, when you reach it.',
+      rulesTitle: 'The rules',
+      rules: [
+        'Rewards are earned only after a paid invoice, and each one is held for 30 days before it lands.',
+        'You can’t invite yourself, your own other accounts or workspaces you run.',
+        'Each workspace has one inviter. It is set at sign-up and never changes.',
+        'If a payment is refunded or charged back, the reward it earned is removed.',
+        'You can earn up to 10 credit rewards a month.',
+        'When you promote your link in paid posts or ads, mark them as “Ad”.',
+        'Don’t run search or social ads on the Tadween name.',
+        'No lotteries, giveaways or prizes in exchange for sign-ups.',
+      ],
+      faqTitle: 'Questions about Invite & earn',
+      faq: [
+        { title: 'Where do I find my link and code?', content: 'In the app, under Invite & earn. The same screen shows who signed up through you, who is paying and the next rung on your ladder.' },
+        { title: 'When does a friend count as paying?', content: 'After their second payment on a monthly plan, or 30 days after their first payment on a yearly plan. Trials and sign-ups without a payment don’t count yet.' },
+        { title: 'What does my friend get?', content: '300 AI credits when their first payment goes through, on top of the credits their plan includes each month.' },
+        { title: 'What are AI credits?', content: 'AI features such as image generation use credits. Reward credits are added to your workspace and are used like the credits in your plan. Credits have no cash value.' },
+        { title: 'What happens if a friend cancels or asks for a refund?', content: 'If a friend’s payment is refunded or charged back, the reward it earned is removed, even after it has landed. A friend’s inviter never changes, so if they subscribe again later, they still count for you.' },
+        { title: 'Can I share my link in ads?', content: 'Yes, as long as you mark paid promotion as “Ad” and don’t advertise on the Tadween name, for example by bidding on it in search ads.' },
+        { title: 'Is there a limit?', content: 'You can earn up to 10 credit rewards a month. There is no limit on how many friends you invite.' },
+      ],
+      ctaTitle: 'Start inviting today',
+      ctaBody: 'New to Tadween? Sign up, then open Invite & earn to get your link.',
+    },
+  },
   channels: channelsEn,
   aiClients: aiClientsEn,
   legal: legalEn,
@@ -372,6 +429,7 @@ export const en: Dict = {
           { href: '/ai-agent', label: 'AI agent' },
           { href: '/channels', label: 'Channels' },
           { href: '/pricing', label: 'Pricing' },
+          ...(REFERRAL_PROGRAM ? [{ href: '/referral', label: 'Invite & earn' }] : []),
           { href: SIGN_UP_URL, label: 'Start free trial' },
           { href: SIGN_IN_URL, label: 'Sign in' },
         ],

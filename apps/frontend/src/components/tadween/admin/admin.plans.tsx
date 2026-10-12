@@ -357,7 +357,7 @@ const FounderWindow: FC<{
   return (
     <Section
       title="Founder offer"
-      description="Founder prices are charged for the first paying workspaces, counted from active Stripe subscriptions (trials and granted plans don't count). When the cap or the end date is reached, checkout charges the list price and the founder copy disappears. Founders keep their price while they stay subscribed."
+      description="Founder prices are charged for the first paying workspaces. A workspace takes a spot on its first paid invoice at a founder price; trials and granted plans don't count. A trial started while spots were open keeps the founder price when it converts, so the final count can go a little past the cap. When the cap or the end date is reached, checkout charges the list price and the founder copy disappears. Founders keep their price while they stay subscribed."
       action={
         <Button
           variant="primary"

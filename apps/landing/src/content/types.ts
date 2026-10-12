@@ -300,6 +300,42 @@ export interface CalendarDemoCopy {
   refusedPublished: string;
 }
 
+/** Invite & earn (lib/config.ts REFERRAL_PROGRAM): the home page section, the /referral page
+    and the links to it. No dollar amounts: the page's FAQ feeds FAQPage data. */
+export interface ReferralCopy {
+  /** The program's name, for the eyebrow, the footer link and the breadcrumb. */
+  name: string;
+  meta: PageMeta;
+  /** The home page section. */
+  title: string;
+  sub: string;
+  more: string;
+  /** The ladder: `n` paying friends earn `reward`; `unit` is "paying friends" in the right
+      plural form for `n`. */
+  ladderLabel: string;
+  rungs: { n: number; unit: string; reward: string }[];
+  /** What the invited friend gets. */
+  friend: string;
+  /** Under the pricing table. */
+  pricingLink: string;
+  page: {
+    title: string;
+    sub: string;
+    signUp: string;
+    openInvite: string;
+    stepsTitle: string;
+    steps: { title: string; body: string }[];
+    ladderTitle: string;
+    ladderSub: string;
+    rulesTitle: string;
+    rules: string[];
+    faqTitle: string;
+    faq: Faq[];
+    ctaTitle: string;
+    ctaBody: string;
+  };
+}
+
 export interface Dict {
   lang: Lang;
   dir: 'ltr' | 'rtl';
@@ -481,6 +517,7 @@ export interface Dict {
     primary: string;
     secondary: string;
   };
+  referral: ReferralCopy;
   channels: ChannelsDict;
   aiClients: AiClientsDict;
   legal: LegalCopy;

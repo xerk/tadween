@@ -1,0 +1,70 @@
+---
+# Tadween images for the production server (ARM): the app (backend, frontend
+# and orchestrator, Dockerfile.dev) and the landing site (apps/landing).
+# Run it from the Actions tab. The upstream "Build Containers" workflow pushes
+# to Postiz's own registry and is left as it is for upstream syncs.
+name: "Build Tadween images"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag, e.g. 2026-10-12"
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  app:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Build and push the app
+        run: |
+          docker buildx build --platform linux/arm64 \
+            -f Dockerfile.dev \
+            --build-arg NEXT_PUBLIC_VERSION=${{ inputs.tag }} \
+            --provenance=false --sbom=false \
+            -t ghcr.io/${{ github.repository_owner }}/tadween-app:${{ inputs.tag }} \
+            -t ghcr.io/${{ github.repository_owner }}/tadween-app:latest \
+            --push .
+
+  landing:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      # Public values only (docs/tadween/legal.md); the landing inlines them at build time.
+      - name: Build and push the landing site
+        run: |
+          docker buildx build --platform linux/arm64 \
+            -f apps/landing/Dockerfile \
+            --build-arg NEXT_PUBLIC_SITE_URL=https://tadween.app \
+            --build-arg NEXT_PUBLIC_APP_URL=https://app.tadween.app \
+            --build-arg NEXT_PUBLIC_API_URL=https://app.tadween.app/api \
+            --build-arg NEXT_PUBLIC_LEGAL_COMPANY="Xerk LLC" \
+            --build-arg NEXT_PUBLIC_LEGAL_STATE="Wyoming" \
+            --build-arg NEXT_PUBLIC_LEGAL_ADDRESS="30 N Gould St Ste R, Sheridan, WY 82801, United States" \
+            --build-arg NEXT_PUBLIC_SUPPORT_EMAIL="support@xerk.io" \
+            --build-arg NEXT_PUBLIC_LEGAL_GOVERNING_LAW="Wyoming" \
+            --build-arg NEXT_PUBLIC_LEGAL_VENUE="Sheridan County, Wyoming" \
+            --build-arg NEXT_PUBLIC_REFUND_DAYS="14" \
+            --build-arg NEXT_PUBLIC_LEGAL_AI_PROVIDERS="OpenAI" \
+            --build-arg NEXT_PUBLIC_LEGAL_ANALYTICS="none" \
+            --provenance=false --sbom=false \
+            -t ghcr.io/${{ github.repository_owner }}/tadween-landing:${{ inputs.tag }} \
+            -t ghcr.io/${{ github.repository_owner }}/tadween-landing:latest \
+            --push .

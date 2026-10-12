@@ -38,6 +38,7 @@ export const FEATURE_KEYS = [
   'thirdParty',
   'media',
   'ugc',
+  'affiliate',
 ] as const;
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
 
@@ -65,6 +66,7 @@ export const FEATURES: FeatureDefinition[] = [
   { key: 'shortLinks', group: 'Workspace', label: 'Short links', description: 'Shorten and track links in posts.', hides: 'Settings → Short links preference', applied: true },
   { key: 'publicApi', group: 'Developers', label: 'Public API, MCP and CLI', description: 'API key, OAuth apps and the MCP server for each workspace.', hides: 'Settings → API & MCP, and the agent step of onboarding', applied: true },
   { key: 'webhooks', group: 'Developers', label: 'Webhooks', description: 'HTTP callbacks when posts publish or fail.', hides: 'Settings → Webhooks', applied: true },
+  { key: 'affiliate', group: 'Growth', label: 'Invite & earn and partners', description: 'Referral links and rewards for every workspace, and the affiliate program (docs/tadween/partners.md). Off unless you switch it on.', hides: 'Invite & earn in the sidebar and settings, /partners, new referrals', applied: true },
   { key: 'ugc', group: 'Growth', label: 'UGC videos', description: 'The AgentMedia UGC video shortcut (a Postiz partner deal). Off unless you switch it on.', hides: 'Make UGC in the sidebar', applied: true },
 ];
 
@@ -83,8 +85,9 @@ export const featureDefaultsFromEnv = (): Record<FeatureKey, boolean> => {
     .split(',')
     .map((p) => p.trim())
     .filter(Boolean);
-  // off until the admin switches them on: UGC (a Postiz partner deal) and Integrations (hidden for now)
-  const offByDefault: FeatureKey[] = ['ugc', 'thirdParty'];
+  // off until the admin switches them on: UGC (a Postiz partner deal),
+  // Integrations (hidden for now) and the partners program
+  const offByDefault: FeatureKey[] = ['ugc', 'thirdParty', 'affiliate'];
   return FEATURE_KEYS.reduce(
     (all, key) => ({
       ...all,
@@ -350,3 +353,48 @@ export const DEFAULT_PLANS: DefaultPlan[] = [
     position: 2,
   },
 ];
+
+// ── Partners program ("Invite & earn" + affiliates) ──────────────────────────
+// Owner-approved rules (docs/tadween/partners.md). Behind the `affiliate`
+// feature switch.
+export type LadderReward = 'credits' | 'free_month' | 'next_plan_year' | 'founder_for_life';
+
+// The referrer's ladder: one reward per step, by paying friends who qualified
+// (2nd paid invoice, or 30 days after the 1st on a yearly plan).
+export const REFERRER_LADDER: Array<{
+  step: number;
+  reward: LadderReward;
+  credits?: number;
+  ambassador?: boolean;
+}> = [
+  { step: 1, reward: 'credits', credits: 500 },
+  { step: 3, reward: 'free_month' },
+  { step: 5, reward: 'credits', credits: 1000, ambassador: true },
+  { step: 10, reward: 'next_plan_year' },
+  { step: 25, reward: 'founder_for_life' },
+];
+
+export const PARTNERS = {
+  // the referred workspace's own bonus on its first payment
+  friendCredits: 300,
+  // ... when an affiliate brought it, plus a longer trial
+  affiliateAudienceCredits: 500,
+  affiliateTrialDays: 14,
+  // commission and ladder holds
+  holdDays: 30,
+  yearlyQualifyDays: 30,
+  // "Who invited you?" stays open this long after sign-up
+  claimWindowDays: 7,
+  maxCreditRewardsPerMonth: 10,
+  // cash payouts: monthly, from this much
+  payoutMinimumCents: 5000,
+  // commission taken as Tadween balance is worth this much more
+  balanceMultiplier: 1.5,
+  // affiliate commission by paying customers they brought
+  tierRates: [
+    { tier: 1, minPaying: 0, rate: 30 },
+    { tier: 2, minPaying: 10, rate: 35 },
+    { tier: 3, minPaying: 30, rate: 40 },
+  ],
+  commissionMonths: 12,
+} as const;

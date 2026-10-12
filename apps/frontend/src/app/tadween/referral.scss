@@ -1,0 +1,224 @@
+// Tadween partners program: Invite & earn (components/tadween/referral).
+// ReferralLinkCard, RewardLadder, ReferralStatusList and the page around
+// them. Scoped to `.tdw-ui` so the kit's token aliases (--primary, --card…)
+// apply; light and dark come from the tokens, RTL from logical properties.
+// docs/tadween/partners.md documents each piece.
+
+.tdw-ref-shell {
+  display: flex;
+  justify-content: center;
+  padding: 24px 20px calc(var(--tdw-dock-space, 0px) + 32px);
+}
+
+.tdw-ui.tdw-ref-page {
+  display: grid;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: 880px;
+  min-width: 0;
+
+  &.is-embedded { max-width: none; }
+
+  // ── ReferralLinkCard ──────────────────────────────────────────────────────
+  .tdw-ref-card {
+    position: relative;
+    display: grid;
+    gap: var(--space-5);
+    padding: var(--space-6);
+    border-radius: var(--radius-xl);
+    background:
+      radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--primary) 16%, transparent) 0%, transparent 60%),
+      var(--card);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 22%, var(--border)), var(--shadow-sm);
+    overflow: hidden;
+  }
+  [dir='rtl'] & .tdw-ref-card {
+    background:
+      radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--primary) 16%, transparent) 0%, transparent 60%),
+      var(--card);
+  }
+  .tdw-ref-card-head { display: flex; align-items: flex-start; gap: var(--space-4); }
+  .tdw-ref-card-badge {
+    display: grid; place-items: center; flex: none;
+    width: 48px; height: 48px; border-radius: var(--radius-lg);
+    background: var(--primary); color: var(--on-primary, #fff);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--primary) 35%, transparent);
+  }
+  .tdw-ref-card-title { margin: 0; font-size: 20px; line-height: 26px; font-weight: 650; letter-spacing: -0.01em; color: var(--foreground); }
+  .tdw-ref-card-sub { margin: 4px 0 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+
+  .tdw-ref-link { display: grid; gap: 6px; }
+  .tdw-ref-link-label { font-size: 13px; font-weight: 500; color: var(--muted-foreground); }
+  .tdw-ref-link-row { display: flex; gap: var(--space-2); min-width: 0; }
+  .tdw-ref-link-input {
+    flex: 1; min-width: 0; height: 40px; padding: 0 12px;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    background: var(--background); color: var(--foreground);
+    font: 500 14px/1 var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    text-overflow: ellipsis;
+    &:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent); }
+  }
+
+  .tdw-ref-card-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .tdw-ref-code {
+    display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px;
+    border: 1px dashed color-mix(in srgb, var(--primary) 50%, var(--border)); border-radius: var(--radius-full);
+    background: var(--primary-soft); color: var(--foreground); font: inherit; cursor: pointer;
+    transition: transform var(--duration-instant, 80ms) ease-out;
+    &:active { transform: scale(0.97); }
+    &:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  }
+  .tdw-ref-code-label { font-size: 12px; color: var(--muted-foreground); }
+  .tdw-ref-code-value { font: 650 14px/1 var(--font-mono, ui-monospace, monospace); letter-spacing: 0.08em; }
+  .tdw-ref-share { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tdw-ref-share-btn {
+    display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px;
+    border: 1px solid var(--border); border-radius: var(--radius-full);
+    background: var(--card); color: var(--foreground) !important; text-decoration: none !important;
+    font: inherit; font-size: 13px; font-weight: 550; cursor: pointer;
+    transition: background-color var(--duration-fast, 120ms) ease, border-color var(--duration-fast, 120ms) ease;
+    &:hover { background: var(--accent); }
+    &:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    &::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: 0.35; }
+    &.is-whatsapp::before { background: #25d366; opacity: 1; }
+    &.is-linkedin::before { background: #0a66c2; opacity: 1; }
+    &.is-x::before { background: var(--foreground); opacity: 1; }
+    &.is-native::before { display: none; }
+  }
+
+  // ── Page sections ─────────────────────────────────────────────────────────
+  .tdw-ref-sec {
+    display: grid; gap: var(--space-4); padding: var(--space-5);
+    border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm);
+    min-width: 0;
+  }
+  .tdw-ref-sec h3, .tdw-ref-sec-head h3 { margin: 0; font-size: 16px; line-height: 22px; font-weight: 600; color: var(--foreground); }
+  .tdw-ref-sec-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .tdw-ref-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+
+  .tdw-ref-partner-link {
+    display: flex; align-items: center; gap: var(--space-3); padding: 14px var(--space-4);
+    border-radius: var(--radius-lg); background: var(--primary-soft); color: var(--foreground) !important;
+    font-size: 14px; font-weight: 550;
+    span { flex: 1; }
+    &:hover { box-shadow: var(--shadow-sm); }
+  }
+  .tdw-ref-invited {
+    display: flex; align-items: flex-start; gap: var(--space-3); padding: 12px var(--space-4);
+    border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm);
+    font-size: 14px; line-height: 20px; color: var(--foreground);
+    > .tdw-icon, > svg { color: var(--success); flex: none; margin-top: 1px; }
+  }
+
+  // "Who invited you?"
+  .tdw-ref-claim {
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-5);
+    padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg);
+    background: var(--card); box-shadow: 0 0 0 1px var(--border);
+  }
+  .tdw-ref-claim > div:first-child { flex: 1 1 260px; }
+  .tdw-ref-claim-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--foreground); }
+  .tdw-ref-claim-sub { margin: 2px 0 0; font-size: 13px; color: var(--muted-foreground); }
+  .tdw-ref-claim-row { display: flex; gap: var(--space-2); flex: 1 1 300px; }
+  .tdw-ref-claim-input {
+    flex: 1; min-width: 0; height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-md);
+    background: var(--background); color: var(--foreground); font: 600 14px/1 var(--font-mono, ui-monospace, monospace); letter-spacing: 0.06em;
+    &:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent); }
+    &[aria-invalid='true'] { border-color: var(--destructive); }
+  }
+  .tdw-ref-claim-error { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--destructive); }
+
+  // ── RewardLadder ──────────────────────────────────────────────────────────
+  .tdw-ladder { display: grid; gap: var(--space-4); }
+  .tdw-ladder-summary { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2) var(--space-4); }
+  .tdw-ladder-count { display: inline-flex; align-items: baseline; gap: 8px; }
+  .tdw-ladder-count .metric { font-size: 28px; line-height: 32px; font-weight: 700; color: var(--foreground); font-variant-numeric: tabular-nums; }
+  .tdw-ladder-count-label { font-size: 14px; color: var(--muted-foreground); }
+  .tdw-ladder-next { font-size: 14px; font-weight: 550; color: var(--primary); }
+  .tdw-ladder-track { height: 8px; border-radius: 4px; background: var(--muted); overflow: hidden; }
+  .tdw-ladder-track span {
+    display: block; height: 100%; border-radius: inherit;
+    background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 70%, var(--smart, var(--primary))));
+    transition: width var(--duration-spring, 400ms) var(--ease-spring, ease);
+  }
+  .tdw-ladder-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+  .tdw-ladder-step {
+    position: relative; display: grid; align-content: start; gap: var(--space-2);
+    padding: var(--space-3); border-radius: var(--radius-md);
+    background: var(--background); box-shadow: 0 0 0 1px var(--border);
+    min-width: 0;
+  }
+  .tdw-ladder-dot {
+    display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+    background: var(--muted); color: var(--muted-foreground);
+  }
+  .tdw-ladder-step-text { display: grid; gap: 2px; min-width: 0; }
+  .tdw-ladder-friends { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted-foreground); }
+  .tdw-ladder-reward { font-size: 14px; line-height: 19px; font-weight: 550; color: var(--foreground); overflow-wrap: anywhere; }
+  .tdw-ladder-state { font-size: 12px; font-weight: 600; color: var(--success); }
+  .tdw-ladder-step.is-reached {
+    background: color-mix(in srgb, var(--success) 8%, var(--card));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--success) 40%, var(--border));
+    .tdw-ladder-dot { background: var(--success); color: #fff; }
+  }
+  .tdw-ladder-step.is-next {
+    background: var(--primary-soft);
+    box-shadow: 0 0 0 1.5px var(--primary);
+    .tdw-ladder-dot { background: var(--primary); color: var(--on-primary, #fff); }
+  }
+
+  // ── ReferralStatusList ────────────────────────────────────────────────────
+  .tdw-ref-list { display: grid; margin: 0; padding: 0; list-style: none; }
+  .tdw-ref-row {
+    display: flex; align-items: center; gap: var(--space-3); padding: 12px 0;
+    border-top: 1px solid var(--border);
+    &:first-child { border-top: 0; padding-top: 0; }
+  }
+  .tdw-ref-avatar {
+    display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%;
+    background: var(--primary-soft); color: var(--primary); font-size: 13px; font-weight: 650;
+  }
+  .tdw-ref-row-text { display: grid; flex: 1; min-width: 0; }
+  .tdw-ref-row-title { font-size: 14px; font-weight: 550; color: var(--foreground); }
+  .tdw-ref-row-source { font-weight: 400; color: var(--muted-foreground); }
+  .tdw-ref-row-hint { font-size: 13px; color: var(--muted-foreground); }
+
+  // Rewards earned
+  .tdw-ref-rewards { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+  .tdw-ref-reward { display: flex; align-items: center; gap: var(--space-3); }
+  .tdw-ref-reward-icon { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: var(--radius-md); background: var(--smart-soft, var(--primary-soft)); color: var(--smart, var(--primary)); }
+  .tdw-ref-reward-text { flex: 1; min-width: 0; font-size: 14px; font-weight: 550; color: var(--foreground); }
+
+  // How it works
+  .tdw-ref-how { background: transparent; box-shadow: 0 0 0 1px var(--border); }
+  .tdw-ref-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+  .tdw-ref-steps li { display: grid; gap: var(--space-2); align-content: start; font-size: 14px; line-height: 20px; color: var(--foreground); }
+  .tdw-ref-step-num { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--primary-soft); color: var(--primary); font-size: 13px; font-weight: 700; }
+  .tdw-ref-rules { margin: 0; font-size: 13px; line-height: 19px; color: var(--muted-foreground); }
+
+  // ── Phones ────────────────────────────────────────────────────────────────
+  @media (max-width: 720px) {
+    gap: var(--space-4);
+    .tdw-ref-card { padding: var(--space-5); }
+    .tdw-ref-card-title { font-size: 18px; line-height: 24px; }
+    .tdw-ref-link-row { flex-direction: column; }
+    .tdw-ref-link-row .pz-btn, .tdw-ref-link-row button { width: 100%; justify-content: center; }
+    .tdw-ref-card-foot { flex-direction: column; align-items: stretch; }
+    .tdw-ref-code { justify-content: center; }
+    .tdw-ref-share { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); }
+    .tdw-ref-share-btn { justify-content: center; }
+    .tdw-ladder-steps { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+    .tdw-ladder-step { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; }
+    .tdw-ref-stats { grid-template-columns: minmax(0, 1fr); }
+    .tdw-ref-steps { grid-template-columns: minmax(0, 1fr); }
+    .tdw-ref-sec { padding: var(--space-4); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tdw-ladder-track span { transition: none; }
+  }
+}
+
+@media (max-width: 720px) {
+  .tdw-ref-shell { padding: 16px 16px calc(var(--tdw-dock-space, 0px) + 24px); }
+}

@@ -232,8 +232,12 @@ export class PlansService {
   }
 
   // Whether checkout charges founder prices now: the window has a cap, has
-  // not ended, and fewer workspaces than the cap took a founder spot in it
-  // (FounderSpot rows: trials included, cancelled founders still counted).
+  // not ended, and fewer workspaces than the cap took a founder spot in it.
+  // A spot is taken on the workspace's first paid invoice at a founder price
+  // (Organization.founderSince; trials don't count, cancelled founders
+  // still do). A trial started while spots were open keeps the founder price
+  // it was sold at when it converts, so the count can pass the cap by the
+  // trials in flight when the last spot went.
   async getFounderOffer(): Promise<FounderOffer> {
     if (this._founderCache && Date.now() - this._founderCache.at < TTL_MS) {
       return this._founderCache.offer;
@@ -356,8 +360,9 @@ export class PlansService {
     return plan ? plan.trialDays : 7;
   }
 
-  // A subscription the provider reports at this tier's founder price takes a
-  // founder spot. Reached from payment webhooks: logs, never throws.
+  // The first paid invoice of a subscription at this tier's founder price
+  // takes a founder spot (once per workspace). Reached from payment webhooks:
+  // logs, never throws.
   async recordFounderSpot(
     customerId: string,
     tier: string,

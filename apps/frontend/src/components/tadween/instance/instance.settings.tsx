@@ -25,11 +25,12 @@ export type FeatureKey =
   | 'sets'
   | 'thirdParty'
   | 'media'
-  | 'ugc';
+  | 'ugc'
+  | 'affiliate';
 
 // Features that start off (tadween.defaults.ts → featureDefaultsFromEnv). They
 // stay hidden until the settings load, so they never flash on.
-const FEATURES_OFF_BY_DEFAULT: FeatureKey[] = ['ugc'];
+const FEATURES_OFF_BY_DEFAULT: FeatureKey[] = ['ugc', 'affiliate'];
 
 export interface PublicPlan {
   key: string;

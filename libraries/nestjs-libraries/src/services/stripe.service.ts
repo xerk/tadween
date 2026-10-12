@@ -21,6 +21,7 @@ import {
 } from '@gitroom/nestjs-libraries/services/payment/payment.provider.interface';
 
 import { STRIPE_PROVIDER } from '@gitroom/nestjs-libraries/services/payment/payment.providers';
+import { PartnersService } from '@gitroom/nestjs-libraries/database/prisma/partners/partners.service';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_nothing');
 
@@ -33,7 +34,8 @@ export class StripeService extends PaymentProviderAbstract {
     private _organizationService: OrganizationService,
     private _userService: UsersService,
     private _trackService: TrackService,
-    private _plans: PlansService
+    private _plans: PlansService,
+    private _partners: PartnersService
   ) {
     super();
   }
@@ -61,7 +63,12 @@ export class StripeService extends PaymentProviderAbstract {
       event?.data?.object?.metadata?.service !== 'gitroom' &&
       event.type !== 'invoice.payment_succeeded' &&
       event.type !== 'invoice.payment_failed' &&
-      event.type !== 'invoice.paid'
+      event.type !== 'invoice.paid' &&
+      // partners program: rewards land before the invoice is finalised, and
+      // refunds / disputes take commission back (charges carry no metadata)
+      event.type !== 'invoice.created' &&
+      event.type !== 'charge.refunded' &&
+      event.type !== 'charge.dispute.created'
     ) {
       return { ok: true };
     }
@@ -72,6 +79,12 @@ export class StripeService extends PaymentProviderAbstract {
       case 'invoice.payment_failed':
       case 'invoice.paid':
         return this.invoiceStatusChanged(event);
+      case 'invoice.created':
+        return this.invoiceCreated(event);
+      case 'charge.refunded':
+        return this.chargeRefunded(event);
+      case 'charge.dispute.created':
+        return this.chargeDisputed(event);
       case 'customer.subscription.created':
         return this.createSubscription(event);
       case 'customer.subscription.updated':
@@ -342,17 +355,7 @@ export class StripeService extends PaymentProviderAbstract {
           priceCents,
         }
       );
-      // A subscription at a founder price takes a founder spot (trials too)
-      if (
-        subscription.metadata?.billing &&
-        ['trialing', 'active', 'past_due'].includes(subscription.status)
-      ) {
-        await this._plans.recordFounderSpot(
-          customer,
-          subscription.metadata.billing,
-          priceCents
-        );
-      }
+      // Founder spots are taken on the first paid invoice (paymentSucceeded)
     } catch (err) {
       console.error('stripe_subscription_state_not_saved', {
         stripe_subscription_id: subscription?.id,
@@ -768,7 +771,7 @@ export class StripeService extends PaymentProviderAbstract {
     }
 
     const trialDays = allowTrial
-      ? await this._plans.getTrialDays(body.billing)
+      ? await this.trialDaysFor(customer, body.billing)
       : 0;
     // Stripe Embedded Checkout, mounted inside the billing page. The app waits
     // for the webhook (GET /billing/check/:uniqueId) before showing success.
@@ -836,7 +839,7 @@ export class StripeService extends PaymentProviderAbstract {
       });
     }
 
-    const trialDays = await this._plans.getTrialDays(body.billing);
+    const trialDays = await this.trialDaysFor(customer, body.billing);
     const { url } = await stripe.checkout.sessions.create({
       customer,
       cancel_url: process.env['FRONTEND_URL'] + `/billing?cancel=true${isUtm}`,
@@ -1047,6 +1050,13 @@ export class StripeService extends PaymentProviderAbstract {
     );
   }
 
+  // The plan's trial, longer for a workspace an affiliate brought
+  private async trialDaysFor(customer: string, tier: string) {
+    const days = await this._plans.getTrialDays(tier);
+    const org = await this._organizationService.getOrgByCustomerId(customer);
+    return org ? this._partners.trialDaysFor(org.id, days) : days;
+  }
+
   // "Skip for now": the plan's free trial without a card. Stripe cancels the
   // subscription when the trial ends without a payment method, and the
   // deleted webhook puts the workspace back on the paywall.
@@ -1059,7 +1069,10 @@ export class StripeService extends PaymentProviderAbstract {
   ) {
     // Only a plan on sale can be tried, and only with its own trial length
     const plan = await this._plans.getActivePlan(body.billing);
-    const trialDays = allowTrial && plan ? plan.trialDays : 0;
+    const trialDays =
+      allowTrial && plan
+        ? await this._partners.trialDaysFor(organizationId, plan.trialDays)
+        : 0;
     if (!trialDays) {
       throw new BadRequestException('This plan has no free trial to start');
     }
@@ -1308,7 +1321,205 @@ export class StripeService extends PaymentProviderAbstract {
       });
     }
 
+    // A trial's $0 invoice is not a payment: founder spots and partner
+    // rewards start at the first invoice that took money
+    if (
+      event.data.object.amount_paid > 0 &&
+      subscription.metadata?.service === 'gitroom'
+    ) {
+      const customer =
+        typeof subscription.customer === 'string'
+          ? subscription.customer
+          : subscription.customer.id;
+      if (subscription.metadata.billing) {
+        await this._plans.recordFounderSpot(
+          customer,
+          subscription.metadata.billing,
+          subscription.items?.data?.[0]?.price?.unit_amount ?? null
+        );
+      }
+      await this.recordPartnerInvoice(event.data.object, subscription, customer);
+    }
+
     return { ok: true };
+  }
+
+  // Partners program: a paid invoice of a referred workspace, in USD cents
+  // without tax. Webhook path: logs, never throws.
+  private async recordPartnerInvoice(
+    invoice: Stripe.Invoice,
+    subscription: Stripe.Subscription,
+    customer: string
+  ) {
+    try {
+      const org = await this._organizationService.getOrgByCustomerId(customer);
+      if (!org || !(await this._partners.isReferred(org.id))) {
+        return;
+      }
+      const taxes = (invoice.total_taxes || []).reduce(
+        (sum, t) => sum + (t.amount || 0),
+        0
+      );
+      const paid = Math.max(0, invoice.amount_paid - taxes);
+      const price = subscription.items?.data?.[0]?.price;
+      // Adaptive Pricing can settle in the local currency: the USD price
+      // scaled by the share of the invoice that was paid
+      const amountCents =
+        invoice.currency === 'usd'
+          ? paid
+          : price?.currency === 'usd' && price.unit_amount
+          ? Math.round(
+              (price.unit_amount * paid) /
+                Math.max(1, invoice.subtotal || invoice.amount_paid)
+            )
+          : 0;
+      const payment = await this.invoicePayment(invoice.id!);
+      await this._partners.invoicePaid({
+        invoiceId: invoice.id!,
+        organizationId: org.id,
+        customerId: customer,
+        paymentId: payment.paymentIntentId,
+        amountCents,
+        currency: invoice.currency,
+        interval:
+          (price?.recurring?.interval as 'month' | 'year' | undefined) || null,
+        paidAt: new Date(
+          (invoice.status_transitions?.paid_at || invoice.created) * 1000
+        ),
+        paymentFingerprints: payment.fingerprint ? [payment.fingerprint] : [],
+      });
+    } catch (err) {
+      console.error('stripe_partner_invoice_failed', {
+        stripe_invoice_id: invoice?.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  // The payment intent that paid an invoice and its card's fingerprint
+  private async invoicePayment(invoiceId: string) {
+    const payments = await stripe.invoicePayments.list({
+      invoice: invoiceId,
+      limit: 5,
+    });
+    const paid = payments.data.find(
+      (p) => p.status === 'paid' && p.payment?.payment_intent
+    );
+    const intent = paid?.payment?.payment_intent;
+    const paymentIntentId =
+      typeof intent === 'string' ? intent : intent?.id || null;
+    if (!paymentIntentId) {
+      return { paymentIntentId: null, fingerprint: null };
+    }
+    const retrieved = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ['latest_charge'],
+    });
+    const charge = retrieved.latest_charge as Stripe.Charge | null;
+    return {
+      paymentIntentId,
+      fingerprint: charge?.payment_method_details?.card?.fingerprint || null,
+    };
+  }
+
+  // A new invoice (still a draft, finalised about an hour later): apply the
+  // balance the workspace earned so this invoice already uses it
+  async invoiceCreated(event: Stripe.InvoiceCreatedEvent) {
+    try {
+      const customer = event.data.object.customer;
+      const id = typeof customer === 'string' ? customer : customer?.id;
+      const org = id
+        ? await this._organizationService.getOrgByCustomerId(id)
+        : null;
+      if (org) {
+        await this._partners.settleForOrganization(org.id);
+      }
+    } catch (err) {
+      console.error('stripe_invoice_created_failed', {
+        stripe_event_id: event.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return { ok: true };
+  }
+
+  async chargeRefunded(event: Stripe.ChargeRefundedEvent) {
+    const charge = event.data.object;
+    const intent = charge.payment_intent;
+    const paymentId = typeof intent === 'string' ? intent : intent?.id;
+    if (paymentId && charge.amount > 0) {
+      await this._partners.paymentReversed({
+        paymentId,
+        ratio: charge.amount_refunded / charge.amount,
+        at: new Date(event.created * 1000),
+        reason: 'refund',
+      });
+    }
+    return { ok: true };
+  }
+
+  async chargeDisputed(event: Stripe.ChargeDisputeCreatedEvent) {
+    const intent = event.data.object.payment_intent;
+    const paymentId = typeof intent === 'string' ? intent : intent?.id;
+    if (paymentId) {
+      await this._partners.paymentReversed({
+        paymentId,
+        ratio: 1,
+        at: new Date(event.created * 1000),
+        reason: 'dispute',
+      });
+    }
+    return { ok: true };
+  }
+
+  // A credit on the customer's Stripe balance, used by its next invoices.
+  // Only USD balances: a customer billed in another currency is left to the
+  // admin (granted: false keeps the reward).
+  async grantAccountCredit(
+    organizationId: string,
+    amountCents: number,
+    reason: string,
+    idempotencyKey: string
+  ) {
+    const org = await this._organizationService.getOrgById(organizationId);
+    const customer = this.stripeCustomerId(org);
+    if (!customer || amountCents <= 0) {
+      return { granted: false, reason: 'no_customer' };
+    }
+    const current = await stripe.customers.retrieve(customer);
+    if (current.deleted) {
+      return { granted: false, reason: 'no_customer' };
+    }
+    const currency = (current as Stripe.Customer).currency;
+    if (currency && currency !== 'usd') {
+      return { granted: false, reason: `currency_${currency}` };
+    }
+    await stripe.customers.createBalanceTransaction(
+      customer,
+      {
+        amount: -amountCents,
+        currency: 'usd',
+        description: reason,
+        metadata: { service: 'gitroom', organizationId, reward: idempotencyKey },
+      },
+      { idempotencyKey: `tadween_${idempotencyKey}` }
+    );
+    return { granted: true };
+  }
+
+  async getPaymentFingerprints(organizationId: string) {
+    const org = await this._organizationService.getOrgById(organizationId);
+    const customer = this.stripeCustomerId(org);
+    if (!customer) {
+      return [];
+    }
+    const methods = await stripe.paymentMethods.list({
+      customer,
+      type: 'card',
+      limit: 20,
+    });
+    return methods.data
+      .map((m) => m.card?.fingerprint)
+      .filter((f): f is string => !!f);
   }
 
   async getCharges(organizationId: string) {

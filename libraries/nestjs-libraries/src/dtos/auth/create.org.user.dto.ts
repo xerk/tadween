@@ -1,7 +1,9 @@
 import {
   IsDefined,
   IsEmail,
+  IsOptional,
   IsString,
+  Matches,
   MaxLength,
   MinLength,
   ValidateIf,
@@ -37,4 +39,11 @@ export class CreateOrgUserDto {
   company: string;
 
   datafast_visitor_id: string;
+
+  // Tadween partners program: the referral code from the landing cookie or
+  // the ?ref= link (ignored when unknown)
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z0-9_-]{3,32}$/)
+  ref?: string;
 }

@@ -160,6 +160,49 @@ export class PaymentService {
     }
   }
 
+  // The provider that owns the workspace's subscription, else the web default
+  private async providerOf(organizationId: string) {
+    const subscription =
+      await this._subscriptionService.getSubscriptionByOrganizationId(
+        organizationId
+      );
+    return subscription
+      ? this._paymentProviderManager.getProvider(subscription.provider)
+      : this._paymentProviderManager.getDefaultProvider('web').provider;
+  }
+
+  // Partners program: account balance for a reward. Reached from payment
+  // webhooks: never throws (granted: false keeps the reward to retry).
+  async grantAccountCredit(
+    organizationId: string,
+    amountCents: number,
+    reason: string,
+    idempotencyKey: string
+  ): Promise<{ granted: boolean; reason?: string }> {
+    try {
+      return await (
+        await this.providerOf(organizationId)
+      ).grantAccountCredit(organizationId, amountCents, reason, idempotencyKey);
+    } catch (err) {
+      console.error('account_credit_not_granted', {
+        organization_id: organizationId,
+        idempotency_key: idempotencyKey,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return { granted: false, reason: 'error' };
+    }
+  }
+
+  async getPaymentFingerprints(organizationId: string): Promise<string[]> {
+    try {
+      return await (
+        await this.providerOf(organizationId)
+      ).getPaymentFingerprints(organizationId);
+    } catch (err) {
+      return [];
+    }
+  }
+
   async syncCustomerEmailsAfterSwitch(
     accounts: { id: string; email: string }[]
   ) {

@@ -140,6 +140,24 @@ does promise is the payment receipt, which Stripe sends once receipts are on (mu
 the trial-ending and renewal reminders are on too, you may add a sentence about them to the Terms
 §5 and the Refund Policy.
 
+## Referral program (Terms §11)
+
+The Terms have a "Referral program" section (§11, anchor `#referral`; the sections after it moved
+down by one, so Availability is now §12 and Contact §19). It is always on the page, whether or not
+the marketing site shows Invite & earn (`NEXT_PUBLIC_REFERRAL_PROGRAM`), and says:
+
+- a reward is earned only after the referred workspace pays, and is held 30 days before it is granted;
+- no self-referral, no fake or duplicate accounts;
+- rewards can be removed or reversed on refund, chargeback or abuse, even after they are granted;
+- credits, free periods and account balance have no cash value, except where we agree in writing
+  with an approved partner;
+- we can change or end the program, and rewards already earned stay.
+
+The app has to match it: the 30-day hold, reversal on refund or chargeback, one inviter per
+workspace. The Privacy Policy's cookies section (§7) also mentions the referral cookie the site sets
+(`tdw_ref`, see `apps/landing/README.md`). If the program's rules change, update both files and
+`LEGAL_UPDATED`.
+
 ## Stripe review checklist
 
 What Stripe and the card networks look for, and where it is:

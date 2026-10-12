@@ -70,7 +70,7 @@ export const REFUND_MODE: RefundMode = LEGAL.refundDays && Number(LEGAL.refundDa
 if (LEGAL.refundDays && !/^\d+$/.test(LEGAL.refundDays)) throw new Error(`NEXT_PUBLIC_REFUND_DAYS must be a whole number of days, got "${LEGAL.refundDays}".`);
 
 /** The "Last updated" date of the legal pages. Change it whenever their text changes. */
-export const LEGAL_UPDATED = '2026-10-12';
+export const LEGAL_UPDATED = '2026-10-13';
 
 /** Third-party policies the legal pages link to. */
 export const POLICY_URLS = {

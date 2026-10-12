@@ -1,10 +1,11 @@
 'use client';
 
 // RewardLadder: the referrer's milestones by paying friends (1, 3, 5, 10, 25)
-// with progress. A row of steps on wide screens, a vertical list on phones;
-// reached steps are filled, the next one is highlighted with how many friends
-// are left. Styles: app/tadween/referral.scss.
-import React, { FC } from 'react';
+// as a progress track. Nodes sit on one line (a vertical one in narrow
+// containers); the line fills up to the friends who count, reached steps get
+// a check, and the next step is ringed with how many friends are left.
+// Styles: app/tadween/referral.scss.
+import React, { CSSProperties, FC } from 'react';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { cx, Icon } from '@gitroom/frontend/components/tadween/ui';
 
@@ -44,6 +45,19 @@ export const useLadderLabels = () => {
   };
 };
 
+// How much of the line between step i and step i + 1 is filled (0…1)
+const segmentFill = (steps: LadderStep[], i: number, qualified: number) => {
+  const from = steps[i].step;
+  const to = steps[i + 1]?.step ?? from;
+  if (qualified >= to) {
+    return 1;
+  }
+  if (qualified <= from) {
+    return 0;
+  }
+  return (qualified - from) / (to - from);
+};
+
 export const RewardLadder: FC<{
   steps: LadderStep[];
   // friends who count (paid twice, or 30 days into a yearly plan)
@@ -54,7 +68,6 @@ export const RewardLadder: FC<{
   const label = useLadderLabels();
   const last = steps[steps.length - 1]?.step || 1;
   const next = steps.find((s) => !s.reached);
-  const pct = Math.min(100, (qualified / last) * 100);
 
   return (
     <div className={cx('tdw-ladder', className)}>
@@ -76,24 +89,33 @@ export const RewardLadder: FC<{
             : t('tdw_ref_ladder_done', 'You reached the top of the ladder. Thank you!')}
         </span>
       </div>
-      <div
-        className="tdw-ladder-track"
+      <span
+        className="sr-only"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={last}
         aria-valuenow={qualified}
         aria-label={t('tdw_ref_ladder_progress', 'Rewards ladder progress')}
-      >
-        <span style={{ width: `${pct}%` }} />
-      </div>
+      />
       <ol className="tdw-ladder-steps">
-        {steps.map((s) => {
+        {steps.map((s, i) => {
           const isNext = next?.step === s.step;
           return (
             <li
               key={s.step}
-              className={cx('tdw-ladder-step', s.reached && 'is-reached', isNext && 'is-next')}
+              className={cx(
+                'tdw-ladder-step',
+                s.reached && 'is-reached',
+                isNext && 'is-next',
+                s.reward === 'credits' && 'is-credits'
+              )}
+              style={{ '--seg': segmentFill(steps, i, qualified) } as CSSProperties}
             >
+              {i < steps.length - 1 ? (
+                <span className="tdw-ladder-seg" aria-hidden="true">
+                  <span />
+                </span>
+              ) : null}
               <span className="tdw-ladder-dot" aria-hidden="true">
                 <Icon name={s.reached ? 'check' : ICON[s.reward]} size={16} />
               </span>
@@ -104,10 +126,17 @@ export const RewardLadder: FC<{
                     : t('tdw_ref_n_friends', '{{n}} friends', { n: s.step })}
                 </span>
                 <span className="tdw-ladder-reward">{label(s)}</span>
+                {s.reached ? (
+                  <span className="tdw-ladder-state">
+                    <Icon name="check" size={12} />
+                    {t('tdw_ref_reached', 'Earned')}
+                  </span>
+                ) : isNext ? (
+                  <span className="tdw-ladder-state is-next">
+                    {t('tdw_ref_step_left', '{{n}} to go', { n: s.step - qualified })}
+                  </span>
+                ) : null}
               </span>
-              {s.reached ? (
-                <span className="tdw-ladder-state">{t('tdw_ref_reached', 'Earned')}</span>
-              ) : null}
             </li>
           );
         })}

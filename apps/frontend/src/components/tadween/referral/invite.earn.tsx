@@ -1,8 +1,9 @@
 'use client';
 
-// Invite & earn (ادعُ واكسب): every workspace's referral page. The link and
-// code, the rewards ladder, what was earned, the workspaces invited (initials
-// only) and "Who invited you?" for new workspaces. Shown in the sidebar
+// Invite & earn (ادعُ واكسب): every workspace's referral page, full width.
+// A hero row (the link card beside the summary strip), "Who invited you?"
+// for new workspaces, the rewards ladder as a progress track, the workspaces
+// invited (initials only) beside the rewards earned, then how it works. Shown in the sidebar
 // (/invite) and in Settings, while the `affiliate` switch is on. Rules and
 // data: docs/tadween/partners.md. Styles: app/tadween/referral.scss.
 import React, { FC, useState } from 'react';
@@ -136,16 +137,19 @@ export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
 
   if (isLoading) {
     return (
-      <TadweenScope className="tdw-ref-page">
-        <Skeleton height={190} />
-        <Skeleton height={160} />
-        <Skeleton height={120} />
+      <TadweenScope className={cx('tdw-ref-page', embedded && 'is-embedded')}>
+        <div className="tdw-ref-hero">
+          <Skeleton height={232} radius={14} />
+          <Skeleton height={232} radius={14} />
+        </div>
+        <Skeleton height={200} radius={14} />
+        <Skeleton height={220} radius={14} />
       </TadweenScope>
     );
   }
   if (error || !data) {
     return (
-      <TadweenScope className="tdw-ref-page">
+      <TadweenScope className={cx('tdw-ref-page', embedded && 'is-embedded')}>
         <EmptyState
           icon="gift"
           title={t('tdw_ref_off_title', 'Invite & earn isn’t available')}
@@ -157,6 +161,7 @@ export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
 
   const paying = data.referrals.filter((r) => r.status === 'PAID' || r.status === 'QUALIFIED').length;
   const earned = data.rewards.filter((r) => r.status === 'PAID' || r.status === 'AVAILABLE' || r.status === 'APPLYING');
+  const next = data.kind === 'REFERRER' ? data.ladder.find((s) => !s.reached) : undefined;
 
   return (
     <TadweenScope className={cx('tdw-ref-page', embedded && 'is-embedded')}>
@@ -166,7 +171,33 @@ export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
         </Banner>
       ) : null}
 
-      <ReferralLinkCard code={data.code} friendCredits={data.friendCredits} trialDays={data.trialDays} />
+      <div className="tdw-ref-hero">
+        <ReferralLinkCard code={data.code} friendCredits={data.friendCredits} trialDays={data.trialDays} />
+        <div className="tdw-strip tdw-ref-summary">
+          <StatTile label={t('tdw_ref_stat_invited', 'Joined with your link')} value={data.referrals.length.toLocaleString()} />
+          <StatTile label={t('tdw_ref_stat_paying', 'Paying')} value={paying.toLocaleString()} />
+          <StatTile label={t('tdw_ref_stat_credits', 'Credits earned')} value={data.creditsEarned.toLocaleString()} />
+          {data.kind === 'REFERRER' ? (
+            <StatTile
+              label={t('tdw_ref_stat_next', 'Next reward')}
+              value={
+                <span className="tdw-ref-next-value">
+                  {next ? ladder(next) : t('tdw_ref_stat_next_done', 'All earned')}
+                </span>
+              }
+              hint={
+                next
+                  ? next.step - data.qualified === 1
+                    ? t('tdw_ref_stat_next_one', '1 more paying friend')
+                    : t('tdw_ref_stat_next_many', '{{n}} more paying friends', {
+                        n: next.step - data.qualified,
+                      })
+                  : undefined
+              }
+            />
+          ) : null}
+        </div>
+      </div>
 
       {data.kind === 'AFFILIATE' ? (
         <Link href="/partners" className="tdw-ref-partner-link no-underline">
@@ -206,69 +237,77 @@ export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
         </section>
       ) : null}
 
-      <div className="tdw-ref-stats">
-        <StatTile label={t('tdw_ref_stat_invited', 'Joined with your link')} value={data.referrals.length.toLocaleString()} />
-        <StatTile label={t('tdw_ref_stat_paying', 'Paying')} value={paying.toLocaleString()} />
-        <StatTile label={t('tdw_ref_stat_credits', 'Credits earned')} value={data.creditsEarned.toLocaleString()} />
-      </div>
-
-      {earned.length ? (
+      <div className={cx('tdw-ref-split', !earned.length && 'is-single')}>
         <section className="tdw-ref-sec">
           <header className="tdw-ref-sec-head">
-            <h3>{t('tdw_ref_rewards_title', 'Rewards')}</h3>
+            <h3>{t('tdw_ref_people_title', 'Workspaces you invited')}</h3>
+            {data.referrals.length ? (
+              <span className="caption pz-muted">
+                {t('tdw_ref_people_count', '{{n}} joined · {{paying}} paying', {
+                  n: data.referrals.length.toLocaleString(),
+                  paying: paying.toLocaleString(),
+                })}
+              </span>
+            ) : null}
           </header>
-          <ul className="tdw-ref-rewards">
-            {earned.map((r) => (
-              <li key={r.id} className="tdw-ref-reward">
-                <span className="tdw-ref-reward-icon" aria-hidden="true">
-                  <Icon name={r.type === 'CREDITS' ? 'sparkles' : r.type === 'UPGRADE' ? 'trophy' : 'gift'} size={16} />
-                </span>
-                <span className="tdw-ref-reward-text">{rewardText(t, r, ladder)}</span>
-                {r.status === 'PAID' ? (
-                  <Pill tone="ok" icon="check">
-                    {t('tdw_ref_reward_added', 'Added')}
-                  </Pill>
-                ) : r.type === 'UPGRADE' ? (
-                  <Pill tone="brand">{t('tdw_ref_reward_by_team', 'Our team applies it')}</Pill>
-                ) : (
-                  <Pill tone="brand" icon="clock">
-                    {r.type === 'CREDITS'
-                      ? t('tdw_ref_reward_next_month', 'Next month (monthly limit)')
-                      : t('tdw_ref_reward_next_invoice', 'On your next invoice')}
-                  </Pill>
-                )}
-              </li>
-            ))}
-          </ul>
+          <ReferralStatusList referrals={data.referrals} />
         </section>
-      ) : null}
 
-      <section className="tdw-ref-sec">
-        <header className="tdw-ref-sec-head">
-          <h3>{t('tdw_ref_people_title', 'Workspaces you invited')}</h3>
-        </header>
-        <ReferralStatusList referrals={data.referrals} />
-      </section>
+        {earned.length ? (
+          <section className="tdw-ref-sec">
+            <header className="tdw-ref-sec-head">
+              <h3>{t('tdw_ref_rewards_title', 'Rewards')}</h3>
+            </header>
+            <ul className="tdw-ref-rewards">
+              {earned.map((r) => (
+                <li key={r.id} className="tdw-ref-reward">
+                  <span className={cx('tdw-ref-reward-icon', r.type === 'CREDITS' && 'is-credits')} aria-hidden="true">
+                    <Icon name={r.type === 'CREDITS' ? 'sparkles' : r.type === 'UPGRADE' ? 'trophy' : 'gift'} size={16} />
+                  </span>
+                  <span className="tdw-ref-reward-text">{rewardText(t, r, ladder)}</span>
+                  {r.status === 'PAID' ? (
+                    <Pill tone="ok" icon="check">
+                      {t('tdw_ref_reward_added', 'Added')}
+                    </Pill>
+                  ) : r.type === 'UPGRADE' ? (
+                    <Pill tone="brand">{t('tdw_ref_reward_by_team', 'Our team applies it')}</Pill>
+                  ) : (
+                    <Pill tone="brand" icon="clock">
+                      {r.type === 'CREDITS'
+                        ? t('tdw_ref_reward_next_month', 'Next month (monthly limit)')
+                        : t('tdw_ref_reward_next_invoice', 'On your next invoice')}
+                    </Pill>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+      </div>
 
-      <section className="tdw-ref-sec tdw-ref-how">
-        <h3>{t('tdw_ref_how_title', 'How it works')}</h3>
+      <section className="tdw-ref-how" aria-labelledby="tdw-ref-how-title">
+        <h3 id="tdw-ref-how-title">{t('tdw_ref_how_title', 'How it works')}</h3>
         <ol className="tdw-ref-steps">
           <li>
             <span className="tdw-ref-step-num">1</span>
-            {t('tdw_ref_how_1', 'Share your link or code.')}
+            <span>{t('tdw_ref_how_1', 'Share your link or code.')}</span>
           </li>
           <li>
             <span className="tdw-ref-step-num">2</span>
-            {t('tdw_ref_how_2', 'Your friend signs up and subscribes. They get {{n}} AI credits on their first payment.', {
-              n: data.friendCredits.toLocaleString(),
-            })}
+            <span>
+              {t('tdw_ref_how_2', 'Your friend signs up and subscribes. They get {{n}} AI credits on their first payment.', {
+                n: data.friendCredits.toLocaleString(),
+              })}
+            </span>
           </li>
           <li>
             <span className="tdw-ref-step-num">3</span>
-            {t(
-              'tdw_ref_how_3',
-              'They count on your ladder after their second payment (or 30 days into a yearly plan). Rewards are added automatically.'
-            )}
+            <span>
+              {t(
+                'tdw_ref_how_3',
+                'They count on your ladder after their second payment (or 30 days into a yearly plan). Rewards are added automatically.'
+              )}
+            </span>
           </li>
         </ol>
         <p className="tdw-ref-rules">

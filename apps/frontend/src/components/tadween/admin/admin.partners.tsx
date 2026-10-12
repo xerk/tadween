@@ -30,6 +30,7 @@ import { formatUsd } from '@gitroom/frontend/components/tadween/billing/pricing'
 import { AdminPage } from './admin.shell';
 import {
   AdminPartner,
+  countQuery,
   date,
   useAdminMutation,
   useAdminPartners,
@@ -445,6 +446,59 @@ const PartnerDrawer: FC<{
   );
 };
 
+// ── Summary strip: totals of the whole list by kind and status ─────────────
+const usePartnerCounts = () => {
+  const all = useAdminPartners(countQuery());
+  const affiliates = useAdminPartners(countQuery({ kind: 'AFFILIATE' }));
+  const referrers = useAdminPartners(countQuery({ kind: 'REFERRER' }));
+  const suspended = useAdminPartners(countQuery({ status: 'SUSPENDED' }));
+  return {
+    all,
+    affiliates,
+    referrers,
+    suspended,
+    refresh: () => [all, affiliates, referrers, suspended].forEach((c) => c.mutate()),
+  };
+};
+
+const PartnersSummary: FC<{ counts: ReturnType<typeof usePartnerCounts> }> = ({ counts }) => {
+  const t = useT();
+  const n = (v?: number) => (v ?? 0).toLocaleString('en-US');
+  return (
+    <div className="tdw-stat-grid">
+      <StatTile
+        loading={!counts.all.data}
+        label={t('tdw_admin_partners_total', 'Partners')}
+        value={n(counts.all.data?.total)}
+        hint={t('tdw_admin_partners_total_hint', 'Workspaces with a referral code')}
+        href="/admin/partners"
+      />
+      <StatTile
+        loading={!counts.affiliates.data}
+        label={t('tdw_admin_partners_affiliates', 'Affiliates')}
+        value={n(counts.affiliates.data?.total)}
+        hint={t('tdw_admin_partners_affiliates_hint', 'Earn commission')}
+        href="/admin/partners?kind=AFFILIATE"
+      />
+      <StatTile
+        loading={!counts.referrers.data}
+        label={t('tdw_admin_partners_referrers', 'Referrers')}
+        value={n(counts.referrers.data?.total)}
+        hint={t('tdw_admin_partners_referrers_hint', 'Climb the Invite & earn ladder')}
+        href="/admin/partners?kind=REFERRER"
+      />
+      <StatTile
+        loading={!counts.suspended.data}
+        label={t('tdw_admin_partner_suspended', 'Suspended')}
+        value={n(counts.suspended.data?.total)}
+        tone={counts.suspended.data?.total ? 'warn' : 'neutral'}
+        hint={t('tdw_admin_partners_suspended_hint', 'Links paused')}
+        href="/admin/partners?status=SUSPENDED"
+      />
+    </div>
+  );
+};
+
 // ── Page ────────────────────────────────────────────────────────────────────
 export const AdminPartnersPage = () => {
   const t = useT();
@@ -454,6 +508,7 @@ export const AdminPartnersPage = () => {
   const [openId, setOpenId] = useOpenRow();
   const [adding, setAdding] = useState(false);
   const exportAll = useExportAll();
+  const counts = usePartnerCounts();
   // no single-partner endpoint: the drawer shows a row of the current page
   const open = data?.items.find((p) => p.id === openId) || null;
 
@@ -515,6 +570,7 @@ export const AdminPartnersPage = () => {
         </Button>
       }
     >
+      <PartnersSummary counts={counts} />
       <DataTable
         id="admin-partners"
         columns={columns}
@@ -550,8 +606,22 @@ export const AdminPartnersPage = () => {
         exportAll={() => exportAll<AdminPartner>('/admin/console/partners', qs)}
         empty={t('tdw_admin_no_partners', 'No partners yet. A workspace gets a code the first time it opens Invite & earn.')}
       />
-      <PartnerDrawer partner={open} onClose={() => setOpenId(null)} onChanged={() => mutate()} />
-      <AddAffiliateDialog open={adding} onClose={() => setAdding(false)} onDone={() => mutate()} />
+      <PartnerDrawer
+        partner={open}
+        onClose={() => setOpenId(null)}
+        onChanged={() => {
+          mutate();
+          counts.refresh();
+        }}
+      />
+      <AddAffiliateDialog
+        open={adding}
+        onClose={() => setAdding(false)}
+        onDone={() => {
+          mutate();
+          counts.refresh();
+        }}
+      />
     </AdminPage>
   );
 };

@@ -17,12 +17,14 @@ import {
   Input,
   Pill,
   Section,
+  StatTile,
   Select,
   Table,
   tableQueryString,
   useTableQuery,
 } from '@gitroom/frontend/components/tadween/ui';
 import { formatUsd } from '@gitroom/frontend/components/tadween/billing/pricing';
+import { nextPayoutDate } from '@gitroom/frontend/components/tadween/referral/partner.stat.tiles';
 import { AdminPage } from './admin.shell';
 import {
   AdminDuePayout,
@@ -175,6 +177,7 @@ export const AdminPayoutsPage = () => {
 
   const due = data?.due || [];
   const dueTotal = due.reduce((all, d) => all + d.amountCents, 0);
+  const ready = due.filter((d) => d.ready).length;
 
   const columns: DataColumn<AdminPayoutRow>[] = [
     { key: 'date', label: t('tdw_admin_col_date', 'Date'), title: 'Date', hideable: false, csv: (p) => p.paidAt || p.createdAt, render: (p) => <span className="time">{date(p.paidAt || p.createdAt)}</span> },
@@ -223,6 +226,41 @@ export const AdminPayoutsPage = () => {
         'Affiliate commission paid out: cash once a month for affiliates who asked for it, Tadween balance automatically for everyone else.'
       )}
     >
+      <div className="tdw-stat-grid">
+        <StatTile
+          loading={isLoading}
+          label={t('tdw_admin_due_title', 'Due this month')}
+          value={usd(dueTotal)}
+          hint={t('tdw_admin_due_count', 'From {{min}} available · {{n}} listed', {
+            n: due.length,
+            min: usd(data?.minimumCents ?? 5000),
+          })}
+        />
+        <StatTile
+          loading={isLoading}
+          label={t('tdw_admin_due_ready', 'Ready to pay')}
+          value={`${ready} / ${due.length}`}
+          tone={ready < due.length ? 'warn' : 'neutral'}
+          hint={
+            ready < due.length
+              ? t('tdw_admin_due_ready_missing', 'Some are missing payout details')
+              : t('tdw_admin_due_ready_all', 'Details on file')
+          }
+        />
+        <StatTile
+          loading={isLoading}
+          label={t('tdw_admin_next_payout_day', 'Next payout day')}
+          value={nextPayoutDate().format('D MMM')}
+          hint={t('tdw_admin_next_payout_day_hint', 'Cash goes out around the 15th')}
+        />
+        <StatTile
+          loading={isLoading}
+          label={t('tdw_admin_past_payouts', 'Past payouts')}
+          value={(data?.total ?? 0).toLocaleString('en-US')}
+          hint={t('tdw_admin_past_payouts_hint', 'Cash and Tadween balance')}
+        />
+      </div>
+
       <Banner tone="info" icon="calendar-days" title={t('tdw_admin_payout_runbook_title', 'Monthly on the 15th:')}>
         {t(
           'tdw_admin_payout_runbook',

@@ -18,6 +18,7 @@ import {
   Input,
   Pill,
   Section,
+  StatTile,
   tableQueryString,
   useOpenRow,
   useTableQuery,
@@ -26,6 +27,7 @@ import { AdminPage } from './admin.shell';
 import {
   AdminReferral,
   ReferralStatus,
+  countQuery,
   date,
   useAdminMutation,
   useAdminReferrals,
@@ -234,6 +236,59 @@ const ReferralDrawer: FC<{
   );
 };
 
+// ── Summary strip: totals of the whole list by status ──────────────────────
+const useReferralCounts = () => {
+  const all = useAdminReferrals(countQuery());
+  const qualified = useAdminReferrals(countQuery({ status: 'QUALIFIED' }));
+  const paid = useAdminReferrals(countQuery({ status: 'PAID' }));
+  const flagged = useAdminReferrals(countQuery({ flags: 'flagged' }));
+  return {
+    all,
+    qualified,
+    paid,
+    flagged,
+    refresh: () => [all, qualified, paid, flagged].forEach((c) => c.mutate()),
+  };
+};
+
+const ReferralsSummary: FC<{ counts: ReturnType<typeof useReferralCounts> }> = ({ counts }) => {
+  const t = useT();
+  const n = (v?: number) => (v ?? 0).toLocaleString('en-US');
+  return (
+    <div className="tdw-stat-grid">
+      <StatTile
+        loading={!counts.all.data}
+        label={t('tdw_admin_referrals', 'Referrals')}
+        value={n(counts.all.data?.total)}
+        hint={t('tdw_admin_referrals_total_hint', 'Workspaces that joined with a code')}
+        href="/admin/referrals"
+      />
+      <StatTile
+        loading={!counts.paid.data}
+        label={t('tdw_admin_ref_paid', 'Paid')}
+        value={n(counts.paid.data?.total)}
+        hint={t('tdw_admin_referrals_paid_hint', 'Waiting for a second payment')}
+        href="/admin/referrals?status=PAID"
+      />
+      <StatTile
+        loading={!counts.qualified.data}
+        label={t('tdw_admin_ref_qualified', 'Qualified')}
+        value={n(counts.qualified.data?.total)}
+        hint={t('tdw_admin_referrals_qualified_hint', 'On a referrer’s ladder')}
+        href="/admin/referrals?status=QUALIFIED"
+      />
+      <StatTile
+        loading={!counts.flagged.data}
+        label={t('tdw_admin_flagged', 'Flagged')}
+        value={n(counts.flagged.data?.total)}
+        tone={counts.flagged.data?.total ? 'warn' : 'neutral'}
+        hint={t('tdw_admin_referrals_flagged_hint', 'Shared IP or browser; review them')}
+        href="/admin/referrals?flags=flagged"
+      />
+    </div>
+  );
+};
+
 // ── Page ────────────────────────────────────────────────────────────────────
 export const AdminReferralsPage = () => {
   const t = useT();
@@ -244,6 +299,7 @@ export const AdminReferralsPage = () => {
   const [rejecting, setRejecting] = useState<AdminReferral | null>(null);
   const exportAll = useExportAll();
   const reasonText = useRejectionReason();
+  const counts = useReferralCounts();
   const open = data?.items.find((r) => r.id === openId) || null;
 
   const columns: DataColumn<AdminReferral>[] = [
@@ -307,6 +363,7 @@ export const AdminReferralsPage = () => {
         'Workspaces that joined with a partner’s link or code. Flags mark a sign-up from the same IP or browser as the partner’s members; review them and reject self-referrals.'
       )}
     >
+      <ReferralsSummary counts={counts} />
       <DataTable
         id="admin-referrals"
         columns={columns}
@@ -344,7 +401,14 @@ export const AdminReferralsPage = () => {
         onClose={() => setOpenId(null)}
         onReject={(r) => setRejecting(r)}
       />
-      <RejectDialog referral={rejecting} onClose={() => setRejecting(null)} onDone={() => mutate()} />
+      <RejectDialog
+        referral={rejecting}
+        onClose={() => setRejecting(null)}
+        onDone={() => {
+          mutate();
+          counts.refresh();
+        }}
+      />
     </AdminPage>
   );
 };

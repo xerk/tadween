@@ -87,7 +87,22 @@ Credits go through the existing AI credits ledger: an `AiCreditPurchase` row wit
 
 ## Design-system pieces
 
-All of these live inside a `.tdw-ui` scope (TadweenScope) and use only kit aliases of the `--tdw-*` tokens. Light and dark come from the tokens; RTL uses logical properties. Styles are in `app/tadween/referral.scss` (Invite & earn pieces) and `app/tadween/partners.scss` (partner dashboard and admin pages).
+The look follows Whop's affiliate and earnings dashboards in Tadween's own tokens: full width of the content area (capped at 1600px on very wide screens), one hero number per page, labels small and muted above the numbers, stat strips (tiles in one card split by hairlines), tables with quiet borders, empty states with one next step, and generous spacing (cards 24px apart, padded 24px). There are no gradients or glows. Nile (`primary`) carries progress, selection and the one primary action. Papyrus (`smart`) appears only on AI-credit items (the credit steps of the ladder and credit rewards).
+
+All of these live inside a `.tdw-ui` scope (TadweenScope) and use only the kit's token aliases (`--primary`, `--card`, `--border`…), so light and dark come from the tokens. RTL uses logical properties (`inset-inline-start`, `padding-inline`, `text-align: start`); amounts, dates, codes and links stay LTR inside Arabic text. Animations (the ladder and tier fills) are switched off under `prefers-reduced-motion`.
+
+Styles are in `app/tadween/referral.scss` (Invite & earn pieces and the shared stat strip) and `app/tadween/partners.scss` (partner dashboard, payout drawer form, admin extras). Both pages are CSS containers (`tdw-ref`, `tdw-partners`), and their breakpoints are container queries, so the same layout adapts inside the narrower Settings pane:
+
+| Container width | Invite & earn | /partners |
+|---|---|---|
+| wide | link card and summary strip side by side; invited table beside rewards | earnings total beside 3 balance cells; paired rows (link + tier, history + payout, kit + rules) |
+| ≤ 1080 / 940px | hero, then strip as 4 across; table and rewards stack | paired rows stack |
+| ≤ 820px | | earnings total above the balance cells |
+| ≤ 760px | ladder turns vertical | audience strip 2 × 2, kit 1 column |
+| ≤ 600px (phones) | strip 2 × 2, link button full width, "First paid" column hidden | balance cells as label/amount rows, "Paid as" column hidden |
+
+### Stat strip (`.tdw-strip`)
+A wrapper class, not a component: put kit `StatTile`s inside `<div className="tdw-strip">`. The tiles lose their own shadow and are split by 1px hairlines (the strip's border-coloured background shows through a 1px grid gap), so it wraps cleanly at any column count and in RTL. `StatTile` loading skeletons work as usual. Used by the Invite & earn summary (`.tdw-ref-summary`, 2 × 2 beside the link card) and `PartnerStatTiles` (`.tdw-partners-strip`). The admin Growth pages use the admin console's own `tdw-stat-grid` (separate tiles, as on Overview).
 
 ### ReferralLinkCard
 `components/tadween/referral/referral.link.card.tsx`
@@ -99,79 +114,91 @@ Props:
 - `className?`
 
 What it shows:
-- A gift badge, a title ("Give {{n}} AI credits, earn rewards") and a subtitle.
-- A read-only link field with a primary "Copy link" button.
-- A dashed code chip that copies the code.
-- Share pills: WhatsApp, LinkedIn, X, and the phone's native share sheet when `navigator.share` exists.
+- A small gift tile (primary-soft), the headline ("Give {{n}} AI credits, earn rewards", title-2 size) and a subtitle.
+- A read-only link field in Geist Mono with a primary "Copy link" button.
+- Below a hairline: a dashed code chip that copies the code, and share buttons (WhatsApp, LinkedIn, X with the networks' own colour dot, and the phone's share sheet when `navigator.share` exists).
 
 Link rules (`useInviteLink`):
 - Branding has a website URL: `${websiteUrl}/?ref=CODE`, or `/ar?ref=CODE` in Arabic.
 - Otherwise: `${origin}/auth?ref=CODE`.
 
-States:
-- Copy feedback is a toast.
-- On phones (≤720px) the button goes full width under the field, and the code chip and share pills stretch.
+States: copy feedback is a toast. Phones: the button goes full width under the field; the code chip and share buttons stretch.
+Theme and direction: flat card (`card` + `shadow-sm`) in both themes; the link and code stay LTR in Arabic.
 
-Theme and direction:
-- Dark: the soft primary gradient corner follows the tokens.
-- RTL: the gradient corner moves to the start side, and the link and code stay LTR.
-
-### RewardLadder
+### RewardLadder (progress track)
 `components/tadween/referral/reward.ladder.tsx`
 
 Props:
 - `steps: { step, reward: 'credits'|'free_month'|'next_plan_year'|'founder_for_life', credits, reached }[]`
-- `qualified: number`
+- `qualified: number` (friends who count)
 - `className?`
 
 What it shows:
-- A summary with the big number of paying friends and the next goal ("2 more to 1 free month").
-- A progress track: qualified out of the last step.
-- Five step cards in a row.
+- A summary: the big number of paying friends and the next goal in Nile ("1 more to 1 free month").
+- A track of five nodes on one line. Each node draws the line to the next one, filled by `--seg` (0…1): full when the next step is reached, partly filled between the last reached step and the next one. The steps are uneven (1, 3, 5, 10, 25), so the fill is per segment, not linear in friends.
+- Under each node: "N friends", the reward, and "Earned" (with a check) or "N to go" on the next step.
 
 Step states:
-- Reached: success tint and a check.
-- Next: primary outline and a filled icon.
-- Upcoming: muted.
-- All reached: a "top of the ladder" message.
+- Reached: filled Nile dot with a check (`primary-foreground` icon, so dark mode stays readable).
+- Next: primary-soft dot with a Nile ring and a soft halo; "N to go" in Nile.
+- Upcoming: hairline dot, muted reward text. Credit steps keep the sparkles icon in Papyrus.
+- All reached: "You reached the top of the ladder".
 
-Phones: the steps become a vertical list (icon, text, "Earned").
+Narrow containers (≤ 760px): the track turns vertical, dots on the start side and the line running down; RTL mirrors it.
+Accessibility: a visually hidden `progressbar` (0…last step, value = qualified) next to the readable summary; the steps are an ordered list.
 
 `useLadderLabels()` returns the translated reward text for a step.
 
-### ReferralStatusList
+### ReferralStatusList (table)
 `components/tadween/referral/referral.status.list.tsx`
 
 Props:
 - `referrals: { id, initials, status, source, signedUpAt, firstPaidAt, qualifiedAt }[]`
 
-What it shows:
-- One row per invited workspace: an initials avatar, "Joined {date}" (plus "with your code" for typed codes), a hint line, and a status pill.
+What it shows: a kit `Table` inside the section card (no inner frame; cells line up with the card title) with columns Workspace (initials avatar, where it is on the way to counting, and "with your code" for typed codes), Status pill, Joined and First paid.
 - Pills: Signed up (neutral), Paid once (brand), Counts (ok), Not eligible (bad), Refunded (warn).
-- With no rows, an empty state.
+- No rows: an `EmptyState` (users icon, "No one has joined yet", one line of help).
+- Phones: the avatar and the First paid column are hidden.
 
-It never shows names, emails or people.
+It never shows names, emails or people. `useReferralStatusLabel()` is exported for other lists.
 
-### PartnerStatTiles and PartnerTierCard
+### EarningsHeader
 `components/tadween/referral/partner.stat.tiles.tsx`
 
-`PartnerStatTiles` props:
-- `stats?: { signups, trials, paying, revenueCents, pendingCents, availableCents, paidCents }`
-- `rate?`, `tiers?`, `fixedRate?`, `holdDays?` (default 30), `loading?`, `className?`
+Props: `affiliate: PartnerAffiliate` (from `GET /partners/me`), `className?`.
 
-`PartnerStatTiles` shows:
-- A tier card spanning the row.
-- Seven tiles: sign-ups, in trial, paying, revenue referred, pending (in the hold), available, paid out.
-- Skeletons while loading.
+What it shows:
+- The hero number: commission earned (pending + available + paid; already net of refunds, because clawbacks are negative ledger rows), with the rate and months in Nile under it.
+- Three cells split by hairlines: Available (tinted primary-soft) with the next payout, Pending ("In the 30-day hold"), Paid out (number of payouts).
 
-`PartnerTierCard({ rate, paying, tiers, fixedRate? })` shows the rate and the progress to the next tier ("7 / 10 paying to 35%"). It shows "top tier" at the top, and "agreed rate" when the admin set a fixed rate.
+Next payout (`useNextPayout`, derived on the client from the payout settings; the API has no schedule):
+- Tadween balance: "Added to your next Tadween invoice as balance, worth 1.5×".
+- Cash without complete details: warning tone, "Add your payout details to get paid in cash".
+- Cash below the $50 minimum: "Paid in cash from $50 available, $X to go".
+- Cash and ready: "Next payout around 15 Oct" (`nextPayoutDate()`: the next 15th, also used by Admin → Payouts).
 
-Layout: 2 columns at ≤900px and 1 column at ≤640px. Amounts are LTR inside RTL text.
+Narrow: the total sits above the cells (≤ 820px); on phones each cell is one label/amount row.
+
+### PartnerStatTiles
+Props: `stats?: { signups, trials, paying, revenueCents, … }`, `loading?`, `className?`.
+The audience strip: Sign-ups, In trial, Paying customers ("sets your tier") and Revenue referred (paid invoices, before tax). 4 across, 2 × 2 at ≤ 760px; skeleton tiles while loading. Clicks aren't tracked, so sign-ups is the first number. There is no period selector: the API returns totals since the start.
+
+### PartnerTierCard
+Props: `rate`, `paying`, `tiers: { tier, minPaying, rate }[]`, `fixedRate?`.
+The current rate as a big number, the paying count on the end side, and a progress bar from 0 to the top tier's threshold with a mark per tier (30% from 0, 35% from 10, 40% from 30). Marks are placed with `inset-inline-start`, so they mirror in Arabic; reached marks are filled, the next one is ringed. A footer line says what's next ("7 more paying customers to 35%") or "You're on the top tier". With `fixedRate` (set by the team) there is no bar, only "A rate agreed with the Tadween team". `nextPartnerTier(tiers, paying)` is exported.
+
+### PayoutPreferenceCard
+`components/tadween/referral/payout.preference.card.tsx`
+
+Props: `affiliate: PartnerAffiliate`, `onSaved: () => void`, `className?`.
+
+What it shows: the two ways to be paid as rows (Tadween balance 1.5×, Cash monthly with the saved method and masked details), the current one tinted and marked "Current", a "Ready for cash payouts" / "Details missing" pill when cash is chosen, the 30-day hold, and "Change payout settings".
+The button opens a kit `Drawer` (inline end side; left in Arabic; full width on phones) with the payout form: preference, then for cash the method, country (two letters, validated), payout details (blank keeps the saved value), Mawthooq number for SA and the W-8BEN confirmation. Save is in the drawer footer (`form=` attribute) and sends the same single `PUT /partners/payout` as before; on success the card refreshes and the drawer closes; errors are a warning toast and the drawer stays open. `useMethodLabel()` is exported (payout history uses it).
 
 ### Pages
-- `InviteEarn` (`invite.earn.tsx`): the link card, "Who invited you?" (`ClaimCode`, first 7 days) or "You joined with code X", the ladder (referrers), three stat tiles, rewards earned, invited workspaces, and how it works with the rules. It is used at `/invite` (sidebar and dock "Invite & earn", gift icon) and in Settings → Billing group → Invite & earn.
-- `/partners` (`partners.page.tsx`): the affiliate dashboard. Stats, link card, payout preference and details form, payout history, creator kit (placeholder) and program rules. Other users see an "invite-only" empty state.
-- Admin → Growth: Partners, Referrals, Payouts (`components/tadween/admin/admin.{partners,referrals,payouts}.tsx`), built on the server-side DataTable.
+- `InviteEarn` (`invite.earn.tsx`): hero row (ReferralLinkCard + summary strip: joined, paying, credits earned, next reward for referrers), the partner-dashboard link for affiliates, "Who invited you?" as a compact one-line card while the workspace can add a code (first 7 days) or "You joined with code X", the ladder (referrers), the invited table beside the rewards earned, then "How it works" as a quiet 3-step row and the rules as a footnote. Used at `/invite` and embedded in Settings → Billing group → Invite & earn (`embedded`: no max width).
+- `/partners` (`partners.page.tsx`): page title, EarningsHeader, PartnerStatTiles, the link card beside PartnerTierCard, payout history (table, or an empty state) beside PayoutPreferenceCard, then the creator kit (2 × 2) beside the program rules. Other users see an "invite-only" empty state.
+- Admin → Growth (`components/tadween/admin/admin.{partners,referrals,payouts}.tsx`): a summary strip in the admin console's `tdw-stat-grid` above the server-side DataTable. Partners: total, affiliates, referrers, suspended. Referrals: total, paid once, qualified, flagged. Each tile links to the filtered list; the numbers are each list's `total` for that filter (`countQuery()` in `admin.api.tsx`, page size 1), never sums of the visible page. Payouts: due this month (total and count, from the `due` list), ready to pay, next payout day, past payouts.
 
 ## Phase 2 (not built)
 

@@ -84,7 +84,7 @@ export const ReferralLinkCard: FC<{
     <section className={cx('tdw-ref-card', className)} aria-labelledby="tdw-ref-card-title">
       <div className="tdw-ref-card-head">
         <span className="tdw-ref-card-badge" aria-hidden="true">
-          <Icon name="gift" size={22} />
+          <Icon name="gift" size={20} />
         </span>
         <div className="min-w-0">
           <h3 id="tdw-ref-card-title" className="tdw-ref-card-title">

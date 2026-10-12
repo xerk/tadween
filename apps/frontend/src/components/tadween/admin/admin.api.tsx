@@ -5,6 +5,7 @@
 import { useCallback } from 'react';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { emptyQuery, tableQueryString } from '@gitroom/frontend/components/tadween/ui';
 import type { PricingInterface } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 
 export type Tier = 'STANDARD' | 'PRO' | 'TEAM' | 'ULTIMATE';
@@ -523,6 +524,11 @@ export interface AdminPayoutsData extends AdminListPage<AdminPayoutRow> {
   due: AdminDuePayout[];
   minimumCents: number;
 }
+
+// The query of a list's total for one filter (page size 1; only `total` is
+// read). Feeds the summary strips above the Growth tables.
+export const countQuery = (filters: Record<string, string> = {}) =>
+  tableQueryString({ ...emptyQuery(1), filters });
 
 export const useAdminPartners = (query: string) =>
   useSWR<AdminListPage<AdminPartner>>(

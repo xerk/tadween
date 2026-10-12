@@ -173,7 +173,7 @@ export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
 
       <div className="tdw-ref-hero">
         <ReferralLinkCard code={data.code} friendCredits={data.friendCredits} trialDays={data.trialDays} />
-        <div className="tdw-strip tdw-ref-summary">
+        <div className={cx('tdw-strip tdw-ref-summary', data.kind !== 'REFERRER' && 'is-three')}>
           <StatTile label={t('tdw_ref_stat_invited', 'Joined with your link')} value={data.referrals.length.toLocaleString()} />
           <StatTile label={t('tdw_ref_stat_paying', 'Paying')} value={paying.toLocaleString()} />
           <StatTile label={t('tdw_ref_stat_credits', 'Credits earned')} value={data.creditsEarned.toLocaleString()} />

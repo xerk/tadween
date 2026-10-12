@@ -102,7 +102,7 @@ Styles are in `app/tadween/referral.scss` (Invite & earn pieces and the shared s
 | ≤ 600px (phones) | strip 2 × 2, link button full width, "First paid" column hidden | balance cells as label/amount rows |
 
 ### Stat strip (`.tdw-strip`)
-A wrapper class, not a component: put kit `StatTile`s inside `<div className="tdw-strip">`. The tiles lose their own shadow and are split by 1px hairlines (the strip's border-coloured background shows through a 1px grid gap), so it wraps cleanly at any column count and in RTL. `StatTile` loading skeletons work as usual. Used by the Invite & earn summary (`.tdw-ref-summary`, 2 × 2 beside the link card) and `PartnerStatTiles` (`.tdw-partners-strip`). The admin Growth pages use the admin console's own `tdw-stat-grid` (separate tiles, as on Overview).
+A wrapper class, not a component: put kit `StatTile`s inside `<div className="tdw-strip">`. The tiles lose their own shadow and are split by 1px hairlines (the strip's border-coloured background shows through a 1px grid gap), so it wraps cleanly at any column count and in RTL. `StatTile` loading skeletons work as usual. Used by the Invite & earn summary (`.tdw-ref-summary`, 2 × 2 beside the link card; `is-three` for affiliates, who have no next reward: the last tile spans the row, or 3 across) and `PartnerStatTiles` (`.tdw-partners-strip`). The admin Growth pages use the admin console's own `tdw-stat-grid` (separate tiles, as on Overview).
 
 ### ReferralLinkCard
 `components/tadween/referral/referral.link.card.tsx`

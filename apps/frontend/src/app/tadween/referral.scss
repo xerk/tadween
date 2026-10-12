@@ -134,6 +134,8 @@
     grid-auto-rows: 1fr;
     > .pz-tile { padding: var(--space-5) var(--space-6); }
     .metric { font-size: 32px; line-height: 38px; }
+    // affiliates have no ladder, so no "next reward": the last tile spans the row
+    &.is-three > .pz-tile:last-child { grid-column: 1 / -1; }
   }
   .tdw-ref-next-value {
     display: block;
@@ -315,6 +317,8 @@
 @container tdw-ref (max-width: 1080px) {
   .tdw-ui .tdw-ref-hero { grid-template-columns: minmax(0, 1fr); }
   .tdw-ui .tdw-ref-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: auto; }
+  .tdw-ui .tdw-ref-summary.is-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tdw-ui .tdw-ref-summary.is-three > .pz-tile:last-child { grid-column: auto; }
   .tdw-ui .tdw-ref-split { grid-template-columns: minmax(0, 1fr); }
 }
 
@@ -349,7 +353,9 @@
   .tdw-ui .tdw-ref-card-foot { flex-direction: column; align-items: stretch; }
   .tdw-ui .tdw-ref-code { justify-content: center; }
   .tdw-ui .tdw-ref-share-btn { flex: 1 1 0; justify-content: center; }
-  .tdw-ui .tdw-ref-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tdw-ui .tdw-ref-summary,
+  .tdw-ui .tdw-ref-summary.is-three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tdw-ui .tdw-ref-summary.is-three > .pz-tile:last-child { grid-column: 1 / -1; }
   .tdw-ui .tdw-ref-summary > .pz-tile { padding: var(--space-4); }
   .tdw-ui .tdw-ref-summary .metric { font-size: 24px; line-height: 30px; }
   .tdw-ui .tdw-ref-claim-row { flex-basis: 100%; }

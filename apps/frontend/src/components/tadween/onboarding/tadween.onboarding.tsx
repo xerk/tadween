@@ -1,49 +1,111 @@
 'use client';
 
-// Tadween onboarding: the design system's full-screen Onboarding frame (logo,
-// spring progress bar, steps that slide in from the direction of travel and
-// mirror in RTL) around Postiz's real steps: connect channels, connect agents,
-// watch the tutorial. Connecting a channel still goes through Postiz's
-// AddProviderComponent, so every provider flow (OAuth, custom fields, web3,
-// browser extension) is unchanged. Replaces OnboardingModal's markup; the
-// Postiz file is left as it was for upstream syncs.
-import React, { FC, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useSWR from 'swr';
+// Tadween onboarding: what a new account sees after sign-up, as the design
+// system's Onboarding / ScreenOnboarding (logo, spring progress bar, one
+// focused step at a time that slides in from the direction of travel and
+// mirrors in RTL, Back / Continue / Skip setup always reachable).
+//
+// It renders full screen from LayoutComponent, in place of the app shell, while
+// a step is active. The steps only use what the server already has:
+//   welcome  → your name (POST /user/personal, the same call as Settings → Profile)
+//   language → language (the i18next cookie) and the time format (localStorage
+//              `isUS`, as Settings → Preferences); the time zone is the device's
+//   plan     → only when the workspace still needs a plan: the layout shows the
+//              one-page /billing paywall, and onboarding resumes after it
+//   channels → Postiz's own AddProviderComponent, LinkedIn first
+//   done     → summary, then Today
+// The workspace name is asked on the sign-up card (it is required to create
+// the workspace). The AI agent setup lives in Settings → API & MCP.
+//
+// Progress is kept in sessionStorage, so a channel's OAuth round trip or the
+// paywall come back to the right step in the same tab.
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import useSWR, { useSWRConfig } from 'swr';
 import { orderBy } from 'lodash';
-import copy from 'copy-to-clipboard';
+import i18next from 'i18next';
+import useCookie from 'react-use-cookie';
+import { useTranslation } from 'react-i18next';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { useToaster } from '@gitroom/react/toaster/toaster';
-import { useVariables } from '@gitroom/react/helpers/variable.context';
+import {
+  cookieName,
+  fallbackLng,
+  languages,
+} from '@gitroom/react/translation/i18n.config';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { AddProviderComponent } from '@gitroom/frontend/components/launches/add.provider.component';
+import { isUSCitizen } from '@gitroom/frontend/components/launches/helpers/isuscitizen.utils';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
-import {
-  AnyMcpClient,
-  getMcpConfig,
-  isChatOnlyMcpClient,
-  isSelfHosted,
-  fillCliSteps,
-  McpAuth,
-  McpClient,
-  mcpClients,
-  mcpConnectorUrls,
-} from '@gitroom/frontend/components/public-api/public.component';
-import { McpClientIcon } from '@gitroom/frontend/components/public-api/mcp.client.icons';
+import { usePersonal } from '@gitroom/frontend/components/tadween/settings/account.settings';
+import { useOrganizations } from '@gitroom/frontend/components/tadween/settings/workspace.settings';
+import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import {
   Button,
   cx,
   Icon,
+  Input,
+  RadioGroup,
   SegmentedControl,
+  Select,
   Skeleton,
   TadweenScope,
 } from '@gitroom/frontend/components/tadween/ui';
-import {
-  useBrandLinks,
-  useFeatures,
-} from '@gitroom/frontend/components/tadween/instance/instance.settings';
 
+export type OnboardingStep = 'welcome' | 'language' | 'plan' | 'channels' | 'done';
+
+const STORAGE_KEY = 'tdw_onboarding';
 const LINKEDIN = ['linkedin', 'linkedin-page'];
+
+const readStep = (): OnboardingStep | null => {
+  try {
+    return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null')?.step || null;
+  } catch (e) {
+    return null;
+  }
+};
+const writeStep = (step: OnboardingStep | null) => {
+  try {
+    if (step) {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ step }));
+    } else {
+      sessionStorage.removeItem(STORAGE_KEY);
+    }
+  } catch (e) {
+    // private mode: onboarding still works, it just won't resume after a redirect
+  }
+};
+
+/* Whether onboarding owns the screen, and at which step. Starts from
+   `?onboarding=true` (set after sign-up, activation and a channel's OAuth
+   return), resumes from sessionStorage, never restarts after a payment return. */
+export const useOnboarding = () => {
+  const params = useSearchParams();
+  const requested = params.get('onboarding') === 'true';
+  const returnedFromChannel = !!params.get('added');
+  const returnedFromPayment = !!params.get('check');
+  const [ready, setReady] = useState(false);
+  const [step, setStep] = useState<OnboardingStep | null>(null);
+
+  useEffect(() => {
+    const saved = readStep();
+    if (saved) {
+      setStep(saved);
+    } else if (requested && !returnedFromPayment) {
+      const first = returnedFromChannel ? 'channels' : 'welcome';
+      writeStep(first);
+      setStep(first);
+    }
+    setReady(true);
+  }, [requested, returnedFromChannel, returnedFromPayment]);
+
+  const go = useCallback((next: OnboardingStep | null) => {
+    writeStep(next);
+    setStep(next);
+  }, []);
+
+  return { ready, requested, step, go };
+};
 
 type Integration = {
   id: string;
@@ -52,14 +114,6 @@ type Integration = {
   identifier: string;
   disabled?: boolean;
   type?: string;
-};
-
-const useDir = () => {
-  const [rtl, setRtl] = useState(false);
-  useEffect(() => {
-    setRtl(document.documentElement.getAttribute('dir') === 'rtl');
-  }, []);
-  return rtl;
 };
 
 const useConnected = () => {
@@ -88,29 +142,132 @@ const useConnected = () => {
   );
 };
 
-export const TadweenOnboarding: FC<{ onClose: () => void }> = ({ onClose }) => {
+const useProviders = () => {
+  const fetch = useFetch();
+  const load = useCallback(async () => {
+    return (await fetch('/integrations')).json();
+  }, []);
+  return useSWR('get-all-integrations-onboarding', load);
+};
+
+/* The welcome step's name, saved with Settings → Profile's call (bio and
+   picture are sent back unchanged). save() resolves false to keep the step open. */
+const useNameStep = () => {
   const t = useT();
-  const rtl = useDir();
-  const isOn = useFeatures();
-  const [step, setStep] = useState(0);
-  const [travel, setTravel] = useState(1);
-  const connected = useConnected();
-  const go = (n: number) => {
-    setTravel(n > step ? 1 : -1);
-    setStep(n);
+  const fetch = useFetch();
+  const { mutate } = useSWRConfig();
+  const { data: personal, isLoading } = usePersonal();
+  const [name, setName] = useState<string>();
+  const [error, setError] = useState('');
+  const value = name ?? personal?.name ?? '';
+
+  const change = useCallback((next: string) => {
+    setError('');
+    setName(next);
+  }, []);
+
+  const save = async () => {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === (personal?.name || '')) {
+      return true;
+    }
+    if (trimmed.length < 3) {
+      setError(t('tdw_auth_err_min', 'Use at least {{count}} characters.', { count: 3 }));
+      return false;
+    }
+    const response = await fetch('/user/personal', {
+      method: 'POST',
+      body: JSON.stringify({
+        fullname: trimmed,
+        bio: personal?.bio || '',
+        picture: personal?.picture || null,
+      }),
+    });
+    if (!response.ok) {
+      setError(t('tdw_ob_name_error', 'We couldn’t save your name. Try again.'));
+      return false;
+    }
+    mutate('/user/personal');
+    // the sidebar and Today read the name from /user/self
+    mutate('/user/self');
+    return true;
   };
-  const steps = [
-    t('tdw_ob_s_channels', 'Connect channels'),
-    t('tdw_ob_s_agents', 'Connect agents'),
-    t('tdw_ob_s_tutorial', 'Tutorial'),
-  ];
-  const back = rtl ? 'arrow-right' : 'arrow-left';
-  const forward = rtl ? 'arrow-left' : 'arrow-right';
-  const ar = typeof document !== 'undefined' && document.documentElement.lang === 'ar';
+
+  return { value, change, error, loading: isLoading, save };
+};
+
+const firstName = (name?: string | null) => (name || '').trim().split(/\s+/)[0] || '';
+
+export const TadweenOnboarding: FC<{
+  step: OnboardingStep;
+  go: (step: OnboardingStep | null) => void;
+  /** the workspace has no plan yet and billing is on */
+  needsPlan: boolean;
+}> = ({ step, go, needsPlan }) => {
+  const t = useT();
+  const { i18n } = useTranslation();
+  const router = useRouter();
+  const user = useUser();
+  const connected = useConnected();
+  const rtl = i18n.dir() === 'rtl';
+  const ar = i18n.resolvedLanguage === 'ar';
+  const [travel, setTravel] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const nameStep = useNameStep();
+
+  // The plan step only exists while the workspace still needs one; once the
+  // paywall is done (trial or payment), onboarding carries on with channels
+  const order: OnboardingStep[] =
+    step === 'plan' || needsPlan
+      ? ['welcome', 'language', 'plan', 'channels', 'done']
+      : ['welcome', 'language', 'channels', 'done'];
+  useEffect(() => {
+    if (step === 'plan' && !needsPlan) {
+      go('channels');
+    }
+  }, [step, needsPlan]);
+
+  const labels: Record<OnboardingStep, string> = {
+    welcome: t('tdw_ob_s_you', 'You'),
+    language: t('tdw_ob_s_language', 'Language'),
+    plan: t('tdw_ob_s_plan', 'Plan'),
+    channels: t('tdw_ob_s_channels', 'Channels'),
+    done: t('tdw_ob_s_ready', 'Ready'),
+  };
+  const index = Math.max(0, order.indexOf(step));
+
+  const move = (next: OnboardingStep) => {
+    setTravel(order.indexOf(next) >= index ? 1 : -1);
+    go(next);
+  };
+
+  const finish = useCallback(() => {
+    go(null);
+    router.push('/today');
+  }, []);
+
+  const forward = async () => {
+    if (step === 'welcome') {
+      setBusy(true);
+      const ok = await nameStep.save();
+      setBusy(false);
+      if (!ok) {
+        return;
+      }
+    }
+    if (step === 'done') {
+      finish();
+      return;
+    }
+    move(order[index + 1]);
+  };
+
+  const backIcon = rtl ? 'arrow-right' : 'arrow-left';
+  const nextIcon = rtl ? 'arrow-left' : 'arrow-right';
+  const hasChannels = connected.length > 0;
 
   return (
-    <TadweenScope className={cx('h-full', ar && 'is-ar')}>
-      <style>{`#support-discord {display: none}`}</style>
+    <TadweenScope className={cx('tdw-ob-page', ar && 'is-ar')}>
       <div className="pz-ob">
         <header className="pz-ob-head">
           <span className="pz-ob-logo">
@@ -119,70 +276,80 @@ export const TadweenOnboarding: FC<{ onClose: () => void }> = ({ onClose }) => {
           </span>
           <ol
             className="pz-ob-progress"
-            style={{ ['--steps' as string]: steps.length }}
+            style={{ ['--steps' as string]: order.length }}
             aria-label={t('tdw_ob_progress', 'Step {{n}} of {{total}}', {
-              n: step + 1,
-              total: steps.length,
+              n: index + 1,
+              total: order.length,
             })}
           >
-            {steps.map((s, i) => (
+            {order.map((s, i) => (
               <li
                 key={s}
-                className={cx(i < step && 'is-done', i === step && 'is-current')}
-                aria-current={i === step ? 'step' : undefined}
+                className={cx(i < index && 'is-done', i === index && 'is-current')}
+                aria-current={i === index ? 'step' : undefined}
               >
                 <span className="pz-ob-bar">
                   <span />
                 </span>
-                <span className="caption">{s}</span>
+                <span className="caption">{labels[s]}</span>
               </li>
             ))}
           </ol>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            {t('tdw_ob_skip', 'Skip setup')}
-          </Button>
+          {step !== 'done' ? (
+            <Button variant="ghost" size="sm" onClick={finish}>
+              {t('tdw_ob_skip', 'Skip setup')}
+            </Button>
+          ) : (
+            <span className="tdw-ob-head-spacer" />
+          )}
         </header>
-        <div className="pz-ob-stage">
+
+        <main className="pz-ob-stage">
           <div
             key={step}
-            className={cx('pz-ob-step', step > 0 && 'is-wide')}
+            className="pz-ob-step"
             style={{ ['--travel' as string]: travel }}
           >
-            {step === 0 ? (
+            {step === 'welcome' ? (
+              <WelcomeStep {...nameStep} onEnter={forward} />
+            ) : step === 'language' ? (
+              <LanguageStep />
+            ) : step === 'channels' ? (
               <ChannelsStep connected={connected} />
-            ) : step === 1 ? (
-              <AgentsStep />
+            ) : step === 'done' ? (
+              <DoneStep connected={connected} name={firstName(user?.name)} />
             ) : (
-              <TutorialStep />
+              <PlanPending />
             )}
           </div>
-        </div>
+        </main>
+
         <footer className="pz-ob-foot">
-          {step > 0 ? (
-            <Button variant="ghost" icon={back} onClick={() => go(step - 1)}>
+          {index > 0 && step !== 'done' ? (
+            <Button variant="ghost" icon={backIcon} onClick={() => move(order[index - 1])}>
               {t('tdw_back', 'Back')}
             </Button>
           ) : null}
-          <span className="pz-ob-foot-note caption">
-            {step === 1 && isOn('publicApi')
-              ? t(
-                  'tdw_ob_agents_later',
-                  'More agents and full instructions are in Settings → API & MCP.'
-                )
-              : null}
-          </span>
-          {step === 0 && !connected.length ? (
-            <Button variant="ghost" onClick={() => go(1)}>
-              {t('tdw_ob_without', 'Continue without channels')}
+          <span className="pz-ob-foot-note" />
+          {step === 'channels' && !hasChannels ? (
+            <Button variant="ghost" onClick={() => move('done')}>
+              {t('tdw_ob_later', 'I’ll do this later')}
             </Button>
           ) : null}
-          {step < 2 ? (
-            <Button variant="primary" iconEnd={forward} onClick={() => go(step + 1)}>
-              {step === 1 ? t('tdw_ob_continue_skip', 'Continue or skip') : t('tdw_continue', 'Continue')}
-            </Button>
-          ) : (
-            <Button variant="primary" icon="calendar-days" onClick={onClose}>
-              {t('tdw_ob_finish', 'Plan my first week')}
+          {step === 'channels' && !hasChannels ? null : (
+            <Button
+              variant="primary"
+              loading={busy}
+              loadingLabel={t('tdw_ob_saving', 'Saving…')}
+              icon={step === 'done' ? 'calendar-days' : undefined}
+              iconEnd={step === 'done' ? undefined : nextIcon}
+              onClick={forward}
+            >
+              {step === 'done'
+                ? t('tdw_ob_go_today', 'Go to Today')
+                : step === 'language' && order[index + 1] === 'plan'
+                ? t('tdw_ob_choose_plan', 'Choose a plan')
+                : t('tdw_continue', 'Continue')}
             </Button>
           )}
         </footer>
@@ -191,17 +358,254 @@ export const TadweenOnboarding: FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 };
 
-/* Step 1: LinkedIn profile and page first, then every other provider */
+/* Heading shared by every step: big friendly title, one lead line */
+const StepHead: FC<{ title: string; lead: string; center?: boolean }> = ({
+  title,
+  lead,
+  center,
+}) => (
+  <div className={cx('tdw-ob-headline', center && 'is-center')}>
+    <h1 className="title-1">{title}</h1>
+    <p className="pz-ob-lead">{lead}</p>
+  </div>
+);
+
+/* Step 1: your name, and the workspace you're in */
+const WelcomeStep: FC<{
+  value: string;
+  change: (value: string) => void;
+  error: string;
+  loading: boolean;
+  onEnter: () => void;
+}> = ({ value, change, error, loading, onEnter }) => {
+  const t = useT();
+  const user = useUser();
+  const { data: organizations } = useOrganizations();
+  const workspace = organizations?.find?.((org: any) => org?.id === user?.orgId);
+  // Whoever created the workspace owns it; an invited teammate joined one
+  const joined = !!user?.role && user.role !== 'SUPERADMIN';
+
+  return (
+    <>
+      <span className="tdw-ob-mark" aria-hidden="true">
+        <Logo />
+      </span>
+      <StepHead
+        title={t('tdw_ob_welcome_title', 'Welcome to Tadween')}
+        lead={t(
+          'tdw_ob_welcome_lead',
+          'A few quick choices and your workspace is ready. It takes about a minute.'
+        )}
+      />
+      <form
+        className="tdw-ob-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onEnter();
+        }}
+      >
+        {loading ? (
+          <Skeleton height={68} radius={10} />
+        ) : (
+          <Input
+            label={t('tdw_ob_name_label', 'What should we call you?')}
+            placeholder={t('tdw_ob_name_placeholder', 'Your full name')}
+            autoComplete="name"
+            autoFocus
+            value={value}
+            error={error || undefined}
+            hint={
+              error
+                ? undefined
+                : t('tdw_ob_name_hint', 'Your teammates see it, and Today greets you by it.')
+            }
+            onChange={(e) => change(e.target.value)}
+          />
+        )}
+      </form>
+      {workspace ? (
+        <div className="tdw-ob-workspace">
+          <span className="tdw-ob-workspace-mark" aria-hidden="true">
+            {(workspace.name || '?').trim().slice(0, 1).toUpperCase()}
+          </span>
+          <span className="tdw-ob-workspace-text">
+            <span className="caption pz-muted">
+              {joined
+                ? t('tdw_ob_workspace_joined', 'You joined this workspace')
+                : t('tdw_ob_workspace_yours', 'Your workspace')}
+            </span>
+            <span className="headline">{workspace.name}</span>
+          </span>
+          {joined ? null : (
+            <span className="caption pz-muted tdw-ob-workspace-note">
+              {t('tdw_ob_workspace_note', 'Invite your team from Settings when you’re ready.')}
+            </span>
+          )}
+        </div>
+      ) : null}
+    </>
+  );
+};
+
+// Native name of a language ("العربية", "English")
+const languageName = (code: string) => {
+  try {
+    return (
+      new Intl.DisplayNames([code.replace('_', '-')], { type: 'language' }).of(
+        code.replace('_', '-')
+      ) || code
+    );
+  } catch (e) {
+    return code;
+  }
+};
+
+// "Cairo · GMT+3" for the device's time zone
+const deviceTimeZone = (language: string) => {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const city = zone.split('/').pop()?.replace(/_/g, ' ') || zone;
+    const offset =
+      new Intl.DateTimeFormat(language, { timeZoneName: 'shortOffset' })
+        .formatToParts(new Date())
+        .find((p) => p.type === 'timeZoneName')?.value || '';
+    return { zone, label: [city, offset].filter(Boolean).join(' · ') };
+  } catch (e) {
+    return { zone: '', label: '' };
+  }
+};
+
+/* Step 2: language (applied at once, like Settings → Preferences → Language)
+   and time format. Both are saved in this browser. */
+const LanguageStep: FC = () => {
+  const t = useT();
+  const { i18n } = useTranslation();
+  const current = i18n.resolvedLanguage || fallbackLng;
+  const [, setCookie] = useCookie(cookieName, current);
+  const [timeFormat, setTimeFormat] = useState<'US' | 'GLOBAL'>();
+  useEffect(() => {
+    setTimeFormat(isUSCitizen() ? 'US' : 'GLOBAL');
+  }, []);
+  const zone = useMemo(() => deviceTimeZone(current), [current]);
+
+  const changeLanguage = (language: string) => {
+    setCookie(language);
+    i18next.changeLanguage(language);
+    document.documentElement.setAttribute('dir', i18next.dir(language));
+    document.documentElement.setAttribute('lang', language);
+  };
+  const changeTimeFormat = (value: 'US' | 'GLOBAL') => {
+    setTimeFormat(value);
+    try {
+      localStorage.setItem('isUS', value);
+    } catch (e) {
+      // the calendar falls back to the browser's locale
+    }
+  };
+
+  const main = ['en', 'ar'].filter((l) => languages.includes(l));
+  const others = languages.filter((l) => !main.includes(l));
+  const sample = new Date(2026, 0, 1, 9, 30);
+
+  return (
+    <>
+      <StepHead
+        title={t('tdw_ob_language_title', 'Language and time')}
+        lead={t(
+          'tdw_ob_language_lead',
+          'Tadween works in English and Arabic. Arabic switches the whole app to right-to-left.'
+        )}
+      />
+      <div className="tdw-ob-fields">
+        <div className="pz-field">
+          <span className="pz-label" id="tdw-ob-lang">
+            {t('tdw_pref_language', 'Language')}
+          </span>
+          <RadioGroup
+            label={t('tdw_pref_language', 'Language')}
+            columns={2}
+            value={main.includes(current) ? current : ''}
+            onChange={changeLanguage}
+            options={main.map((code) => ({
+              value: code,
+              label: languageName(code),
+              description:
+                code === 'ar'
+                  ? t('tdw_ob_rtl', 'Right to left')
+                  : t('tdw_ob_ltr', 'Left to right'),
+            }))}
+          />
+          {others.length ? (
+            <Select
+              size="sm"
+              aria-label={t('tdw_ob_more_languages', 'More languages')}
+              placeholder={t('tdw_ob_more_languages', 'More languages')}
+              value={others.includes(current) ? current : undefined}
+              onChange={changeLanguage}
+              options={others.map((code) => ({ value: code, label: languageName(code) }))}
+              className="tdw-ob-more"
+            />
+          ) : null}
+        </div>
+        <div className="pz-field">
+          <span className="pz-label">{t('tdw_pref_time_format', 'Time format')}</span>
+          {timeFormat ? (
+            <div className="tdw-ob-row">
+              <SegmentedControl
+                label={t('tdw_pref_time_format', 'Time format')}
+                value={timeFormat}
+                onChange={changeTimeFormat}
+                options={[
+                  { value: 'US', label: t('tdw_pref_12h', '12-hour') },
+                  { value: 'GLOBAL', label: t('tdw_pref_24h', '24-hour') },
+                ]}
+              />
+              <span className="time pz-muted">
+                {new Intl.DateTimeFormat(current.replace('_', '-'), {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: timeFormat === 'US',
+                }).format(sample)}
+              </span>
+            </div>
+          ) : (
+            <Skeleton height={36} width={220} radius={10} />
+          )}
+        </div>
+        {zone.label ? (
+          <div className="tdw-ob-note">
+            <Icon name="globe" size={16} />
+            <span>
+              {t('tdw_ob_timezone', 'Times show in this device’s time zone: {{zone}}', {
+                zone: zone.label,
+                interpolation: { escapeValue: false },
+              })}
+            </span>
+          </div>
+        ) : null}
+      </div>
+    </>
+  );
+};
+
+/* Shown for a moment while the layout swaps in the paywall */
+const PlanPending: FC = () => (
+  <div className="tdw-ob-fields" aria-busy="true">
+    <Skeleton height={36} width="60%" radius={8} />
+    <Skeleton height={16} width="80%" />
+    <Skeleton height={160} radius={14} />
+  </div>
+);
+
+/* Step 3: LinkedIn profile and page first, then every other network the admin
+   turned on. The cards press Postiz's own provider tile, so each provider's
+   connect flow (OAuth, custom fields, web3, extension) is unchanged. */
 const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
   const t = useT();
-  const fetch = useFetch();
   const user = useUser();
   const hidden = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const getIntegrations = useCallback(async () => {
-    return (await fetch('/integrations')).json();
-  }, []);
-  const { data } = useSWR('get-all-integrations-onboarding', getIntegrations);
+  const { data } = useProviders();
   const social: { identifier: string; name: string }[] = data?.social || [];
   const linkedin = LINKEDIN.map((id) => social.find((s) => s.identifier === id)).filter(
     Boolean
@@ -209,13 +613,11 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
   const rest = social.filter((s) => !LINKEDIN.includes(s.identifier));
   const article = data?.article || [];
   // Channels without a LinkedIn card above (also LinkedIn ones when the admin
-  // hid LinkedIn from Add channel) are listed under "Connected channels".
+  // hid LinkedIn from Add channel) are listed under "Connected"
   const others = connected.filter(
     (c) => !linkedin.some((l) => l.identifier === c.identifier)
   );
 
-  // The LinkedIn cards press Postiz's own provider tile, so the connect flow
-  // (and whatever upstream changes in it) stays Postiz's
   const connect = (identifier: string) => {
     const tile = hidden.current?.querySelector<HTMLElement>(
       `[data-identifier="${identifier}"]`
@@ -241,13 +643,13 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
 
   return (
     <>
-      <h2 className="title-1">{t('tdw_ob_channels_title', 'Connect where you post')}</h2>
-      <p className="pz-ob-lead">
-        {t(
-          'tdw_ob_channels_lead',
-          'Tadween publishes to your LinkedIn profile and the company pages you manage. You can add more later.'
+      <StepHead
+        title={t('tdw_ob_channels_title', 'Connect your first channel')}
+        lead={t(
+          'tdw_ob_channels_lead2',
+          'Start with LinkedIn: your profile, and the company pages you manage. You can add more networks any time.'
         )}
-      </p>
+      />
       {!data ? (
         <div className="pz-ob-cards">
           <Skeleton height={72} radius={14} />
@@ -307,9 +709,9 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
 
       {others.length > 0 && (
         <div className="pz-ob-section">
-          <h3 className="caption pz-ob-section-title">
+          <h2 className="caption pz-ob-section-title">
             {t('tdw_ob_connected_channels', 'Connected channels')}
-          </h3>
+          </h2>
           <div className="pz-ob-connected">
             {others.map((c) => (
               <span key={c.id} className="pz-ob-chip">
@@ -335,9 +737,9 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
 
       {(rest.length > 0 || article.length > 0) && (
         <div className="pz-ob-section">
-          <h3 className="caption pz-ob-section-title">
+          <h2 className="caption pz-ob-section-title">
             {t('tdw_ob_other_networks', 'Other networks')}
-          </h3>
+          </h2>
           <div className="pz-ob-providers">
             <AddProviderComponent
               invite={false}
@@ -352,318 +754,67 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
   );
 };
 
-/* Step 2: agents — Postiz's MCP / API key / CLI / connectors, restyled */
-const onboardingAgents = ['Claude', 'ChatGPT', 'Claude Code', 'Cursor', 'Codex', 'Grok Bot'] as const;
-type OnboardingAgent = (typeof onboardingAgents)[number];
-const otherTab = 'Other agents' as const;
-const otherAgents = mcpClients.filter((c) => !(onboardingAgents as readonly string[]).includes(c));
-const apiTab = 'API' as const;
-type OnboardingTab = OnboardingAgent | typeof otherTab | typeof apiTab;
-
-const CopyBtn: FC<{ text: string; label: string }> = ({ text, label }) => {
-  const toaster = useToaster();
+/* Step 4: what's set up, then Today */
+const DoneStep: FC<{ connected: Integration[]; name: string }> = ({ connected, name }) => {
   const t = useT();
-  return (
-    <Button
-      size="sm"
-      icon="copy"
-      onClick={() => {
-        copy(text);
-        toaster.show(t('tdw_copied', '{{label}} copied', { label }), 'success');
-      }}
-    >
-      {t('tdw_copy', 'Copy')}
-    </Button>
-  );
-};
-
-const Panel: FC<{ title: ReactNode; desc?: ReactNode; children?: ReactNode; aside?: ReactNode }> = ({
-  title,
-  desc,
-  children,
-  aside,
-}) => (
-  <section className={cx('pz-ob-panel', aside && 'is-row')}>
-    <header className="pz-ob-panel-head">
-      <h3 className="headline">{title}</h3>
-      {desc ? <p>{desc}</p> : null}
-    </header>
-    {aside}
-    {children ? <div className="pz-ob-panel-body">{children}</div> : null}
-  </section>
-);
-
-const AgentsStep: FC = () => {
-  const t = useT();
-  const user = useUser();
-  const isOn = useFeatures();
-  const { backendUrl, mcpUrl, mcpOfficialConnectors } = useVariables();
-  const brand = useBrandLinks();
-  const [tab, setTab] = useState<OnboardingTab>('Claude');
-  const [otherAgent, setOtherAgent] = useState<McpClient>(otherAgents[0]);
-  const agent: AnyMcpClient | typeof apiTab = tab === otherTab ? otherAgent : tab;
-  const [auth, setAuth] = useState<McpAuth>('oauth');
-  const [revealed, setRevealed] = useState(false);
-  const mcpBase = mcpUrl || backendUrl;
-  const apiKey = user?.publicApi || '';
-  // Same conditions as Settings → API & MCP, including the admin's switch
-  const apiOn = isOn('publicApi');
-  const available = apiOn && !!apiKey && !!user?.tier?.public_api;
-  // Directory connectors sign in through Postiz's cloud: opt-in only
-  const officialConnectors = !!mcpOfficialConnectors;
-  const cliCommands = fillCliSteps(backendUrl, revealed ? apiKey : '*'.repeat(apiKey.length)).map((s) => s.code);
-  const cliCopy = fillCliSteps(backendUrl, apiKey).map((s) => s.code);
-
-  const { config, hint } =
-    agent === apiTab ? { config: '', hint: '' } : getMcpConfig(agent, auth, mcpBase, apiKey, backendUrl);
-  const maskedConfig =
-    revealed || auth === 'oauth' || !apiKey
-      ? config
-      : config.replace(
-          new RegExp(apiKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
-          '*'.repeat(apiKey.length)
-        );
-  const maskedApiKey = revealed ? apiKey : '*'.repeat(apiKey.length);
-  const connectorFor: Partial<Record<string, string>> = {
-    Claude: t('add_to_claude', 'Add to Claude'),
-    ChatGPT: t('add_to_chatgpt', 'Add to ChatGPT'),
-    Cursor: t('add_to_cursor', 'Add to Cursor'),
-    'Grok Bot': t('add_to_grok_bot', 'Add to Grok Bot'),
-  };
-  const connector =
-    officialConnectors && agent in mcpConnectorUrls && connectorFor[agent]
-      ? {
-          href: mcpConnectorUrls[agent as keyof typeof mcpConnectorUrls],
-          label: connectorFor[agent] as string,
-        }
-      : null;
-
-  const reveal = (
-    <Button size="sm" variant="ghost" icon="eye" onClick={() => setRevealed(!revealed)}>
-      {revealed ? t('tdw_hide', 'Hide') : t('tdw_reveal', 'Reveal')}
-    </Button>
-  );
-  const keyBlock = (
-    <>
-      <pre className="pz-ob-code">{maskedApiKey}</pre>
-      <div className="pz-ob-actions">
-        {reveal}
-        <CopyBtn text={apiKey} label={t('tdw_api_key', 'API key')} />
-      </div>
-    </>
-  );
-
-  const connectorPanel = connector && (
-    <Panel
-      title={t('tdw_connector', 'Connector')}
-      desc={
-        isSelfHosted
-          ? t(
-              'connector_self_hosted_description',
-              'The official connector works with self-hosted Postiz too. When asked to sign in, choose "Use self-hosted" and enter {{url}} with your API key.',
-              { url: mcpBase, interpolation: { escapeValue: false } }
-            )
-          : t('tdw_connector_desc', 'The fastest way: add it with one click, then sign in.')
-      }
-      aside={
-        <a className="pz-btn pz-btn-primary pz-btn-md no-underline shrink-0" href={connector.href} target="_blank" rel="noreferrer">
-          <McpClientIcon client={agent} size={16} />
-          {connector.label}
-        </a>
-      }
-    />
-  );
-
-  let body: ReactNode;
-  if (agent === apiTab) {
-    body = (
-      <>
-        <Panel
-          title={t('tdw_documentation', 'Documentation')}
-          desc={t('tdw_api_desc', 'Use the API from your own code, n8n or any other automation.')}
-          aside={
-            brand.docs() ? (
-              <a
-                className="pz-btn pz-btn-primary pz-btn-md no-underline shrink-0"
-                href={brand.docs('/public-api/introduction')}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Icon name="external-link" />
-                {t('tdw_read_api_docs', 'Read the API docs')}
-              </a>
-            ) : undefined
-          }
-        />
-        <Panel
-          title={t('tdw_api_key', 'API key')}
-          desc={t('tdw_api_key_desc', 'Send it as the Authorization header on every request.')}
-        >
-          {keyBlock}
-        </Panel>
-      </>
-    );
-  } else if (isChatOnlyMcpClient(agent)) {
-    body = (
-      <>
-        {connectorPanel}
-        <Panel
-          title={t('tdw_chat', 'Chat')}
-          desc={t(
-            'tdw_chat_desc',
-            'No MCP or CLI settings needed. Paste this into the chat; the agent installs the CLI and asks for your API key.'
-          )}
-        >
-          <pre className="pz-ob-code">{config}</pre>
-          <div className="pz-ob-actions">
-            <CopyBtn text={config} label={t('tdw_instructions', 'Instructions')} />
-          </div>
-          <span className="pz-label">{t('tdw_api_key', 'API key')}</span>
-          {keyBlock}
-        </Panel>
-      </>
-    );
-  } else {
-    body = (
-      <>
-        {connectorPanel}
-        <div className="pz-ob-panels">
-          <Panel
-            title={t('tdw_mcp', 'MCP')}
-            desc={t('tdw_mcp_desc', 'Give your agent tools to create, schedule and manage posts.')}
-          >
-            <SegmentedControl<McpAuth>
-              size="sm"
-              label={t('tdw_auth_method', 'Authentication')}
-              value={auth}
-              onChange={setAuth}
-              options={[
-                { value: 'oauth', label: t('tdw_sign_in_no_key', 'Sign in (no API key)') },
-                { value: 'apikey', label: t('tdw_api_key', 'API key') },
-              ]}
-            />
-            <span className="pz-ob-hint">
-              {hint}
-              {auth === 'oauth' &&
-                ` ${t('tdw_oauth_hint', 'Your agent opens a browser window for you to sign in.')}`}
-            </span>
-            <pre className="pz-ob-code">{maskedConfig}</pre>
-            <div className="pz-ob-actions">
-              {auth === 'apikey' && reveal}
-              <CopyBtn text={config} label={t('tdw_config', 'Config')} />
-            </div>
-          </Panel>
-          <Panel
-            title={t('tdw_cli', 'CLI')}
-            desc={t('tdw_cli_desc', 'Install the CLI and the skill that teaches your agent how to use it.')}
-          >
-            <pre className="pz-ob-code">{cliCommands.join('\n')}</pre>
-            <div className="pz-ob-actions">
-              {reveal}
-              <CopyBtn text={cliCopy.join(' && ')} label={t('tdw_commands', 'Commands')} />
-            </div>
-          </Panel>
-        </div>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <div className="text-center grid gap-[4px]">
-        <h2 className="title-1">{t('tdw_ob_agents_title', 'Connect your AI agent')}</h2>
-        <p className="pz-ob-lead">
-          {t('tdw_ob_agents_lead', 'Pick the agent you use and let it draft and schedule posts for you.')}
-        </p>
-      </div>
-      {available ? (
-        <div className="pz-ob-agents">
-          <div className="pz-ob-chips" role="group" aria-label={t('tdw_ob_agents_pick', 'Agent')}>
-            {[...onboardingAgents, otherTab, apiTab].map((item) => (
-              <button
-                key={item}
-                type="button"
-                aria-pressed={tab === item}
-                className="pz-ob-agent"
-                onClick={() => setTab(item)}
-              >
-                <McpClientIcon client={item} />
-                {item === otherTab ? t('tdw_other_agents', 'Other agents') : item}
-              </button>
-            ))}
-          </div>
-          {tab === otherTab && (
-            <div className="pz-ob-chips">
-              {otherAgents.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  aria-pressed={otherAgent === item}
-                  className="pz-ob-agent is-sm"
-                  onClick={() => setOtherAgent(item)}
-                >
-                  <McpClientIcon client={item} size={14} />
-                  {item}
-                </button>
-              ))}
-            </div>
-          )}
-          <div key={agent} className="grid gap-[16px]">
-            {body}
-          </div>
-        </div>
-      ) : (
-        <div className="pz-ob-panel">
-          <div className="pz-ob-panel-body text-center">
-            <p className="pz-muted m-0">
-              {apiOn
-                ? t(
-                    'tdw_agent_unavailable',
-                    'Agent access is not on your current plan or role. You can set it up later in Settings → API & MCP.'
-                  )
-                : t(
-                    'tdw_agent_disabled',
-                    'Agent access through the API and MCP is turned off.'
-                  )}
-            </p>
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-
-/* Step 3: the tutorial video */
-const TutorialStep: FC = () => {
-  const t = useT();
-  // Tadween: our own video from /admin → Branding; without one, a short wrap-up
+  const { i18n } = useTranslation();
   const { tutorialVideoUrl } = useBrandLinks();
-  if (!tutorialVideoUrl) {
-    return (
-      <div className="text-center grid gap-[4px]">
-        <h2 className="title-1">{t('tdw_ob_done_title', 'You’re all set')}</h2>
-        <p className="pz-ob-lead">
-          {t('tdw_ob_done_lead', 'Head to your calendar and schedule your first post.')}
-        </p>
-      </div>
-    );
-  }
+  const active = connected.filter((c) => !c.disabled);
+  const rows = [
+    {
+      done: !!name,
+      label: name
+        ? t('tdw_ob_sum_name', 'Hi, {{name}}', { name, interpolation: { escapeValue: false } })
+        : t('tdw_ob_sum_no_name', 'Add your name any time in Settings → Profile'),
+    },
+    {
+      done: true,
+      label: t('tdw_ob_sum_language', 'Tadween in {{language}}', {
+        language: languageName(i18n.resolvedLanguage || fallbackLng),
+        interpolation: { escapeValue: false },
+      }),
+    },
+    {
+      done: active.length > 0,
+      label: active.length
+        ? t('tdw_ob_sum_channels', 'Channels connected: {{count}}', { count: active.length })
+        : t('tdw_ob_sum_no_channels', 'Connect a channel any time from the sidebar'),
+    },
+  ];
   return (
-    <>
-      <div className="text-center grid gap-[4px]">
-        <h2 className="title-1">{t('tdw_ob_tutorial_title', 'Watch the tutorial')}</h2>
-        <p className="pz-ob-lead">
-          {t('tdw_ob_tutorial_lead', 'A short video on getting the most out of scheduling.')}
-        </p>
-      </div>
-      <div className="pz-ob-video mx-auto max-w-[880px]">
-        <iframe
-          src={tutorialVideoUrl}
-          title={t('tdw_tutorial', 'Tutorial')}
-          allow="autoplay"
-          allowFullScreen
-        />
-      </div>
-    </>
+    <div className="pz-ob-done">
+      <span className="pz-ob-done-mark">
+        <Icon name="check" size={28} />
+      </span>
+      <StepHead
+        center
+        title={
+          name
+            ? t('tdw_ob_done_title_name', 'You’re all set, {{name}}', {
+                name,
+                interpolation: { escapeValue: false },
+              })
+            : t('tdw_ob_done_title', 'You’re all set')
+        }
+        lead={t(
+          'tdw_ob_done_lead2',
+          'Today shows what’s next. Write your first post and schedule it when you’re ready.'
+        )}
+      />
+      <ul className="tdw-ob-summary">
+        {rows.map((row) => (
+          <li key={row.label} className={cx(row.done && 'is-done')}>
+            <Icon name={row.done ? 'circle-check' : 'clock'} size={18} />
+            <span>{row.label}</span>
+          </li>
+        ))}
+      </ul>
+      {tutorialVideoUrl ? (
+        <a className="tdw-ob-link" href={tutorialVideoUrl} target="_blank" rel="noreferrer">
+          <Icon name="play" size={14} />
+          {t('tdw_ob_watch_tour', 'Watch a short tour')}
+        </a>
+      ) : null}
+    </div>
   );
 };

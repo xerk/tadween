@@ -50,7 +50,7 @@ const swrOptions = {
 };
 
 // Same SWR key as OrganizationSelector and the sidebar, so they share a request.
-const useOrganizations = () => {
+export const useOrganizations = () => {
   const fetch = useFetch();
   const load = useCallback(async () => {
     return await (await fetch('/user/organizations')).json();

@@ -23,7 +23,6 @@ import { DNDProvider } from '@gitroom/frontend/components/launches/helpers/dnd.p
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useIntegrationList } from '@gitroom/frontend/components/launches/helpers/use.integration.list';
-import { Onboarding } from '@gitroom/frontend/components/onboarding/onboarding';
 import { ChannelsAfterPayment } from '@gitroom/frontend/components/layout/check.payment';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { Input } from '@gitroom/react/form/input';
@@ -620,7 +619,8 @@ export const LaunchesComponent = () => {
   // @ts-ignore
   return (
     <DNDProvider>
-      <Onboarding />
+      {/* Tadween: onboarding (?onboarding=true) is full screen, rendered by
+          LayoutComponent in place of the app (tadween/onboarding) */}
       <ChannelsAfterPayment integrations={integrations} />
       <CalendarWeekProvider integrations={sortedIntegrations}>
         {/* Tadween: the channel column became chips + an "All channels"

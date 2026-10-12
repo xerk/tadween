@@ -58,7 +58,7 @@ interface ProfileValues {
   picture: { id: string; path: string } | null;
 }
 
-const usePersonal = () => {
+export const usePersonal = () => {
   const fetch = useFetch();
   const load = useCallback(async (path: string) => {
     return (await (await fetch(path)).json()) as Personal;

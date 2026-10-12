@@ -48,6 +48,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // Postiz's (it used to send to the postiz.com Plausible site whenever Stripe
   // was on).
   const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || '';
+  // Tadween: paint the saved theme on the first frame (the app used to start
+  // dark and switch to light once the shell mounted: a black flash)
+  const mode = cookieStore.get('mode')?.value === 'light' ? 'light' : 'dark';
   const Plausible = plausibleDomain ? PlausibleProvider : Fragment;
   return (
     <html>
@@ -66,7 +69,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <body
         // Extensions (e.g. ColorZilla's cz-shortcut-listen) add attributes before hydration.
         suppressHydrationWarning
-        className={clsx(jakartaSans.className, 'dark text-primary !bg-primary')}
+        className={clsx(jakartaSans.className, mode, 'text-primary !bg-primary')}
       >
         <VariableContextComponent
           storageProvider={

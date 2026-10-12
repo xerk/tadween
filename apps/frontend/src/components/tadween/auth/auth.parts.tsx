@@ -23,6 +23,7 @@ import {
   Field,
   Icon,
   IconName,
+  Skeleton,
 } from '@gitroom/frontend/components/tadween/ui';
 
 /* Title + one-line subtitle at the top of every card */
@@ -33,6 +34,31 @@ export const AuthHeading: FC<{
   <div className="tdw-auth-heading">
     <h1>{title}</h1>
     {subtitle ? <p>{subtitle}</p> : null}
+  </div>
+);
+
+/* The design system's Loading pattern inside the card, for waits whose result
+   is not known yet (a social sign-in coming back, an activation link): the
+   title says what is happening, a calm progress line runs under it, and
+   skeletons hold the place of the fields and button that usually follow, so
+   nothing jumps. Never a spinner in a box. */
+export const AuthLoading: FC<{
+  title: ReactNode;
+  subtitle?: ReactNode;
+  fields?: number;
+}> = ({ title, subtitle, fields = 1 }) => (
+  <div className="tdw-auth-loading" role="status" aria-live="polite">
+    <AuthHeading title={title} subtitle={subtitle} />
+    <span className="tdw-auth-loading-line" aria-hidden="true" />
+    <div className="tdw-auth-loading-skel" aria-hidden="true">
+      {Array.from({ length: fields }).map((_, i) => (
+        <span key={i} className="tdw-auth-loading-field">
+          <Skeleton width={96} height={12} />
+          <Skeleton height={44} radius={10} />
+        </span>
+      ))}
+      <Skeleton height={46} radius={10} />
+    </div>
   </div>
 );
 

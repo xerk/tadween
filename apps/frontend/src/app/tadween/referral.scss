@@ -6,6 +6,8 @@
 
 .tdw-ref-shell {
   display: flex;
+  width: 100%;
+  min-width: 0;
   justify-content: center;
   padding: 24px 20px calc(var(--tdw-dock-space, 0px) + 32px);
 }
@@ -19,6 +21,13 @@
 
   &.is-embedded { max-width: none; }
 
+  @media (max-width: 720px) { gap: var(--space-4); }
+}
+
+// The pieces also render on /partners (partners.page.tsx), so they are scoped
+// to the kit, not to this page
+.tdw-ui {
+
   // ── ReferralLinkCard ──────────────────────────────────────────────────────
   .tdw-ref-card {
     position: relative;
@@ -31,8 +40,11 @@
       var(--card);
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 22%, var(--border)), var(--shadow-sm);
     overflow: hidden;
+    min-width: 0;
+    > * { min-width: 0; }
   }
-  [dir='rtl'] & .tdw-ref-card {
+  [dir='rtl'] & .tdw-ref-card,
+  &[dir='rtl'] .tdw-ref-card {
     background:
       radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--primary) 16%, transparent) 0%, transparent 60%),
       var(--card);
@@ -54,7 +66,10 @@
     flex: 1; min-width: 0; height: 40px; padding: 0 12px;
     border: 1px solid var(--border); border-radius: var(--radius-md);
     background: var(--background); color: var(--foreground);
-    font: 500 14px/1 var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
     text-overflow: ellipsis;
     &:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent); }
   }
@@ -198,7 +213,6 @@
 
   // ── Phones ────────────────────────────────────────────────────────────────
   @media (max-width: 720px) {
-    gap: var(--space-4);
     .tdw-ref-card { padding: var(--space-5); }
     .tdw-ref-card-title { font-size: 18px; line-height: 24px; }
     .tdw-ref-link-row { flex-direction: column; }
@@ -209,7 +223,9 @@
     .tdw-ref-share-btn { justify-content: center; }
     .tdw-ladder-steps { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
     .tdw-ladder-step { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; }
-    .tdw-ref-stats { grid-template-columns: minmax(0, 1fr); }
+    .tdw-ref-stats { gap: var(--space-2); }
+    .tdw-ref-stats .pz-tile { padding: var(--space-3); }
+    .tdw-ref-stats .metric { font-size: 22px; }
     .tdw-ref-steps { grid-template-columns: minmax(0, 1fr); }
     .tdw-ref-sec { padding: var(--space-4); }
   }

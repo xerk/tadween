@@ -383,6 +383,9 @@ export const PARTNERS = {
   // commission and ladder holds
   holdDays: 30,
   yearlyQualifyDays: 30,
+  // the "second payment" must come from a later billing period: an upgrade's
+  // proration invoice on day one doesn't make a friend count
+  secondPaymentMinDays: 20,
   // "Who invited you?" stays open this long after sign-up
   claimWindowDays: 7,
   maxCreditRewardsPerMonth: 10,

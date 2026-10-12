@@ -67,6 +67,9 @@ export interface PaidInvoiceEvent {
   paidAt: Date;
   // cards that paid it (to refuse a referral paid with the referrer's card)
   paymentFingerprints: string[];
+  // already refunded or disputed when this event is handled (the provider's
+  // refund / dispute event can arrive before the paid-invoice one)
+  reversed?: { ratio: number; reason: 'refund' | 'dispute' } | null;
 }
 
 // A refund or a dispute on a payment. `ratio` is the part taken back (0-1).
@@ -378,13 +381,28 @@ export class PartnersService {
         await this.addCommission(partner, referral.id, firstPaidAt, event);
       }
 
-      if (partner.kind === 'REFERRER' && referral.status !== 'QUALIFIED') {
+      if (
+        partner.kind === 'REFERRER' &&
+        referral.status !== 'QUALIFIED' &&
+        firstPaidAt &&
+        event.paidAt.getTime() - firstPaidAt.getTime() >=
+          PARTNERS.secondPaymentMinDays * DAY
+      ) {
         if ((await this._repository.countPaidInvoices(referral.id)) >= 2) {
           await this._repository.moveReferral(referral.id, ['PAID'], {
             status: 'QUALIFIED',
             qualifiedAt: event.paidAt,
           });
         }
+      }
+
+      if (event.reversed && event.paymentId && event.reversed.ratio > 0) {
+        await this.paymentReversed({
+          paymentId: event.paymentId,
+          ratio: event.reversed.ratio,
+          at: event.paidAt,
+          reason: event.reversed.reason,
+        });
       }
 
       await this.settle(partner.id, true, event.paidAt);
@@ -407,6 +425,16 @@ export class PartnersService {
     ]);
     if (event.customerId && referrerOrg?.paymentId === event.customerId) {
       return 'same_billing_account';
+    }
+    // someone who is in both workspaces (joined the referrer's team, or
+    // invited the referrer into theirs after signing up)
+    const [referredMembers, referrerMembers] = await Promise.all([
+      this._repository.membersOf(event.organizationId),
+      this._repository.membersOf(partner.organizationId),
+    ]);
+    const referrerIds = new Set(referrerMembers.map((m) => m.user.id));
+    if (referredMembers.some((m) => referrerIds.has(m.user.id))) {
+      return 'shared_member';
     }
     if (event.paymentFingerprints.length) {
       const referrerCards = await this._payments.getPaymentFingerprints(

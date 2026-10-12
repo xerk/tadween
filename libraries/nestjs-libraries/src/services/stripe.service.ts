@@ -1387,6 +1387,7 @@ export class StripeService extends PaymentProviderAbstract {
           (invoice.status_transitions?.paid_at || invoice.created) * 1000
         ),
         paymentFingerprints: payment.fingerprint ? [payment.fingerprint] : [],
+        reversed: payment.reversed,
       });
     } catch (err) {
       console.error('stripe_partner_invoice_failed', {
@@ -1409,15 +1410,22 @@ export class StripeService extends PaymentProviderAbstract {
     const paymentIntentId =
       typeof intent === 'string' ? intent : intent?.id || null;
     if (!paymentIntentId) {
-      return { paymentIntentId: null, fingerprint: null };
+      return { paymentIntentId: null, fingerprint: null, reversed: null };
     }
     const retrieved = await stripe.paymentIntents.retrieve(paymentIntentId, {
       expand: ['latest_charge'],
     });
     const charge = retrieved.latest_charge as Stripe.Charge | null;
+    // a dispute or refund that came in before this webhook
+    const reversed = charge?.disputed
+      ? { ratio: 1, reason: 'dispute' as const }
+      : charge?.amount_refunded && charge.amount
+      ? { ratio: charge.amount_refunded / charge.amount, reason: 'refund' as const }
+      : null;
     return {
       paymentIntentId,
       fingerprint: charge?.payment_method_details?.card?.fingerprint || null,
+      reversed,
     };
   }
 

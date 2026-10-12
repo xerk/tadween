@@ -1,11 +1,11 @@
 'use client';
 
-// The plan picker shared by the paywall (FREE workspaces) and Billing: a
-// centred headline, the Monthly/Yearly control with the yearly saving, one
-// card per plan with the same rows in the same order (so plans compare line
-// by line), what every plan includes, and what is true about paying. Plans and
-// their generated feature lists come from GET /instance/settings.
-import React, { FC, ReactNode, useMemo } from 'react';
+// The plan pieces shared by the paywall (FREE workspaces), Billing and the
+// admin plan preview: feature texts, the founder line, the plan card, the
+// selectable plan cards of the one-page billing screen and what is true about
+// paying. Plans and their generated feature lists come from GET
+// /instance/settings.
+import React, { FC, ReactNode, useId } from 'react';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import {
   PublicPlan,
@@ -110,7 +110,9 @@ export const FounderNote: FC<{
   plan: PublicPlan;
   period: BillingPeriod;
   compact?: boolean;
-}> = ({ plan, period, compact }) => {
+  // Inside a <label> (the plan cards) only phrasing content is allowed
+  inline?: boolean;
+}> = ({ plan, period, compact, inline }) => {
   const t = useT();
   const { founder } = useTadweenPricing();
   if (!plan.founderPrice || !founder?.open) {
@@ -135,8 +137,9 @@ export const FounderNote: FC<{
       : t('tdw_founder_spots_left', '{{n}} spots left', {
           n: founder.spotsLeft.toLocaleString('en-US'),
         });
+  const Tag = inline ? 'span' : 'div';
   return (
-    <div className={cx('tdw-founder', compact && 'is-compact')}>
+    <Tag className={cx('tdw-founder', compact && 'is-compact')}>
       <span className="tdw-founder-tag">
         <Icon name="star" size={14} />
         {compact
@@ -149,7 +152,7 @@ export const FounderNote: FC<{
       <span className="tdw-founder-regular">
         {regular} · {spots}
       </span>
-    </div>
+    </Tag>
   );
 };
 
@@ -239,33 +242,6 @@ export const PlanCard: FC<{
   );
 };
 
-// What every plan has (rows without a number), as one calm strip
-const IncludedStrip: FC<{ items: FeatureItem[] }> = ({ items }) => {
-  const t = useT();
-  const text = usePlanFeatureText();
-  if (!items.length) {
-    return null;
-  }
-  return (
-    <section
-      className="tdw-included"
-      aria-label={t('tdw_in_every_plan', 'In every plan')}
-    >
-      <h3 className="tdw-included-title">
-        {t('tdw_in_every_plan', 'In every plan')}
-      </h3>
-      <ul>
-        {items.map((item) => (
-          <li key={item.key}>
-            <Icon name="check" size={16} />
-            {text(item)}
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-};
-
 // Only claims that hold for this integration (Stripe Checkout, the Stripe
 // customer portal, Adaptive Pricing)
 export const TrustRow: FC = () => {
@@ -291,71 +267,144 @@ export const TrustRow: FC = () => {
   );
 };
 
-export const PlansView: FC<{
+// The rows a plan card shows to compare plans at a glance; the chosen plan's
+// full list sits in the summary under the cards
+const PICK_ROWS = ['channels', 'team', 'ai_images'];
+
+// One plan as a radio card (a native radio inside its label, like the kit's
+// RadioGroup): choosing it updates the summary and the checkout (or the change
+// panel) under the cards, on the same page
+const PlanOption: FC<{
+  plan: PublicPlan;
+  period: BillingPeriod;
+  name: string;
+  checked: boolean;
+  current: boolean;
+  disabled?: boolean;
+  onSelect: () => void;
+}> = ({ plan, period, name, checked, current, disabled, onSelect }) => {
+  const t = useT();
+  const text = usePlanFeatureText();
+  const priceId = useId();
+  const yearlySaving = plan.monthlyPriceUsd * 12 - plan.yearlyPriceUsd;
+  return (
+    <label
+      className={cx(
+        'tdw-plan-pick',
+        plan.mostPopular && 'is-featured',
+        current && 'is-current',
+        checked && 'is-on',
+        disabled && 'is-disabled'
+      )}
+    >
+      <input
+        type="radio"
+        className="pz-sr"
+        name={name}
+        checked={checked}
+        disabled={disabled}
+        onChange={onSelect}
+        aria-label={plan.name}
+        aria-describedby={priceId}
+      />
+      <span className="tdw-plan-pick-top">
+        <span className="tdw-plan-pick-radio" aria-hidden="true" />
+        <span className="tdw-plan-pick-name">{plan.name}</span>
+        {current ? (
+          <span className="tdw-plan-flag is-current">
+            {t('tdw_your_plan', 'Your plan')}
+          </span>
+        ) : plan.mostPopular ? (
+          <span className="tdw-plan-flag">
+            {t('tdw_most_popular', 'Most popular')}
+          </span>
+        ) : null}
+      </span>
+      {plan.description ? (
+        <span className="tdw-plan-pick-for">{plan.description}</span>
+      ) : null}
+      <span id={priceId} className="tdw-plan-pick-price">
+        <span key={period} className="tdw-plan-pick-amount">
+          {formatUsd(planPrice(plan, period))}
+        </span>
+        <span className="tdw-plan-pick-per">{t('tdw_per_month', '/ month')}</span>
+      </span>
+      <span className="tdw-plan-pick-bill">
+        {period === 'YEARLY'
+          ? yearlySaving > 0
+            ? t(
+                'tdw_billed_yearly_save',
+                'Billed {{amount}} yearly · save {{save}}',
+                {
+                  amount: formatUsd(plan.yearlyPriceUsd),
+                  save: formatUsd(yearlySaving),
+                }
+              )
+            : t('tdw_billed_yearly', 'Billed {{amount}} yearly', {
+                amount: formatUsd(plan.yearlyPriceUsd),
+              })
+          : t('tdw_billed_monthly', 'Billed monthly')}
+      </span>
+      <FounderNote plan={plan} period={period} compact inline />
+      <span className="tdw-plan-pick-rows">
+        {PICK_ROWS.map((key) => {
+          const item = plan.featureItems.find((i) => i.key === key);
+          return item ? (
+            <span key={key}>
+              <Icon name="check" size={14} />
+              {text(item)}
+            </span>
+          ) : null;
+        })}
+      </span>
+    </label>
+  );
+};
+
+// Billing's plan choice: the Monthly/Yearly control and one card per plan,
+// side by side. Locked (payment being confirmed), neither can change.
+export const PlanPicker: FC<{
   title: ReactNode;
-  lead?: ReactNode;
+  value: string;
+  onChange: (tier: string) => void;
   period: BillingPeriod;
   onPeriod: (p: BillingPeriod) => void;
+  // The live subscription's plan, marked "Your plan"
   currentTier?: string;
-  cta: (plan: PublicPlan) => ReactNode;
-  note?: (plan: PublicPlan) => ReactNode;
-  // A secondary action right under the cards (the paywall's "Skip for now")
-  belowCards?: ReactNode;
-}> = ({
-  title,
-  lead,
-  period,
-  onPeriod,
-  currentTier,
-  cta,
-  note,
-  belowCards,
-}) => {
+  disabled?: boolean;
+}> = ({ title, value, onChange, period, onPeriod, currentTier, disabled }) => {
+  const t = useT();
+  const name = useId();
   const { plans } = useTadweenPricing();
   const discount = plans[0]?.yearlyDiscountPercent ?? 0;
-  // One row per numbered feature any plan has, in the generated order
-  const rows = useMemo(
-    () =>
-      plans.reduce<string[]>((all, p) => {
-        p.featureItems
-          .filter(hasNumber)
-          .forEach((i) => !all.includes(i.key) && all.push(i.key));
-        return all;
-      }, []),
-    [plans]
-  );
-  const shared = useMemo(
-    () =>
-      (plans[0]?.featureItems || []).filter(
-        (i) =>
-          !hasNumber(i) &&
-          plans.every((p) => p.featureItems.some((x) => x.key === i.key))
-      ),
-    [plans]
-  );
   return (
-    <div className="tdw-plans">
-      <header className="tdw-plans-head">
-        <h1 className="tdw-plans-title">{title}</h1>
-        {lead ? <p className="tdw-plans-lead">{lead}</p> : null}
-        <PeriodToggle value={period} onChange={onPeriod} save={discount} />
+    <section className="tdw-picker">
+      <header className="tdw-picker-head">
+        <h2 className="tdw-picker-title">{title}</h2>
+        <div className="tdw-picker-period" inert={disabled || undefined}>
+          <PeriodToggle value={period} onChange={onPeriod} save={discount} />
+        </div>
       </header>
-      <div className="tdw-plans-grid" data-count={plans.length}>
+      <div
+        className="tdw-picker-grid"
+        role="radiogroup"
+        aria-label={t('tdw_plan', 'Plan')}
+        aria-disabled={disabled || undefined}
+        data-count={plans.length}
+      >
         {plans.map((plan) => (
-          <PlanCard
+          <PlanOption
             key={plan.key}
             plan={plan}
             period={period}
-            rows={rows}
-            current={currentTier === plan.tier}
-            cta={cta(plan)}
-            note={note?.(plan)}
+            name={name}
+            checked={plan.tier === value}
+            current={plan.tier === currentTier}
+            disabled={disabled}
+            onSelect={() => onChange(plan.tier)}
           />
         ))}
       </div>
-      {belowCards}
-      <IncludedStrip items={shared} />
-      <TrustRow />
-    </div>
+    </section>
   );
 };

@@ -67,7 +67,7 @@ export const useSidebarCollapsed = () => {
 };
 
 // Same SWR key as OrganizationSelector, so both share one request.
-const useOrganizations = () => {
+export const useOrganizations = () => {
   const fetch = useFetch();
   const load = useCallback(async () => {
     return await (await fetch('/user/organizations')).json();

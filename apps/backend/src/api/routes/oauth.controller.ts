@@ -65,7 +65,11 @@ export class OAuthController {
         picture: app.picture,
         clientId: app.clientId,
         redirectUrl: app.redirectUrl,
+        // dynamic clients go back to the validated redirect_uri, others to redirectUrl
+        dynamic: app.dynamic,
       },
+      // what the token will be granted, for the consent screen
+      scope: this._oauthService.grantedScope(app),
       state: query.state,
       selfHosted,
       selfHostedEmail:

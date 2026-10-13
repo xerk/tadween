@@ -90,7 +90,9 @@ export const getMcpConfig = (
   mcpBase: string,
   apiKey: string,
   // the public API base the CLI talks to (backend URL); defaults to mcpBase
-  apiUrl = mcpBase
+  apiUrl = mcpBase,
+  // the name the client lists the server under
+  server = 'postiz'
 ): { config: string; hint: string } => {
   if (isChatOnlyMcpClient(client)) {
     return {
@@ -116,62 +118,62 @@ export const getMcpConfig = (
     switch (client) {
       case 'Claude Code':
         return {
-          config: `claude mcp add postiz --transport http "${oauthUrl}"`,
+          config: `claude mcp add ${server} --transport http "${oauthUrl}"`,
           hint: 'Run this command in your terminal.',
         };
       case 'Cursor':
         return {
-          config: json({ mcpServers: { postiz: { url: oauthUrl } } }),
+          config: json({ mcpServers: { [server]: { url: oauthUrl } } }),
           hint: 'Add to .cursor/mcp.json in your project root.',
         };
       case 'VS Code / Copilot':
         return {
           config: json({
-            servers: { postiz: { type: 'http', url: oauthUrl } },
+            servers: { [server]: { type: 'http', url: oauthUrl } },
           }),
           hint: 'Add to .vscode/mcp.json in your project root.',
         };
       case 'Windsurf':
         return {
           config: json({
-            mcpServers: { postiz: { serverUrl: oauthUrl } },
+            mcpServers: { [server]: { serverUrl: oauthUrl } },
           }),
           hint: 'Add to ~/.codeium/windsurf/mcp_config.json',
         };
       case 'Amp':
         return {
-          config: `amp mcp add postiz ${oauthUrl}`,
+          config: `amp mcp add ${server} ${oauthUrl}`,
           hint: 'Run this command in your terminal.',
         };
       case 'Codex':
         return {
-          config: `# ~/.codex/config.toml\n\n[mcp_servers.postiz]\nurl = "${oauthUrl}"`,
-          hint: 'Add to ~/.codex/config.toml, then run: codex mcp login postiz',
+          config: `# ~/.codex/config.toml\n\n[mcp_servers.${server}]\nurl = "${oauthUrl}"`,
+          hint: `Add to ~/.codex/config.toml, then run: codex mcp login ${server}`,
         };
       case 'Gemini CLI':
         return {
-          config: json({ mcpServers: { postiz: { url: oauthUrl } } }),
+          config: json({ mcpServers: { [server]: { url: oauthUrl } } }),
           hint: 'Add to ~/.gemini/settings.json',
         };
       case 'Warp':
         return {
-          config: json({ postiz: { url: oauthUrl } }),
+          config: json({ [server]: { url: oauthUrl } }),
           hint: 'Settings > MCP Servers > + Add, then paste this config.',
         };
       case 'Hermes':
         return {
-          config: `# ~/.hermes/config.yaml\n\nmcp_servers:\n  postiz:\n    url: "${oauthUrl}"\n    auth: oauth`,
+          config: `# ~/.hermes/config.yaml\n\nmcp_servers:\n  ${server}:\n    url: "${oauthUrl}"\n    auth: oauth`,
           hint: 'Add to ~/.hermes/config.yaml, then run /reload-mcp in the chat.',
         };
       case 'OpenClaw':
         return {
-          config: `openclaw mcp add postiz --url ${oauthUrl} --transport streamable-http --auth oauth && openclaw mcp login postiz`,
+          config: `openclaw mcp add ${server} --url ${oauthUrl} --transport streamable-http --auth oauth && openclaw mcp login ${server}`,
           hint: 'Run this command in your terminal.',
         };
       case 'NanoClaw':
         return {
-          config: `ncl groups config add-mcp-server --id <group-id> --name postiz --url ${oauthUrl}`,
-          hint: 'Run this in your terminal, replace <group-id> with the agent group that should get Postiz.',
+          config: `ncl groups config add-mcp-server --id <group-id> --name ${server} --url ${oauthUrl}`,
+          hint: 'Run this in your terminal, replace <group-id> with the agent group that should get the server.',
         };
     }
   }
@@ -179,14 +181,14 @@ export const getMcpConfig = (
   switch (client) {
     case 'Claude Code':
       return {
-        config: `claude mcp add --transport http postiz ${urlBase} --header "Authorization: ${bearer}"`,
+        config: `claude mcp add --transport http ${server} ${urlBase} --header "Authorization: ${bearer}"`,
         hint: 'Run this command in your terminal.',
       };
     case 'Cursor':
       return {
         config: json({
           mcpServers: {
-            postiz: { url: urlBase, headers: { Authorization: bearer } },
+            [server]: { url: urlBase, headers: { Authorization: bearer } },
           },
         }),
         hint: 'Add to .cursor/mcp.json in your project root.',
@@ -195,7 +197,7 @@ export const getMcpConfig = (
       return {
         config: json({
           servers: {
-            postiz: {
+            [server]: {
               type: 'http',
               url: urlBase,
               headers: { Authorization: bearer },
@@ -208,7 +210,7 @@ export const getMcpConfig = (
       return {
         config: json({
           mcpServers: {
-            postiz: {
+            [server]: {
               serverUrl: urlBase,
               headers: { Authorization: bearer },
             },
@@ -220,21 +222,21 @@ export const getMcpConfig = (
       return {
         config: json({
           'amp.mcpServers': {
-            postiz: { url: urlBase, headers: { Authorization: bearer } },
+            [server]: { url: urlBase, headers: { Authorization: bearer } },
           },
         }),
         hint: 'Add to your Amp settings.json',
       };
     case 'Codex':
       return {
-        config: `# ~/.codex/config.toml\n\n[mcp_servers.postiz]\nurl = "${urlBase}"\nhttp_headers = { "Authorization" = "${bearer}" }`,
+        config: `# ~/.codex/config.toml\n\n[mcp_servers.${server}]\nurl = "${urlBase}"\nhttp_headers = { "Authorization" = "${bearer}" }`,
         hint: 'Add to ~/.codex/config.toml',
       };
     case 'Gemini CLI':
       return {
         config: json({
           mcpServers: {
-            postiz: { url: urlBase, headers: { Authorization: bearer } },
+            [server]: { url: urlBase, headers: { Authorization: bearer } },
           },
         }),
         hint: 'Add to ~/.gemini/settings.json',
@@ -242,13 +244,13 @@ export const getMcpConfig = (
     case 'Warp':
       return {
         config: json({
-          postiz: { url: urlBase, headers: { Authorization: bearer } },
+          [server]: { url: urlBase, headers: { Authorization: bearer } },
         }),
         hint: 'Settings > MCP Servers > + Add, then paste this config.',
       };
     case 'Hermes':
       return {
-        config: `# ~/.hermes/config.yaml\n\nmcp_servers:\n  postiz:\n    url: "${urlBase}"\n    headers:\n      Authorization: "${bearer}"`,
+        config: `# ~/.hermes/config.yaml\n\nmcp_servers:\n  ${server}:\n    url: "${urlBase}"\n    headers:\n      Authorization: "${bearer}"`,
         hint: 'Add to ~/.hermes/config.yaml, then run /reload-mcp in the chat.',
       };
     case 'OpenClaw':
@@ -256,7 +258,7 @@ export const getMcpConfig = (
         config: json({
           mcp: {
             servers: {
-              postiz: {
+              [server]: {
                 url: urlBase,
                 transport: 'streamable-http',
                 headers: { Authorization: bearer },
@@ -269,8 +271,8 @@ export const getMcpConfig = (
     case 'NanoClaw':
       // No headers flag, the key travels inside the URL like remote clients
       return {
-        config: `ncl groups config add-mcp-server --id <group-id> --name postiz --url ${mcpBase}/mcp/${apiKey}`,
-        hint: 'Run this in your terminal, replace <group-id> with the agent group that should get Postiz.',
+        config: `ncl groups config add-mcp-server --id <group-id> --name ${server} --url ${mcpBase}/mcp/${apiKey}`,
+        hint: 'Run this in your terminal, replace <group-id> with the agent group that should get the server.',
       };
   }
 };
@@ -337,7 +339,8 @@ const McpSection = ({
     auth,
     mcpBase,
     user.publicApi,
-    backendUrl
+    backendUrl,
+    brand.slug
   );
 
   const baseUrl = auth === 'oauth' ? getMcpOauthUrl(mcpBase) : `${mcpBase}/mcp`;

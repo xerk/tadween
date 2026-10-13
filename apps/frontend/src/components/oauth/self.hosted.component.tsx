@@ -2,7 +2,8 @@
 
 import { FC, FormEvent, useCallback, useState } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
-import { Input } from '@gitroom/react/form/input';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { Button, Input } from '@gitroom/frontend/components/tadween/ui';
 
 export const OAuthSelfHosted: FC<{
   appName: string;
@@ -18,6 +19,7 @@ export const OAuthSelfHosted: FC<{
   };
   onBack: () => void;
 }> = ({ appName, askEmail, params, onBack }) => {
+  const t = useT();
   const fetch = useFetch();
   const [instanceUrl, setInstanceUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -59,12 +61,14 @@ export const OAuthSelfHosted: FC<{
 
         setError(
           response.status === 429
-            ? 'Too many attempts, try again later'
+            ? t('tdw_oauth_sh_too_many', 'Too many attempts. Try again later.')
             : (Array.isArray(data.message) ? data.message[0] : data.message) ||
-                'Could not connect to your instance'
+                t('tdw_oauth_sh_failed', 'Could not connect to your instance.')
         );
       } catch {
-        setError('Could not connect to your instance');
+        setError(
+          t('tdw_oauth_sh_failed', 'Could not connect to your instance.')
+        );
       }
       setSubmitting(false);
     },
@@ -72,25 +76,23 @@ export const OAuthSelfHosted: FC<{
   );
 
   return (
-    <form
-      onSubmit={connect}
-      className="border-t border-[#2A2929] pt-[16px] flex flex-col gap-[16px]"
-    >
-      <div className="flex flex-col gap-[4px]">
-        <div className="text-[16px] font-semibold">Use self-hosted</div>
-        <div className="text-[14px] text-gray-400">
-          {appName} will work with your own Postiz instance. Postiz Cloud
-          relays its requests, and your API key is stored encrypted.
-        </div>
+    <form onSubmit={connect} className="tdw-consent-form">
+      <div className="tdw-consent-scopes">
+        <h2>{t('tdw_oauth_use_self_hosted', 'Use a self-hosted instance')}</h2>
+        <p className="tdw-consent-text">
+          {t(
+            'tdw_oauth_sh_intro',
+            '{{app}} will work with your own instance. This server relays its requests, and your API key is stored encrypted.',
+            { app: appName, interpolation: { escapeValue: false } }
+          )}
+        </p>
       </div>
 
       {/* plain text fields: a password field makes browsers autofill the
-          saved Postiz login (email + password) into this form */}
+          saved login (email + password) into this form */}
       <Input
         name="instance_url"
-        label="Instance URL"
-        disableForm={true}
-        removeError={true}
+        label={t('tdw_oauth_sh_url', 'Instance URL')}
         value={instanceUrl}
         onChange={(e) => setInstanceUrl(e.target.value)}
         placeholder="https://app.example.com"
@@ -99,68 +101,73 @@ export const OAuthSelfHosted: FC<{
         spellCheck={false}
       />
 
-      <div className="flex flex-col gap-[6px]">
-        <Input
-          name="api_key"
-          label="API key"
-          disableForm={true}
-          removeError={true}
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          placeholder="Settings > Developers on your instance"
-          autoComplete="off"
-          spellCheck={false}
-        />
-        <div className="text-[12px] text-gray-400">
-          You can also paste the MCP URL from Settings &gt; Developers in the
-          Instance URL, it includes the key.
-        </div>
-      </div>
+      <Input
+        name="api_key"
+        label={t('tdw_oauth_sh_key', 'API key')}
+        value={apiKey}
+        onChange={(e) => setApiKey(e.target.value)}
+        placeholder={t(
+          'tdw_oauth_sh_key_placeholder',
+          'Settings > Developers on your instance'
+        )}
+        hint={t(
+          'tdw_oauth_sh_key_hint',
+          'You can also paste the MCP URL from Settings > Developers in the instance URL, it includes the key.'
+        )}
+        autoComplete="off"
+        spellCheck={false}
+      />
 
       {askEmail && (
-        <div className="flex flex-col gap-[6px]">
-          <Input
-            name="email"
-            label="Email"
-            type="email"
-            disableForm={true}
-            removeError={true}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            autoComplete="email"
-          />
-          <div className="text-[12px] text-gray-400">
-            {appName} uses it to identify your account.
-          </div>
-        </div>
+        <Input
+          name="email"
+          label={t('tdw_oauth_sh_email', 'Email')}
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          hint={t(
+            'tdw_oauth_sh_email_hint',
+            '{{app}} uses it to identify your account.',
+            { app: appName, interpolation: { escapeValue: false } }
+          )}
+          autoComplete="email"
+        />
       )}
 
-      {!!error && <div className="text-[14px] text-red-400">{error}</div>}
+      {!!error && (
+        <p className="tdw-consent-error" role="alert">
+          {error}
+        </p>
+      )}
 
-      <div className="flex gap-[12px]">
-        <button
-          type="submit"
-          disabled={
-            submitting || !instanceUrl.trim() || (askEmail && !email.trim())
-          }
-          className="flex-1 bg-[#612BD3] hover:bg-[#7B3FF2] disabled:opacity-50 text-white rounded-[8px] py-[10px] px-[16px] text-[14px] font-semibold transition-colors"
-        >
-          {submitting ? 'Connecting...' : 'Connect'}
-        </button>
-        <button
-          type="button"
+      <div className="tdw-consent-actions is-pair">
+        <Button
+          variant="secondary"
+          size="lg"
           onClick={onBack}
           disabled={submitting}
-          className="flex-1 bg-[#2A2929] hover:bg-[#3A3939] disabled:opacity-50 text-white rounded-[8px] py-[10px] px-[16px] text-[14px] font-semibold transition-colors"
         >
-          Back
-        </button>
+          {t('tdw_oauth_sh_back', 'Back')}
+        </Button>
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          loading={submitting}
+          loadingLabel={t('tdw_oauth_sh_connecting', 'Connecting…')}
+          disabled={!instanceUrl.trim() || (askEmail && !email.trim())}
+        >
+          {t('tdw_oauth_sh_connect', 'Connect')}
+        </Button>
       </div>
 
-      <div className="text-[12px] text-gray-400 text-center">
-        Your instance has to be reachable from the internet over https.
-      </div>
+      <p className="tdw-consent-hint">
+        {t(
+          'tdw_oauth_sh_https',
+          'Your instance has to be reachable from the internet over https.'
+        )}
+      </p>
     </form>
   );
 };

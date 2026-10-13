@@ -256,7 +256,8 @@ export class OAuthService {
     );
   }
 
-  private grantedScope(app: EmailClaimsApp) {
+  // Also shown on the consent screen, so it lists what the token will really get
+  grantedScope(app: EmailClaimsApp) {
     return [
       ...(this.allowsEmailClaims(app) ? ['openid', 'email'] : []),
       'mcp:read',

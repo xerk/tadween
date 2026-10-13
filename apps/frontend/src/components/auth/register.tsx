@@ -71,6 +71,23 @@ export function Register() {
     <RegisterAfter token={code} provider={provider?.toUpperCase() || 'LOCAL'} />
   );
 }
+// Tadween partners program: a referral code from ?ref= on this page or the
+// `tdw_ref` cookie the website (or this page) set; the newest one wins, and
+// the cookie survives the round trip through a social sign-in
+const REF_PATTERN = /^[A-Za-z0-9_-]{3,32}$/;
+const useReferralCode = () => {
+  const query = useSearchParams();
+  const [saved, setSaved] = useCookie('tdw_ref', '');
+  const fromUrl = query?.get('ref') || '';
+  useEffect(() => {
+    if (REF_PATTERN.test(fromUrl)) {
+      setSaved(fromUrl.toUpperCase(), { days: 60, SameSite: 'Lax' });
+    }
+  }, [fromUrl]);
+  const code = (REF_PATTERN.test(fromUrl) ? fromUrl : saved || '').toUpperCase();
+  return REF_PATTERN.test(code) ? code : undefined;
+};
+
 function getHelpfulReasonForRegistrationFailure(httpCode: number) {
   switch (httpCode) {
     case 400:
@@ -93,6 +110,7 @@ export function RegisterAfter({
   const fireEvents = useFireEvents();
   const track = useTrack();
   const [datafast_visitor_id] = useCookie('datafast_visitor_id');
+  const ref = useReferralCode();
   const isAfterProvider = useMemo(() => {
     return !!token && !!provider;
   }, [token, provider]);
@@ -114,6 +132,7 @@ export function RegisterAfter({
       body: JSON.stringify({
         ...data,
         datafast_visitor_id,
+        ...(ref ? { ref } : {}),
       }),
     })
       .then(async (response) => {

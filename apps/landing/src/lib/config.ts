@@ -2,6 +2,7 @@
 import type { LegalValueKey, RefundMode } from '@/content/types';
 
 const trim = (u: string) => u.replace(/\/+$/, '');
+const env = (v: string | undefined) => (v || '').trim();
 
 /** The Tadween app (sign-up and sign-in live there). */
 export const APP_URL = trim(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:4200');
@@ -23,6 +24,21 @@ export const SHOW_PROOF = process.env.NEXT_PUBLIC_SHOW_PROOF_PLACEHOLDERS === '1
 export const SIGN_UP_URL = `${APP_URL}/auth`;
 export const SIGN_IN_URL = `${APP_URL}/auth/login`;
 
+// ── Invite & earn (the partners program) ───────────────────────────────────────────────
+/** Show the Invite & earn section, the /referral page, its footer and pricing links and its
+    sitemap entry. Off by default; set NEXT_PUBLIC_REFERRAL_PROGRAM=1 when the app's program
+    is live. The ?ref= handoff below is always on. */
+export const REFERRAL_PROGRAM = process.env.NEXT_PUBLIC_REFERRAL_PROGRAM === '1';
+/** Where the app shows the visitor's own link and their progress. */
+export const INVITE_URL = `${APP_URL}/invite`;
+/** The domain of the tdw_ref cookie that hands a ?ref= code to the app at sign-up, such as
+    .tadween.app so the app's subdomain can read it. Unset: a cookie for this host only. */
+export const REFERRAL_COOKIE_DOMAIN = env(process.env.NEXT_PUBLIC_REFERRAL_COOKIE_DOMAIN);
+/** How many days the tdw_ref cookie lasts (NEXT_PUBLIC_REFERRAL_COOKIE_DAYS, default 60). */
+export const REFERRAL_COOKIE_DAYS = Number(env(process.env.NEXT_PUBLIC_REFERRAL_COOKIE_DAYS) || 60);
+// A typo would set a cookie that expires at once; fail the build instead.
+if (!Number.isInteger(REFERRAL_COOKIE_DAYS) || REFERRAL_COOKIE_DAYS < 1) throw new Error(`NEXT_PUBLIC_REFERRAL_COOKIE_DAYS must be a whole number of days, got "${process.env.NEXT_PUBLIC_REFERRAL_COOKIE_DAYS}".`);
+
 /** Tadween is built on Postiz (AGPL-3.0); the footer credit links to its source. */
 /** Tadween's own source (AGPL-3.0 asks that users of the hosted app can get the source). */
 export const SOURCE_URL = 'https://github.com/xerk/tadween';
@@ -31,7 +47,6 @@ export const SOURCE_URL = 'https://github.com/xerk/tadween';
 // The company details the legal pages name. One left unset shows as a marked placeholder
 // ("[Company legal name]") on the page, so nothing is invented; set them all before the site
 // goes live. docs/tadween/legal.md lists them.
-const env = (v: string | undefined) => (v || '').trim();
 export const LEGAL: Record<LegalValueKey, string> = {
   company: env(process.env.NEXT_PUBLIC_LEGAL_COMPANY),
   state: env(process.env.NEXT_PUBLIC_LEGAL_STATE),
@@ -55,7 +70,7 @@ export const REFUND_MODE: RefundMode = LEGAL.refundDays && Number(LEGAL.refundDa
 if (LEGAL.refundDays && !/^\d+$/.test(LEGAL.refundDays)) throw new Error(`NEXT_PUBLIC_REFUND_DAYS must be a whole number of days, got "${LEGAL.refundDays}".`);
 
 /** The "Last updated" date of the legal pages. Change it whenever their text changes. */
-export const LEGAL_UPDATED = '2026-10-11';
+export const LEGAL_UPDATED = '2026-10-13';
 
 /** Third-party policies the legal pages link to. */
 export const POLICY_URLS = {

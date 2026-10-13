@@ -149,8 +149,24 @@ export const legalEn: LegalCopy = {
         ],
       },
       {
+        id: 'referral',
+        title: '11. Referral program',
+        body: [
+          'We may run a referral program (“Invite & earn”) in which you can invite others to the Service and earn rewards such as AI credits, free months or a lower price, as described on our referral page and in the app. If you take part, these terms apply in addition to the rest of these Terms:',
+          {
+            list: [
+              'A reward is earned only after the workspace you referred has paid us, and it is held for 30 days before it is granted.',
+              'You may not refer yourself, your own other accounts or workspaces you control, or create fake or duplicate accounts to earn rewards.',
+              'We may remove or reverse a reward, including one already granted, if the payment that earned it is refunded or charged back, or if we reasonably believe the program has been abused.',
+              'Credits, free periods and any account balance have no cash value and cannot be exchanged for money, except where we agree otherwise in writing with an approved partner.',
+              'We may change or end the program at any time. Rewards you have already earned stay yours.',
+            ],
+          },
+        ],
+      },
+      {
         id: 'availability',
-        title: '11. Availability and support',
+        title: '12. Availability and support',
         body: [
           'We work to keep the Service available and to publish posts at the time you scheduled, but we do not promise that it will be uninterrupted, error-free or that every post will publish exactly on time. Maintenance, platform outages, API changes and events outside our control can cause delays or failures.',
           'For help, contact us at {email}. Please keep your own copies of content that matters to you.',
@@ -158,7 +174,7 @@ export const legalEn: LegalCopy = {
       },
       {
         id: 'disclaimers',
-        title: '12. Disclaimers',
+        title: '13. Disclaimers',
         body: [
           'To the fullest extent permitted by law, the Service is provided “as is” and “as available”, without warranties of any kind, whether express or implied, including implied warranties of merchantability, fitness for a particular purpose and non-infringement. We do not guarantee any particular result from using the Service, such as reach, engagement, followers or sales.',
           'Some jurisdictions do not allow certain warranties to be excluded, so some of these exclusions may not apply to you.',
@@ -166,7 +182,7 @@ export const legalEn: LegalCopy = {
       },
       {
         id: 'liability',
-        title: '13. Limitation of liability',
+        title: '14. Limitation of liability',
         body: [
           'To the fullest extent permitted by law, we will not be liable for any indirect, incidental, special, consequential or punitive damages, or for any loss of profits, revenue, data, goodwill or business opportunities, arising out of or related to the Service or these Terms, even if we were told such damages were possible.',
           'To the fullest extent permitted by law, our total liability for all claims arising out of or related to the Service or these Terms is limited to the greater of (a) the amount you paid us for the Service in the 12 months before the event giving rise to the claim and (b) US$100.',
@@ -175,14 +191,14 @@ export const legalEn: LegalCopy = {
       },
       {
         id: 'indemnity',
-        title: '14. Indemnity',
+        title: '15. Indemnity',
         body: [
           'To the extent permitted by law, you agree to defend and indemnify us against claims, damages and costs (including reasonable legal fees) brought by third parties that arise from Your Content, your use of the Service in breach of these Terms, or your breach of a social platform’s terms.',
         ],
       },
       {
         id: 'termination',
-        title: '15. Suspension and termination',
+        title: '16. Suspension and termination',
         body: [
           'You can stop using the Service at any time, and you can delete your account in the app’s settings. Deleting your account also cancels the subscriptions of the workspaces you own, and access ends immediately. Deleting your account does not by itself refund any payment; if you may be eligible for a refund under our {refund}, request it before you delete your account.',
           'We may suspend or end your access if you seriously or repeatedly break these Terms, if you do not pay, or if we must do so to comply with the law or a platform’s requirements. Where reasonable, we will give notice first. If we end the Service for reasons other than your breach, we will refund the unused part of any prepaid period.',
@@ -191,7 +207,7 @@ export const legalEn: LegalCopy = {
       },
       {
         id: 'law',
-        title: '16. Governing law and disputes',
+        title: '17. Governing law and disputes',
         body: [
           'These Terms are governed by the laws of the State of {law}, United States, without regard to its conflict-of-law rules. Any dispute arising out of or related to these Terms or the Service will be brought exclusively in the state or federal courts located in {venue}, and you and we consent to their jurisdiction.',
           'Before starting a formal dispute, please contact us at {email} so we can try to resolve it informally. If you are a consumer, you may also have rights under the mandatory laws of the country where you live, and nothing in this section takes those rights away.',
@@ -199,14 +215,14 @@ export const legalEn: LegalCopy = {
       },
       {
         id: 'changes',
-        title: '17. Changes to these terms',
+        title: '18. Changes to these terms',
         body: [
           'We may update these Terms from time to time. We will change the “Last updated” date above and, for material changes, tell you by email or in the app before they take effect. If you keep using the Service after the changes take effect, you accept the updated Terms. If you do not agree, you can cancel before then.',
         ],
       },
       {
         id: 'contact',
-        title: '18. Contact',
+        title: '19. Contact',
         body: ['{company}', '{address}', 'Email: {email}', 'You can also reach us through our {contact}.'],
       },
     ],
@@ -301,7 +317,7 @@ export const legalEn: LegalCopy = {
         id: 'cookies',
         title: '7. Cookies and local storage',
         body: [
-          'The Tadween app uses cookies that are necessary to keep you signed in and to keep the Service secure. Our website stores your light or dark theme choice in your browser’s local storage. Where we use the analytics or error-monitoring tools listed in section 6, they may set their own cookies or similar identifiers. You can block or delete cookies in your browser settings, but the app will not work without the cookies needed to sign in.',
+          'The Tadween app uses cookies that are necessary to keep you signed in and to keep the Service secure. Our website stores your light or dark theme choice in your browser’s local storage. When you open our website through a referral link, it sets a cookie that holds the referral code for a limited period, so that the app can credit the person who invited you if you sign up. Where we use the analytics or error-monitoring tools listed in section 6, they may set their own cookies or similar identifiers. You can block or delete cookies in your browser settings, but the app will not work without the cookies needed to sign in.',
         ],
       },
       {

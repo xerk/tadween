@@ -387,6 +387,51 @@ export function CheckList({ items }: { items: string[] }) {
   );
 }
 
+/** Invite & earn's ladder: one rung per milestone of paying friends, rising toward the reading
+    end, the last one highlighted; then what the invited friend gets. */
+export function ReferralLadder({ t }: { t: Dict }) {
+  const r = t.referral;
+  const fmt = new Intl.NumberFormat(t.numberLocale);
+  return (
+    <div className="pz-ladder-wrap" data-reveal>
+      <ol className="pz-ladder" aria-label={r.ladderLabel}>
+        {r.rungs.map((rung, i) => (
+          <li key={rung.n} className={cx(i === r.rungs.length - 1 && 'is-top')} style={{ ['--i' as string]: i }}>
+            <span className="pz-ladder-n">
+              <strong>{fmt.format(rung.n)}</strong>
+              <span>{rung.unit}</span>
+            </span>
+            <span className="pz-ladder-reward">{rung.reward}</span>
+          </li>
+        ))}
+      </ol>
+      <p className="pz-ladder-friend">
+        <Icon name="sparkles" size={16} />
+        {r.friend}
+      </p>
+    </div>
+  );
+}
+
+/** The home page's Invite & earn section: the ladder and a link to /referral. */
+export function ReferralSection({ t }: { t: Dict }) {
+  const r = t.referral;
+  return (
+    <section className="pz-sec" id="invite" aria-labelledby="invite-title">
+      <div className="pz-container">
+        <SectionHead id="invite-title" title={r.title} sub={r.sub} eyebrow={<Eyebrow icon="users">{r.name}</Eyebrow>} />
+        <ReferralLadder t={t} />
+        <p className="pz-center-text">
+          <a className="pz-more-link" href={localePath(t.lang, PATHS.referral)}>
+            {r.more}
+            <Icon name="arrow-right" className="pz-flip-rtl" />
+          </a>
+        </p>
+      </div>
+    </section>
+  );
+}
+
 /** Questions and answers in the design system's accordion. */
 export function FaqSection({ id, title, items, wide, className }: { id: string; title: string; items: Faq[]; wide?: boolean; className?: string }) {
   return (
@@ -438,8 +483,8 @@ export function PageHead({ t, title, sub, eyebrow, crumbs, badge, children }: { 
 
 
 /** The closing call to action. With `visual`, the copy sits on the reading start and the
-    visual beside it. */
-export function CTA({ t, title, body, visual }: { t: Dict; title?: string; body?: string; visual?: ReactNode }) {
+    visual beside it. `secondary` replaces the sign-in button. */
+export function CTA({ t, title, body, visual, primary, secondary }: { t: Dict; title?: string; body?: string; visual?: ReactNode; primary?: string; secondary?: { href: string; label: string } }) {
   return (
     <section className="pz-sec is-tight" aria-labelledby="cta-title">
       <div className="pz-container is-wide">
@@ -451,11 +496,11 @@ export function CTA({ t, title, body, visual }: { t: Dict; title?: string; body?
           {visual ? <div className="pz-cta-visual">{visual}</div> : null}
           <div className="pz-cta-row">
             <a className="pz-btn pz-btn-primary pz-btn-lg" href={SIGN_UP_URL}>
-              {t.cta.primary}
+              {primary ?? t.cta.primary}
               <Icon name="arrow-right" className="pz-flip-rtl" />
             </a>
-            <a className="pz-btn pz-btn-ghost pz-btn-lg" href={SIGN_IN_URL}>
-              {t.cta.secondary}
+            <a className="pz-btn pz-btn-ghost pz-btn-lg" href={secondary?.href ?? SIGN_IN_URL}>
+              {secondary?.label ?? t.cta.secondary}
             </a>
           </div>
         </div>

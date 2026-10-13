@@ -318,6 +318,18 @@ export const useMenuItem = () => {
       pageTitle: false,
     },
     {
+      // Tadween partners program (tadween/referral), behind its switch
+      name: t('tdw_invite_earn', 'Invite & earn'),
+      description: t(
+        'tdw_invite_earn_desc',
+        'Invite friends: they get AI credits, you climb the rewards ladder.'
+      ),
+      icon: <Icon name="gift" size={20} />,
+      path: '/invite',
+      hide: !isOn('affiliate'),
+      requireBilling: true,
+    },
+    {
       name: t('admin', 'Admin'),
       description: t('tdw_admin_desc', 'Run the instance: users, plans, channels and features.'),
       icon: <AdminMenuIcon />,

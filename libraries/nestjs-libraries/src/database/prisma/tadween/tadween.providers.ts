@@ -10,6 +10,8 @@ import { AdminConsoleRepository } from '@gitroom/nestjs-libraries/database/prism
 import { AdminConsoleService } from '@gitroom/nestjs-libraries/database/prisma/tadween/admin-console.service';
 import { ProviderCredentialsRepository } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-credentials.repository';
 import { ProviderCredentialsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-credentials.service';
+import { PartnersRepository } from '@gitroom/nestjs-libraries/database/prisma/partners/partners.repository';
+import { PartnersService } from '@gitroom/nestjs-libraries/database/prisma/partners/partners.service';
 
 export const TADWEEN_DATABASE_PROVIDERS = [
   PlatformSettingsRepository,
@@ -22,4 +24,6 @@ export const TADWEEN_DATABASE_PROVIDERS = [
   AdminConsoleService,
   ProviderCredentialsRepository,
   ProviderCredentialsService,
+  PartnersRepository,
+  PartnersService,
 ];

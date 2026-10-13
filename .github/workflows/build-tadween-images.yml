@@ -63,6 +63,8 @@ jobs:
             --build-arg NEXT_PUBLIC_LEGAL_VENUE="Sheridan County, Wyoming" \
             --build-arg NEXT_PUBLIC_REFUND_DAYS="14" \
             --build-arg NEXT_PUBLIC_LEGAL_AI_PROVIDERS="OpenAI" \
+            --build-arg NEXT_PUBLIC_LEGAL_EMAIL_PROVIDER="none configured at this time" \
+            --build-arg NEXT_PUBLIC_LEGAL_HOSTING_PROVIDER="Oracle Cloud Infrastructure (servers and file storage)" \
             --build-arg NEXT_PUBLIC_LEGAL_ANALYTICS="none" \
             --provenance=false --sbom=false \
             -t ghcr.io/${{ github.repository_owner }}/tadween-landing:${{ inputs.tag }} \

@@ -64,7 +64,7 @@ export const ChangePlanDialog: FC<{
       open={!!workspace}
       onClose={onClose}
       title="Change plan"
-      description={`For ${workspace?.name || ''}. This grants the plan without a payment, like Postiz’s admin “add subscription”.`}
+      description={`For ${workspace?.name || ''}. This grants the plan without a payment, like the built-in admin “add subscription”.`}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>

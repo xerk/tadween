@@ -32,7 +32,7 @@ const ENDPOINTS: Endpoint[] = [
   { method: 'GET', path: '/admin/console/providers', purpose: 'Channel types, order, switches and key status (never values)' },
   { method: 'PUT', path: '/admin/console/providers', purpose: 'Save order and switches' },
   { method: 'PUT', path: '/admin/console/providers/:identifier/credentials', purpose: 'Set or remove app keys (write-only, encrypted)' },
-  { method: 'GET', path: '/admin/console/plans', purpose: 'Plans and Postiz’s built-in pricing' },
+  { method: 'GET', path: '/admin/console/plans', purpose: 'Plans and the built-in pricing' },
   { method: 'POST', path: '/admin/console/plans', purpose: 'Add a plan' },
   { method: 'PUT', path: '/admin/console/plans/:id', purpose: 'Edit a plan' },
   { method: 'DELETE', path: '/admin/console/plans/:id', purpose: 'Delete a plan' },
@@ -41,9 +41,9 @@ const ENDPOINTS: Endpoint[] = [
   { method: 'PUT', path: '/admin/console/settings/registration', purpose: 'Registration mode' },
   { method: 'PUT', path: '/admin/console/settings/features', purpose: 'Feature switches' },
   { method: 'PUT', path: '/admin/console/settings/branding', purpose: 'Branding' },
-  { method: 'GET', path: '/admin/errors', purpose: 'Postiz: failed posts (page, limit, platform, email, unknownFirst)' },
-  { method: 'GET', path: '/admin/stats', purpose: 'Postiz: usage stats (from, to, unknownOnly)' },
-  { method: 'POST', path: '/user/impersonate', purpose: 'Postiz: impersonate a workspace member' },
+  { method: 'GET', path: '/admin/errors', purpose: 'Built-in: failed posts (page, limit, platform, email, unknownFirst)' },
+  { method: 'GET', path: '/admin/stats', purpose: 'Built-in: usage stats (from, to, unknownOnly)' },
+  { method: 'POST', path: '/user/impersonate', purpose: 'Built-in: impersonate a workspace member' },
 ];
 
 const columns: DataColumn<Endpoint>[] = [

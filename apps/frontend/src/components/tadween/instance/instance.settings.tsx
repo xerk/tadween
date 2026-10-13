@@ -7,6 +7,7 @@
 import { createContext, useCallback, useContext, useMemo } from 'react';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { useInvitedTrial } from '@gitroom/frontend/components/tadween/referral/partners.api';
 import {
   pricing as staticPricing,
   PricingInterface,
@@ -25,11 +26,12 @@ export type FeatureKey =
   | 'sets'
   | 'thirdParty'
   | 'media'
-  | 'ugc';
+  | 'ugc'
+  | 'affiliate';
 
 // Features that start off (tadween.defaults.ts → featureDefaultsFromEnv). They
 // stay hidden until the settings load, so they never flash on.
-const FEATURES_OFF_BY_DEFAULT: FeatureKey[] = ['ugc'];
+const FEATURES_OFF_BY_DEFAULT: FeatureKey[] = ['ugc', 'affiliate'];
 
 export interface PublicPlan {
   key: string;
@@ -168,8 +170,15 @@ export const useBrandLinks = () => {
   return useMemo(() => {
     const branding = data?.branding;
     const docsUrl = (branding?.docsUrl || '').replace(/\/+$/, '');
+    const name = branding?.instanceName || 'Tadween';
     return {
-      name: branding?.instanceName || 'Tadween',
+      name,
+      // the name an MCP client lists this server under ("tadween")
+      slug:
+        name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'tadween',
       supportEmail: branding?.supportEmail || '',
       websiteUrl: branding?.websiteUrl || '',
       termsUrl: branding?.termsUrl || '',
@@ -186,8 +195,15 @@ export const useBrandLinks = () => {
 // (computed by the backend), the plans to show in order, and display names.
 export const useTadweenPricing = () => {
   const { data } = useInstanceSettings();
+  // a workspace an affiliate brought gets a longer trial (partners program)
+  const { data: invited } = useInvitedTrial(data?.features?.affiliate === true);
   return useMemo(() => {
-    const plans = data?.plans || [];
+    const longer = invited?.trialDays || 0;
+    const plans = (data?.plans || []).map((p) =>
+      longer && p.trialDays > 0 && p.trialDays < longer
+        ? { ...p, trialDays: longer }
+        : p
+    );
     const pricing: PricingInterface = data?.pricing || staticPricing;
     const planFor = (tier: string) => plans.find((p) => p.tier === tier);
     // Tiers to offer, in the admin's order; without plans, Postiz's own order
@@ -211,5 +227,5 @@ export const useTadweenPricing = () => {
         planFor(tier)?.name || fallback,
       visible,
     };
-  }, [data]);
+  }, [data, invited]);
 };

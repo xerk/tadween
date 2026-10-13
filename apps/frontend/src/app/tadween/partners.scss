@@ -1,0 +1,432 @@
+// Tadween partners program: the affiliate dashboard (/partners,
+// components/tadween/referral/partners.page.tsx, partner.stat.tiles.tsx and
+// payout.preference.card.tsx) and the few extras of the Growth pages of the
+// admin console (components/tadween/admin/admin.partners|referrals|payouts.tsx).
+// Scoped to `.tdw-ui`; colours, radii and shadows come only from the tokens
+// (the kit's aliases), so light and dark follow the theme. Logical properties
+// keep RTL right. The dashboard uses the full width of the content area and
+// lays itself out with container queries (`tdw-partners`).
+
+$partners-phone: '(max-width: 640px)';
+
+.tdw-partners-shell {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  padding: 24px 28px calc(var(--tdw-dock-space, 0px) + 40px);
+
+  @media #{$partners-phone} {
+    padding-inline: 16px;
+    padding-top: 16px;
+  }
+}
+
+.tdw-ui {
+  // Numbers, amounts and dates read left to right in Arabic too
+  .tdw-partners-num {
+    direction: ltr;
+    unicode-bidi: isolate;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // Tables that may be wider than a phone
+  .tdw-partners-scroll {
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tdw-partners-link {
+    color: var(--tdw-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      color: var(--tdw-primary-strong);
+    }
+  }
+
+  // ── Admin: commission row in the partner drawer ─────────────────────────
+  .tdw-partners-admin-commission {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+
+    > .pz-btn {
+      margin-top: 24px;
+    }
+
+    @media #{$partners-phone} {
+      grid-template-columns: minmax(0, 1fr);
+
+      > .pz-btn {
+        margin-top: 0;
+        justify-self: start;
+      }
+    }
+  }
+}
+
+// ── Affiliate dashboard ─────────────────────────────────────────────────────
+.tdw-ui.tdw-partners-page {
+  container: tdw-partners / inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  width: 100%;
+  min-width: 0;
+  // very wide screens: keep line lengths readable
+  max-width: 1600px;
+  margin-inline: auto;
+
+  .tdw-partners-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .tdw-partners-title {
+    margin: 0;
+    font-size: 30px;
+    line-height: 36px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+  }
+
+  .tdw-partners-sub {
+    margin: 4px 0 0;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--muted-foreground);
+  }
+
+  // Two cards side by side: the wide one first
+  .tdw-partners-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: var(--space-6);
+    align-items: stretch;
+  }
+
+  // ── PartnerStatTiles: the tier card across the top, then the numbers ──
+  .tdw-partners-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-6);
+
+    // tiles with and without a hint line up at the top
+    > .pz-tile { align-content: start; }
+
+    .pz-tile .metric {
+      direction: ltr;
+      unicode-bidi: isolate;
+    }
+  }
+  .tdw-partners-stats-wide {
+    grid-column: 1 / -1;
+  }
+
+  // ── Cards ───────────────────────────────────────────────────────────────
+  .tdw-partners-card,
+  .tdw-partners-tier {
+    display: grid;
+    align-content: start;
+    gap: var(--space-5);
+    padding: var(--space-6);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
+    min-width: 0;
+  }
+  .tdw-partners-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px 12px;
+  }
+  .tdw-partners-card-title {
+    margin: 0;
+    font-size: 16px;
+    line-height: 22px;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  .tdw-partners-card-desc {
+    margin: 2px 0 0;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--muted-foreground);
+  }
+
+  // ── PartnerTierCard ─────────────────────────────────────────────────────
+  .tdw-partners-tier {
+    gap: var(--space-4);
+  }
+  .tdw-partners-tier-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .tdw-partners-tier-badge {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-lg);
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .tdw-partners-tier-label {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--muted-foreground);
+  }
+  .tdw-partners-tier-rate {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+
+    > [dir='ltr'] {
+      font-size: 28px;
+      line-height: 34px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--foreground);
+    }
+  }
+  .tdw-partners-tier-sub {
+    font-size: 14px;
+    color: var(--muted-foreground);
+  }
+  .tdw-partners-tier-progress {
+    display: grid;
+    gap: 8px;
+  }
+  .tdw-partners-tier-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--foreground);
+  }
+  .tdw-partners-tier-left {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--muted-foreground);
+  }
+  .tdw-partners-tier-top {
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted-foreground);
+  }
+  // Fills from the inline start (right in Arabic)
+  .tdw-partners-bar {
+    display: block;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--muted);
+    overflow: hidden;
+
+    > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--primary);
+      transition: width var(--duration-spring, 400ms) var(--ease-spring, ease);
+    }
+  }
+
+  // ── Payout history ──────────────────────────────────────────────────────
+  .tdw-partners-table .pz-table-wrap { box-shadow: none; border-radius: 0; background: transparent; }
+  .tdw-partners-table .pz-table :is(th, td):first-child { padding-inline-start: 0; }
+  .tdw-partners-table .pz-table :is(th, td):last-child { padding-inline-end: 0; }
+
+  // ── PayoutPreferenceCard ────────────────────────────────────────────────
+  .tdw-partners-pref-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tdw-partners-pref-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    box-shadow: inset 0 0 0 1px var(--border);
+
+    &.is-current {
+      background: var(--primary-soft);
+      box-shadow: inset 0 0 0 1.5px var(--primary);
+    }
+  }
+  .tdw-partners-pref-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-md);
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  .is-current .tdw-partners-pref-icon { background: var(--card); color: var(--primary); }
+  .tdw-partners-pref-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  .tdw-partners-pref-current {
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--primary);
+  }
+  .tdw-partners-pref-body {
+    display: block;
+    margin-top: 2px;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--muted-foreground);
+    overflow-wrap: anywhere;
+  }
+  .tdw-partners-pref-hold {
+    margin: 0;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--muted-foreground);
+  }
+  .tdw-partners-pref-btn { justify-self: start; }
+
+  // ── Creator kit ─────────────────────────────────────────────────────────
+  .tdw-partners-kit {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .tdw-partners-kit-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    border-radius: var(--radius-md);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .tdw-partners-kit-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-md);
+    background: var(--muted);
+    color: var(--foreground);
+  }
+  .tdw-partners-kit-title {
+    margin: 0;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  .tdw-partners-kit-body {
+    margin: 2px 0 0;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--muted-foreground);
+  }
+
+  // ── Rules ───────────────────────────────────────────────────────────────
+  .tdw-partners-rules {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      line-height: 19px;
+      color: var(--foreground);
+    }
+
+    .pz-icon,
+    > li > svg {
+      flex: none;
+      margin-top: 2px;
+      color: var(--success);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tdw-partners-bar > span { transition: none; }
+  }
+}
+
+// ── Payout settings form (inside the drawer, portalled out of the page) ─────
+.tdw-ui {
+  .tdw-partners-form {
+    display: grid;
+    gap: 16px;
+  }
+
+  .tdw-partners-cash {
+    display: grid;
+    gap: 14px;
+    padding: 16px;
+    border-radius: var(--radius-lg);
+    background: var(--muted);
+  }
+
+  .tdw-partners-cash-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+
+    @media #{$partners-phone} {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+// ── Narrower containers ─────────────────────────────────────────────────────
+@container tdw-partners (max-width: 940px) {
+  .tdw-ui.tdw-partners-page .tdw-partners-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+@container tdw-partners (max-width: 760px) {
+  .tdw-ui.tdw-partners-page .tdw-partners-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+  .tdw-ui.tdw-partners-page .tdw-partners-kit { grid-template-columns: minmax(0, 1fr); }
+}
+
+// ── Phones ──────────────────────────────────────────────────────────────────
+@container tdw-partners (max-width: 600px) {
+  .tdw-ui.tdw-partners-page .tdw-partners-title { font-size: 24px; line-height: 30px; }
+  .tdw-ui.tdw-partners-page .tdw-partners-card, .tdw-ui.tdw-partners-page .tdw-partners-tier { padding: var(--space-5) var(--space-4); }
+  .tdw-ui.tdw-partners-page .tdw-partners-stats .pz-tile { padding: var(--space-4); }
+  .tdw-ui.tdw-partners-page .tdw-partners-stats .metric { font-size: 22px; line-height: 28px; }
+  .tdw-ui.tdw-partners-page .tdw-partners-table .pz-table { min-width: 0; }
+  .tdw-ui.tdw-partners-page .tdw-partners-pref-btn { justify-self: stretch; justify-content: center; }
+}

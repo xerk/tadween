@@ -218,7 +218,7 @@ const PlanDialog: FC<{
             label="Billing tier"
             value={form.tier}
             onChange={set('tier')}
-            hint="The Postiz tier this plan sells. Stripe products, permissions and existing subscriptions are keyed by it. One active plan per tier."
+            hint="The billing tier this plan sells. Stripe products, permissions and existing subscriptions are keyed by it. One active plan per tier."
             options={TIERS.map((t) => ({ value: t, label: TIER_LABEL[t] }))}
           />
           <Input label="Free trial (days)" inputMode="numeric" {...text('trialDays')} />
@@ -357,7 +357,7 @@ const FounderWindow: FC<{
   return (
     <Section
       title="Founder offer"
-      description="Founder prices are charged for the first paying workspaces, counted from active Stripe subscriptions (trials and granted plans don't count). When the cap or the end date is reached, checkout charges the list price and the founder copy disappears. Founders keep their price while they stay subscribed."
+      description="Founder prices are charged for the first paying workspaces. A workspace takes a spot on its first paid invoice at a founder price; trials and granted plans don't count. A trial started while spots were open keeps the founder price when it converts, so the final count can go a little past the cap. When the cap or the end date is reached, checkout charges the list price and the founder copy disappears. Founders keep their price while they stay subscribed."
       action={
         <Button
           variant="primary"
@@ -517,7 +517,7 @@ export const AdminPlansPage = () => {
   return (
     <AdminPage
       title="Plans"
-      description="What workspaces can buy. Billing and the pricing page read these plans; without any, Postiz’s built-in pricing is used."
+      description="What workspaces can buy. Billing and the pricing page read these plans; without any, the built-in pricing is used."
       action={
         plans.length ? (
           <div className="flex gap-[8px]">
@@ -541,7 +541,7 @@ export const AdminPlansPage = () => {
         <Section title="No plans yet">
           <EmptyState
             icon="credit-card"
-            title="Billing uses Postiz’s built-in pricing"
+            title="Billing uses the built-in pricing"
             body="Load the three Tadween plans, Creator, Business and Agency. They differ in limits; Business and Agency add webhooks. Prices are in US dollars, with founder prices for the first paying workspaces; yearly is the monthly price with the yearly discount."
             action={
               <Button variant="primary" loading={seeding} loadingLabel="Adding…" onClick={seed}>
@@ -708,7 +708,7 @@ export const AdminPlansPage = () => {
         open={!!removing}
         onClose={() => setRemoving(null)}
         title={`Delete ${removing?.name || 'plan'}?`}
-        description="It disappears from billing and the pricing page. Workspaces already on its tier keep their subscription and fall back to Postiz’s limits for that tier. If those are lower than the plan’s, the plan can’t be deleted while anyone is subscribed."
+        description="It disappears from billing and the pricing page. Workspaces already on its tier keep their subscription and fall back to the built-in limits for that tier. If those are lower than the plan’s, the plan can’t be deleted while anyone is subscribed."
         confirmLabel="Delete plan"
         onConfirm={async () => {
           try {

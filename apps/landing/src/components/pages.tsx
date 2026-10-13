@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { ChannelCopy, Dict, LegalBlock, LegalValueKey } from '@/content/types';
 import { AI_CLIENTS, KIND_ICON, MCP_ENDPOINTS, MCP_TOOLS, MORE_AI_CLIENTS, clientBySlug, type AiClientFacts, type ClientKind } from '@/lib/aiClients';
 import { CHANNELS, MORE_CHANNELS, OTHER_CHANNELS, channelBySlug, networkBySlug, type ChannelFacts } from '@/lib/channels';
-import { DOCS_API_URL, LEGAL, LEGAL_UPDATED, POLICY_URLS, REFUND_MODE } from '@/lib/config';
+import { DOCS_API_URL, INVITE_URL, LEGAL, LEGAL_UPDATED, POLICY_URLS, REFERRAL_PROGRAM, REFUND_MODE } from '@/lib/config';
 import { FEATURES } from '@/lib/features';
 import { breadcrumbs, faqPage, organization, softwareApplication } from '@/lib/jsonld';
 import { loadPricing } from '@/lib/plans';
@@ -14,7 +14,7 @@ import { JsonLd } from './JsonLd';
 import { LandingMotion } from './LandingMotion';
 import { LandingNav } from './LandingNav';
 import { PricingTable } from './PricingTable';
-import { AgentChat, AgentTeaser, AllFeatures, ArabicSection, CheckList, CTA, Eyebrow, FaqSection, FeatureRow, Footer, Hero, NetStrip, PageHead, ProductShot, SectionHead, Steps, TrialButtons, networkName } from './sections';
+import { AgentChat, AgentTeaser, AllFeatures, ArabicSection, CheckList, CTA, Eyebrow, FaqSection, FeatureRow, Footer, Hero, NetStrip, PageHead, ProductShot, ReferralLadder, ReferralSection, SectionHead, Steps, TrialButtons, networkName } from './sections';
 import { Shot } from './Shot';
 
 /** Every page: skip link, nav (with the same page in the other language), main, footer
@@ -85,6 +85,7 @@ export async function LandingPage({ t }: { t: Dict }) {
       <PricingSection t={t}>
         <PricingTable p={t.pricing} numberLocale={t.numberLocale} pricing={pricing} agree={legalText(t, t.legal.pricingAgree)} compact moreHref={localePath(t.lang, PATHS.pricing)} />
       </PricingSection>
+      {REFERRAL_PROGRAM ? <ReferralSection t={t} /> : null}
       <FaqSection id="faq" title={t.homeFaq.title} items={t.homeFaq.items} />
       <CTA t={t} />
     </Shell>
@@ -101,9 +102,49 @@ export async function PricingPage({ t }: { t: Dict }) {
       <section className="pz-sec" aria-label={t.pricing.pageTitle}>
         <div className="pz-container">
           <PricingTable p={t.pricing} numberLocale={t.numberLocale} pricing={pricing} agree={legalText(t, t.legal.pricingAgree)} />
+          {REFERRAL_PROGRAM ? (
+            <p className="pz-center-text">
+              <a className="pz-more-link" href={localePath(t.lang, PATHS.referral)}>
+                {t.referral.pricingLink}
+                <Icon name="arrow-right" className="pz-flip-rtl" />
+              </a>
+            </p>
+          ) : null}
         </div>
       </section>
       <CTA t={t} />
+    </Shell>
+  );
+}
+
+/** /referral, Invite & earn (only when REFERRAL_PROGRAM is on; the routes 404 otherwise): how
+    it works, the ladder, the rules, questions (FAQPage data, no prices) and the way in. */
+export function ReferralPage({ t }: { t: Dict }) {
+  const r = t.referral;
+  const p = r.page;
+  const crumbs = trail(t, { name: r.name, href: localePath(t.lang, PATHS.referral) });
+  return (
+    <Shell t={t} path={PATHS.referral} jsonLd={[trailLd(crumbs), faqPage(p.faq)]}>
+      <PageHead t={t} crumbs={crumbs} title={p.title} sub={p.sub} eyebrow={<Eyebrow icon="users">{r.name}</Eyebrow>}>
+        <TrialButtons t={t} primary={p.signUp} secondaryHref={INVITE_URL} secondary={p.openInvite} />
+      </PageHead>
+      <Steps t={t} title={p.stepsTitle} items={p.steps} />
+      <section className="pz-sec is-band" aria-labelledby="ladder-title">
+        <div className="pz-container">
+          <SectionHead id="ladder-title" title={p.ladderTitle} sub={p.ladderSub} />
+          <ReferralLadder t={t} />
+        </div>
+      </section>
+      <section className="pz-sec" aria-labelledby="rules-title">
+        <div className="pz-container is-narrow">
+          <SectionHead id="rules-title" title={p.rulesTitle} />
+          <div data-reveal>
+            <CheckList items={p.rules} />
+          </div>
+        </div>
+      </section>
+      <FaqSection id="faq" title={p.faqTitle} items={p.faq} className="is-tight" />
+      <CTA t={t} title={p.ctaTitle} body={p.ctaBody} primary={p.signUp} secondary={{ href: INVITE_URL, label: p.openInvite }} />
     </Shell>
   );
 }

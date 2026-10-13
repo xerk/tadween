@@ -39,7 +39,9 @@ Onboarding, full screen, in place of the app shell
 3. The workspace needs a plan → the paywall.
 4. Otherwise the app.
 
-`useOnboarding()` (in `tadween.onboarding.tsx`) holds the step. It starts at **You** on `?onboarding=true` (sent after sign-up, activation and a channel's OAuth return), or at **Channels** when the URL also has `added=` (back from connecting a channel). The step is kept in `sessionStorage` (`tdw_onboarding`), so a channel's OAuth round trip and the paywall come back to the right step in the same tab. A payment return (`check=`) never starts onboarding on its own. Without storage (private mode) onboarding still works, it just doesn't resume after a redirect.
+`useOnboarding(userId)` (in `tadween.onboarding.tsx`) holds the step and decides once the signed-in user is known. It starts at **You** on `?onboarding=true` (sent after sign-up, activation and a channel's OAuth return), or at **Channels** when the URL also has `added=` (back from connecting a channel). It keeps `{ step, user }` in `sessionStorage` (`tdw_onboarding`), so a channel's OAuth round trip and the paywall come back to the right step in the same tab. Finishing or skipping stores `{ done: user }` and replaces the URL with `/today`, so browser Back doesn't start it over; another account signing up in the same tab still gets onboarding. A payment return (`check=`) never starts onboarding on its own, and the paywall redirect leaves `check=` URLs alone so `CheckPayment` can finish. Without storage (private mode) onboarding still works, it just doesn't resume after a redirect.
+
+Back from a channel's OAuth, onboarding does what the calendar page does on that return (the `channel_added` event, the "Channel updated" toast, the popup hand-off), then drops `added` and `msg` from the URL.
 
 ## Reusable pieces
 

@@ -25,9 +25,11 @@ import { orderBy } from 'lodash';
 import i18next from 'i18next';
 import useCookie from 'react-use-cookie';
 import { useTranslation } from 'react-i18next';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { useToaster } from '@gitroom/react/toaster/toaster';
+import { useFireEvents } from '@gitroom/helpers/utils/use.fire.events';
 import {
   cookieName,
   fallbackLng,
@@ -55,22 +57,28 @@ import {
 export type OnboardingStep = 'welcome' | 'language' | 'plan' | 'channels' | 'done';
 
 const STORAGE_KEY = 'tdw_onboarding';
+const STEPS: OnboardingStep[] = ['welcome', 'language', 'plan', 'channels', 'done'];
 const LINKEDIN = ['linkedin', 'linkedin-page'];
 
-const readStep = (): OnboardingStep | null => {
+// { step, user } while onboarding runs; { done: user } once that user finished
+// or skipped it in this tab, so browser Back to ?onboarding=true doesn't start
+// over. Both are per user: another account signing up in this tab starts fresh.
+type Saved = { step?: OnboardingStep; user?: string; done?: string };
+const readSaved = (): Saved => {
   try {
-    return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null')?.step || null;
+    const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}') || {};
+    return {
+      step: STEPS.includes(saved.step) ? saved.step : undefined,
+      user: typeof saved.user === 'string' ? saved.user : undefined,
+      done: typeof saved.done === 'string' ? saved.done : undefined,
+    };
   } catch (e) {
-    return null;
+    return {};
   }
 };
-const writeStep = (step: OnboardingStep | null) => {
+const writeSaved = (saved: Saved) => {
   try {
-    if (step) {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ step }));
-    } else {
-      sessionStorage.removeItem(STORAGE_KEY);
-    }
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
   } catch (e) {
     // private mode: onboarding still works, it just won't resume after a redirect
   }
@@ -78,31 +86,47 @@ const writeStep = (step: OnboardingStep | null) => {
 
 /* Whether onboarding owns the screen, and at which step. Starts from
    `?onboarding=true` (set after sign-up, activation and a channel's OAuth
-   return), resumes from sessionStorage, never restarts after a payment return. */
-export const useOnboarding = () => {
+   return), resumes from sessionStorage, never restarts after a payment return.
+   Decides once the signed-in user is known. */
+export const useOnboarding = (userId?: string) => {
   const params = useSearchParams();
   const requested = params.get('onboarding') === 'true';
   const returnedFromChannel = !!params.get('added');
   const returnedFromPayment = !!params.get('check');
   const [ready, setReady] = useState(false);
   const [step, setStep] = useState<OnboardingStep | null>(null);
+  // started once in this page: a later URL change never restarts it
+  const started = useRef(false);
 
   useEffect(() => {
-    const saved = readStep();
-    if (saved) {
-      setStep(saved);
-    } else if (requested && !returnedFromPayment) {
+    if (!userId) {
+      return;
+    }
+    const saved = readSaved();
+    if (saved.step && saved.user === userId) {
+      started.current = true;
+      setStep(saved.step);
+    } else if (
+      requested &&
+      !returnedFromPayment &&
+      !started.current &&
+      saved.done !== userId
+    ) {
+      started.current = true;
       const first = returnedFromChannel ? 'channels' : 'welcome';
-      writeStep(first);
+      writeSaved({ step: first, user: userId });
       setStep(first);
     }
     setReady(true);
-  }, [requested, returnedFromChannel, returnedFromPayment]);
+  }, [userId, requested, returnedFromChannel, returnedFromPayment]);
 
-  const go = useCallback((next: OnboardingStep | null) => {
-    writeStep(next);
-    setStep(next);
-  }, []);
+  const go = useCallback(
+    (next: OnboardingStep | null) => {
+      writeSaved(next ? { step: next, user: userId } : { done: userId });
+      setStep(next);
+    },
+    [userId]
+  );
 
   return { ready, requested, step, go };
 };
@@ -196,6 +220,42 @@ const useNameStep = () => {
   return { value, change, error, loading: isLoading, save };
 };
 
+/* Back from a channel's OAuth (`?added=…&msg=…`): what LaunchesComponent does
+   on that return (event, toast, popup hand-off), since onboarding renders in
+   its place. Then the two parameters are dropped, so a reload or Back doesn't
+   repeat it. */
+const useChannelReturn = () => {
+  const t = useT();
+  const toaster = useToaster();
+  const fireEvents = useFireEvents();
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  useEffect(() => {
+    const added = params.get('added');
+    const msg = params.get('msg');
+    if (!added && !msg) {
+      return;
+    }
+    if (msg) {
+      toaster.show(msg, 'success');
+      window.opener?.postMessage({ msg, success: false }, '*');
+    }
+    if (added) {
+      fireEvents('channel_added');
+      window.opener?.postMessage(
+        { msg: t('channel_added', 'Channel added'), success: true },
+        '*'
+      );
+    }
+    if (window.opener) {
+      window.close();
+      return;
+    }
+    router.replace(`${pathname}?onboarding=true`);
+  }, []);
+};
+
 const firstName = (name?: string | null) => (name || '').trim().split(/\s+/)[0] || '';
 
 export const TadweenOnboarding: FC<{
@@ -214,6 +274,7 @@ export const TadweenOnboarding: FC<{
   const [travel, setTravel] = useState(1);
   const [busy, setBusy] = useState(false);
   const nameStep = useNameStep();
+  useChannelReturn();
 
   // The plan step only exists while the workspace still needs one; once the
   // paywall is done (trial or payment), onboarding carries on with channels
@@ -241,9 +302,10 @@ export const TadweenOnboarding: FC<{
     go(next);
   };
 
+  // replace: browser Back must not land on ?onboarding=true and start over
   const finish = useCallback(() => {
     go(null);
-    router.push('/today');
+    router.replace('/today');
   }, []);
 
   const forward = async () => {
@@ -518,7 +580,7 @@ const LanguageStep: FC = () => {
       />
       <div className="tdw-ob-fields">
         <div className="pz-field">
-          <span className="pz-label" id="tdw-ob-lang">
+          <span className="pz-label" aria-hidden="true">
             {t('tdw_pref_language', 'Language')}
           </span>
           <RadioGroup

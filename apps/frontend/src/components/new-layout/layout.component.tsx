@@ -100,14 +100,21 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     !user.billingExempt;
   // Tadween onboarding (after sign-up) takes the whole screen; its plan step
   // is the paywall below, after which it carries on
-  const onboarding = useOnboarding();
+  const onboarding = useOnboarding(user?.id);
   const showOnboarding =
     !!onboarding.step && !(onboarding.step === 'plan' && needsPlan);
+  // A payment return (?check=) stays where it is, so CheckPayment can finish
   useEffect(() => {
-    if (needsPlan && !showOnboarding && pathname !== '/billing') {
+    if (
+      onboarding.ready &&
+      needsPlan &&
+      !showOnboarding &&
+      !searchParams.get('check') &&
+      pathname !== '/billing'
+    ) {
       router.replace('/billing');
     }
-  }, [needsPlan, showOnboarding, pathname]);
+  }, [onboarding.ready, needsPlan, showOnboarding, pathname]);
 
   if (!user || !onboarding.ready) {
     return (

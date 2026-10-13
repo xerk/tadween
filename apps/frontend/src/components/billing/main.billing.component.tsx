@@ -37,6 +37,7 @@ import {
 import { useBillingDialogs } from '@gitroom/frontend/components/tadween/billing/billing.dialogs';
 import { PlanCard } from '@gitroom/frontend/components/tadween/billing/plans.view';
 import { PlanCheckout } from '@gitroom/frontend/components/billing/first.billing.component';
+import { BillingSkeleton } from '@gitroom/frontend/components/tadween/billing/billing.skeleton';
 import {
   AiCreditsCard,
   BuyCreditsDrawer,
@@ -120,7 +121,9 @@ export const MainBillingComponent: FC<{
   const utm = useUtmUrl();
   const t = useT();
   const { plans, planFor } = useTadweenPricing();
-  const { data: trialInfo } = useTrialInfo(isOnFreeTrial(user));
+  const { data: trialInfo, error: trialError } = useTrialInfo(
+    isOnFreeTrial(user)
+  );
   const queryParams = useSearchParams();
   const [finishTrial, setFinishTrial] = useState(
     !!queryParams.get('finishTrial')
@@ -350,6 +353,11 @@ export const MainBillingComponent: FC<{
     );
   }
 
+  // Whether the trial has a card decides the layout: wait for it, no flicker
+  if (isOnFreeTrial(user) && !trialInfo && !trialError) {
+    return <BillingSkeleton />;
+  }
+
   const currentPlan = subscription
     ? planFor(subscription.subscriptionTier)
     : undefined;
@@ -372,17 +380,14 @@ export const MainBillingComponent: FC<{
         : subscription.priceCents / 100
       : undefined;
 
-  // One action per plan, as Postiz's billing: current plan, resume, switch
-  // the period, upgrade or downgrade (Stripe prorates), or pay for a first one
+  // One action per plan on a paid plan, as Postiz's billing: current plan,
+  // resume, switch the period, upgrade or downgrade (Stripe prorates)
   const planAction = (plan: PublicPlan) => {
     const run = (fn: () => void) => () => {
       setClicked(plan.tier);
       fn();
     };
-    if (!subscription) {
-      return { label: '', variant: 'secondary', disabled: true } as const;
-    }
-    if (plan.tier === subscription.subscriptionTier) {
+    if (plan.tier === subscription?.subscriptionTier) {
       if (subscription.cancelAt) {
         return {
           label: t('tdw_resume_subscription', 'Resume subscription'),

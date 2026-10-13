@@ -8,34 +8,11 @@
 // `.tdw-ui` so the kit's token aliases (--primary, --card…) apply.
 
 .tdw-ui {
-  // ── Onboarding (design system: Onboarding / ScreenOnboarding) ─────────────
-  .pz-ob { display: flex; flex-direction: column; min-height: 100%; height: 100%; box-sizing: border-box; background: var(--background); }
-  .pz-ob-head { display: flex; align-items: center; gap: var(--space-6); padding: var(--space-5) var(--space-8); }
+  // ── Onboarding pieces (design system: Onboarding): logo, channel tiles,
+  // connected chips, agent chips and panels (onboarding modal, AI guides)
   .pz-ob-logo { display: inline-flex; align-items: center; gap: 10px; flex: none; }
   .pz-ob-logo svg { margin: 0 !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; }
   .pz-ob-logo-word { font-size: 18px; line-height: 1; font-weight: 600; letter-spacing: -0.03em; }
-  .pz-ob-progress { flex: 1; display: grid; grid-template-columns: repeat(var(--steps, 4), 1fr); gap: var(--space-2); list-style: none; margin: 0 auto; padding: 0; max-width: 560px; }
-  .pz-ob-progress li { display: grid; gap: 6px; color: var(--muted-foreground); }
-  .pz-ob-progress li.is-current { color: var(--foreground); }
-  .pz-ob-bar { display: block; height: 4px; border-radius: 2px; background: var(--muted); overflow: hidden; }
-  .pz-ob-bar span { display: block; height: 100%; width: 100%; background: var(--primary); border-radius: inherit; transform: scaleX(0); transform-origin: left; transition: transform var(--duration-spring) var(--ease-spring); }
-  .pz-ob-progress li.is-done .pz-ob-bar span { transform: scaleX(1); }
-  .pz-ob-progress li.is-current .pz-ob-bar span { transform: scaleX(0.5); }
-  .pz-ob-stage { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); place-items: start center; padding: var(--space-12) var(--space-6) var(--space-6); overflow-x: hidden; overflow-y: auto; }
-  .pz-ob-step { display: grid; gap: var(--space-4); width: 100%; max-width: 520px; animation: pz-step-in var(--duration-spring) var(--ease-spring) both; }
-  .pz-ob-step.is-wide { max-width: 1040px; }
-  .pz-ob-step .title-1 { margin: 0; }
-  .pz-ob-lead { margin: 0 0 var(--space-2); font-size: 15px; line-height: 22px; color: var(--muted-foreground); }
-  .pz-ob-cards { display: grid; gap: var(--space-3); }
-  .pz-ob-card { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm); transition: box-shadow var(--duration-base) ease; }
-  .pz-ob-card img { border-radius: 50%; }
-  .pz-ob-card.is-done { box-shadow: 0 0 0 1.5px var(--success), var(--shadow-sm); }
-  .pz-ob-card-text { flex: 1; min-width: 0; } .pz-ob-card-text .headline { font-size: 15px; font-weight: 600; }
-  .pz-ob-ok { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--success); animation: pz-pop var(--duration-spring) var(--ease-bounce); }
-  .pz-ob-foot { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-5) var(--space-8); border-top: 1px solid var(--border); }
-  .pz-ob-foot-note { flex: 1; text-align: center; color: var(--muted-foreground); }
-  .pz-ob-section { display: grid; gap: var(--space-2); margin-top: var(--space-2); }
-  .pz-ob-section-title { margin: 0; color: var(--muted-foreground); }
 
   // Connected channels: avatar chips
   .pz-ob-connected { display: flex; flex-wrap: wrap; gap: var(--space-2); }
@@ -109,36 +86,24 @@
   @media (max-width: 1024px) {
     .pz-billing-grid { grid-template-columns: minmax(0, 1fr); }
     .pz-ob-panels { grid-template-columns: minmax(0, 1fr); }
-    .pz-ob-head, .pz-ob-foot { padding-inline: var(--space-4); }
-    .pz-ob-stage { padding: var(--space-6) var(--space-4); }
     .pz-compare-wrap { overflow-x: auto; }
-    .pz-ob-card { flex-wrap: wrap; }
-    .pz-ob-card-text { flex-basis: calc(100% - 72px); }
-    .pz-ob-foot { flex-wrap: wrap; }
-    .pz-ob-progress .caption { display: none; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .pz-ob-step { animation: pz-fade 150ms ease both !important; }
     .pz-ob-agent, .pz-ob-providers > div > div > div > div { transition-duration: 150ms; transform: none !important; }
   }
   @media (prefers-contrast: more) {
-    .pz-ob-card, .pz-ob-panel, .pz-tier, .pz-bill-card { box-shadow: 0 0 0 1px var(--input); }
+    .pz-ob-panel, .pz-tier, .pz-bill-card { box-shadow: 0 0 0 1px var(--input); }
   }
 
   // Arabic type styles inside RTL surfaces
   &.is-ar, .is-ar { font-family: var(--font-arabic), var(--font-geist), system-ui, sans-serif; }
   .is-ar .title-1 { font-size: 28px; line-height: 40px; letter-spacing: 0; }
-  .is-ar .pz-ob-lead { font-size: 15px; line-height: 26px; }
   .is-ar .caption { letter-spacing: 0; }
 }
 
 // Direction: the progress bar fills from the inline start, steps enter mirrored
-[dir='rtl'] .tdw-ui .pz-ob-bar span, .tdw-ui[dir='rtl'] .pz-ob-bar span, .tdw-ui [dir='rtl'] .pz-ob-bar span { transform-origin: right; }
-[dir='rtl'] .tdw-ui .pz-ob-step, .tdw-ui[dir='rtl'] .pz-ob-step, .tdw-ui [dir='rtl'] .pz-ob-step { animation-name: pz-step-in-rtl; }
 
-@keyframes pz-step-in { from { opacity: 0; transform: translateX(calc(32px * var(--travel, 1))); } }
-@keyframes pz-step-in-rtl { from { opacity: 0; transform: translateX(calc(-32px * var(--travel, 1))); } }
 
 // ── Billing page and plan step ─────────────────────────────────────────────
 // A calm, centred page: headline, period control, plan cards that compare row
@@ -201,18 +166,9 @@
   .tdw-order { display: grid; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius-lg); background: var(--card); box-shadow: 0 0 0 1px var(--border); }
   .tdw-order-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
   .tdw-order-name { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.02em; }
-  .tdw-order-desc { margin: 2px 0 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
   .tdw-order-price { display: flex; align-items: baseline; gap: 4px; flex: none; }
   .tdw-order-amount { font-family: var(--font-mono); font-size: 28px; line-height: 32px; font-weight: 500; font-variant-numeric: tabular-nums; }
-  .tdw-order-per { font-size: 13px; color: var(--muted-foreground); }
-  .tdw-order-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: 13px; color: var(--muted-foreground); }
-  .tdw-order-save { padding: 2px 8px; border-radius: var(--radius-full); background: var(--success-soft); color: var(--success); font-weight: 600; }
-  .tdw-order-trial { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--primary-soft); font-size: 14px; line-height: 20px; }
-  .tdw-order-trial .pz-icon { flex: none; margin-top: 2px; color: var(--primary); }
-  .tdw-order-included h4 { margin: 0 0 var(--space-2); font-size: 13px; font-weight: 600; color: var(--muted-foreground); }
-  .tdw-order-included .tdw-plan-features { margin: 0; padding: 0; border: 0; gap: var(--space-2); }
   .tdw-order-more { margin-top: var(--space-2); padding: 0; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 500; color: var(--primary); cursor: pointer; }
-  .tdw-order-note { margin: 0; font-size: 13px; color: var(--muted-foreground); }
   .tdw-checkout-state { display: grid; justify-items: center; gap: var(--space-3); padding: var(--space-12) var(--space-6); text-align: center; animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
   .tdw-checkout-state h3 { margin: 0; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.02em; }
   .tdw-checkout-state p { margin: 0 0 var(--space-3); max-width: 420px; color: var(--muted-foreground); }

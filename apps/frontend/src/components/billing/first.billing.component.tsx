@@ -114,7 +114,7 @@ export const useFirstBilling = (
   // Right after sign-up the trial's subscription is still on its way
   // (Stripe's webhook): look again for a few seconds before deciding
   const [waited, setWaited] = useState(0);
-  const starting = requested && needsPlan && !!user?.allowTrial && waited < 5;
+  const starting = requested && needsPlan && !!user?.allowTrial && waited < 3;
   useEffect(() => {
     if (!starting) {
       return;
@@ -122,9 +122,12 @@ export const useFirstBilling = (
     const timer = setTimeout(() => {
       mutate('/user/self');
       setWaited((n) => n + 1);
-    }, 2000);
+    }, 1500);
     return () => clearTimeout(timer);
   }, [starting, waited]);
+  // Decided once: a later refresh of the user (the trial landing, "Maybe
+  // later") never puts the loading screen back over the app
+  const decided = useRef(false);
 
   useEffect(() => {
     setDismissed(readDismissed());
@@ -141,9 +144,14 @@ export const useFirstBilling = (
 
   const offered =
     asked && !!trial && !trial.hasPaymentMethod && dismissed !== user?.id;
+  // decide nothing before the trial's state is in
+  decided.current =
+    decided.current ||
+    (dismissed !== null &&
+      !starting &&
+      (!asked || dismissed === user?.id || !!trial || !!error));
   return {
-    // decide nothing before the trial's state is in
-    ready: dismissed !== null && !starting && (!asked || !!trial || !!error),
+    ready: decided.current,
     show: needsPlan || offered,
     // after sign-up: what the first load most likely shows
     requested,
@@ -258,8 +266,11 @@ export const PlanCheckout: FC<{
   aside?: ReactNode;
   initialTier?: string | null;
   initialPeriod?: BillingPeriod;
+  // the full first billing screen: phones get the bar to the payment (in the
+  // app shell, the dock has that place)
+  standalone?: boolean;
   onDone?: () => void;
-}> = ({ intro, after, aside, initialTier, initialPeriod, onDone }) => {
+}> = ({ intro, after, aside, initialTier, initialPeriod, standalone, onDone }) => {
   const t = useT();
   const { plans } = useTadweenPricing();
   const featured = plans.find((p) => p.mostPopular) || plans[0];
@@ -343,7 +354,7 @@ export const PlanCheckout: FC<{
         {locked ? null : aside}
       </aside>
 
-      {plan && !payInView && !locked ? (
+      {standalone && plan && !payInView && !locked ? (
         <div className="tdw-fb-bar">
           <span className="tdw-fb-bar-text">
             <strong>{plan.name}</strong>
@@ -381,7 +392,6 @@ export const FirstBillingComponent: FC<{
   const fetch = useFetch();
   const toaster = useToaster();
   const modals = useModals();
-  const { mutate } = useSWRConfig();
   const { plans } = useTadweenPricing();
   const { tutorialVideoUrl } = useBrandLinks();
   const featured = plans.find((p) => p.mostPopular) || plans[0];
@@ -432,7 +442,7 @@ export const FirstBillingComponent: FC<{
       );
       return;
     }
-    await mutate('/user/self');
+    // the app opens (onDone also refreshes the user, now on its trial)
     onDone();
   }, [featured, onDone]);
 
@@ -537,6 +547,7 @@ export const FirstBillingComponent: FC<{
         </div>
       </header>
       <PlanCheckout
+        standalone
         intro={intro}
         initialTier={preselect}
         onDone={onDone}

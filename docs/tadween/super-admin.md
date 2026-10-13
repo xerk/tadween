@@ -66,7 +66,7 @@ Each one is a fallback or an opt-in; what the admin saves in `/admin` wins. All 
 | `TADWEEN_DISABLED_FEATURES` | Comma-separated feature keys that start off |
 | `TADWEEN_ENABLED_FEATURES` | Comma-separated keys that start on although they default off (today only `ugc`) |
 | `TADWEEN_INSTANCE_NAME` | Brand name in emails, MCP metadata and provider user agents (default `Tadween`) |
-| `TADWEEN_WEBSITE_URL`, `TADWEEN_TERMS_URL`, `TADWEEN_PRIVACY_URL`, `TADWEEN_DOCS_URL`, `TADWEEN_SUPPORT_URL`, `TADWEEN_TUTORIAL_VIDEO_URL` | Branding links until saved in Admin → Branding. Empty hides the link (the tutorial video hides the onboarding video and the paywall's "See how it works") |
+| `TADWEEN_WEBSITE_URL`, `TADWEEN_TERMS_URL`, `TADWEEN_PRIVACY_URL`, `TADWEEN_DOCS_URL`, `TADWEEN_SUPPORT_URL`, `TADWEEN_TUTORIAL_VIDEO_URL` | Branding links until saved in Admin → Branding. Empty hides the link (the tutorial video hides the paywall's "See how it works") |
 | `TADWEEN_PLACEHOLDER_EMAIL_DOMAIN` | Domain for generated addresses; defaults to the `FRONTEND_URL` host |
 | `CHROME_EXTENSION_URL` | Store listing of your own browser extension; empty hides the extension button |
 | `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | Plausible analytics; off when empty |

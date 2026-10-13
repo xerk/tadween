@@ -145,7 +145,6 @@ $phone: '(max-width: 1025px)';
   .tdw-obm-note { width: 100%; max-width: 860px; margin: 0 auto; padding: var(--space-4); border-radius: var(--radius-lg); background: var(--muted); color: var(--muted-foreground); font-size: 14px; line-height: 20px; text-align: center; }
   .tdw-obm-agents { width: 100%; }
   .pz-ob-chips.is-start { justify-content: flex-start; }
-  .tdw-obm-video { flex: none; max-width: 960px; margin: 0 auto; }
 
   .tdw-obm-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-top: auto; padding-top: var(--space-4); }
   .tdw-obm-actions.is-end { justify-content: flex-end; }

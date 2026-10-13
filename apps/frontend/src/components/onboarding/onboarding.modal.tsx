@@ -94,16 +94,13 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
   const modals = useModals();
   const t = useT();
   const { i18n } = useTranslation();
-  const { tutorialVideoUrl } = useBrandLinks();
-  const video = tutorialVideoUrl ? embedUrl(tutorialVideoUrl) : null;
 
   const steps = useMemo(
     () => [
       t('connect_channels', 'Connect Channels'),
       t('connect_agents', 'Connect Agents'),
-      ...(video ? [t('watch_tutorial', 'Watch Tutorial')] : []),
     ],
-    [t, video]
+    [t]
   );
 
   return (
@@ -149,18 +146,7 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
             />
           )}
           {step === 2 && (
-            <OnboardingStep2
-              onBack={() => setStep(1)}
-              onNext={video ? () => setStep(3) : onClose}
-              last={!video}
-            />
-          )}
-          {step === 3 && video && (
-            <OnboardingStep3
-              video={video}
-              onBack={() => setStep(2)}
-              onFinish={onClose}
-            />
+            <OnboardingStep2 onBack={() => setStep(1)} onNext={onClose} />
           )}
         </div>
       </div>
@@ -299,9 +285,7 @@ type OnboardingTab = OnboardingAgent | typeof otherTab | typeof apiTab;
 const OnboardingStep2: FC<{
   onBack: () => void;
   onNext: () => void;
-  // no tutorial video: this step finishes onboarding
-  last: boolean;
-}> = ({ onBack, onNext, last }) => {
+}> = ({ onBack, onNext }) => {
   const t = useT();
   const user = useUser();
   const arrows = useArrows();
@@ -636,61 +620,8 @@ const OnboardingStep2: FC<{
         <Button
           variant="primary"
           size="lg"
-          icon={last ? 'circle-check' : undefined}
-          iconEnd={last ? undefined : arrows.next}
-          onClick={onNext}
-        >
-          {last
-            ? t('get_started', 'Get Started')
-            : t('continue_skip', 'Continue / Skip')}
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-const OnboardingStep3: FC<{
-  video: string;
-  onBack: () => void;
-  onFinish: () => void;
-}> = ({ video, onBack, onFinish }) => {
-  const t = useT();
-  const arrows = useArrows();
-  const brand = useBrandLinks();
-
-  return (
-    <div className="tdw-obm-content">
-      <StepTitle
-        title={t('watch_tutorial_title', 'Learn How to Use {{name}}', {
-          name: brand.name,
-        })}
-        description={t(
-          'watch_tutorial_description',
-          'Watch this short video to learn how to get the most out of {{name}}',
-          { name: brand.name }
-        )}
-      />
-
-      {/* The tutorial video from Branding */}
-      <div className="pz-ob-video tdw-obm-video">
-        <iframe
-          src={video}
-          title={t('tdw_ob_tutorial_video', 'Tadween tutorial')}
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
-
-      {/* Action buttons */}
-      <div className="tdw-obm-actions">
-        <Button size="lg" icon={arrows.back} onClick={onBack}>
-          {t('back', 'Back')}
-        </Button>
-        <Button
-          variant="primary"
-          size="lg"
           icon="circle-check"
-          onClick={onFinish}
+          onClick={onNext}
         >
           {t('get_started', 'Get Started')}
         </Button>

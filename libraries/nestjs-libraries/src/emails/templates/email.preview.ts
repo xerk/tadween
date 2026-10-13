@@ -5,9 +5,10 @@
 //     writes <name>.<lang>.html, an index.html gallery and, with
 //     --screenshots, PNGs at 600px and 375px in light and dark (Playwright).
 //
-//   pnpm run emails:preview -- --send --to you@example.com
-//     sends one "[Preview] " email per template (Arabic above English)
+//   pnpm run emails:preview -- --send --to you@example.com [--only a,b]
+//     sends one "[Preview] " email per sample (Arabic above English)
 //     through Resend: RESEND_API_KEY, EMAIL_FROM_ADDRESS, EMAIL_FROM_NAME.
+//     With --dry-run (and --out <dir>) it writes those emails instead.
 //
 // Nothing here runs in the app.
 import { mkdirSync, writeFileSync } from 'fs';
@@ -273,8 +274,40 @@ ${SAMPLES.map((s) => {
   console.log(`Wrote ${files.length} emails to ${out}`);
 };
 
-// One email per template: the Arabic version above the English one
-const sendAll = async (to: string) => {
+// One email per sample: the Arabic version above the English one
+const combined = (s: Sample) => {
+  const [ar, en] = LANGS.map((lang) =>
+    renderEmail(s.template, lang, brand(arg('logo-url') || `${app}/favicon.png`), s.data as never)
+  );
+  const body = (html: string) =>
+    html
+      .slice(html.indexOf('<body'), html.indexOf('</body>') + 7)
+      .replace(/^<body/, '<div')
+      .replace(/<\/body>$/, '</div>');
+  return {
+    subject: `[Preview] ${s.name}: ${en.subject} · ${ar.subject}`,
+    html:
+      en.html.slice(0, en.html.indexOf('<body')) +
+      '<body style="margin:0;padding:0;">' +
+      body(ar.html) +
+      body(en.html) +
+      '</body></html>',
+  };
+};
+
+const sendAll = async (to: string, dryRun: boolean) => {
+  const only = arg('only')?.split(',');
+  const samples = SAMPLES.filter((s) => !only || only.includes(s.name));
+  if (dryRun) {
+    const out = arg('out') || join(process.cwd(), 'emails-preview');
+    mkdirSync(join(out, 'send'), { recursive: true });
+    for (const s of samples) {
+      const { subject, html } = combined(s);
+      writeFileSync(join(out, 'send', `${s.name}.html`), html);
+      console.log(`would send to ${to}: ${subject}`);
+    }
+    return;
+  }
   if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM_ADDRESS) {
     throw new Error('RESEND_API_KEY and EMAIL_FROM_ADDRESS are required');
   }
@@ -282,27 +315,12 @@ const sendAll = async (to: string) => {
   const { Resend } = require('resend');
   const resend = new Resend(process.env.RESEND_API_KEY);
   const from = `${process.env.EMAIL_FROM_NAME || 'Tadween'} <${process.env.EMAIL_FROM_ADDRESS}>`;
-  const only = arg('only');
-  const seen = new Set<string>();
-  for (const s of SAMPLES) {
-    if (only ? !only.split(',').includes(s.name) : seen.has(s.template)) {
-      continue;
-    }
-    seen.add(s.template);
-    const [ar, en] = LANGS.map((lang) =>
-      renderEmail(s.template, lang, brand(arg('logo-url') || `${app}/favicon.png`), s.data as never)
-    );
-    const body = (html: string) => html.slice(html.indexOf('<body'), html.indexOf('</body>') + 7).replace(/^<body/, '<div').replace(/<\/body>$/, '</div>');
-    const html =
-      en.html.slice(0, en.html.indexOf('<body')) +
-      '<body style="margin:0;padding:0;">' +
-      body(ar.html) +
-      body(en.html) +
-      '</body></html>';
+  for (const s of samples) {
+    const { subject, html } = combined(s);
     const { error } = await resend.emails.send({
       from,
       to,
-      subject: `[Preview] ${s.name}: ${en.subject} · ${ar.subject}`,
+      subject,
       html,
       reply_to: process.env.EMAIL_REPLY_TO || 'support@tadween.app',
     });
@@ -318,7 +336,7 @@ const main = async () => {
     if (!to) {
       throw new Error('--send needs --to <address>');
     }
-    await sendAll(to);
+    await sendAll(to, flag('dry-run'));
     return;
   }
   await writeAll(arg('out') || join(process.cwd(), 'emails-preview'), flag('screenshots'));

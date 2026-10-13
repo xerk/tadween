@@ -7,7 +7,7 @@
 // Stripe charges the card when the trial ends. While the workspace can still
 // start a trial, a quiet "Maybe later" starts it without a card instead. Once
 // the trial has ended there is no way around a plan.
-import React, { FC, useCallback, useState } from 'react';
+import React, { FC, useCallback, useEffect, useState } from 'react';
 import { useSWRConfig } from 'swr';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'next/navigation';
@@ -54,6 +54,12 @@ export const FirstBillingComponent: FC<{ onDone: () => void }> = ({
   const featured = plans.find((p) => p.mostPopular) || plans[0];
   const trialDays = trial ? featured?.trialDays || 0 : 0;
   const back = i18n.dir() === 'rtl' ? 'arrow-right' : 'arrow-left';
+
+  // Choosing a plan (or going back to all plans) starts at the top: on a
+  // phone the cards are a long column
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [chosen]);
 
   // "Maybe later": the trial without a card, on the highlighted plan
   const skip = useCallback(async () => {

@@ -349,6 +349,8 @@
   @media (max-width: 1025px) {
     .tdw-plan-row { --cols: 1 !important; }
     .tdw-plan-pay { grid-template-columns: minmax(0, 1fr); }
+    // phones: the summary stays short so the payment form is close
+    .tdw-plan-pay .tdw-order-included, .tdw-plan-pay .tdw-order-note { display: none; }
   }
   @media (max-width: 560px) {
     .tdw-plan-pay .tdw-order-included .tdw-plan-features { grid-template-columns: minmax(0, 1fr); }

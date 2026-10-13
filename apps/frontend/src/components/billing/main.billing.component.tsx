@@ -383,7 +383,14 @@ export const MainBillingComponent: FC<{
                 name: plan.name,
               }),
         variant: plan.mostPopular ? 'primary' : 'secondary',
-        onClick: () => setPayTier(plan.tier),
+        onClick: () => {
+          setPayTier(plan.tier);
+          requestAnimationFrame(() =>
+            document
+              .getElementById('tdw-plan-pay')
+              ?.scrollIntoView({ block: 'start' })
+          );
+        },
       } as const;
     }
     if (plan.tier === subscription.subscriptionTier) {
@@ -524,7 +531,7 @@ export const MainBillingComponent: FC<{
         })}
       </div>
       {payPlan ? (
-        <div className="tdw-plan-pay">
+        <div id="tdw-plan-pay" className="tdw-plan-pay">
           <div className="tdw-plan-pay-side">
             <OrderSummary
               plan={payPlan}

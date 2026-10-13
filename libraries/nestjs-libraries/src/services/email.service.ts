@@ -92,7 +92,10 @@ export class EmailService {
           workflowId: dedupeKey
             ? `send_email_${dedupeKey}`
             : `send_email_${randomUUID()}`,
-          ...(dedupeKey ? { workflowIdReusePolicy: 'REJECT_DUPLICATE' } : {}),
+          // a failed send can be tried again with the same key
+          ...(dedupeKey
+            ? { workflowIdReusePolicy: 'ALLOW_DUPLICATE_FAILED_ONLY' }
+            : {}),
           args: [{ to, subject, html, replyTo, addTo }],
         });
     } catch (err) {

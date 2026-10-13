@@ -44,6 +44,7 @@ export const ContextWrapper: FC<{
     publicApi: string;
     totalChannels: number;
     billingExempt?: boolean;
+    impersonate?: boolean;
   };
   children: ReactNode;
 }> = ({ user, children }) => {
@@ -54,7 +55,8 @@ export const ContextWrapper: FC<{
   const settings = useTranslationSettings();
   const savedLanguage = useRef(user?.language);
   useEffect(() => {
-    if (!user?.id) {
+    // (impersonating: the backend leaves the customer's language alone too)
+    if (!user?.id || user.impersonate) {
       return;
     }
     const save = (language?: string) => {

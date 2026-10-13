@@ -1601,10 +1601,13 @@ export class StripeService extends PaymentProviderAbstract {
     subscription: Stripe.Subscription,
     customer: string
   ) {
+    // a subscription invoice's period is the one just ended: the trial's
+    // conversion invoice closes the trial (period_end = trial_end)
     const started =
       invoice.billing_reason === 'subscription_create' ||
-      (!!subscription.trial_end &&
-        Math.abs(invoice.period_start - subscription.trial_end) < 86400);
+      (invoice.billing_reason === 'subscription_cycle' &&
+        !!subscription.trial_end &&
+        Math.abs(invoice.period_end - subscription.trial_end) < 86400);
     await this.billingEmail(
       customer,
       'paymentReceipt',

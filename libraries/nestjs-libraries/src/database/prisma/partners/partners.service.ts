@@ -703,6 +703,7 @@ export class PartnersService {
         await this.commissionReversedEmail(
           reward,
           reward.amountCents - target,
+          target,
           reason,
           false
         );
@@ -731,55 +732,82 @@ export class PartnersService {
           note: `clawback_${reason}`,
           invoiceId: reward.invoiceId,
         });
-        await this.commissionReversedEmail(reward, -delta, reason, true);
-      } else if (delta < existing.amountCents) {
-        await this._repository.setRewardIfFree(id, { amountCents: delta });
+        await this.commissionReversedEmail(reward, -delta, target, reason, true);
+      } else if (
+        delta < existing.amountCents &&
+        (await this._repository.setRewardIfFree(id, { amountCents: delta }))
+      ) {
+        await this.commissionReversedEmail(
+          reward,
+          existing.amountCents - delta,
+          target,
+          reason,
+          true
+        );
       }
       return;
     }
   }
 
 
+  // Never throws: it runs between ledger updates
   private async referralReversedEmail(referralId: string, reason: string) {
-    const referral = await this._repository.getReferral(referralId);
-    const partner = referral
-      ? await this._repository.getPartnerById(referral.partnerId)
-      : null;
-    if (partner?.kind !== 'REFERRER') {
-      return;
+    try {
+      const referral = await this._repository.getReferral(referralId);
+      const partner = referral
+        ? await this._repository.getPartnerById(referral.partnerId)
+        : null;
+      if (partner?.kind !== 'REFERRER') {
+        return;
+      }
+      await this.email(
+        partner.userId,
+        'referralReversed',
+        {
+          reason:
+            reason === 'dispute' ? 'dispute' : reason === 'refund' ? 'refund' : 'rejected',
+        },
+        `ref_reversed_${referralId}`
+      );
+    } catch (e) {
+      console.error('partners_email_not_sent', {
+        referral_id: referralId,
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
-    await this.email(
-      partner.userId,
-      'referralReversed',
-      {
-        reason:
-          reason === 'dispute' ? 'dispute' : reason === 'refund' ? 'refund' : 'rejected',
-      },
-      `ref_reversed_${referralId}`
-    );
   }
 
+  // `remaining`: what the commission is now (it keys the email, so a second
+  // partial refund of the same size is still told). Never throws.
   private async commissionReversedEmail(
     reward: RewardRow,
     amountCents: number,
+    remaining: number,
     reason: string,
     alreadyPaid: boolean
   ) {
-    if (!reward.partnerId || amountCents <= 0) {
-      return;
+    try {
+      if (!reward.partnerId || amountCents <= 0) {
+        return;
+      }
+      const partner = await this._repository.getPartnerById(reward.partnerId);
+      await this.email(
+        partner?.userId,
+        'affiliateCommissionReversed',
+        {
+          amountCents,
+          reason:
+            reason === 'dispute' ? 'dispute' : reason === 'refund' ? 'refund' : 'rejected',
+          alreadyPaid,
+        },
+        `com_reversed_${reward.id}_${remaining}`
+      );
+    } catch (e) {
+      console.error('partners_email_not_sent', {
+        reward_id: reward.id,
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
-    const partner = await this._repository.getPartnerById(reward.partnerId);
-    await this.email(
-      partner?.userId,
-      'affiliateCommissionReversed',
-      {
-        amountCents,
-        reason:
-          reason === 'dispute' ? 'dispute' : reason === 'refund' ? 'refund' : 'rejected',
-        alreadyPaid,
-      },
-      `com_reversed_${reward.id}_${amountCents}`
-    );
   }
 
   // ── Settling: holds, ladder, applying rewards ──────────────────────────────
@@ -809,19 +837,22 @@ export class PartnersService {
       });
     }
 
-    const due = await this._repository.dueHolds(partner.id, now);
+    // commission is released one row at a time, so only the run that moved
+    // a row counts it in its "commission cleared" email
+    const cleared: { id: string; amountCents: number }[] = [];
+    for (const reward of await this._repository.dueHolds(partner.id, now)) {
+      if (await this._repository.releaseHold(reward.id)) {
+        cleared.push(reward);
+      }
+    }
     await this._repository.releaseHolds(partner.id, now);
-    const cleared = due.reduce((sum, r) => sum + r.amountCents, 0);
-    if (cleared > 0) {
+    const clearedCents = cleared.reduce((sum, r) => sum + r.amountCents, 0);
+    if (clearedCents > 0) {
       await this.email(
         partner.userId,
         'affiliateCommissionCleared',
-        { amountCents: cleared },
-        `cleared_${due
-          .map((r) => r.id)
-          .sort()
-          .join('_')
-          .slice(0, 180)}`
+        { amountCents: clearedCents },
+        `cleared_${cleared[0].id}`
       );
     }
 
@@ -1485,7 +1516,11 @@ export class PartnersService {
       await this.email(
         user.id,
         'affiliateApproved',
-        { rate: body.commissionRate ?? PARTNERS.tierRates[0].rate },
+        {
+          rate:
+            body.commissionRate ??
+            tierFor(await this.payingCount(partner.id)).rate,
+        },
         `affiliate_${partner.id}`
       );
     }

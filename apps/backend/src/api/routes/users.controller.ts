@@ -270,9 +270,13 @@ export class UsersController {
   @Post('/language')
   async setLanguage(
     @GetUserFromRequest() user: User,
-    @Body() body: UserLanguageDto
+    @Body() body: UserLanguageDto,
+    @Req() req: Request
   ) {
-    await this._userService.setLanguage(user.id, body.language);
+    // a super admin browsing as someone keeps that person's language
+    if (!(req.cookies.impersonate || req.headers.impersonate)) {
+      await this._userService.setLanguage(user.id, body.language);
+    }
     return { ok: true };
   }
 

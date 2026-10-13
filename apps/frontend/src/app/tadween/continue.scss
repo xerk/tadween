@@ -1,0 +1,120 @@
+// Tadween: the step after connecting a channel that needs one more choice
+// (a Facebook Page, a Google Business location…). Loaded from global.scss.
+//
+//   · Host: components/layout/continue.provider.tsx opens it in the app modal
+//     (new-modal.tsx), which rises as a bottom sheet on phones.
+//   · Content: components/new-launch/providers/continue-provider/
+//     with-continue-provider.tsx draws the header, list and states inside the
+//     UI kit scope (.tdw-ui), so the tokens below are the kit's names.
+
+body {
+  // the step draws its own header (network icon, title, account), so the
+  // modal's empty title row goes
+  .tdw-modal:has(> div > .tdw-ui > .tdw-continue) > .tdw-modal-head { display: none; }
+
+  // focused on open so the keyboard starts inside; the ring belongs to its controls
+  .tdw-continue:focus,
+  .tdw-continue:focus-visible { outline: none !important; box-shadow: none; }
+  .tdw-continue-form { display: flex; flex-direction: column; gap: 16px; white-space: normal; }
+
+  // ── Header ───────────────────────────────────────────────────────────────
+  .tdw-continue-head { display: flex; align-items: flex-start; gap: 12px; }
+  .tdw-continue-network {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--card);
+    box-shadow: var(--shadow-sm), 0 0 0 1px var(--border);
+  }
+  .tdw-continue-network img { width: 28px; height: 28px; object-fit: contain; }
+  .tdw-continue-heading { flex: 1; min-width: 0; display: grid; gap: 4px; padding-top: 1px; }
+  .tdw-continue-title { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--foreground); }
+  .tdw-continue-account { margin: 0; display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; line-height: 18px; color: var(--muted-foreground); }
+  .tdw-continue-account > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tdw-continue-close { flex: none; margin-top: -4px; margin-inline-end: -6px; }
+
+  // ── List ─────────────────────────────────────────────────────────────────
+  .tdw-continue-list {
+    display: grid;
+    gap: 8px;
+    max-height: min(420px, 52vh);
+    overflow-y: auto;
+    // room for the selected row's ring
+    padding: 2px;
+    margin: -2px;
+  }
+  // the kit's radio row (.pz-radio), centred around a 40px avatar
+  .tdw-ui .pz-radio.tdw-continue-row { align-items: center; gap: 12px; padding: 10px 14px; }
+  .tdw-ui .tdw-continue-row .pz-radio-dot { margin-top: 0; }
+  .tdw-ui .pz-radio.tdw-continue-row.is-on { background: var(--primary-soft); }
+  .tdw-continue-row:has(input:focus-visible) { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .tdw-continue-row-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .tdw-continue-row-name { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tdw-continue-row-desc { font-size: 12px; line-height: 16px; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tdw-continue-skeleton {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--card);
+  }
+  .tdw-continue-no-match { margin: 0; padding: 16px; text-align: center; font-size: 13px; color: var(--muted-foreground); }
+
+  .tdw-continue-foot { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+
+  // ── Empty and error ──────────────────────────────────────────────────────
+  .tdw-continue-state { display: grid; justify-items: center; gap: 12px; }
+  .tdw-continue-state .pz-empty { padding-bottom: 8px; }
+  .tdw-continue-help {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+    color: var(--primary);
+    text-decoration: none;
+    border-radius: 6px;
+  }
+  .tdw-continue-help:hover { text-decoration: underline; }
+  .tdw-continue-help:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  [dir='rtl'] & .tdw-continue-help .pz-icon { transform: scaleX(-1); }
+  .tdw-continue-note {
+    margin: 4px 0 0;
+    max-width: 420px;
+    text-align: center;
+    font-size: 12px;
+    line-height: 17px;
+    color: var(--muted-foreground);
+  }
+  .tdw-continue-details { width: 100%; font-size: 12px; line-height: 17px; color: var(--muted-foreground); }
+  .tdw-continue-details summary { cursor: pointer; width: fit-content; margin-inline: auto; border-radius: 6px; }
+  .tdw-continue-details summary:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .tdw-continue-details code {
+    display: block;
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    background: var(--muted);
+    color: var(--foreground);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    white-space: pre-wrap;
+    word-break: break-word;
+    direction: ltr;
+    text-align: start;
+  }
+
+  // Phones: the modal is a bottom sheet; actions span its width
+  @media (max-width: 640px) {
+    .tdw-continue-title { font-size: 18px; line-height: 24px; }
+    .tdw-continue-list { max-height: 50dvh; }
+    .tdw-continue-foot > .pz-btn { flex: 1; }
+    .tdw-continue-state .pz-empty-actions { width: 100%; }
+    .tdw-continue-state .pz-empty-actions > .pz-btn { flex: 1; }
+  }
+}

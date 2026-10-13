@@ -21,28 +21,29 @@ export const LinkedinContinue = withContinueProvider<
 >({
   endpoint: 'companies',
   swrKey: 'load-linkedin-pages',
-  titleKey: 'select_linkedin_page',
-  titleDefault: 'Select Linkedin Page:',
-  emptyStateMessages: [
-    {
-      key: 'we_couldn_t_find_any_business_connected_to_your_linkedin_page',
-      text: "We couldn't find any business connected to your LinkedIn Page.",
+  title: { key: 'tdw_continue_linkedin_title', text: 'Choose a LinkedIn Page' },
+  avatarShape: 'square',
+  empty: {
+    title: {
+      key: 'tdw_continue_linkedin_empty_title',
+      text: 'No LinkedIn Pages to connect',
     },
-    {
-      key: 'please_close_this_dialog_create_a_new_page_and_add_a_new_channel_again',
-      text: 'Please close this dialog, create a new page, and add a new channel again.',
+    body: {
+      key: 'tdw_continue_linkedin_empty_body',
+      text: 'You need to be a super admin or content admin of a LinkedIn Page. Create a Page or ask an admin to add you, then reconnect.',
     },
-  ],
+    helpUrl: 'https://www.linkedin.com/help/linkedin/answer/a541981',
+    helpLabel: {
+      key: 'tdw_continue_linkedin_help',
+      text: 'About LinkedIn Page admin roles',
+    },
+  },
+  getItemName: (item) => item.name,
+  getItemPicture: (item) => item.picture,
+  getItemDescription: (item) =>
+    item.username ? `linkedin.com/company/${item.username}` : undefined,
   getItemId: (item) => item.id,
   getSelectionValue: (item) => ({ id: item.id, pageId: item.pageId }),
   transformSaveData: (selection) => ({ page: selection.id }),
   isSelected: (item, selection) => selection?.id === item.id,
-  renderItem: (item) => (
-    <>
-      <div>
-        <img className="w-full" src={item.picture} alt="profile" />
-      </div>
-      <div>{item.name}</div>
-    </>
-  ),
 });

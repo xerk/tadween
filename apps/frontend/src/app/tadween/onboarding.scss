@@ -32,9 +32,13 @@ $phone: '(max-width: 1025px)';
   .tdw-ob-logout { display: inline-flex; color: var(--muted-foreground); }
   .tdw-ob-logout:hover { color: var(--foreground); }
   // The plan step is wider and starts higher, so the plans fit a laptop screen
-  &.tdw-ob-page .pz-ob-stage.is-plan { padding-top: var(--space-6); }
+  &.tdw-ob-page .pz-ob-stage.is-plan { padding-top: var(--space-4); }
   .pz-ob-stage.is-plan .pz-ob-step.is-wide { max-width: 1120px; }
   .tdw-ob-video { max-width: 880px; margin: 0 auto; }
+  // Agents step: the guide (Settings → API & MCP) stays inside the screen on phones
+  .pz-ob-step > *, .pz-ob-agents > *, .pz-ob-panel, .pz-ob-panel-body { min-width: 0; }
+  .pz-ob-agents .tdw-api-guide-bar { overflow-x: auto; scrollbar-width: none; }
+  .pz-ob-agents .tdw-api-guide-bar .pz-seg { flex: none; }
   .tdw-ob-link.is-center { justify-self: center; }
 
   // A big, friendly headline and one lead line
@@ -84,7 +88,6 @@ $phone: '(max-width: 1025px)';
     .tdw-ob-headline .title-1 { font-size: 28px; line-height: 34px; }
     &.is-ar .tdw-ob-headline .title-1 { font-size: 26px; line-height: 38px; }
     .tdw-ob-head-spacer { display: none; }
-    &.tdw-ob-page .pz-ob-stage.is-plan { padding-top: var(--space-4); }
     .pz-ob-foot .pz-ob-foot-note { display: none; }
     .pz-ob-foot { justify-content: flex-end; }
   }

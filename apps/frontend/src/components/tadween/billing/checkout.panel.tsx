@@ -16,11 +16,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import {
-  Appearance,
-  loadStripe,
-  StripeElementLocale,
-} from '@stripe/stripe-js';
+import { Appearance, loadStripe, StripeElementLocale } from '@stripe/stripe-js';
 import {
   CheckoutProvider,
   PaymentElement,
@@ -83,7 +79,6 @@ export const waitForSubscription = async (
   }
   return 'slow';
 };
-
 
 // The chosen plan: price, founder line, what today costs and what's included.
 // `change` (a live subscription switching plan) leaves the charge lines to
@@ -197,7 +192,6 @@ export const OrderSummary: FC<{
   );
 };
 
-
 // One Checkout Session per plan and period (POST /billing/embedded), kept for
 // the page's life so going back and forth between plans reuses it
 const useCheckoutSession = (tier: string, period: BillingPeriod) => {
@@ -247,12 +241,14 @@ const useLightMode = () => {
   return light;
 };
 
-const GEIST = 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap';
+const GEIST =
+  'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap';
 
 // Stripe's fields in Tadween's colours: the tokens of the current mode
 const tadweenAppearance = (light: boolean): Appearance => {
   const css = getComputedStyle(document.body);
-  const token = (name: string) => css.getPropertyValue(name).trim() || undefined;
+  const token = (name: string) =>
+    css.getPropertyValue(name).trim() || undefined;
   return {
     theme: light ? 'stripe' : 'night',
     variables: {
@@ -314,8 +310,7 @@ const PromoCode: FC = () => {
     setBusy(false);
     if (result.type === 'error') {
       setError(
-        result.error.message ||
-          t('tdw_promo_invalid', 'This code isn’t valid.')
+        result.error.message || t('tdw_promo_invalid', 'This code isn’t valid.')
       );
       return;
     }
@@ -525,7 +520,11 @@ export const CheckoutPanel: FC<{
   );
   const light = useLightMode();
   const [step, setStep] = useState<Step>('pay');
-  const { data: session, error } = useCheckoutSession(plan.tier, period);
+  const {
+    data: session,
+    error,
+    mutate: renewSession,
+  } = useCheckoutSession(plan.tier, period);
   const check = useRef('');
   check.current = session?.check || '';
   const trialDays = user?.allowTrial ? plan.trialDays : 0;
@@ -621,7 +620,9 @@ export const CheckoutPanel: FC<{
       ) : shown === 'confirming' ? (
         <div className="tdw-checkout-state" role="status">
           <Spinner size={28} label={t('tdw_confirming', 'Confirming')} />
-          <h3>{t('tdw_confirming_payment', 'Confirming your subscription…')}</h3>
+          <h3>
+            {t('tdw_confirming_payment', 'Confirming your subscription…')}
+          </h3>
           <p>
             {t(
               'tdw_confirming_desc',
@@ -634,7 +635,9 @@ export const CheckoutPanel: FC<{
           <span className="tdw-checkout-mark">
             <Icon name="circle-check" size={28} />
           </span>
-          <h3>{t('tdw_youre_on', 'You’re on {{name}}', { name: plan.name })}</h3>
+          <h3>
+            {t('tdw_youre_on', 'You’re on {{name}}', { name: plan.name })}
+          </h3>
           <p>
             {trialDays > 0
               ? t(
@@ -647,7 +650,12 @@ export const CheckoutPanel: FC<{
                   'Your plan is active. Next: connect your channels and schedule your first post.'
                 )}
           </p>
-          <Button variant="primary" size="lg" iconEnd="arrow-right" onClick={finish}>
+          <Button
+            variant="primary"
+            size="lg"
+            iconEnd="arrow-right"
+            onClick={finish}
+          >
             {t('tdw_get_started', 'Get started')}
           </Button>
         </div>
@@ -656,14 +664,23 @@ export const CheckoutPanel: FC<{
           <span className="tdw-checkout-mark">
             <Icon name="circle-x" size={28} />
           </span>
-          <h3>{t('tdw_card_not_validated', 'We couldn’t validate your card')}</h3>
+          <h3>
+            {t('tdw_card_not_validated', 'We couldn’t validate your card')}
+          </h3>
           <p>
             {t(
               'tdw_card_not_validated_desc',
               'Nothing was charged. Try again with another card.'
             )}
           </p>
-          <Button variant="primary" onClick={() => setStep('pay')}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              // the refused session is complete: the next try needs a new one
+              renewSession(undefined);
+              setStep('pay');
+            }}
+          >
             {t('tdw_try_again', 'Try again')}
           </Button>
         </div>
@@ -688,7 +705,9 @@ export const CheckoutPanel: FC<{
           <span className="tdw-checkout-mark">
             <Icon name="triangle-alert" size={28} />
           </span>
-          <h3>{t('tdw_checkout_unavailable', 'The payment form didn’t load')}</h3>
+          <h3>
+            {t('tdw_checkout_unavailable', 'The payment form didn’t load')}
+          </h3>
           <p>
             {t(
               'billing_stripe_load_failed',

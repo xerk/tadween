@@ -190,38 +190,38 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                       </div>
                     )}
                     <div className="tdw-main flex-1 min-w-0 flex flex-col gap-[8px]">
-                    {/* the trial / payment-failed bar floats as its own rounded
+                      {/* the trial / payment-failed bar floats as its own rounded
                         card above the page card, like the sidebar beside it */}
-                    {billingEnabled && <TrialBanner />}
-                    <div className="flex-1 min-w-0 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
-                      <div
-                        className={clsx(
-                          'tdw-topbar flex bg-newBgColorInner px-[20px] mobile:px-[12px] gap-[12px] items-center',
-                          isBareTopBar(pathname)
-                            ? 'is-bare h-[48px] mobile:h-[56px]'
-                            : 'h-[68px] mobile:h-[56px]'
-                        )}
-                      >
-                        <div className="tdw-topbar-title flex flex-1 min-w-0">
-                          <Title />
-                        </div>
-                        <div className="tdw-topbar-actions flex items-center gap-[6px] text-textItemBlur">
-                          {/* the admin tools pill only inside the admin console;
+                      {billingEnabled && <TrialBanner />}
+                      <div className="flex-1 min-w-0 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
+                        <div
+                          className={clsx(
+                            'tdw-topbar flex bg-newBgColorInner px-[20px] mobile:px-[12px] gap-[12px] items-center',
+                            isBareTopBar(pathname)
+                              ? 'is-bare h-[48px] mobile:h-[56px]'
+                              : 'h-[68px] mobile:h-[56px]'
+                          )}
+                        >
+                          <div className="tdw-topbar-title flex flex-1 min-w-0">
+                            <Title />
+                          </div>
+                          <div className="tdw-topbar-actions flex items-center gap-[6px] text-textItemBlur">
+                            {/* the admin tools pill only inside the admin console;
                               elsewhere the sidebar's Admin item leads there */}
-                          {user?.admin &&
-                          !user?.impersonate &&
-                          /^\/admin(\/|$)/.test(pathname) ? (
-                            <Impersonate />
-                          ) : null}
-                          <UpgradeButton />
-                          <StreakComponent />
-                          <NotificationComponent />
+                            {user?.admin &&
+                            !user?.impersonate &&
+                            /^\/admin(\/|$)/.test(pathname) ? (
+                              <Impersonate />
+                            ) : null}
+                            <UpgradeButton />
+                            <StreakComponent />
+                            <NotificationComponent />
+                          </div>
+                        </div>
+                        <div className="flex flex-1 min-w-0 gap-[1px] mobile:flex-col">
+                          {children}
                         </div>
                       </div>
-                      <div className="flex flex-1 min-w-0 gap-[1px] mobile:flex-col">
-                        {children}
-                      </div>
-                    </div>
                     </div>
                   </div>
                 </>

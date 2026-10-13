@@ -781,8 +781,7 @@ export class StripeService extends PaymentProviderAbstract {
     // where CheckPayment does the same wait.
     const { client_secret } = await stripe.checkout.sessions.create({
       ui_mode: 'custom',
-      return_url:
-        process.env['FRONTEND_URL'] + `/today?check=${uniqueId}`,
+      return_url: process.env['FRONTEND_URL'] + `/today?check=${uniqueId}`,
       customer,
       mode: 'subscription',
       // Local currency at checkout (also needs Adaptive Pricing on in the

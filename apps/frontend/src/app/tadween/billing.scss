@@ -107,15 +107,9 @@
   .pz-retention-mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--primary-soft); color: var(--primary); }
 
   // First billing (FREE users): the paywall frame around the one-page billing screen
-  &.tdw-paywall, .tdw-paywall { display: flex; flex: 1; flex-direction: column; min-height: 100%; background: var(--background); }
-  .tdw-paywall-top { display: flex; align-items: center; gap: var(--space-4); height: 64px; padding: 0 var(--space-8); }
-  .tdw-paywall-top .grow { flex: 1; }
-  .tdw-paywall-tools { display: flex; align-items: center; gap: var(--space-4); color: var(--muted-foreground); }
-  .tdw-paywall-tools .sep { width: 1px; height: 20px; background: var(--border); }
 
 
   @media (max-width: 1024px) {
-    .tdw-paywall-top { padding: 0 var(--space-4); }
     .pz-billing-grid { grid-template-columns: minmax(0, 1fr); }
     .pz-ob-panels { grid-template-columns: minmax(0, 1fr); }
     .pz-ob-head, .pz-ob-foot { padding-inline: var(--space-4); }
@@ -132,7 +126,6 @@
     .pz-ob-agent, .pz-ob-providers > div > div > div > div { transition-duration: 150ms; transform: none !important; }
   }
   @media (prefers-reduced-transparency: reduce) {
-    .tdw-paybar { background: var(--popover); -webkit-backdrop-filter: none; backdrop-filter: none; }
   }
   @media (prefers-contrast: more) {
     .pz-ob-card, .pz-ob-panel, .pz-tier, .pz-bill-card { box-shadow: 0 0 0 1px var(--input); }
@@ -158,11 +151,7 @@
 .tdw-ui {
   &.tdw-billing-page, .tdw-billing-page { display: grid; gap: var(--space-12); width: 100%; max-width: 1040px; margin: 0 auto; padding: var(--space-8) 0 64px; box-sizing: border-box; }
   &.tdw-billing-page > *, .tdw-billing-page > * { min-width: 0; }
-  .tdw-billing-page.is-paywall { padding-inline: var(--space-6); }
 
-  .tdw-plans-head { display: grid; justify-items: center; gap: var(--space-3); text-align: center; }
-  .tdw-plans-title { margin: 0; max-width: 720px; font-size: 40px; line-height: 46px; font-weight: 600; letter-spacing: -0.03em; text-wrap: balance; }
-  .tdw-plans-lead { margin: 0 0 var(--space-3); max-width: 560px; font-size: 16px; line-height: 24px; color: var(--muted-foreground); text-wrap: pretty; }
 
   .tdw-plans-grid { display: grid; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); gap: var(--space-5); align-items: stretch; }
   .tdw-plans-grid[data-count='1'] { --cols: 1; max-width: 480px; width: 100%; margin: 0 auto; }
@@ -199,81 +188,23 @@
   .tdw-plan-features li.is-off .pz-icon { color: var(--muted-foreground); opacity: 0.6; }
 
 
-  .tdw-trust { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3) var(--space-8); font-size: 13px; color: var(--muted-foreground); }
-  .tdw-trust li { display: inline-flex; align-items: center; gap: 8px; }
 
   .tdw-section-title { margin: 0 0 var(--space-4); font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.02em; text-align: center; }
   .tdw-billing-faq { width: 100%; max-width: 720px; margin: 0 auto; }
 
   // Current plan (subscribed workspaces)
-  .tdw-current { display: grid; gap: var(--space-6); padding: var(--space-8); border-radius: var(--radius-xl); background: var(--card); box-shadow: 0 0 0 1px var(--border), var(--shadow-sm); }
-  .tdw-current-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
-  .tdw-current-label { font-size: 13px; color: var(--muted-foreground); }
-  .tdw-current-name { margin: 2px 0 0; font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.02em; }
-  .tdw-current-price { margin: 4px 0 0; font-size: 14px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
-  .tdw-current-failed { margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--warning-soft); font-size: 14px; line-height: 20px; }
   .tdw-current-usage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); }
-  .tdw-current-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding-top: var(--space-5); border-top: 1px solid var(--border); }
-  .tdw-current-actions .grow { flex: 1; }
 
   // Checkout drawer: order summary above Stripe Embedded Checkout
   // One page: the plans, then the chosen plan's summary beside the payment
   // (Stripe Embedded Checkout) or, with a subscription, the change panel
-  .tdw-billing-page.is-paywall { max-width: 1160px; }
-  .tdw-billing-plans { display: grid; gap: var(--space-6); scroll-margin-top: var(--space-6); }
-  .tdw-picker { display: grid; gap: var(--space-5); }
-  .tdw-picker-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); }
-  .tdw-picker-title { margin: 0; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.02em; }
-  .tdw-picker-grid { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: var(--space-4); }
-  .tdw-picker-grid[data-count='1'] { --cols: 1; max-width: 420px; }
-  .tdw-picker-grid[data-count='2'] { --cols: 2; }
-  .tdw-picker-grid[data-count='4'] { --cols: 4; }
-  .tdw-plan-pick { position: relative; display: flex; flex-direction: column; gap: 6px; padding: var(--space-5) var(--space-6); border: 0; border-radius: var(--radius-xl); background: var(--card); box-shadow: 0 0 0 1px var(--border), var(--shadow-sm); text-align: start; font: inherit; color: var(--foreground); cursor: pointer; transition: box-shadow var(--duration-fast) ease, transform var(--duration-instant) ease-out, opacity var(--duration-fast) ease; }
-  .tdw-plan-pick:hover:not(.is-disabled) { box-shadow: 0 0 0 1px var(--input), var(--shadow-md); }
-  .tdw-plan-pick:active:not(.is-disabled) { transform: scale(0.99); }
-  .tdw-plan-pick:has(input:focus-visible) { outline: 2px solid var(--ring); outline-offset: 3px; }
-  .tdw-plan-pick.is-featured { background: linear-gradient(180deg, color-mix(in oklab, var(--primary-soft) 70%, var(--card)) 0%, var(--card) 55%); }
-  .tdw-plan-pick.is-on, .tdw-plan-pick.is-on:hover:not(.is-disabled) { box-shadow: 0 0 0 2px var(--primary), 0 18px 48px -24px color-mix(in oklab, var(--primary) 45%, transparent); }
-  .tdw-plan-pick.is-disabled { cursor: default; }
-  .tdw-plan-pick.is-disabled:not(.is-on) { opacity: 0.55; }
-  .tdw-picker-period[inert] { opacity: 0.55; }
-  .tdw-plan-pick-top { display: flex; align-items: center; gap: 10px; }
-  .tdw-plan-pick-radio { flex: none; width: 18px; height: 18px; border-radius: 50%; background: var(--card); box-shadow: inset 0 0 0 1.5px var(--input); transition: box-shadow var(--duration-fast) ease; }
-  .tdw-plan-pick.is-on .tdw-plan-pick-radio { box-shadow: inset 0 0 0 5px var(--primary); }
-  .tdw-plan-pick-name { flex: 1; min-width: 0; font-size: 18px; line-height: 24px; font-weight: 600; letter-spacing: -0.01em; }
-  .tdw-plan-pick-for { font-size: 13px; line-height: 18px; color: var(--muted-foreground); }
-  .tdw-plan-pick-price { display: flex; align-items: baseline; gap: 6px; margin-top: var(--space-2); }
-  .tdw-plan-pick-amount { font-family: var(--font-mono); font-size: 36px; line-height: 40px; font-weight: 500; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
-  .tdw-plan-pick-per { font-size: 14px; color: var(--muted-foreground); }
-  .tdw-plan-pick-bill { font-size: 13px; line-height: 18px; color: var(--muted-foreground); }
-  .tdw-plan-pick .tdw-founder { margin-top: 0; }
-  .tdw-plan-pick-rows { display: grid; gap: 6px; margin-top: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border); font-size: 13px; line-height: 18px; }
-  .tdw-plan-pick-rows:empty { display: none; }
-  .tdw-plan-pick-rows > span { display: flex; align-items: center; gap: 8px; }
-  .tdw-plan-pick-rows .pz-icon { flex: none; color: var(--primary); }
 
-  .tdw-pay { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 520px); gap: var(--space-6); align-items: start; }
-  .tdw-pay-main { position: sticky; top: var(--space-5); display: grid; gap: var(--space-5); }
-  .tdw-pay .tdw-order-included .tdw-plan-features { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-5); }
-  .tdw-pay .tdw-trust { justify-content: flex-start; gap: var(--space-2) var(--space-6); }
   .tdw-checkout { display: grid; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius-xl); background: var(--card); box-shadow: 0 0 0 1px var(--border), var(--shadow-sm); scroll-margin-top: var(--space-4); }
   .tdw-checkout-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); }
   .tdw-checkout-title { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.02em; }
   .tdw-checkout-secure { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted-foreground); }
   .tdw-checkout-secure .pz-icon { color: var(--success); }
-  .tdw-change-rows { display: grid; margin: 0; border-radius: var(--radius-lg); box-shadow: 0 0 0 1px var(--border); }
-  .tdw-change-rows > div { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); padding: 12px 14px; font-size: 14px; line-height: 20px; }
-  .tdw-change-rows > div + div { border-top: 1px solid var(--border); }
-  .tdw-change-rows dt { flex: none; color: var(--muted-foreground); }
-  .tdw-change-rows dd { margin: 0; text-align: end; font-weight: 500; font-variant-numeric: tabular-nums; }
-  .tdw-change-rows > div:not(.is-next) + div:not(.is-next) dd { font-weight: 400; color: var(--muted-foreground); }
-  .tdw-change-rows .is-next dd { color: var(--primary); font-weight: 600; }
-  .tdw-change-desc { margin: 0; font-size: 13px; line-height: 18px; color: var(--muted-foreground); }
-  .tdw-change-today { display: flex; align-items: center; gap: 8px; min-height: 24px; margin: 0; font-size: 15px; }
   // Phones: names the choice and jumps to the form (PayBar)
-  .tdw-paybar { position: fixed; z-index: 100; inset-inline: 0; bottom: 0; display: none; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); background: var(--material); -webkit-backdrop-filter: blur(var(--blur-regular)) saturate(180%); backdrop-filter: blur(var(--blur-regular)) saturate(180%); border-top: 1px solid var(--border); }
-  .tdw-paybar-label { flex: 1; min-width: 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
-  .tdw-paybar-label strong { color: var(--foreground); font-weight: 600; }
   .tdw-checkout-stripe { min-height: 420px; border-radius: var(--radius-lg); overflow: hidden; background: #ffffff; }
   .tdw-order { display: grid; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius-lg); background: var(--card); box-shadow: 0 0 0 1px var(--border); }
   .tdw-order-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
@@ -298,36 +229,20 @@
 
   @media (max-width: 1024px) {
     &.tdw-billing-page, .tdw-billing-page { gap: var(--space-8); padding: var(--space-4) 0 var(--space-12); }
-    .tdw-pay { grid-template-columns: minmax(0, 1fr); }
-    .tdw-pay-main { position: static; }
-    .tdw-paybar:not([hidden]) { display: flex; }
-    .tdw-billing-page.is-paywall { padding-bottom: 120px; }
-    .tdw-billing-page.is-paywall { padding-inline: var(--space-4); }
-    .tdw-plans-title { font-size: 30px; line-height: 36px; }
     .tdw-current-usage { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
   }
   @media (max-width: 720px) {
     .tdw-plans-grid { --cols: 1 !important; }
-    .tdw-picker-grid { --cols: 1 !important; gap: var(--space-3); }
-    .tdw-plan-pick { padding: var(--space-4) var(--space-5); }
-    .tdw-plan-pick-for { display: none; }
-    .tdw-plan-pick-amount { font-size: 28px; line-height: 32px; }
-    .tdw-plan-pick-price { margin-top: 0; }
-    .tdw-plan-pick-rows { display: flex; flex-wrap: wrap; gap: 4px var(--space-4); }
-    .tdw-pay .tdw-order-included .tdw-plan-features { grid-template-columns: minmax(0, 1fr); }
     .tdw-checkout { padding: var(--space-4); }
     .tdw-plan { padding: var(--space-6); }
     .tdw-plan-amount { font-size: 40px; line-height: 44px; }
-    .tdw-current { padding: var(--space-5); }
-    .tdw-current-head { flex-wrap: wrap; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .tdw-plan, .tdw-plan-amount, .tdw-plan-pick-amount, .tdw-checkout-state { animation: pz-fade 150ms ease both !important; }
-    .tdw-plan, .tdw-plan-pick, .tdw-plan-pick-radio { transition: none; }
-    .tdw-plan-pick:active:not(.is-disabled) { transform: none; }
+    .tdw-plan, .tdw-plan-amount, .tdw-checkout-state { animation: pz-fade 150ms ease both !important; }
+    .tdw-plan { transition: none; }
   }
   @media (prefers-contrast: more) {
-    .tdw-plan, .tdw-current, .tdw-order, .tdw-checkout, .tdw-plan-pick { box-shadow: 0 0 0 1px var(--input); }
+    .tdw-plan, .tdw-order, .tdw-checkout, .tdw-paymethod, .tdw-history { box-shadow: 0 0 0 1px var(--input); }
   }
 }
 
@@ -336,7 +251,9 @@
 // shadow (shell.scss), the shell's 8px gap between them
 .tdw-ui .tdw-trial-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 20px; border-radius: 20px; background: color-mix(in oklab, var(--primary-soft) 70%, var(--card)); box-shadow: inset 0 0 0 1px var(--border), 0 8px 24px -16px rgb(0 0 0 / 0.35); color: var(--foreground); font-size: 13px; line-height: 18px; text-align: center; }
 @media (max-width: 1025px) {
-  .tdw-ui .tdw-trial-bar { min-height: 40px; padding: 8px 14px; border-radius: 16px; }
+  .tdw-ui .tdw-trial-bar { min-height: 40px; padding: 8px 14px; border-radius: 16px; gap: 2px 8px; }
+  // phones: the link goes under the message instead of after a dot
+  .tdw-ui .tdw-trial-sep { display: none; }
 }
 .tdw-ui .tdw-trial-bar .pz-icon { color: var(--primary); }
 .tdw-ui .tdw-trial-sep { color: var(--muted-foreground); }
@@ -348,8 +265,6 @@
 .tdw-ui .tdw-trial-bar.is-failed { background: color-mix(in oklab, var(--warning-soft) 80%, var(--card)); }
 .tdw-ui .tdw-trial-bar.is-failed .pz-icon { color: var(--warning); }
 .tdw-ui .tdw-trial-bar.is-failed .tdw-trial-link { color: var(--foreground); text-decoration: underline; }
-.tdw-ui .tdw-skip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); background: var(--muted); font-size: 14px; line-height: 20px; }
-.tdw-ui .tdw-skip > span { flex: 1 1 220px; }
 
 // Upgrade paywall (PaywallModal). It opens over the modal whose action was
 // refused (invite, composer: modal manager, z-index 200+), so it sits above it.
@@ -409,9 +324,9 @@
   // The plan step (first.billing.component.tsx): three cards in one row that
   // fit a 1366×768 laptop without scrolling, then the chosen plan beside
   // Stripe's form. Phones stack.
-  .tdw-plan-step { display: grid; gap: var(--space-5); width: 100%; }
+  .tdw-plan-step { display: grid; gap: var(--space-4); width: 100%; }
   .tdw-plan-step-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
-  .tdw-plan-step-head .tdw-ob-headline { max-width: 620px; }
+  .tdw-plan-step-head .tdw-ob-headline { max-width: 780px; }
   .tdw-plan-row { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: var(--space-4); align-items: stretch; }
   .tdw-plan-row[data-count='2'] { --cols: 2; }
   .tdw-plan-row[data-count='4'] { --cols: 4; }
@@ -441,3 +356,64 @@
   }
 }
 
+
+// Billing (main.billing.component.tsx), laid out as Postiz's billing: title
+// and Monthly/Yearly, the plan cards with one action each (the current plan
+// filled in the brand colour), the payment method, AI credits, the billing
+// history and the questions
+.tdw-ui {
+  &.tdw-billing-page:has(> .tdw-billing-head), .tdw-billing-page:has(> .tdw-billing-head) { gap: var(--space-6); max-width: 1120px; padding-inline: var(--space-6); }
+  .tdw-billing-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+  .tdw-billing-title { margin: 0; font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.02em; }
+  .tdw-billing-lead { margin: 4px 0 0; font-size: 15px; line-height: 22px; color: var(--muted-foreground); }
+
+  // The current plan: the brand fill, its own tokens so everything inside
+  // (meters, buttons, notes) follows
+  .tdw-plan-row .tdw-plan.is-current {
+    --foreground: #ffffff; --muted-foreground: rgb(255 255 255 / 0.74); --border: rgb(255 255 255 / 0.2); --primary: #ffffff; --muted: rgb(255 255 255 / 0.18); --input: rgb(255 255 255 / 0.4);
+    background: linear-gradient(180deg, var(--tdw-primary-strong) 0%, color-mix(in oklab, var(--tdw-primary-strong) 78%, #000000) 100%);
+    color: #ffffff;
+    box-shadow: 0 18px 48px -24px color-mix(in oklab, var(--tdw-primary-strong) 80%, transparent), var(--shadow-md);
+  }
+  .tdw-plan-row .tdw-plan.is-current .tdw-plan-flag.is-current { background: rgb(255 255 255 / 0.18); color: #ffffff; }
+  .tdw-plan-row .tdw-plan.is-current .pz-btn-secondary, .tdw-plan-row .tdw-plan.is-current .pz-btn-primary { background: #ffffff; color: var(--tdw-primary-strong); box-shadow: none; }
+  .tdw-plan-row .tdw-plan.is-current .pz-btn:disabled { background: rgb(255 255 255 / 0.16); color: #ffffff; opacity: 1; }
+  .tdw-plan-row .tdw-plan-note { display: block; min-height: 20px; }
+  .tdw-plan-row .tdw-plan-note .tdw-current-usage { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); padding-top: var(--space-2); }
+
+  .tdw-paymethod { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-5) var(--space-6); border-radius: var(--radius-xl); background: var(--card); box-shadow: 0 0 0 1px var(--border), var(--shadow-sm); }
+  .tdw-paymethod-ico { display: grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: 50%; background: var(--primary-soft); color: var(--primary); }
+  .tdw-paymethod-text { flex: 1; min-width: 0; }
+  .tdw-paymethod-text h2 { margin: 0; font-size: 16px; line-height: 22px; font-weight: 600; }
+  .tdw-paymethod-text p { margin: 2px 0 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+  .tdw-paymethod-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .tdw-paymethod-actions .is-danger { color: var(--destructive); }
+
+  .tdw-history { display: grid; gap: var(--space-4); padding: var(--space-5) var(--space-6); border-radius: var(--radius-xl); background: var(--card); box-shadow: 0 0 0 1px var(--border), var(--shadow-sm); }
+  .tdw-history-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .tdw-history-head .tdw-section-title { margin: 0; font-size: 20px; line-height: 26px; text-align: start; }
+  .tdw-history-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .tdw-history-tools .pz-field { width: 220px; }
+  .tdw-history-table { overflow-x: auto; }
+  .tdw-history-plan { display: grid; gap: 2px; }
+  .tdw-history-plan > span { font-size: 13px; color: var(--muted-foreground); }
+  .tdw-history-status { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; color: var(--muted-foreground); }
+  .tdw-history-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .tdw-history-status.is-ok { color: var(--success); }
+  .tdw-history-status.is-warn { color: var(--warning); }
+  .tdw-history-status.is-bad { color: var(--destructive); }
+  .tdw-history-actions { display: inline-flex; gap: var(--space-2); }
+  .tdw-history-actions a { display: grid; place-items: center; width: 34px; height: 34px; border-radius: var(--radius-md); color: var(--muted-foreground); box-shadow: inset 0 0 0 1px var(--border); }
+  .tdw-history-actions a:hover { color: var(--foreground); background: var(--accent); }
+  .tdw-history-actions a:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .tdw-history-more { justify-self: center; }
+
+  @media (max-width: 1025px) {
+    &.tdw-billing-page:has(> .tdw-billing-head), .tdw-billing-page:has(> .tdw-billing-head) { padding-inline: var(--space-4); }
+    .tdw-paymethod { flex-wrap: wrap; padding: var(--space-4); }
+    .tdw-paymethod-actions { width: 100%; }
+    .tdw-paymethod-actions .pz-btn { flex: 1; }
+    .tdw-history { padding: var(--space-4); }
+    .tdw-history-tools, .tdw-history-tools .pz-field { width: 100%; }
+  }
+}

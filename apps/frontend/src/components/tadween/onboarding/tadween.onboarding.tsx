@@ -234,7 +234,13 @@ const LanguageSwitch: FC = () => {
     document.documentElement.setAttribute('lang', other);
   };
   return (
-    <Button variant="ghost" size="sm" icon="globe" lang={other} onClick={change}>
+    <Button
+      variant="ghost"
+      size="sm"
+      icon="globe"
+      lang={other}
+      onClick={change}
+    >
       {languageName(other)}
     </Button>
   );
@@ -446,7 +452,9 @@ export const TadweenOnboarding: FC<{
             </span>
             {onPlan ? null : (
               <Button
-                variant={step === 'channels' && !hasChannels ? 'ghost' : 'primary'}
+                variant={
+                  step === 'channels' && !hasChannels ? 'ghost' : 'primary'
+                }
                 icon={last ? 'calendar-days' : undefined}
                 iconEnd={last ? undefined : nextIcon}
                 onClick={forward}
@@ -470,11 +478,11 @@ export const TadweenOnboarding: FC<{
 };
 
 /* Heading shared by every step: big friendly title, one lead line */
-export const StepHead: FC<{ title: string; lead: string; center?: boolean }> = ({
-  title,
-  lead,
-  center,
-}) => (
+export const StepHead: FC<{
+  title: string;
+  lead: string;
+  center?: boolean;
+}> = ({ title, lead, center }) => (
   <div className={cx('tdw-ob-headline', center && 'is-center')}>
     <h1 className="title-1">{title}</h1>
     <p className="pz-ob-lead">{lead}</p>
@@ -526,9 +534,14 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
       ) : (
         <div className="pz-ob-cards">
           {social.map((item) => {
-            const done = connected.filter((c) => c.identifier === item.identifier);
+            const done = connected.filter(
+              (c) => c.identifier === item.identifier
+            );
             return (
-              <div key={item.identifier} className={cx('pz-ob-card', done.length && 'is-done')}>
+              <div
+                key={item.identifier}
+                className={cx('pz-ob-card', done.length && 'is-done')}
+              >
                 <img
                   src={`/icons/platforms/${item.identifier}.png`}
                   alt=""
@@ -536,7 +549,9 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
                   height={40}
                 />
                 <div className="pz-ob-card-text">
-                  <div className="headline">{item.name.replace(/\s*\n\s*/g, ' ')}</div>
+                  <div className="headline">
+                    {item.name.replace(/\s*\n\s*/g, ' ')}
+                  </div>
                   {done.length || item.toolTip ? (
                     <div className="caption pz-muted">
                       {done.length
@@ -551,7 +566,12 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
                       <Icon name="circle-check" size={18} />
                       {t('tdw_ob_connected', 'Connected')}
                     </span>
-                    <Button size="sm" variant="ghost" icon="plus" onClick={() => connect(item.identifier)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon="plus"
+                      onClick={() => connect(item.identifier)}
+                    >
                       {t('tdw_ob_add_another', 'Add another')}
                     </Button>
                   </>
@@ -573,7 +593,12 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
       )}
       <div ref={hidden} hidden aria-hidden="true">
         {data && (
-          <AddProviderComponent invite={false} social={social as any} article={[]} onboarding={true} />
+          <AddProviderComponent
+            invite={false}
+            social={social as any}
+            article={[]}
+            onboarding={true}
+          />
         )}
       </div>
 
@@ -667,7 +692,12 @@ const TutorialStep: FC<{ url: string }> = ({ url }) => {
           />
         </div>
       ) : (
-        <a className="tdw-ob-link is-center" href={url} target="_blank" rel="noreferrer">
+        <a
+          className="tdw-ob-link is-center"
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+        >
           <Icon name="play" size={14} />
           {t('tdw_ob_watch_tour', 'Watch a short tour')}
         </a>

@@ -65,7 +65,11 @@ const formatAmount = (amount: number, currency: string) => {
 };
 
 const formatDate = (unix: number | null) =>
-  unix ? newDayjs(unix * 1000).local().format('D MMM YYYY') : '';
+  unix
+    ? newDayjs(unix * 1000)
+        .local()
+        .format('D MMM YYYY')
+    : '';
 
 export const BillingHistory: FC = () => {
   const t = useT();
@@ -79,7 +83,10 @@ export const BillingHistory: FC = () => {
     useMemo(
       () => ({
         paid: { label: t('tdw_invoice_paid', 'Paid'), tone: 'is-ok' },
-        pending: { label: t('tdw_invoice_pending', 'Pending'), tone: 'is-warn' },
+        pending: {
+          label: t('tdw_invoice_pending', 'Pending'),
+          tone: 'is-warn',
+        },
         failed: { label: t('tdw_invoice_failed', 'Failed'), tone: 'is-bad' },
         void: { label: t('tdw_invoice_void', 'Void'), tone: '' },
       }),
@@ -227,7 +234,9 @@ export const BillingHistory: FC = () => {
                   <strong>{row.plan}</strong>
                   {row.periodLabel || row.number ? (
                     <span>
-                      {[row.periodLabel, row.number].filter(Boolean).join(' · ')}
+                      {[row.periodLabel, row.number]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </span>
                   ) : null}
                 </span>
@@ -259,7 +268,9 @@ export const BillingHistory: FC = () => {
             },
             {
               key: 'actions',
-              label: <span className="pz-sr">{t('tdw_invoice', 'Invoice')}</span>,
+              label: (
+                <span className="pz-sr">{t('tdw_invoice', 'Invoice')}</span>
+              ),
               width: 88,
               render: (row) => (
                 <span className="tdw-history-actions">

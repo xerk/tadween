@@ -5,7 +5,10 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Subscription } from '@prisma/client';
 import { useDebouncedCallback } from 'use-debounce';
 import { useToaster } from '@gitroom/react/toaster/toaster';
-import { useTadweenPricing } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import {
+  PublicPlan,
+  useTadweenPricing,
+} from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { FAQComponent } from '@gitroom/frontend/components/billing/faq.component';
 import { useSWRConfig } from 'swr';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
@@ -23,17 +26,12 @@ import {
 import {
   BillingPeriod,
   formatUsd,
+  PeriodToggle,
 } from '@gitroom/frontend/components/tadween/billing/pricing';
-import { CurrentPlanCard } from '@gitroom/frontend/components/tadween/billing/current.plan';
+import { PlanUsage } from '@gitroom/frontend/components/tadween/billing/current.plan';
 import { isPaymentFailed } from '@gitroom/frontend/components/tadween/billing/trial.banner';
-import {
-  ChangePlanPanel,
-  useBillingDialogs,
-} from '@gitroom/frontend/components/tadween/billing/billing.dialogs';
-import {
-  PlanPicker,
-  TrustRow,
-} from '@gitroom/frontend/components/tadween/billing/plans.view';
+import { useBillingDialogs } from '@gitroom/frontend/components/tadween/billing/billing.dialogs';
+import { PlanCard } from '@gitroom/frontend/components/tadween/billing/plans.view';
 import {
   CheckoutPanel,
   OrderSummary,
@@ -42,11 +40,15 @@ import {
   AiCreditsCard,
   BuyCreditsDrawer,
 } from '@gitroom/frontend/components/tadween/billing/ai.credits';
+import { BillingHistory } from '@gitroom/frontend/components/tadween/billing/billing.history';
 import { useUtmUrl } from '@gitroom/helpers/utils/utm.saver';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { FinishTrial } from '@gitroom/frontend/components/billing/finish.trial';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { useDubClickId } from '@gitroom/frontend/components/layout/dubAnalytics';
+
+// What each plan card compares at a glance, as on the plan step
+const CARD_ROWS = ['channels', 'posts', 'team', 'ai_images'];
 
 type SubscriptionWithPlatform = Subscription & {
   platform?: 'web' | 'mobile';
@@ -127,29 +129,26 @@ export const MainBillingComponent: FC<{
   >(sub);
   const [loading, setLoading] = useState<boolean>(false);
   const [period, setPeriod] = useState<BillingPeriod>(sub?.period || 'MONTHLY');
-  // The plan picked on the page; with a subscription it starts on its plan
-  const [tier, setTier] = useState<string>(sub?.subscriptionTier || '');
-  // A plan granted by an admin has no Stripe subscription to change: it is
-  // paid through the same inline checkout as a workspace without a plan
-  const [needsCheckout, setNeedsCheckout] = useState(false);
+  // The plan being paid on this page: a workspace without a Stripe
+  // subscription (e.g. a plan granted by an admin) pays through the same
+  // checkout as the plan step
+  const [payTier, setPayTier] = useState<string | null>(null);
   // While Stripe's payment is being confirmed the choice stays as paid
   const [locked, setLocked] = useState(false);
+  // which card's button started the request, so only that one spins
+  const [clicked, setClicked] = useState('');
   // /billing?credits=1 (from the AI credits paywall) opens the top-up drawer
   const [buyCredits, setBuyCredits] = useState(!!queryParams.get('credits'));
   useEffect(() => {
     setSubscription(sub);
     setPeriod(sub?.period || 'MONTHLY');
-    setTier(sub?.subscriptionTier || '');
   }, [sub]);
-  // /billing?plan=TIER (from the upgrade paywall) starts on that plan, with
-  // what it changes in view
+  // /billing?plan=TIER (from the upgrade paywall): the plans in view
   const preselect = queryParams.get('plan');
   useEffect(() => {
-    const plan = plans.find((p) => p.tier === preselect);
-    if (!plan || plan.tier === sub?.subscriptionTier) {
+    if (!preselect || !plans.length) {
       return;
     }
-    setTier(plan.tier);
     requestAnimationFrame(() =>
       document.getElementById('tdw-plans')?.scrollIntoView({
         behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -278,7 +277,7 @@ export const MainBillingComponent: FC<{
       }
       // A plan granted by an admin isn't paid through Stripe yet
       if (checkout) {
-        setNeedsCheckout(true);
+        setPayTier(tier);
         return;
       }
       if (portal) {
@@ -301,8 +300,11 @@ export const MainBillingComponent: FC<{
         subscriptionTier: tier as Subscription['subscriptionTier'],
         period,
         cancelAt: null,
+        // the new price comes with the webhook; until then the plan's price
+        priceCents: null,
       }));
       mutate('/user/self');
+      mutate('/billing/invoices');
       toast.show(
         t('tdw_plan_changed', 'You’re now on {{name}}.', {
           name: target?.name || '',
@@ -352,38 +354,125 @@ export const MainBillingComponent: FC<{
     ? planFor(subscription.subscriptionTier)
     : undefined;
   const samePeriod = subscription?.period === period;
-  const selected =
-    plans.find((p) => p.tier === tier) ||
-    currentPlan ||
-    plans.find((p) => p.mostPopular) ||
-    plans[0];
-  // No subscription to change: the picked plan is paid on this page
-  const paying = !subscription || needsCheckout;
-  const unchanged =
-    !!subscription &&
-    selected?.tier === subscription.subscriptionTier &&
-    samePeriod;
-  const priceLabel = (amount: number, p: BillingPeriod) =>
-    `${formatUsd(amount)}${
-      p === 'YEARLY'
-        ? t('tdw_per_year_short', '/year')
-        : t('tdw_per_month_short', '/month')
-    }`;
-  const changeLabel = !selected
-    ? ''
-    : selected.tier === subscription?.subscriptionTier
-    ? period === 'YEARLY'
-      ? t('tdw_switch_yearly', 'Switch to yearly')
-      : t('tdw_switch_monthly', 'Switch to monthly')
-    : (currentPlan?.monthlyPriceUsd || 0) < selected.monthlyPriceUsd
-    ? t('tdw_upgrade_to', 'Upgrade to {{name}}', { name: selected.name })
-    : t('tdw_switch_to', 'Switch to {{name}}', { name: selected.name });
+  const failed = isPaymentFailed(subscription?.status);
+  const trial = !!user?.allowTrial;
+  const payPlan = plans.find((p) => p.tier === payTier);
+  // What the subscription pays a month (a founder price stays locked)
+  const currentAmount =
+    samePeriod && typeof subscription?.priceCents === 'number'
+      ? period === 'YEARLY'
+        ? subscription.priceCents / 1200
+        : subscription.priceCents / 100
+      : undefined;
+
+  // One action per plan, as Postiz's billing: current plan, resume, switch
+  // the period, upgrade or downgrade (Stripe prorates), or pay for a first one
+  const planAction = (plan: PublicPlan) => {
+    const run = (fn: () => void) => () => {
+      setClicked(plan.tier);
+      fn();
+    };
+    if (!subscription) {
+      return {
+        label:
+          trial && plan.trialDays > 0
+            ? t('tdw_start_free_trial', 'Start {{n}}-day free trial', {
+                n: plan.trialDays,
+              })
+            : t('tdw_choose_plan_name', 'Choose {{name}}', {
+                name: plan.name,
+              }),
+        variant: plan.mostPopular ? 'primary' : 'secondary',
+        onClick: () => setPayTier(plan.tier),
+      } as const;
+    }
+    if (plan.tier === subscription.subscriptionTier) {
+      if (subscription.cancelAt) {
+        return {
+          label: t('tdw_resume_subscription', 'Resume subscription'),
+          variant: 'primary',
+          onClick: run(() => toggleCancel(true)),
+        } as const;
+      }
+      if (samePeriod) {
+        return {
+          label: t('tdw_current_plan', 'Current plan'),
+          variant: 'secondary',
+          disabled: true,
+        } as const;
+      }
+      return {
+        label:
+          period === 'YEARLY'
+            ? t('tdw_switch_yearly', 'Switch to yearly')
+            : t('tdw_switch_monthly', 'Switch to monthly'),
+        variant: 'primary',
+        onClick: run(() => switchPlan(plan.tier)),
+      } as const;
+    }
+    const up = (currentPlan?.monthlyPriceUsd || 0) < plan.monthlyPriceUsd;
+    return {
+      label: up
+        ? t('tdw_upgrade_to', 'Upgrade to {{name}}', { name: plan.name })
+        : t('tdw_downgrade_to', 'Downgrade to {{name}}', { name: plan.name }),
+      variant: up ? 'primary' : 'secondary',
+      onClick: run(() => switchPlan(plan.tier)),
+    } as const;
+  };
+
+  const flag = failed
+    ? t('tdw_payment_failed', 'Payment failed')
+    : subscription?.cancelAt
+    ? t('tdw_ends_on_short', 'Ends {{date}}', {
+        date: newDayjs(subscription.cancelAt).local().format('D MMM'),
+      })
+    : user?.isTrailing
+    ? t('tdw_trial_pill', 'Trial')
+    : t('tdw_active', 'Active');
 
   return (
     <TadweenScope className="tdw-billing-page">
       {dialogs.node}
       {finishTrial && <FinishTrial close={() => setFinishTrial(false)} />}
-      {subscription?.cancelAt && isGeneral && (
+      <header className="tdw-billing-head">
+        <div className="min-w-0">
+          <h1 className="tdw-billing-title">
+            {t('tdw_billing_title', 'Billing & subscription')}
+          </h1>
+          <p className="tdw-billing-lead">
+            {t(
+              'tdw_billing_lead',
+              'Your plan, your payment method and your invoices.'
+            )}
+          </p>
+        </div>
+        <span inert={locked || undefined}>
+          <PeriodToggle
+            value={period}
+            onChange={setPeriod}
+            save={plans[0]?.yearlyDiscountPercent ?? 0}
+          />
+        </span>
+      </header>
+      {failed ? (
+        <Banner
+          tone="error"
+          title={t(
+            'tdw_payment_failed_bar',
+            'Your last payment failed. Update your card to keep posting.'
+          )}
+          action={
+            <Button size="sm" variant="primary" onClick={openPortal}>
+              {t('tdw_update_card', 'Update card')}
+            </Button>
+          }
+        >
+          {t(
+            'tdw_payment_failed_retry',
+            'Stripe retries the card over the next days; everything keeps working until then.'
+          )}
+        </Banner>
+      ) : subscription?.cancelAt && isGeneral ? (
         <Banner
           tone="warning"
           title={t('tdw_plan_ends_on', 'Your plan ends on {{date}}.', {
@@ -395,122 +484,96 @@ export const MainBillingComponent: FC<{
             'You will not be charged again. Resume any time before then to keep it.'
           )}
         </Banner>
-      )}
-      {!!subscription && (
-        <CurrentPlanCard
-          plan={currentPlan}
-          period={subscription.period as BillingPeriod}
-          trial={!!user?.isTrailing}
-          paymentFailed={isPaymentFailed(subscription.status)}
-          priceCents={subscription.priceCents}
-          cancelAt={subscription.cancelAt}
-          actions={
-            <>
-              <Button variant="primary" icon="credit-card" onClick={openPortal}>
-                {isPaymentFailed(subscription.status)
-                  ? t('tdw_update_card', 'Update card')
-                  : t('tdw_manage_billing', 'Manage billing')}
-              </Button>
-              <Button variant="ghost" icon="receipt" onClick={openPortal}>
-                {t('tdw_invoices', 'Invoices')}
-              </Button>
-              <span className="grow" />
-              {isGeneral &&
-                (subscription.cancelAt ? (
-                  <Button
-                    variant="secondary"
-                    loading={loading}
-                    onClick={() => toggleCancel(true)}
-                  >
-                    {t('tdw_resume_subscription', 'Resume subscription')}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    className="is-danger"
-                    loading={loading}
-                    onClick={() => toggleCancel(false)}
-                  >
-                    {t('tdw_cancel_subscription', 'Cancel subscription')}
-                  </Button>
-                ))}
-            </>
-          }
-        />
-      )}
-      {!!subscription && (
-        <AiCreditsCard onBuy={() => setBuyCredits(true)} />
-      )}
-      {selected ? (
-        <div id="tdw-plans" className="tdw-billing-plans">
-          <PlanPicker
-            title={
-              subscription
-                ? t('tdw_plans', 'Plans')
-                : t('tdw_choose_a_plan', 'Choose a plan')
-            }
-            value={selected.tier}
-            onChange={setTier}
-            period={period}
-            onPeriod={setPeriod}
-            currentTier={subscription?.subscriptionTier}
-            disabled={locked || loading}
-          />
-          <div className="tdw-pay">
-            <div className="tdw-pay-main">
-              <OrderSummary
-                plan={selected}
-                period={period}
-                trialDays={
-                  paying && user?.allowTrial ? selected.trialDays : 0
-                }
-                change={!paying}
-              />
-              <TrustRow />
-            </div>
-            {paying ? (
-              <CheckoutPanel
-                plan={selected}
-                period={period}
-                onLock={setLocked}
-              />
-            ) : (
-              <ChangePlanPanel
-                now={
-                  currentPlan
-                    ? `${currentPlan.name} · ${priceLabel(
-                        typeof subscription?.priceCents === 'number'
-                          ? subscription.priceCents / 100
-                          : subscription?.period === 'YEARLY'
-                          ? currentPlan.yearlyPriceUsd
-                          : currentPlan.monthlyPriceUsd,
-                        subscription?.period as BillingPeriod
-                      )}`
-                    : t('tdw_your_plan', 'Your plan')
-                }
-                next={
-                  unchanged
-                    ? null
-                    : `${selected.name} · ${priceLabel(
-                        period === 'YEARLY'
-                          ? selected.yearlyPriceUsd
-                          : selected.monthlyPriceUsd,
-                        period
-                      )}`
-                }
-                payToday={
-                  unchanged ? null : (
-                    <Prorate period={period} pack={selected.tier} />
-                  )
-                }
-                confirmLabel={changeLabel}
-                loading={loading}
-                onConfirm={() => switchPlan(selected.tier)}
-              />
-            )}
+      ) : null}
+      <div id="tdw-plans" className="tdw-plan-row" data-count={plans.length}>
+        {plans.map((plan) => {
+          const action = planAction(plan);
+          const current = plan.tier === subscription?.subscriptionTier;
+          return (
+            <PlanCard
+              key={plan.key}
+              plan={plan}
+              period={period}
+              rows={CARD_ROWS}
+              current={current}
+              flag={current ? flag : undefined}
+              amount={current ? currentAmount : undefined}
+              cta={
+                <Button
+                  variant={action.variant}
+                  disabled={
+                    ('disabled' in action && action.disabled) ||
+                    locked ||
+                    (loading && clicked !== plan.tier)
+                  }
+                  loading={loading && clicked === plan.tier}
+                  onClick={action.onClick}
+                >
+                  {action.label}
+                </Button>
+              }
+              note={
+                current && currentPlan ? (
+                  <PlanUsage plan={currentPlan} />
+                ) : subscription && !subscription.cancelAt ? (
+                  <Prorate period={period} pack={plan.tier} />
+                ) : null
+              }
+            />
+          );
+        })}
+      </div>
+      {payPlan ? (
+        <div className="tdw-plan-pay">
+          <div className="tdw-plan-pay-side">
+            <OrderSummary
+              plan={payPlan}
+              period={period}
+              trialDays={trial ? payPlan.trialDays : 0}
+            />
           </div>
+          <CheckoutPanel plan={payPlan} period={period} onLock={setLocked} />
         </div>
       ) : null}
+      {!!subscription && (
+        <section className="tdw-paymethod">
+          <span className="tdw-paymethod-ico" aria-hidden="true">
+            <Icon name="credit-card" size={22} />
+          </span>
+          <div className="tdw-paymethod-text">
+            <h2>{t('tdw_payment_method', 'Payment method')}</h2>
+            <p>
+              {t(
+                'tdw_payment_method_desc',
+                'Update your card, billing address and tax details in the secure billing portal.'
+              )}
+            </p>
+          </div>
+          <div className="tdw-paymethod-actions">
+            {isGeneral && !subscription.cancelAt ? (
+              <Button
+                variant="ghost"
+                className="is-danger"
+                loading={loading && clicked === 'CANCEL'}
+                disabled={loading}
+                onClick={() => {
+                  setClicked('CANCEL');
+                  toggleCancel(false);
+                }}
+              >
+                {t('tdw_cancel_subscription', 'Cancel subscription')}
+              </Button>
+            ) : null}
+            <Button icon="external-link" onClick={openPortal}>
+              {failed
+                ? t('tdw_update_card', 'Update card')
+                : t('tdw_update_payment_method', 'Update payment method')}
+            </Button>
+          </div>
+        </section>
+      )}
+      {!!subscription && <AiCreditsCard onBuy={() => setBuyCredits(true)} />}
+      {!!subscription && <BillingHistory />}
       {faq}
       <BuyCreditsDrawer
         open={buyCredits}

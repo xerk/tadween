@@ -317,60 +317,41 @@ export const ContinueIntegration: FC<{
     );
   }
 
-  // Show the two-step selection UI
+  // Show the two-step selection UI (Tadween: the same step as the app's
+  // continue dialog, on a page card; styles in app/tadween/continue.scss)
   if (twoStepState && Provider) {
     return (
-      <div className="flex flex-1 items-center justify-center text-white relative overflow-hidden">
-        {/* Background gradient decoration */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-[#612BD3] rounded-full blur-[120px]" />
-          <div className="absolute bottom-[20%] right-[10%] w-[250px] h-[250px] bg-[#FC69FF] rounded-full blur-[120px]" />
-        </div>
-
-        {/* Content */}
-        <div className="relative z-10 w-full max-w-[550px] mx-auto px-[20px]">
-          <div className="bg-[#1A1919] rounded-[16px] p-[32px] flex flex-col gap-[24px]">
-            <div className="flex flex-col gap-[8px] text-center">
-              <h1 className="text-[24px] font-semibold">
-                {t('configure_your_channel', 'Configure Your Channel')}
-              </h1>
-              <p className="text-[14px] text-gray-400">
-                {t(
-                  'select_the_page_or_account',
-                  `Select the ${providerDisplayName} page or account you want to connect.`
-                )}
-              </p>
-            </div>
-
-            <IntegrationContext.Provider
-              value={{
-                date: newDayjs(),
-                value: [],
-                allIntegrations: [],
-                integration: {
-                  editor: 'normal',
-                  additionalSettings: '',
-                  display: '',
-                  time: [{ time: 0 }],
-                  id: twoStepState.integrationId,
-                  type: '',
-                  name: '',
-                  picture: '',
-                  inBetweenSteps: true,
-                  changeNickName: false,
-                  changeProfilePicture: false,
-                  identifier: provider,
-                },
-              }}
-            >
-              <Provider
-                onSave={onSave}
-                existingId={[]}
-                initialData={twoStepState.pages}
-                isSaving={isSaving}
-              />
-            </IntegrationContext.Provider>
-          </div>
+      <div className="tdw-continue-page">
+        <div className="tdw-continue-card">
+          <IntegrationContext.Provider
+            value={{
+              date: newDayjs(),
+              value: [],
+              allIntegrations: [],
+              integration: {
+                editor: 'normal',
+                additionalSettings: '',
+                display: '',
+                time: [{ time: 0 }],
+                id: twoStepState.integrationId,
+                type: '',
+                name: '',
+                picture: '',
+                inBetweenSteps: true,
+                changeNickName: false,
+                changeProfilePicture: false,
+                identifier: provider,
+              },
+            }}
+          >
+            <Provider
+              onSave={onSave}
+              existingId={[]}
+              initialData={twoStepState.pages}
+              isSaving={isSaving}
+              allowReconnect={logged}
+            />
+          </IntegrationContext.Provider>
         </div>
       </div>
     );

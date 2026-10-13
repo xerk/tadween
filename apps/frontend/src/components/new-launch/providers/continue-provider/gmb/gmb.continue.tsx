@@ -23,22 +23,28 @@ interface GmbSelection {
 export const GmbContinue = withContinueProvider<GmbItem, GmbSelection>({
   endpoint: 'pages',
   swrKey: 'load-gmb-locations',
-  titleKey: 'select_location',
-  titleDefault: 'Select Business Location:',
-  emptyStateMessages: [
-    {
-      key: 'gmb_no_locations_found',
-      text: "We couldn't find any business locations connected to your account.",
+  title: {
+    key: 'tdw_continue_gmb_title',
+    text: 'Choose a Google Business location',
+  },
+  avatarShape: 'square',
+  empty: {
+    title: {
+      key: 'tdw_continue_gmb_empty_title',
+      text: 'No verified business locations yet',
     },
-    {
-      key: 'gmb_ensure_business_verified',
-      text: 'Please ensure your business is verified on Google My Business.',
+    body: {
+      key: 'tdw_continue_gmb_empty_body',
+      text: 'Verify your business in Google Business Profile, then reconnect with the Google account that manages it.',
     },
-    {
-      key: 'gmb_try_again',
-      text: 'Please close this dialog, delete the integration and try again.',
+    helpUrl: 'https://business.google.com',
+    helpLabel: {
+      key: 'tdw_continue_gmb_help',
+      text: 'Open Google Business Profile',
     },
-  ],
+  },
+  getItemName: (item) => item.name,
+  getItemPicture: (item) => item.picture?.data?.url,
   getItemId: (item) => item.id,
   getSelectionValue: (item) => ({
     id: item.id,
@@ -47,35 +53,4 @@ export const GmbContinue = withContinueProvider<GmbItem, GmbSelection>({
   }),
   transformSaveData: (selection) => selection,
   isSelected: (item, selection) => selection?.id === item.id,
-  renderItem: (item) => (
-    <>
-      <div className="flex justify-center">
-        {item.picture?.data?.url ? (
-          <img
-            className="w-[80px] h-[80px] object-cover rounded-[8px]"
-            src={item.picture.data.url}
-            alt={item.name}
-          />
-        ) : (
-          <div className="w-[80px] h-[80px] bg-input rounded-[8px] flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="40"
-              height="40"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-          </div>
-        )}
-      </div>
-      <div className="text-sm font-medium">{item.name}</div>
-    </>
-  ),
 });

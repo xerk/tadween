@@ -23,7 +23,7 @@ export const ContinueProvider: FC = () => {
     const list = (await (await fetch(path)).json()).integrations;
     return list;
   }, []);
-  const { data: integrations } = useSWR('/integrations/list', load, {
+  const { data: integrations, isLoading } = useSWR('/integrations/list', load, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     revalidateIfStale: false,
@@ -48,7 +48,15 @@ export const ContinueProvider: FC = () => {
     );
   }, [added]);
 
-  if (!added || !continueId || !integrations) {
+  // the dialog opens once, so it waits for the list: it names the account
+  // being set up and leaves out what is already connected
+  if (
+    !added ||
+    !continueId ||
+    !integrations ||
+    isLoading ||
+    Provider === Null
+  ) {
     return null;
   }
 
@@ -58,6 +66,7 @@ export const ContinueProvider: FC = () => {
       added={added}
       continueId={continueId}
       integrations={integrations.map((p: any) => p.internalId)}
+      channel={integrations.find((p: any) => p.id === continueId)}
       provider={Provider}
     />
   );
@@ -69,7 +78,15 @@ const ModalContent: FC<{
   provider: any;
   closeModal: () => void;
   integrations: string[];
-}> = ({ continueId, added, provider: Provider, closeModal, integrations }) => {
+  channel?: { name?: string; picture?: string };
+}> = ({
+  continueId,
+  added,
+  provider: Provider,
+  closeModal,
+  integrations,
+  channel,
+}) => {
   const fetch = useFetch();
 
   const onSave = useCallback(
@@ -100,8 +117,8 @@ const ModalContent: FC<{
           ],
           id: continueId,
           type: '',
-          name: '',
-          picture: '',
+          name: channel?.name || '',
+          picture: channel?.picture || '',
           inBetweenSteps: true,
           changeNickName: false,
           changeProfilePicture: false,
@@ -109,7 +126,12 @@ const ModalContent: FC<{
         },
       }}
     >
-      <Provider onSave={onSave} existingId={integrations} />
+      <Provider
+        onSave={onSave}
+        existingId={integrations}
+        onClose={closeModal}
+        allowReconnect
+      />
     </IntegrationContext.Provider>
   );
 };
@@ -119,22 +141,20 @@ const ContinueModal: FC<{
   added: any;
   provider: any;
   integrations: string[];
+  channel?: { name?: string; picture?: string };
   refreshList: () => void;
 }> = (props) => {
   const modals = useModals();
 
   useEffect(() => {
+    // the step draws its own header (network, title, account), see
+    // with-continue-provider.tsx; every way of closing refreshes the list
     modals.openModal({
-      title: 'Configure Channel',
-      children: (close) => (
-        <ModalContent
-          {...props}
-          closeModal={() => {
-            props.refreshList();
-            close();
-          }}
-        />
-      ),
+      title: '',
+      withCloseButton: false,
+      size: 560,
+      onClose: props.refreshList,
+      children: (close) => <ModalContent {...props} closeModal={close} />,
     });
   }, []);
 

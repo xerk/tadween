@@ -24,7 +24,10 @@ import sharp from 'sharp';
 import { Readable } from 'stream';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { isSafePublicHttpsUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator';
-import { ssrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
+import {
+  getSsrfSafeDispatcher,
+  ssrfSafeDispatcher,
+} from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 const parser = new Parser();
 
@@ -152,7 +155,15 @@ export class AutopostService {
 
   async loadXML(url: string) {
     try {
-      const { items } = await parser.parseURL(url);
+      // fetched through the SSRF guard: rss-parser's parseURL opens its own
+      // unguarded http(s) request
+      const feed = await (
+        await fetch(url, {
+          // @ts-ignore — undici option, not in lib.dom fetch types
+          dispatcher: getSsrfSafeDispatcher(),
+        })
+      ).text();
+      const { items } = await parser.parseString(feed);
       const findLast = items.reduce(
         (all: any, current: any) => {
           if (dayjs(current.pubDate).isAfter(all.pubDate)) {
@@ -247,7 +258,14 @@ export class AutopostService {
 
   async loadUrl(url: string) {
     try {
-      const loadDom = new JSDOM(await (await fetch(url)).text());
+      const loadDom = new JSDOM(
+        await (
+          await fetch(url, {
+            // @ts-ignore — undici option, not in lib.dom fetch types
+            dispatcher: getSsrfSafeDispatcher(),
+          })
+        ).text()
+      );
       loadDom.window.document
         .querySelectorAll('script')
         .forEach((s) => s.remove());

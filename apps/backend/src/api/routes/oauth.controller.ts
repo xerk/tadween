@@ -120,6 +120,10 @@ export class OAuthController {
       app.dynamic ? body.redirect_uri! : app.redirectUrl
     );
     redirectUrl.searchParams.set('code', code);
+    const issuer = this._oauthService.issuer(app);
+    if (issuer) {
+      redirectUrl.searchParams.set('iss', issuer);
+    }
     if (body.state) {
       redirectUrl.searchParams.set('state', body.state);
     }
@@ -198,6 +202,10 @@ export class OAuthAuthorizedController {
     if (body.action === 'deny') {
       const redirectUrl = new URL(redirectTarget);
       redirectUrl.searchParams.set('error', 'access_denied');
+      const issuer = this._oauthService.issuer(app);
+      if (issuer) {
+        redirectUrl.searchParams.set('iss', issuer);
+      }
       if (body.state) {
         redirectUrl.searchParams.set('state', body.state);
       }
@@ -217,8 +225,14 @@ export class OAuthAuthorizedController {
         : undefined
     );
 
+    // RFC 9207: clients that support issuer identification (ChatGPT) use it to
+    // pick their shared callback and to verify the response came from this AS
     const redirectUrl = new URL(redirectTarget);
     redirectUrl.searchParams.set('code', code);
+    const issuer = this._oauthService.issuer(app);
+    if (issuer) {
+      redirectUrl.searchParams.set('iss', issuer);
+    }
     if (body.state) {
       redirectUrl.searchParams.set('state', body.state);
     }

@@ -2581,5 +2581,6 @@
   "tdw_plan_step_lead_left_one": "1 day left in your free trial. Nothing is charged before it ends, and you can cancel any time.",
   "tdw_plan_step_lead_left": "{{n}} days left in your free trial. Nothing is charged before it ends, and you can cancel any time.",
   "tdw_youre_on_keep_trial": "Your free trial continues. Stripe charges your card when it ends, on {{date}}.",
-  "tdw_trial_ended_meanwhile": "Your free trial has ended. Enter your card again to subscribe."
+  "tdw_trial_ended_meanwhile": "Your free trial has ended. Enter your card again to subscribe.",
+  "tdw_support_chat": "Chat with support"
 }

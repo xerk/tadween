@@ -9,6 +9,7 @@ import {
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
 
 import { REVENUECAT_PROVIDER } from '@gitroom/nestjs-libraries/services/payment/payment.providers';
 
@@ -34,7 +35,8 @@ export class RevenueCatProvider extends PaymentProviderAbstract {
 
   constructor(
     private _subscriptionService: SubscriptionService,
-    private _organizationService: OrganizationService
+    private _organizationService: OrganizationService,
+    private _plans: PlansService
   ) {
     super();
   }
@@ -99,6 +101,7 @@ export class RevenueCatProvider extends PaymentProviderAbstract {
     }
 
     const { billing, period } = this.parseProductId(active.productId);
+    const channels = await this.channelsFor(billing);
 
     // Store trials (intro offers) keep the same trial restrictions as a Stripe trial
     await this._subscriptionService.createOrUpdateSubscriptionByOrg(
@@ -106,7 +109,7 @@ export class RevenueCatProvider extends PaymentProviderAbstract {
       organizationId,
       REVENUECAT_PROVIDER,
       active.productId,
-      pricing[billing].channel!,
+      channels,
       billing,
       period,
       active.subscription.unsubscribe_detected_at &&
@@ -116,6 +119,25 @@ export class RevenueCatProvider extends PaymentProviderAbstract {
     );
 
     return { active: true };
+  }
+
+  // The tier's channel limit as the Tadween plans set it (admin-editable, the
+  // same source Stripe subscriptions use), so a plan bought in the app gets
+  // the channels it was sold with. Falls back to the static table if the
+  // plans can't be read, rather than failing the sync.
+  private async channelsFor(billing: keyof typeof pricing) {
+    try {
+      const channel = (await this._plans.getPricing())[billing]?.channel;
+      if (channel) {
+        return channel;
+      }
+    } catch (err) {
+      console.error('revenuecat_plan_channels_unavailable', {
+        tier: billing,
+        error: (err as Error)?.message,
+      });
+    }
+    return pricing[billing].channel!;
   }
 
   private async getActiveSubscription(organizationId: string) {

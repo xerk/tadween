@@ -15,7 +15,8 @@ export const Onboarding: FC = () => {
 
   const handleClose = useCallback(() => {
     modal.closeAll();
-    router.push('/launches');
+    // Tadween: Today is home (Postiz's is the calendar, /launches)
+    router.push('/today');
   }, [modal, router]);
 
   useEffect(() => {

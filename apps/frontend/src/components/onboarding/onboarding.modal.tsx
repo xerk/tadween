@@ -1,11 +1,15 @@
 'use client';
 
+// Tadween: Postiz's onboarding modal (Connect Channels → Connect Agents →
+// Watch Tutorial), same steps, fields and copy, in the design system's
+// components and tokens. Full screen (onboarding.tsx), a full-screen sheet on
+// phones, mirrored in Arabic. The tutorial is the video from Branding; the
+// step is left out when there is none.
 import React, { FC, Fragment, useCallback, useMemo, useState } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import useSWR from 'swr';
 import { orderBy } from 'lodash';
-import clsx from 'clsx';
-import SafeImage from '@gitroom/react/helpers/safe.image';
+import { useTranslation } from 'react-i18next';
 import { AddProviderComponent } from '@gitroom/frontend/components/launches/add.provider.component';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
@@ -25,6 +29,61 @@ import {
 } from '@gitroom/frontend/components/public-api/public.component';
 import { McpClientIcon } from '@gitroom/frontend/components/public-api/mcp.client.icons';
 import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import {
+  Button,
+  cx,
+  IconButton,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
+
+// A YouTube or Vimeo page link as its embeddable player; null if unknown
+export const embedUrl = (url: string) => {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, '');
+    if (host === 'youtu.be') {
+      return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    }
+    if (host.endsWith('youtube.com')) {
+      if (u.pathname.startsWith('/embed/')) {
+        return url;
+      }
+      const id =
+        u.searchParams.get('v') || u.pathname.match(/^\/shorts\/([^/]+)/)?.[1];
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (host === 'vimeo.com') {
+      const id = u.pathname.split('/').filter(Boolean)[0];
+      return id ? `https://player.vimeo.com/video/${id}` : null;
+    }
+    if (host === 'player.vimeo.com') {
+      return url;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Back / next arrows point along the reading direction
+const useArrows = () => {
+  const { i18n } = useTranslation();
+  const rtl = i18n.dir() === 'rtl';
+  return {
+    back: rtl ? 'arrow-right' : 'arrow-left',
+    next: rtl ? 'arrow-left' : 'arrow-right',
+  };
+};
+
+const StepTitle: FC<{ title: string; description: string }> = ({
+  title,
+  description,
+}) => (
+  <div className="tdw-obm-title">
+    <h2>{title}</h2>
+    <p>{description}</p>
+  </div>
+);
 
 interface OnboardingModalProps {
   onClose: () => void;
@@ -34,102 +93,87 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
   const [step, setStep] = useState(1);
   const modals = useModals();
   const t = useT();
+  const { i18n } = useTranslation();
+  const { tutorialVideoUrl } = useBrandLinks();
+  const video = tutorialVideoUrl ? embedUrl(tutorialVideoUrl) : null;
 
   const steps = useMemo(
     () => [
       t('connect_channels', 'Connect Channels'),
       t('connect_agents', 'Connect Agents'),
-      t('watch_tutorial', 'Watch Tutorial'),
+      ...(video ? [t('watch_tutorial', 'Watch Tutorial')] : []),
     ],
-    [t]
+    [t, video]
   );
 
   return (
-    <div className="w-full min-h-full flex-1 p-[24px] flex relative">
+    <TadweenScope
+      className={cx('tdw-obm', i18n.resolvedLanguage === 'ar' && 'is-ar')}
+    >
       <style>{`#support-discord {display: none}`}</style>
-      <div className="flex flex-1 bg-newBgColorInner rounded-[20px] flex-col relative">
-        <button
-          className="outline-none absolute end-[20px] top-[20px] mantine-UnstyledButton-root mantine-ActionIcon-root hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"
-          type="button"
+      <div className="tdw-obm-card">
+        <IconButton
+          icon="x"
+          label={t('close', 'Close')}
+          className="tdw-obm-close"
           onClick={modals.closeAll}
-        >
-          <svg
-            viewBox="0 0 15 15"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-          >
-            <path
-              d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z"
-              fill="currentColor"
-              fillRule="evenodd"
-              clipRule="evenodd"
-            ></path>
-          </svg>
-        </button>
-        <div className="flex-1 flex p-[32px]">
-          <div className="flex flex-col gap-[24px] flex-1">
-            {/* Step indicators */}
-            <div className="flex items-center justify-center gap-[16px]">
-              {steps.map((label, index) => (
-                <Fragment key={label}>
-                  {index > 0 && (
-                    <div className="w-[40px] h-[2px] bg-boxFocused" />
+        />
+        <div className="tdw-obm-body">
+          {/* Step indicators */}
+          <ol className="tdw-obm-steps">
+            {steps.map((label, index) => (
+              <Fragment key={label}>
+                {index > 0 && (
+                  <li className="tdw-obm-line" aria-hidden="true" />
+                )}
+                <li
+                  className={cx(
+                    'tdw-obm-step',
+                    step === index + 1 && 'is-current',
+                    step > index + 1 && 'is-done'
                   )}
-                  <div className="flex items-center gap-[8px]">
-                    <div
-                      className={clsx(
-                        'w-[32px] h-[32px] rounded-full flex items-center justify-center text-[14px] font-semibold transition-colors',
-                        step === index + 1
-                          ? 'bg-boxFocused text-textItemFocused'
-                          : 'bg-newTableHeader'
-                      )}
-                    >
-                      {index + 1}
-                    </div>
-                    <span
-                      className={clsx(
-                        'text-[14px]',
-                        step === index + 1 ? 'font-medium' : 'text-textColor'
-                      )}
-                    >
-                      {label}
-                    </span>
-                  </div>
-                </Fragment>
-              ))}
-            </div>
+                  aria-current={step === index + 1 ? 'step' : undefined}
+                >
+                  <span className="tdw-obm-num">{index + 1}</span>
+                  <span className="tdw-obm-label">{label}</span>
+                </li>
+              </Fragment>
+            ))}
+          </ol>
 
-            {/* Step content */}
-            {step === 1 && (
-              <OnboardingStep1
-                onNext={() => setStep(2)}
-                onSkip={() => setStep(2)}
-              />
-            )}
-            {step === 2 && (
-              <OnboardingStep2
-                onBack={() => setStep(1)}
-                onNext={() => setStep(3)}
-              />
-            )}
-            {step === 3 && (
-              <OnboardingStep3 onBack={() => setStep(2)} onFinish={onClose} />
-            )}
-          </div>
+          {/* Step content */}
+          {step === 1 && (
+            <OnboardingStep1
+              onNext={() => setStep(2)}
+              onSkip={() => setStep(2)}
+            />
+          )}
+          {step === 2 && (
+            <OnboardingStep2
+              onBack={() => setStep(1)}
+              onNext={video ? () => setStep(3) : onClose}
+              last={!video}
+            />
+          )}
+          {step === 3 && video && (
+            <OnboardingStep3
+              video={video}
+              onBack={() => setStep(2)}
+              onFinish={onClose}
+            />
+          )}
         </div>
       </div>
-    </div>
+    </TadweenScope>
   );
 };
 
 const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
   onNext,
-  onSkip,
 }) => {
   const fetch = useFetch();
   const t = useT();
+  const arrows = useArrows();
 
   const getIntegrations = useCallback(async () => {
     return (await fetch('/integrations')).json();
@@ -161,95 +205,71 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
   const { data } = useSWR('get-all-integrations-onboarding', getIntegrations);
 
   return (
-    <div className="flex flex-col gap-[24px]">
-      <div className="flex gap-[4px] flex-col text-center">
-        <div className="text-[24px] font-semibold">
-          {t('connect_your_channels', 'Connect Your Channels')}
-        </div>
-        <div className="text-[14px] text-customColor18">
-          {t(
-            'connect_social_media_to_start',
-            'Connect your social media accounts to start scheduling posts'
-          )}
-        </div>
-      </div>
+    <div className="tdw-obm-content">
+      <StepTitle
+        title={t('connect_your_channels', 'Connect Your Channels')}
+        description={t(
+          'connect_social_media_to_start',
+          'Connect your social media accounts to start scheduling posts'
+        )}
+      />
 
       {/* Connected channels */}
       {sortedIntegrations.length > 0 && (
-        <div className="bg-newTableHeader rounded-[8px] p-[16px]">
-          <div className="text-[14px] font-medium mb-[12px]">
+        <div className="tdw-obm-connected">
+          <div className="tdw-obm-label-row">
             {t('connected_channels', 'Connected Channels')} (
             {sortedIntegrations.length})
           </div>
-          <div className="flex flex-wrap gap-[12px]">
+          <div className="pz-ob-connected">
             {sortedIntegrations.map((integration: any) => (
-              <div
-                key={integration.id}
-                className="flex items-center gap-[8px] bg-customColor47/30 rounded-[8px] px-[12px] py-[8px]"
-              >
-                <div className="relative w-[28px] h-[28px]">
-                  <SafeImage
-                    src={integration.picture}
-                    className="rounded-full"
-                    alt={integration.identifier}
-                    width={28}
-                    height={28}
+              <span key={integration.id} className="pz-ob-chip">
+                <span className="pz-ob-chip-av">
+                  <img
+                    src={integration.picture || '/no-picture.jpg'}
+                    alt=""
                   />
-                  <SafeImage
+                  <img
                     src={`/icons/platforms/${integration.identifier}.png`}
-                    className="rounded-full absolute -bottom-[3px] -end-[3px] border border-fifth"
-                    alt={integration.identifier}
-                    width={14}
-                    height={14}
+                    alt=""
                   />
-                </div>
-                <span className="text-[13px]">{integration.name}</span>
-              </div>
+                </span>
+                {integration.name}
+              </span>
             ))}
           </div>
         </div>
       )}
 
       {/* Available platforms - using AddProviderComponent */}
-      <div className="flex flex-col gap-[12px]">
-        <div className="text-[14px] font-medium">
+      <div className="tdw-obm-section">
+        <div className="tdw-obm-label-row">
           {t('click_channel_to_add', 'Click a channel to add it')}
         </div>
         {data && (
-          <AddProviderComponent
-            invite={false}
-            social={data.social || []}
-            article={data.article || []}
-            onboarding={true}
-          />
+          <div className="pz-ob-providers">
+            <AddProviderComponent
+              invite={false}
+              social={data.social || []}
+              article={data.article || []}
+              onboarding={true}
+            />
+          </div>
         )}
       </div>
 
       {/* Action buttons */}
-      <div className="flex justify-end pt-[24px] mt-[8px]">
-        <button
+      <div className="tdw-obm-actions is-end">
+        <Button
+          variant={sortedIntegrations.length > 0 ? 'primary' : 'secondary'}
+          size="lg"
+          iconEnd={arrows.next}
           onClick={onNext}
-          className="group flex items-center gap-[12px] bg-gradient-to-r from-[#622aff] to-[#8b5cf6] hover:from-[#7c3aff] hover:to-[#9d6eff] text-white font-semibold px-[32px] py-[14px] rounded-[12px] text-[16px] transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40"
         >
           {sortedIntegrations.length > 0
             ? t('continue', 'Continue')
             : t('continue_without_channels', 'Continue without channels')}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="group-hover:translate-x-1 transition-transform"
-          >
-            <path d="M5 12h14" />
-            <path d="m12 5 7 7-7 7" />
-          </svg>
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -276,13 +296,15 @@ const otherAgents = mcpClients.filter(
 const apiTab = 'API' as const;
 type OnboardingTab = OnboardingAgent | typeof otherTab | typeof apiTab;
 
-
-const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
-  onBack,
-  onNext,
-}) => {
+const OnboardingStep2: FC<{
+  onBack: () => void;
+  onNext: () => void;
+  // no tutorial video: this step finishes onboarding
+  last: boolean;
+}> = ({ onBack, onNext, last }) => {
   const t = useT();
   const user = useUser();
+  const arrows = useArrows();
   const { backendUrl, mcpUrl, mcpOfficialConnectors } = useVariables();
   const brand = useBrandLinks();
   const [tab, setTab] = useState<OnboardingTab>('Claude');
@@ -337,272 +359,234 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
 
   const maskedApiKey = revealed ? apiKey : '*'.repeat(apiKey.length);
 
+  const revealButton = (
+    <Button
+      size="sm"
+      icon={revealed ? 'eye-off' : 'eye'}
+      onClick={() => setRevealed(!revealed)}
+    >
+      {revealed ? t('hide', 'Hide') : t('reveal', 'Reveal')}
+    </Button>
+  );
+
   const chatSection = (
-    <div className="bg-newBgColorInnerInner rounded-[12px] border border-newBorder overflow-hidden">
-      <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder">
-        <div className="text-[15px] font-[600]">{t('chat', 'Chat')}</div>
-        <div className="text-[13px] text-customColor18 mt-[2px]">
+    <section className="pz-ob-panel">
+      <header className="pz-ob-panel-head">
+        <h3 className="headline">{t('chat', 'Chat')}</h3>
+        <p>
           {t(
             'chat_onboarding_description',
-            'No MCP or CLI settings needed. Paste this into the chat, the agent installs the Postiz CLI and asks you for your API key.'
+            'No MCP or CLI settings needed. Paste this into the chat, the agent installs the {{name}} CLI and asks you for your API key.',
+            { name: brand.name }
           )}
+        </p>
+      </header>
+      <div className="pz-ob-panel-body">
+        <pre className="pz-ob-code">{config}</pre>
+        <div className="pz-ob-actions">
+          <CopyButton text={config} label={t('copy', 'Copy')} />
+        </div>
+        <div className="pz-ob-hint">{t('api_key', 'API Key')}</div>
+        <pre className="pz-ob-code">{maskedApiKey}</pre>
+        <div className="pz-ob-actions">
+          {revealButton}
+          <CopyButton text={apiKey} label={t('copy', 'Copy')} />
         </div>
       </div>
-      <div className="p-[20px] flex flex-col gap-[16px]">
-        <div className="flex flex-col gap-[8px]">
-          <pre className="bg-newBgColorInner border border-newBorder rounded-[8px] p-[12px] text-[12px] whitespace-pre-wrap break-all overflow-x-auto leading-[1.5]">
-            {config}
-          </pre>
-          <div className="flex gap-[8px]">
-            <CopyButton text={config} label={t('copy', 'Copy')} />
-          </div>
-        </div>
-        <div className="flex flex-col gap-[8px]">
-          <div className="text-[13px] font-[600] text-customColor18">
-            {t('api_key', 'API Key')}
-          </div>
-          <pre className="bg-newBgColorInner border border-newBorder rounded-[8px] p-[12px] text-[12px] whitespace-pre-wrap break-all overflow-x-auto leading-[1.5]">
-            {maskedApiKey}
-          </pre>
-          <div className="flex gap-[8px]">
-            <button
-              type="button"
-              onClick={() => setRevealed(!revealed)}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
-            >
-              {revealed ? t('hide', 'Hide') : t('reveal', 'Reveal')}
-            </button>
-            <CopyButton text={apiKey} label={t('copy', 'Copy')} />
-          </div>
-        </div>
-      </div>
-    </div>
+    </section>
   );
 
   const apiSection = (
     <>
-      <div className="bg-newBgColorInnerInner rounded-[12px] border border-newBorder px-[20px] py-[14px] flex items-center justify-between gap-[12px]">
-        <div>
-          <div className="text-[15px] font-[600]">
-            {t('documentation', 'Documentation')}
-          </div>
-          <div className="text-[13px] text-customColor18 mt-[2px]">
+      <section className="pz-ob-panel is-row">
+        <header className="pz-ob-panel-head">
+          <h3 className="headline">{t('documentation', 'Documentation')}</h3>
+          <p>
             {t(
               'api_onboarding_description',
-              'Use the Postiz API from your own code, n8n or any other automation'
+              'Use the {{name}} API from your own code, n8n or any other automation',
+              { name: brand.name }
             )}
-          </div>
-        </div>
-        <a
-          className="cursor-pointer px-[24px] h-[44px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[14px] font-[600] flex items-center gap-[8px] shrink-0"
-          href={brand.docs('/public-api/introduction') || undefined}
-          target="_blank"
-        >
-          <McpClientIcon client={apiTab} size={18} />
-          {t('read_the_api_docs', 'Read the API docs')}
-        </a>
-      </div>
-      <div className="bg-newBgColorInnerInner rounded-[12px] border border-newBorder overflow-hidden">
-        <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder">
-          <div className="text-[15px] font-[600]">
-            {t('api_key', 'API Key')}
-          </div>
-          <div className="text-[13px] text-customColor18 mt-[2px]">
+          </p>
+        </header>
+        {brand.docs('/public-api/introduction') ? (
+          <a
+            className="pz-btn pz-btn-primary pz-btn-md no-underline"
+            href={brand.docs('/public-api/introduction')}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <McpClientIcon client={apiTab} size={18} />
+            {t('read_the_api_docs', 'Read the API docs')}
+          </a>
+        ) : null}
+      </section>
+      <section className="pz-ob-panel">
+        <header className="pz-ob-panel-head">
+          <h3 className="headline">{t('api_key', 'API Key')}</h3>
+          <p>
             {t(
               'api_key_onboarding_description',
               'Send it as the Authorization header on every request'
             )}
-          </div>
-        </div>
-        <div className="p-[20px] flex flex-col gap-[8px]">
-          <pre className="bg-newBgColorInner border border-newBorder rounded-[8px] p-[12px] text-[12px] whitespace-pre-wrap break-all overflow-x-auto leading-[1.5]">
-            {maskedApiKey}
-          </pre>
-          <div className="flex gap-[8px]">
-            <button
-              type="button"
-              onClick={() => setRevealed(!revealed)}
-              className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
-            >
-              {revealed ? t('hide', 'Hide') : t('reveal', 'Reveal')}
-            </button>
+          </p>
+        </header>
+        <div className="pz-ob-panel-body">
+          <pre className="pz-ob-code">{maskedApiKey}</pre>
+          <div className="pz-ob-actions">
+            {revealButton}
             <CopyButton text={apiKey} label={t('copy', 'Copy')} />
           </div>
         </div>
-      </div>
+      </section>
     </>
   );
 
   const connectorSection = connector && (
-    <div className="bg-newBgColorInnerInner rounded-[12px] border border-newBorder px-[20px] py-[14px] flex items-center justify-between gap-[12px]">
-      <div>
-        <div className="text-[15px] font-[600]">
-          {t('connector', 'Connector')}
-        </div>
-        <div className="text-[13px] text-customColor18 mt-[2px]">
+    <section className="pz-ob-panel is-row">
+      <header className="pz-ob-panel-head">
+        <h3 className="headline">{t('connector', 'Connector')}</h3>
+        <p>
           {isSelfHosted
             ? t(
                 'connector_self_hosted_description',
-                'The official connector works with self-hosted Postiz too. When asked to sign in, choose "Use self-hosted" and enter {{url}} with your API key.',
-                { url: mcpBase, interpolation: { escapeValue: false } }
+                'The official connector works with self-hosted {{name}} too. When asked to sign in, choose "Use self-hosted" and enter {{url}} with your API key.',
+                {
+                  url: mcpBase,
+                  name: brand.name,
+                  interpolation: { escapeValue: false },
+                }
               )
             : t(
                 'connector_onboarding_description',
-                'The fastest way: add Postiz with one click, you will be asked to sign in'
+                'The fastest way: add {{name}} with one click, you will be asked to sign in',
+                { name: brand.name }
               )}
-        </div>
-      </div>
+        </p>
+      </header>
       <a
-        className="cursor-pointer px-[24px] h-[44px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[14px] font-[600] flex items-center gap-[8px] shrink-0"
+        className="pz-btn pz-btn-primary pz-btn-md no-underline"
         href={connector.href}
         target="_blank"
+        rel="noreferrer"
       >
         <McpClientIcon client={agent} size={18} />
         {connector.label}
       </a>
-    </div>
+    </section>
   );
 
   const mcpSection = (
-    <div className="bg-newBgColorInnerInner rounded-[12px] border border-newBorder overflow-hidden flex flex-col">
-      <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder">
-        <div className="text-[15px] font-[600]">{t('mcp', 'MCP')}</div>
-        <div className="text-[13px] text-customColor18 mt-[2px]">
+    <section className="pz-ob-panel">
+      <header className="pz-ob-panel-head">
+        <h3 className="headline">{t('mcp', 'MCP')}</h3>
+        <p>
           {t(
             'mcp_onboarding_description',
-            'Give your agent Postiz tools to create, schedule and manage posts'
+            'Give your agent {{name}} tools to create, schedule and manage posts',
+            { name: brand.name }
           )}
+        </p>
+      </header>
+      <div className="pz-ob-panel-body">
+        <div className="pz-ob-hint">{t('auth_method', 'Authentication')}</div>
+        <div className="pz-ob-chips is-start">
+          {(['oauth', 'apikey'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              className="pz-ob-agent"
+              aria-pressed={auth === m}
+              onClick={() => setAuth(m)}
+            >
+              {m === 'oauth'
+                ? t('sign_in_no_api_key', 'Sign in with {{name}} (no API key)', {
+                    name: brand.name,
+                  })
+                : t('api_key', 'API Key')}
+            </button>
+          ))}
+        </div>
+        <div className="pz-ob-hint">
+          {hint}
+          {auth === 'oauth' &&
+            ` ${t(
+              'oauth_sign_in_hint',
+              'Your agent will open a browser window to sign in to {{name}}.',
+              { name: brand.name }
+            )}`}
+        </div>
+        <pre className="pz-ob-code">{maskedConfig}</pre>
+        <div className="pz-ob-actions">
+          {auth === 'apikey' && revealButton}
+          <CopyButton text={config} label={t('copy', 'Copy')} />
         </div>
       </div>
-      <div className="p-[20px] flex flex-col gap-[16px] flex-1">
-        <div className="flex flex-col gap-[6px]">
-          <div className="text-[13px] font-[600] text-customColor18">
-            {t('auth_method', 'Authentication')}
-          </div>
-          <div className="flex gap-[6px]">
-            {(['oauth', 'apikey'] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={clsx(
-                  'cursor-pointer px-[14px] h-[36px] text-[13px] font-[500] rounded-[8px] transition-colors',
-                  auth === m
-                    ? 'bg-[#612BD3] text-white'
-                    : 'bg-btnSimple text-customColor18 hover:bg-boxHover hover:text-textColor'
-                )}
-                onClick={() => setAuth(m)}
-              >
-                {m === 'oauth'
-                  ? t('sign_in_no_api_key', 'Sign in with {{name}} (no API key)', {
-                      name: brand.name,
-                    })
-                  : t('api_key', 'API Key')}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-col gap-[8px]">
-          <div className="text-[12px] text-customColor18 font-[500]">
-            {hint}
-            {auth === 'oauth' &&
-              ` ${t(
-                'oauth_sign_in_hint',
-                'Your agent will open a browser window to sign in to Postiz.'
-              )}`}
-          </div>
-          <pre className="bg-newBgColorInner border border-newBorder rounded-[8px] p-[12px] text-[12px] whitespace-pre-wrap break-all overflow-x-auto leading-[1.5]">
-            {maskedConfig}
-          </pre>
-          <div className="flex gap-[8px]">
-            {auth === 'apikey' && (
-              <button
-                type="button"
-                onClick={() => setRevealed(!revealed)}
-                className="cursor-pointer px-[16px] h-[36px] bg-btnSimple hover:bg-boxHover transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
-              >
-                {revealed ? t('hide', 'Hide') : t('reveal', 'Reveal')}
-              </button>
-            )}
-            <CopyButton text={config} label={t('copy', 'Copy')} />
-          </div>
-        </div>
-      </div>
-    </div>
+    </section>
   );
 
   const cliSection = (
-    <div className="bg-newBgColorInnerInner rounded-[12px] border border-newBorder overflow-hidden flex flex-col">
-      <div className="bg-newBgColorInner px-[20px] py-[14px] border-b border-newBorder">
-        <div className="text-[15px] font-[600]">{t('cli', 'CLI')}</div>
-        <div className="text-[13px] text-customColor18 mt-[2px]">
+    <section className="pz-ob-panel">
+      <header className="pz-ob-panel-head">
+        <h3 className="headline">{t('cli', 'CLI')}</h3>
+        <p>
           {t(
             'cli_onboarding_description',
-            'Install the Postiz CLI and the skill that teaches your agent how to use it'
+            'Install the {{name}} CLI and the skill that teaches your agent how to use it',
+            { name: brand.name }
           )}
-        </div>
-      </div>
-      <div className="p-[20px] flex flex-col gap-[8px] flex-1">
-        <pre className="bg-newBgColorInner border border-newBorder rounded-[8px] p-[12px] text-[12px] whitespace-pre-wrap break-all overflow-x-auto leading-[1.5] flex-1">
-          {cliCommands.join('\n')}
-        </pre>
-        <div className="flex gap-[8px]">
+        </p>
+      </header>
+      <div className="pz-ob-panel-body">
+        <pre className="pz-ob-code">{cliCommands.join('\n')}</pre>
+        <div className="pz-ob-actions">
           <CopyButton
             text={cliCommands.join(' && ')}
             label={t('copy', 'Copy')}
           />
         </div>
       </div>
-    </div>
+    </section>
   );
 
   return (
-    <div className="flex flex-col gap-[24px] flex-1">
-      <div className="flex gap-[4px] flex-col text-center">
-        <div className="text-[24px] font-semibold">
-          {t('connect_your_ai_agent', 'Connect Your AI Agent')}
-        </div>
-        <div className="text-[14px] text-customColor18">
-          {t(
-            'connect_agent_description',
-            'Pick the agent you use and let it create and schedule posts for you'
-          )}
-        </div>
-      </div>
+    <div className="tdw-obm-content">
+      <StepTitle
+        title={t('connect_your_ai_agent', 'Connect Your AI Agent')}
+        description={t(
+          'connect_agent_description',
+          'Pick the agent you use and let it create and schedule posts for you'
+        )}
+      />
 
       {available ? (
-        <div className="flex flex-col gap-[16px] w-full max-w-[1100px] mx-auto">
-          <div className="flex flex-wrap justify-center gap-[6px]">
+        <div className="pz-ob-agents tdw-obm-agents">
+          <div className="pz-ob-chips">
             {[...onboardingAgents, otherTab, apiTab].map((item) => (
               <button
                 key={item}
                 type="button"
-                className={clsx(
-                  'cursor-pointer px-[14px] h-[36px] text-[13px] font-[500] rounded-[8px] transition-colors flex items-center gap-[8px]',
-                  tab === item
-                    ? 'bg-[#612BD3] text-white'
-                    : item === apiTab
-                    ? 'bg-btnSimple text-[#a78bfa] hover:bg-boxHover hover:text-[#c4b5fd]'
-                    : 'bg-btnSimple text-customColor18 hover:bg-boxHover hover:text-textColor'
-                )}
+                className="pz-ob-agent"
+                aria-pressed={tab === item}
                 onClick={() => setTab(item)}
               >
                 <McpClientIcon client={item} />
-                {item}
+                {item === otherTab
+                  ? t('other_agents', 'Other agents')
+                  : item === apiTab
+                  ? t('api', 'API')
+                  : item}
               </button>
             ))}
           </div>
           {tab === otherTab && (
-            <div className="flex flex-wrap justify-center gap-[6px]">
+            <div className="pz-ob-chips">
               {otherAgents.map((item) => (
                 <button
                   key={item}
                   type="button"
-                  className={clsx(
-                    'cursor-pointer px-[12px] h-[32px] text-[12px] font-[500] rounded-[8px] transition-colors flex items-center gap-[6px]',
-                    otherAgent === item
-                      ? 'bg-[#612BD3] text-white'
-                      : 'bg-btnSimple text-customColor18 hover:bg-boxHover hover:text-textColor'
-                  )}
+                  className="pz-ob-agent is-sm"
+                  aria-pressed={otherAgent === item}
                   onClick={() => setOtherAgent(item)}
                 >
                   <McpClientIcon client={item} size={14} />
@@ -622,7 +606,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
           ) : (
             <>
               {connectorSection}
-              <div className="grid grid-cols-2 gap-[16px]">
+              <div className="pz-ob-panels">
                 {mcpSection}
                 {cliSection}
               </div>
@@ -630,7 +614,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
           )}
         </div>
       ) : (
-        <div className="bg-newTableHeader rounded-[8px] p-[16px] text-[14px] text-customColor18 text-center w-full max-w-[860px] mx-auto">
+        <div className="tdw-obm-note">
           {t(
             'agent_access_unavailable',
             'Agent access is not available for your current plan or role. You can set it up later under Settings > Developers.'
@@ -639,138 +623,77 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
       )}
 
       {/* Action buttons */}
-      <div className="flex justify-between items-center pt-[8px] mt-auto w-full max-w-[1100px] mx-auto">
-        <button
-          onClick={onBack}
-          className="group flex items-center gap-[8px] bg-transparent border-2 border-boxFocused font-medium px-[24px] py-[12px] rounded-[12px] text-[15px] transition-all"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="group-hover:-translate-x-1 transition-transform"
-          >
-            <path d="m12 19-7-7 7-7" />
-            <path d="M19 12H5" />
-          </svg>
+      <div className="tdw-obm-actions">
+        <Button size="lg" icon={arrows.back} onClick={onBack}>
           {t('back', 'Back')}
-        </button>
-        <div className="text-[13px] text-customColor18 text-center">
+        </Button>
+        <div className="tdw-obm-actions-note">
           {t(
             'agent_settings_later',
             'More agents and full instructions are available under Settings > Developers'
           )}
         </div>
-        <button
+        <Button
+          variant="primary"
+          size="lg"
+          icon={last ? 'circle-check' : undefined}
+          iconEnd={last ? undefined : arrows.next}
           onClick={onNext}
-          className="group flex items-center gap-[12px] bg-gradient-to-r from-[#622aff] to-[#8b5cf6] hover:from-[#7c3aff] hover:to-[#9d6eff] text-white font-semibold px-[32px] py-[14px] rounded-[12px] text-[16px] transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40"
         >
-          {t('continue_skip', 'Continue / Skip')}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="group-hover:translate-x-1 transition-transform"
-          >
-            <path d="M5 12h14" />
-            <path d="m12 5 7 7-7 7" />
-          </svg>
-        </button>
+          {last
+            ? t('get_started', 'Get Started')
+            : t('continue_skip', 'Continue / Skip')}
+        </Button>
       </div>
     </div>
   );
 };
 
-const OnboardingStep3: FC<{ onBack: () => void; onFinish: () => void }> = ({
-  onBack,
-  onFinish,
-}) => {
+const OnboardingStep3: FC<{
+  video: string;
+  onBack: () => void;
+  onFinish: () => void;
+}> = ({ video, onBack, onFinish }) => {
   const t = useT();
-  const { tutorialVideoUrl } = useBrandLinks();
+  const arrows = useArrows();
+  const brand = useBrandLinks();
 
   return (
-    <div className="flex flex-col gap-[24px] flex-1">
-      <div className="flex gap-[4px] flex-col text-center">
-        <div className="text-[24px] font-semibold">
-          {t('watch_tutorial_title', 'Learn How to Use Postiz')}
-        </div>
-        <div className="text-[14px] text-customColor18">
-          {t(
-            'watch_tutorial_description',
-            'Watch this short video to learn how to get the most out of Postiz'
-          )}
-        </div>
-      </div>
+    <div className="tdw-obm-content">
+      <StepTitle
+        title={t('watch_tutorial_title', 'Learn How to Use {{name}}', {
+          name: brand.name,
+        })}
+        description={t(
+          'watch_tutorial_description',
+          'Watch this short video to learn how to get the most out of {{name}}',
+          { name: brand.name }
+        )}
+      />
 
-      {/* YouTube Video Embed */}
-      <div className="relative flex-1 rounded-[12px] overflow-hidden">
-        <div className="absolute left-0 top-0 w-full h-full flex justify-center">
-          <iframe
-            className="h-full aspect-video"
-            src={tutorialVideoUrl || undefined}
-            title="Tutorial"
-            allow="autoplay"
-            allowFullScreen
-          />
-        </div>
+      {/* The tutorial video from Branding */}
+      <div className="pz-ob-video tdw-obm-video">
+        <iframe
+          src={video}
+          title={t('tdw_ob_tutorial_video', 'Tadween tutorial')}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+        />
       </div>
 
       {/* Action buttons */}
-      <div className="flex justify-between pt-[24px] mt-[8px]">
-        <button
-          onClick={onBack}
-          className="group flex items-center gap-[8px] bg-transparent border-2 border-boxFocused font-medium px-[24px] py-[12px] rounded-[12px] text-[15px] transition-all"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="group-hover:-translate-x-1 transition-transform"
-          >
-            <path d="m12 19-7-7 7-7" />
-            <path d="M19 12H5" />
-          </svg>
+      <div className="tdw-obm-actions">
+        <Button size="lg" icon={arrows.back} onClick={onBack}>
           {t('back', 'Back')}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="primary"
+          size="lg"
+          icon="circle-check"
           onClick={onFinish}
-          className="group flex items-center gap-[12px] bg-gradient-to-r from-[#10b981] to-[#059669] hover:from-[#34d399] hover:to-[#10b981] text-white font-semibold px-[32px] py-[14px] rounded-[12px] text-[16px] transition-all shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
         >
           {t('get_started', 'Get Started')}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="group-hover:scale-110 transition-transform"
-          >
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-            <polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
-        </button>
+        </Button>
       </div>
     </div>
   );

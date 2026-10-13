@@ -8,42 +8,37 @@ import { Skeleton, TadweenScope } from '@gitroom/frontend/components/tadween/ui'
 // The design system's Loading pattern for the first load of the app (while
 // /user/self is on its way): the brand mark, a calm progress line along the
 // top edge, and skeletons in the shape of what is about to appear: the
-// onboarding frame after sign-up, the app shell otherwise. Never a spinner in
+// first billing screen after sign-up, the app shell otherwise. Never a spinner in
 // a box. Styles: app/tadween/onboarding.scss. Reduced motion stops the line
 // and the shimmer.
-export const BootScreen: FC<{ variant: 'app' | 'onboarding' }> = ({ variant }) => {
+export const BootScreen: FC<{ variant: 'app' | 'billing' }> = ({ variant }) => {
   const t = useT();
   return (
     <TadweenScope className="tdw-boot">
       <span className="tdw-boot-line" role="progressbar" aria-label={t('tdw_loading', 'Loading…')} />
-      {variant === 'onboarding' ? (
-        <div className="pz-ob" aria-hidden="true">
-          <header className="pz-ob-head">
+      {variant === 'billing' ? (
+        <div className="tdw-fb" aria-hidden="true">
+          <header className="tdw-fb-head">
             <span className="pz-ob-logo">
               <Logo />
               <span className="pz-ob-logo-word">Tadween</span>
             </span>
-            <span className="tdw-boot-progress">
-              <Skeleton height={4} radius={2} />
-              <Skeleton height={4} radius={2} />
-              <Skeleton height={4} radius={2} />
-              <Skeleton height={4} radius={2} />
-            </span>
-            <Skeleton width={84} height={28} radius={8} />
+            <Skeleton width={160} height={28} radius={8} />
           </header>
-          <div className="pz-ob-stage">
-            <div className="tdw-boot-step">
-              <Skeleton width={48} height={48} radius={12} />
+          <div className="tdw-fb-body">
+            <div className="tdw-fb-plans">
               <Skeleton width="70%" height={34} radius={8} />
               <Skeleton width="90%" height={16} />
-              <Skeleton height={68} radius={10} />
-              <Skeleton height={64} radius={14} />
+              <div className="tdw-tiers">
+                <Skeleton height={104} radius={16} />
+                <Skeleton height={104} radius={16} />
+                <Skeleton height={104} radius={16} />
+              </div>
+            </div>
+            <div className="tdw-fb-pay">
+              <Skeleton height={420} radius={20} />
             </div>
           </div>
-          <footer className="pz-ob-foot">
-            <span className="pz-ob-foot-note" />
-            <Skeleton width={120} height={40} radius={10} />
-          </footer>
         </div>
       ) : (
         <div className="tdw-boot-shell" aria-hidden="true">

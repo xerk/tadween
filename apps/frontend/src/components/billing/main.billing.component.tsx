@@ -36,10 +36,8 @@ import {
 } from '@gitroom/frontend/components/tadween/billing/trial.banner';
 import { useBillingDialogs } from '@gitroom/frontend/components/tadween/billing/billing.dialogs';
 import { PlanCard } from '@gitroom/frontend/components/tadween/billing/plans.view';
-import {
-  CheckoutPanel,
-  OrderSummary,
-} from '@gitroom/frontend/components/tadween/billing/checkout.panel';
+import { PlanCheckout } from '@gitroom/frontend/components/billing/first.billing.component';
+import { BillingSkeleton } from '@gitroom/frontend/components/tadween/billing/billing.skeleton';
 import {
   AiCreditsCard,
   BuyCreditsDrawer,
@@ -123,7 +121,9 @@ export const MainBillingComponent: FC<{
   const utm = useUtmUrl();
   const t = useT();
   const { plans, planFor } = useTadweenPricing();
-  const { data: trialInfo } = useTrialInfo(isOnFreeTrial(user));
+  const { data: trialInfo, error: trialError } = useTrialInfo(
+    isOnFreeTrial(user)
+  );
   const queryParams = useSearchParams();
   const [finishTrial, setFinishTrial] = useState(
     !!queryParams.get('finishTrial')
@@ -136,10 +136,8 @@ export const MainBillingComponent: FC<{
   const [period, setPeriod] = useState<BillingPeriod>(sub?.period || 'MONTHLY');
   // The plan being paid on this page: a workspace without a Stripe
   // subscription (e.g. a plan granted by an admin) pays through the same
-  // checkout as the plan step
+  // one-page checkout as the first billing screen
   const [payTier, setPayTier] = useState<string | null>(null);
-  // While Stripe's payment is being confirmed the choice stays as paid
-  const [locked, setLocked] = useState(false);
   // which card's button started the request, so only that one spins
   const [clicked, setClicked] = useState('');
   // /billing?credits=1 (from the AI credits paywall) opens the top-up drawer
@@ -355,20 +353,25 @@ export const MainBillingComponent: FC<{
     );
   }
 
+  // Whether the trial has a card decides the layout: wait for it, no flicker
+  if (isOnFreeTrial(user) && !trialInfo && !trialError) {
+    return <BillingSkeleton />;
+  }
+
   const currentPlan = subscription
     ? planFor(subscription.subscriptionTier)
     : undefined;
   const samePeriod = subscription?.period === period;
   const failed = isPaymentFailed(subscription?.status);
   // The free trial without a card yet: every plan is chosen through the
-  // same checkout as the plan step (it saves a card for this trial)
+  // same checkout as the first billing screen (it saves a card for this trial)
   const cardless =
     !!subscription &&
     isOnFreeTrial(user) &&
     !!trialInfo &&
     !trialInfo.hasPaymentMethod;
-  const trial = !!user?.allowTrial;
-  const payPlan = plans.find((p) => p.tier === payTier);
+  // No paid plan yet: Postiz's one page, the plan picker beside the payment
+  const onePage = !subscription || cardless || !!payTier;
   // What the subscription pays a month (a founder price stays locked)
   const currentAmount =
     samePeriod && typeof subscription?.priceCents === 'number'
@@ -377,36 +380,14 @@ export const MainBillingComponent: FC<{
         : subscription.priceCents / 100
       : undefined;
 
-  // One action per plan, as Postiz's billing: current plan, resume, switch
-  // the period, upgrade or downgrade (Stripe prorates), or pay for a first one
+  // One action per plan on a paid plan, as Postiz's billing: current plan,
+  // resume, switch the period, upgrade or downgrade (Stripe prorates)
   const planAction = (plan: PublicPlan) => {
     const run = (fn: () => void) => () => {
       setClicked(plan.tier);
       fn();
     };
-    if (!subscription || cardless) {
-      return {
-        label: cardless
-          ? t('tdw_choose_plan_name', 'Choose {{name}}', { name: plan.name })
-          : trial && plan.trialDays > 0
-          ? t('tdw_start_free_trial', 'Start {{n}}-day free trial', {
-              n: plan.trialDays,
-            })
-          : t('tdw_choose_plan_name', 'Choose {{name}}', {
-              name: plan.name,
-            }),
-        variant: plan.mostPopular ? 'primary' : 'secondary',
-        onClick: () => {
-          setPayTier(plan.tier);
-          requestAnimationFrame(() =>
-            document
-              .getElementById('tdw-plan-pay')
-              ?.scrollIntoView({ block: 'start' })
-          );
-        },
-      } as const;
-    }
-    if (plan.tier === subscription.subscriptionTier) {
+    if (plan.tier === subscription?.subscriptionTier) {
       if (subscription.cancelAt) {
         return {
           label: t('tdw_resume_subscription', 'Resume subscription'),
@@ -466,13 +447,13 @@ export const MainBillingComponent: FC<{
             )}
           </p>
         </div>
-        <span inert={locked || undefined}>
+        {onePage ? null : (
           <PeriodToggle
             value={period}
             onChange={setPeriod}
             save={plans[0]?.yearlyDiscountPercent ?? 0}
           />
-        </span>
+        )}
       </header>
       {failed ? (
         <Banner
@@ -505,7 +486,16 @@ export const MainBillingComponent: FC<{
           )}
         </Banner>
       ) : null}
-      <div id="tdw-plans" className="tdw-plan-row" data-count={plans.length}>
+      {onePage ? (
+        <div id="tdw-plans">
+          <PlanCheckout
+            initialTier={payTier || preselect}
+            initialPeriod={period}
+            onDone={() => setPayTier(null)}
+          />
+        </div>
+      ) : (
+        <div id="tdw-plans" className="tdw-plan-row" data-count={plans.length}>
         {plans.map((plan) => {
           const action = planAction(plan);
           const current = plan.tier === subscription?.subscriptionTier;
@@ -523,7 +513,6 @@ export const MainBillingComponent: FC<{
                   variant={action.variant}
                   disabled={
                     ('disabled' in action && action.disabled) ||
-                    locked ||
                     (loading && clicked !== plan.tier)
                   }
                   loading={loading && clicked === plan.tier}
@@ -543,23 +532,7 @@ export const MainBillingComponent: FC<{
           );
         })}
       </div>
-      {payPlan ? (
-        <div id="tdw-plan-pay" className="tdw-plan-pay">
-          <div className="tdw-plan-pay-side">
-            <OrderSummary
-              plan={payPlan}
-              period={period}
-              trialDays={trial ? payPlan.trialDays : 0}
-            />
-          </div>
-          <CheckoutPanel
-            plan={payPlan}
-            period={period}
-            onLock={setLocked}
-            onDone={() => setPayTier(null)}
-          />
-        </div>
-      ) : null}
+      )}
       {!!subscription && (
         <section className="tdw-paymethod">
           <span className="tdw-paymethod-ico" aria-hidden="true">

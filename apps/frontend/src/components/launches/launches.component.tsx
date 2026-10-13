@@ -619,8 +619,8 @@ export const LaunchesComponent = () => {
   // @ts-ignore
   return (
     <DNDProvider>
-      {/* Tadween: onboarding (?onboarding=true) is full screen, rendered by
-          LayoutComponent in place of the app (tadween/onboarding) */}
+      {/* Tadween: Postiz's <Onboarding /> (?onboarding=true) is mounted by
+          LayoutComponent, so it opens on Today too */}
       <ChannelsAfterPayment integrations={integrations} />
       <CalendarWeekProvider integrations={sortedIntegrations}>
         {/* Tadween: the channel column became chips + an "All channels"

@@ -49,9 +49,10 @@ import { StreakComponent } from '@gitroom/frontend/components/layout/streak.comp
 import { UpgradeButton } from '@gitroom/frontend/components/tadween/billing/upgrade.link';
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
 import {
-  TadweenOnboarding,
-  useOnboarding,
-} from '@gitroom/frontend/components/tadween/onboarding/tadween.onboarding';
+  FirstBillingComponent,
+  useFirstBilling,
+} from '@gitroom/frontend/components/billing/first.billing.component';
+import { Onboarding } from '@gitroom/frontend/components/onboarding/onboarding';
 import { BootScreen } from '@gitroom/frontend/components/tadween/shell/boot.screen';
 import { TrialTracker } from '@gitroom/frontend/components/layout/gtm.component';
 import { setSentryUser } from '@gitroom/react/sentry/initialize.sentry.client';
@@ -85,21 +86,30 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     );
   }, [user]);
 
-  // A workspace without a plan sees the plan step in place of the app (the
-  // last step of onboarding, or alone in the same shell); super admins never
+  // As Postiz: a workspace without a plan sees the first billing screen in
+  // place of the app; super admins never
   const needsPlan =
     !!user &&
     user.tier === 'FREE' &&
     isGeneral &&
     billingEnabled &&
     !user.billingExempt;
-  // Tadween onboarding (after sign-up) takes the whole screen
-  const onboarding = useOnboarding(user?.id);
-  const showOnboarding = !!onboarding.step || needsPlan;
+  // ...and so does a new workspace right after sign-up while its free trial
+  // runs without a card (until it pays or picks "Maybe later")
+  const firstBilling = useFirstBilling(
+    billingEnabled && !user?.billingExempt ? user : undefined,
+    needsPlan
+  );
 
-  if (!user || !onboarding.ready) {
+  if (!user || !firstBilling.ready) {
     return (
-      <BootScreen variant={onboarding.requested ? 'onboarding' : 'app'} />
+      <BootScreen
+        variant={
+          firstBilling.show || (billingEnabled && firstBilling.requested)
+            ? 'billing'
+            : 'app'
+        }
+      />
     );
   }
 
@@ -125,6 +135,8 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             <NewSubscription />
             <PaywallModal />
             <ContinueProvider />
+            {/* Postiz's onboarding modal (?onboarding=true), once the app shows */}
+            {firstBilling.show ? null : <Onboarding />}
             <div
               className={clsx(
                 'tdw-shell flex flex-col min-h-screen min-w-screen text-newTextColor p-[12px] mobile:p-[8px]',
@@ -135,17 +147,18 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                   admin tools are one pill in the top bar (here only when the
                   billing screen replaces the top bar) */}
               <div>
-                {user?.admin && (user?.impersonate || needsPlan) ? (
+                {user?.admin && (user?.impersonate || firstBilling.show) ? (
                   <Impersonate />
                 ) : (
                   <div />
                 )}
               </div>
-              {showOnboarding ? (
-                <TadweenOnboarding
-                  step={onboarding.step}
-                  go={onboarding.go}
-                  needsPlan={needsPlan}
+              {firstBilling.show ? (
+                <FirstBillingComponent
+                  onDone={() => {
+                    firstBilling.dismiss();
+                    mutate();
+                  }}
                 />
               ) : (
                 <>

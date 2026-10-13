@@ -1,6 +1,15 @@
 'use client';
 
-import { createContext, FC, ReactNode, useContext } from 'react';
+import {
+  createContext,
+  FC,
+  ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+} from 'react';
+import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { useTranslationSettings } from '@gitroom/react/translation/get.transation.service.client';
 import { User } from '@prisma/client';
 import {
   pricing,
@@ -40,6 +49,30 @@ export const ContextWrapper: FC<{
 }> = ({ user, children }) => {
   // Tadween: plan limits set in /admin overlay the static pricing map
   const { pricing: plans } = useTadweenPricing();
+  // Tadween: the app language is kept on the user, so emails speak it
+  const fetch = useFetch();
+  const settings = useTranslationSettings();
+  const savedLanguage = useRef(user?.language);
+  useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+    const save = (language?: string) => {
+      if (!language || language === savedLanguage.current) {
+        return;
+      }
+      savedLanguage.current = language;
+      fetch('/user/language', {
+        method: 'POST',
+        body: JSON.stringify({ language }),
+      }).catch(() => {});
+    };
+    save(settings.resolvedLanguage);
+    settings.on('languageChanged', save);
+    return () => {
+      settings.off('languageChanged', save);
+    };
+  }, [user?.id]);
   // A super admin on a workspace without a plan gets the top tier's gates
   // (the real tier still drives /billing, which reads the subscription)
   const tier =

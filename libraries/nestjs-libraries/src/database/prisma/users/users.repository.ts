@@ -287,6 +287,29 @@ export class UsersRepository {
     });
   }
 
+  // Tadween: the app language, for emails (select: nothing returned)
+  async setLanguage(userId: string, language: string) {
+    await this._user.model.user.update({
+      where: { id: userId },
+      data: { language },
+      select: { id: true },
+    });
+  }
+
+  // The language of the account that receives an email, by its address
+  async getLanguageByEmail(email: string) {
+    return (
+      await this._user.model.user.findFirst({
+        where: {
+          email: { equals: email, mode: 'insensitive' },
+          deletedAt: null,
+        },
+        orderBy: { lastOnline: 'desc' },
+        select: { language: true },
+      })
+    )?.language;
+  }
+
   async updateEmailNotifications(userId: string, body: EmailNotificationsDto) {
     await this._user.model.user.update({
       where: {

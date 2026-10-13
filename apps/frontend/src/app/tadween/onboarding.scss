@@ -1,0 +1,139 @@
+// Tadween onboarding and first load. Loaded from global.scss.
+//
+//   · Onboarding: components/tadween/onboarding/tadween.onboarding.tsx. The
+//     frame (.pz-ob head, progress, stage, step, footer, channel cards) is the
+//     design system's Onboarding and lives in billing.scss; this file adds the
+//     full-page shell and the pieces of the steps.
+//   · Boot screen: components/tadween/shell/boot.screen.tsx, the Loading
+//     pattern shown while the app's first request is on its way.
+// Everything sits inside `.tdw-ui`, so the kit's tokens (--card, --primary…)
+// and motion variables apply. Reduced motion: steps cross-fade (billing.scss),
+// the progress line and shimmer stop (below and in the kit).
+
+$phone: '(max-width: 1025px)';
+
+// Onboarding replaces the app shell, edge to edge
+.tdw-shell:has(> .tdw-ob-page) {
+  padding: 0 !important;
+}
+.tdw-shell > .tdw-ob-page {
+  flex: 1;
+}
+
+.tdw-ui {
+  &.tdw-ob-page { display: flex; flex-direction: column; min-height: 100dvh; background: var(--background); color: var(--foreground); }
+  &.tdw-ob-page > .pz-ob { flex: 1; height: auto; min-height: 100dvh; }
+  // the footer stays reachable when a step is taller than the screen
+  &.tdw-ob-page .pz-ob-foot { position: sticky; bottom: 0; z-index: 2; background: var(--background); }
+  &.tdw-ob-page .pz-ob-stage { padding-top: clamp(24px, 8vh, 72px); padding-bottom: var(--space-12); overflow: visible; }
+  .tdw-ob-head-spacer { width: 84px; flex: none; }
+
+  // A big, friendly headline and one lead line
+  .tdw-ob-headline { display: grid; gap: var(--space-2); }
+  .tdw-ob-headline.is-center { justify-items: center; text-align: center; }
+  .tdw-ob-headline .title-1 { margin: 0; font-size: 34px; line-height: 40px; letter-spacing: -0.025em; text-wrap: balance; }
+  .tdw-ob-headline .pz-ob-lead { margin: 0; font-size: 16px; line-height: 24px; text-wrap: pretty; }
+
+  // Brand mark that opens the first step
+  .tdw-ob-mark { display: inline-flex; width: 56px; height: 56px; animation: pz-pop 600ms var(--ease-bounce) both; }
+  .tdw-ob-mark svg { margin: 0 !important; width: 56px !important; height: 56px !important; min-width: 56px !important; min-height: 56px !important; filter: drop-shadow(0 8px 20px color-mix(in oklab, var(--primary) 28%, transparent)); }
+
+  .tdw-ob-form, .tdw-ob-fields { display: grid; gap: var(--space-5); margin-top: var(--space-2); }
+  .tdw-ob-form .pz-input { height: 48px; font-size: 16px; }
+  .tdw-ob-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+  .tdw-ob-more { margin-top: var(--space-2); max-width: 240px; }
+
+  // The workspace you are in (yours, or the one you were invited to)
+  .tdw-ob-workspace { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm); animation: pz-rise var(--duration-spring) var(--ease-spring) 120ms both; }
+  .tdw-ob-workspace-mark { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: var(--radius-md); background: var(--primary-soft); color: var(--primary); font-size: 17px; font-weight: 600; }
+  .tdw-ob-workspace-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
+  .tdw-ob-workspace-text .headline { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tdw-ob-workspace-note { flex-basis: 100%; padding-top: var(--space-3); border-top: 1px solid var(--border); }
+
+  // Quiet information row (the device's time zone)
+  .tdw-ob-note { display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--muted); font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+  .tdw-ob-note .pz-icon { flex: none; margin-top: 2px; }
+
+  // Ready: the check springs in, then what is set up (design system: Onboarding)
+  .pz-ob-done { display: grid; justify-items: center; text-align: center; gap: var(--space-3); padding-top: var(--space-4); }
+  .pz-ob-done-mark { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: var(--primary); color: var(--primary-foreground); animation: pz-pop 600ms var(--ease-bounce) both; }
+  .pz-ob-done .tdw-ob-headline { margin-top: var(--space-2); }
+  .tdw-ob-summary { display: grid; gap: var(--space-2); width: 100%; max-width: 400px; margin: var(--space-4) 0 0; padding: var(--space-4) var(--space-5); list-style: none; border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm); text-align: start; }
+  .tdw-ob-summary li { display: flex; align-items: center; gap: var(--space-3); font-size: 15px; line-height: 22px; color: var(--muted-foreground); animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
+  .tdw-ob-summary li:nth-child(2) { animation-delay: 80ms; }
+  .tdw-ob-summary li:nth-child(3) { animation-delay: 160ms; }
+  .tdw-ob-summary li.is-done { color: var(--foreground); }
+  .tdw-ob-summary li.is-done .pz-icon { color: var(--success); }
+  .tdw-ob-link { display: inline-flex; align-items: center; gap: 6px; margin-top: var(--space-2); font-size: 14px; font-weight: 500; color: var(--primary); text-decoration: none; border-radius: var(--radius-sm); }
+  .tdw-ob-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .tdw-ob-link:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  &.is-ar .tdw-ob-headline .title-1 { font-size: 30px; line-height: 44px; letter-spacing: 0; }
+  &.is-ar .tdw-ob-headline .pz-ob-lead { line-height: 28px; }
+
+  @media #{$phone} {
+    .tdw-ob-headline .title-1 { font-size: 28px; line-height: 34px; }
+    &.is-ar .tdw-ob-headline .title-1 { font-size: 26px; line-height: 38px; }
+    .tdw-ob-head-spacer { display: none; }
+    .pz-ob-foot .pz-ob-foot-note { display: none; }
+    .pz-ob-foot { justify-content: flex-end; }
+  }
+  @media #{$phone} and (max-width: 560px) {
+    // phones: the step names don't fit, the bars carry the progress
+    .pz-ob-head { gap: var(--space-3); }
+    .pz-ob-logo-word { display: none; }
+  }
+}
+
+// ── Boot screen (first load) ─────────────────────────────────────────────────
+@keyframes tdw-boot-line {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+@keyframes tdw-boot-line-rtl {
+  from { transform: translateX(100%); }
+  to { transform: translateX(-250%); }
+}
+.tdw-ui.tdw-boot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--background);
+  animation: pz-fade var(--duration-base) ease 150ms both;
+
+  // calm progress along the top edge
+  .tdw-boot-line { position: fixed; z-index: 10; inset-inline: 0; top: 0; height: 2px; overflow: hidden; background: color-mix(in oklab, var(--primary) 14%, transparent); }
+  .tdw-boot-line::after { content: ''; position: absolute; inset-block: 0; inset-inline-start: 0; width: 40%; border-radius: 2px; background: var(--primary); animation: tdw-boot-line 1.6s var(--ease-spring) infinite; }
+  [dir='rtl'] & .tdw-boot-line::after, &[dir='rtl'] .tdw-boot-line::after { animation-name: tdw-boot-line-rtl; }
+
+  > .pz-ob { flex: 1; min-height: 100dvh; height: auto; }
+  .tdw-boot-progress { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); max-width: 560px; margin: 0 auto; }
+  .tdw-boot-step { display: grid; gap: var(--space-4); width: 100%; max-width: 520px; }
+  .pz-ob-stage { padding-top: clamp(24px, 8vh, 72px); }
+
+  .tdw-boot-shell { flex: 1; display: flex; gap: 8px; padding: 12px; }
+  .tdw-boot-side { display: grid; align-content: start; gap: 24px; width: 256px; flex: none; padding: 16px 14px; border-radius: 12px; background: var(--card); }
+  .tdw-boot-brand { display: flex; align-items: center; gap: 10px; }
+  .tdw-boot-brand svg, .tdw-boot-phone-mark svg { margin: 0 !important; width: 32px !important; height: 32px !important; min-width: 32px !important; min-height: 32px !important; }
+  .tdw-boot-nav { display: grid; gap: 18px; padding-top: 8px; }
+  .tdw-boot-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; border-radius: 12px; overflow: hidden; background: var(--border); }
+  .tdw-boot-top { display: flex; align-items: center; gap: 12px; height: 68px; padding: 0 20px; background: var(--card); }
+  .tdw-boot-phone-mark { display: none; }
+  .tdw-boot-body { flex: 1; display: grid; align-content: start; gap: 16px; padding: 28px; background: var(--background); }
+  .tdw-boot-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding-top: 8px; }
+
+  @media #{$phone} {
+    .tdw-boot-shell { padding: 8px; }
+    .tdw-boot-side { display: none; }
+    .tdw-boot-top { height: 56px; padding: 0 12px; }
+    .tdw-boot-phone-mark { display: inline-flex; }
+    .tdw-boot-body { padding: 20px 16px; }
+    .tdw-boot-cards { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    .tdw-boot-line::after { animation: none !important; width: 100%; opacity: 0.5; }
+  }
+}

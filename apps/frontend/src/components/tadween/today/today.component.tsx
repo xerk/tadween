@@ -19,6 +19,7 @@ import { TadweenChannelAvatar } from '@gitroom/frontend/components/tadween/edito
 import {
   Button,
   Icon,
+  IconButton,
   LinkButton,
   Skeleton,
   TadweenScope,
@@ -220,6 +221,84 @@ const UpNext: FC<{
           </div>
         </div>
       )}
+    </section>
+  );
+};
+
+/* ── First run ───────────────────────────────────────────────────────────── */
+// A short checklist for a new workspace, until a post is scheduled (or the
+// person hides it; that choice is remembered in this browser).
+const FIRST_RUN_HIDDEN = 'tdw_first_run_hidden';
+const FirstRun: FC<{
+  hasChannels: boolean;
+  hasPost: boolean;
+  hasScheduled: boolean;
+  onConnect: () => void;
+  onCreate: () => void;
+  onHide: () => void;
+}> = ({ hasChannels, hasPost, hasScheduled, onConnect, onCreate, onHide }) => {
+  const t = useT();
+  const isOn = useFeatures();
+  const items = [
+    {
+      done: hasChannels,
+      title: t('today_first_connect', 'Connect a channel'),
+      body: t('today_first_connect_body', 'Your LinkedIn profile or a page you manage.'),
+      action: t('today_connect_channel', 'Connect a channel'),
+      onClick: onConnect,
+    },
+    {
+      done: hasPost,
+      title: isOn('ai')
+        ? t('today_first_write_ai', 'Write your first post with AI')
+        : t('today_first_write', 'Write your first post'),
+      body: isOn('ai')
+        ? t('today_first_write_ai_body', 'Start from an idea; the AI drafts it in your voice.')
+        : t('today_first_write_body', 'Start from an idea, a link or a photo.'),
+      action: t('today_create_post', 'Create post'),
+      onClick: onCreate,
+    },
+    {
+      done: hasScheduled,
+      title: t('today_first_schedule', 'Schedule it'),
+      body: t('today_first_schedule_body', 'Pick a time and Tadween posts it for you.'),
+      action: t('today_create_post', 'Create post'),
+      onClick: onCreate,
+    },
+  ];
+  const next = items.findIndex((i) => !i.done);
+  const doneCount = items.filter((i) => i.done).length;
+  return (
+    <section className="tdw-card tdw-first" aria-label={t('today_first_title', 'Get started')}>
+      <div className="tdw-card-h">
+        <h2 className="tdw-label">
+          {t('today_first_title', 'Get started')}
+          <span className="tdw-count">
+            {doneCount}/{items.length}
+          </span>
+        </h2>
+        <IconButton icon="x" label={t('today_first_hide', 'Hide')} size="sm" onClick={onHide} />
+      </div>
+      <ol className="tdw-first-list">
+        {items.map((item, i) => (
+          <li key={item.title} className={cx(item.done && 'is-done', i === next && 'is-next')}>
+            <span className="tdw-first-dot" aria-hidden="true">
+              {item.done ? <Icon name="check" size={14} /> : i + 1}
+            </span>
+            <span className="tdw-first-text">
+              <b>{item.title}</b>
+              <span>{item.body}</span>
+            </span>
+            {i === next ? (
+              <Button size="sm" variant="primary" onClick={item.onClick}>
+                {item.action}
+              </Button>
+            ) : item.done ? (
+              <span className="tdw-first-ok">{t('today_first_done', 'Done')}</span>
+            ) : null}
+          </li>
+        ))}
+      </ol>
     </section>
   );
 };
@@ -617,6 +696,30 @@ export const TodayComponent: FC = () => {
     .split(/\s+/).filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase();
   const networks = Array.from(new Set(active.map((c) => c.identifier.replace(/-page$|-standalone$|-business$/, ''))));
   const noChannels = !channelsLoading && !integrations.length;
+  const [firstRunHidden, setFirstRunHidden] = useState(true);
+  useEffect(() => {
+    try {
+      setFirstRunHidden(localStorage.getItem(FIRST_RUN_HIDDEN) === 'true');
+    } catch (e) {
+      setFirstRunHidden(false);
+    }
+  }, []);
+  const hideFirstRun = useCallback(() => {
+    setFirstRunHidden(true);
+    try {
+      localStorage.setItem(FIRST_RUN_HIDDEN, 'true');
+    } catch (e) {
+      // shown again next visit
+    }
+  }, []);
+  const hasScheduled = !!nextPost || !!published.data?.length;
+  const showFirstRun =
+    !firstRunHidden &&
+    !channelsLoading &&
+    !next.isLoading &&
+    !published.isLoading &&
+    !drafts.isLoading &&
+    !hasScheduled;
 
   const createNow = useCallback(() => create(), [create]);
 
@@ -664,7 +767,19 @@ export const TodayComponent: FC = () => {
           </div>
         </header>
 
+        {showFirstRun ? (
+          <FirstRun
+            hasChannels={!!integrations.length}
+            hasPost={!!drafts.data?.total || weekPosts.length > 0}
+            hasScheduled={hasScheduled}
+            onConnect={addChannel}
+            onCreate={createNow}
+            onHide={hideFirstRun}
+          />
+        ) : null}
+
         {noChannels ? (
+          showFirstRun ? null : (
           <section className="tdw-card">
             <TadweenEmptyState
               icon="channels"
@@ -677,6 +792,7 @@ export const TodayComponent: FC = () => {
               }
             />
           </section>
+          )
         ) : (
           <>
             <button type="button" className="tdw-quick" onClick={createNow} disabled={channelsLoading}>

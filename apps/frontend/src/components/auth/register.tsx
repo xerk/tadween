@@ -7,7 +7,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { useFireEvents } from '@gitroom/helpers/utils/use.fire.events';
 import { useTrack } from '@gitroom/react/helpers/use.track';
 import { TrackEnum } from '@gitroom/nestjs-libraries/user/track.enum';
@@ -18,6 +17,7 @@ import {
   AuthField,
   AuthHeading,
   AuthLegal,
+  AuthLoading,
   AuthSubmit,
   AuthSwitch,
 } from '@gitroom/frontend/components/tadween/auth/auth.parts';
@@ -29,6 +29,7 @@ type Inputs = {
   provider: string;
 };
 export function Register() {
+  const t = useT();
   const getQuery = useSearchParams();
   const fetch = useFetch();
   const [provider] = useState(getQuery?.get('provider')?.toUpperCase());
@@ -60,9 +61,10 @@ export function Register() {
   }
   if (!show) {
     return (
-      <div className="tdw-auth-spinner">
-        <LoadingComponent />
-      </div>
+      <AuthLoading
+        title={t('tdw_auth_loading_title', 'Setting up your account…')}
+        subtitle={t('tdw_auth_loading_subtitle', 'This takes a few seconds.')}
+      />
     );
   }
   return (
@@ -165,14 +167,14 @@ export function RegisterAfter({
         <AuthHeading
           title={
             isAfterProvider
-              ? t('tdw_auth_register_finish_title', 'One last step')
+              ? t('tdw_auth_register_finish_title', 'Name your workspace')
               : t('tdw_auth_register_title', 'Create your account')
           }
           subtitle={
             isAfterProvider
               ? t(
                   'tdw_auth_register_finish_subtitle',
-                  'Name your workspace and you are in.'
+                  'Your posts, channels and team live here. It’s the last step before you’re in.'
                 )
               : t(
                   'tdw_auth_register_subtitle',
@@ -211,11 +213,13 @@ export function RegisterAfter({
             {t('create_account', 'Create Account')}
           </AuthSubmit>
         </div>
-        <AuthSwitch
-          prompt={t('tdw_auth_have_account', 'Already have an account?')}
-          href="/auth/login"
-          action={t('sign_in_1', 'Sign in')}
-        />
+        {!isAfterProvider && (
+          <AuthSwitch
+            prompt={t('tdw_auth_have_account', 'Already have an account?')}
+            href="/auth/login"
+            action={t('sign_in_1', 'Sign in')}
+          />
+        )}
       </form>
     </FormProvider>
   );

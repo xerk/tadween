@@ -52,6 +52,11 @@ import {
 } from '@gitroom/frontend/components/tadween/billing/upgrade.link';
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
 import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
+import {
+  TadweenOnboarding,
+  useOnboarding,
+} from '@gitroom/frontend/components/tadween/onboarding/tadween.onboarding';
+import { BootScreen } from '@gitroom/frontend/components/tadween/shell/boot.screen';
 import { TrialTracker } from '@gitroom/frontend/components/layout/gtm.component';
 import { setSentryUser } from '@gitroom/react/sentry/initialize.sentry.client';
 
@@ -93,13 +98,29 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     isGeneral &&
     billingEnabled &&
     !user.billingExempt;
+  // Tadween onboarding (after sign-up) takes the whole screen; its plan step
+  // is the paywall below, after which it carries on
+  const onboarding = useOnboarding(user?.id);
+  const showOnboarding =
+    !!onboarding.step && !(onboarding.step === 'plan' && needsPlan);
+  // A payment return (?check=) stays where it is, so CheckPayment can finish
   useEffect(() => {
-    if (needsPlan && pathname !== '/billing') {
+    if (
+      onboarding.ready &&
+      needsPlan &&
+      !showOnboarding &&
+      !searchParams.get('check') &&
+      pathname !== '/billing'
+    ) {
       router.replace('/billing');
     }
-  }, [needsPlan, pathname]);
+  }, [onboarding.ready, needsPlan, showOnboarding, pathname]);
 
-  if (!user) return null;
+  if (!user || !onboarding.ready) {
+    return (
+      <BootScreen variant={onboarding.requested ? 'onboarding' : 'app'} />
+    );
+  }
 
   return (
     <ContextWrapper user={user}>
@@ -139,7 +160,13 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                   <div />
                 )}
               </div>
-              {needsPlan ? (
+              {showOnboarding ? (
+                <TadweenOnboarding
+                  step={onboarding.step!}
+                  go={onboarding.go}
+                  needsPlan={needsPlan}
+                />
+              ) : needsPlan ? (
                 <FirstBillingComponent />
               ) : (
                 <>

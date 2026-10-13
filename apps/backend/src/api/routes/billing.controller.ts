@@ -26,6 +26,11 @@ import {
   aiCreditPacks,
   imageCreditAction,
 } from '@gitroom/nestjs-libraries/openai/ai.config';
+import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
+import {
+  AuthorizationActions,
+  Sections,
+} from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 
 @ApiTags('Billing')
 @Controller('/billing')
@@ -234,6 +239,12 @@ export class BillingController {
     return {
       portal: url,
     };
+  }
+
+  @Get('/invoices')
+  @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
+  async getInvoices(@GetOrgFromRequest() org: Organization) {
+    return (await this.provider(org)).getInvoices(org.id);
   }
 
   @Get('/')

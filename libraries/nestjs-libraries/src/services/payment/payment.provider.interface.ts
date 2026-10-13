@@ -100,6 +100,16 @@ export abstract class PaymentProviderAbstract {
     return this.notSupported();
   }
 
+  // A workspace on the card-less trial chose its plan and saved a card in
+  // the embedded checkout: apply both to the running trial (same trial end).
+  // Answers { check } to wait for, or { failed: true } when the card is refused.
+  async applyTrialPlan(
+    organizationId: string,
+    sessionId: string
+  ): Promise<{ check?: string; failed?: boolean }> {
+    return this.notSupported();
+  }
+
   // Store the provider's status, trial end and price on the subscription row
   // (for rows written before the provider reported them). No-op by default.
   async refreshSubscriptionState(organizationId: string): Promise<void> {

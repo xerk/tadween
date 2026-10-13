@@ -141,28 +141,46 @@ export class StripeService extends PaymentProviderAbstract {
       return event.data.object.status === 'trialing';
     }
 
+    if (
+      await this.authorizeCard(
+        event.data.object.customer as string,
+        latestMethod.id
+      )
+    ) {
+      return true;
+    }
+
+    console.error('Cant charge');
+    try {
+      await stripe.paymentMethods.detach(latestMethod.id);
+      await stripe.subscriptions.cancel(event.data.object.id as string);
+    } catch (err) {
+      /*dont do anything*/
+    }
+    return false;
+  }
+
+  // Whether the card can be charged: a $1 hold placed off-session and
+  // released at once. A bank that asks for 3-D Secure on every payment counts
+  // as valid (the customer just passed it in Checkout). Never throws.
+  private async authorizeCard(customer: string, paymentMethod: string) {
     try {
       const paymentIntent = await stripe.paymentIntents.create({
         amount: 100,
         currency: 'usd',
-        payment_method: latestMethod.id,
-        customer: event.data.object.customer as string,
+        payment_method: paymentMethod,
+        customer,
         off_session: true,
         capture_method: 'manual', // Authorize without capturing
         confirm: true, // Confirm the PaymentIntent
       });
 
-      // The bank asks for 3-D Secure on every payment: the hold can't be
-      // placed off-session, but the customer just passed 3-D Secure in Checkout
       if (paymentIntent.status === 'requires_action') {
         await stripe.paymentIntents.cancel(paymentIntent.id).catch(() => {});
         return true;
       }
 
       if (paymentIntent.status !== 'requires_capture') {
-        console.error('Cant charge');
-        await stripe.paymentMethods.detach(latestMethod.id);
-        await stripe.subscriptions.cancel(event.data.object.id as string);
         return false;
       }
 
@@ -177,12 +195,6 @@ export class StripeService extends PaymentProviderAbstract {
           await stripe.paymentIntents.cancel(intent.id).catch(() => {});
         }
         return true;
-      }
-      try {
-        await stripe.paymentMethods.detach(latestMethod.id);
-        await stripe.subscriptions.cancel(event.data.object.id as string);
-      } catch (err) {
-        /*dont do anything*/
       }
       return false;
     }
@@ -1157,17 +1169,121 @@ export class StripeService extends PaymentProviderAbstract {
     if (!subscription || subscription.status !== 'trialing') {
       return null;
     }
-    const methods = await stripe.paymentMethods.list({
-      customer: subscription.customer as string,
-      limit: 1,
-    });
     return {
       trialEnd: subscription.trial_end
         ? new Date(subscription.trial_end * 1000)
         : null,
-      hasPaymentMethod:
-        !!subscription.default_payment_method || methods.data.length > 0,
+      hasPaymentMethod: await this.hasPaymentMethod(subscription),
     };
+  }
+
+  // Whether Stripe can charge this subscription when its trial ends
+  private async hasPaymentMethod(subscription: Stripe.Subscription) {
+    if (subscription.default_payment_method) {
+      return true;
+    }
+    const methods = await stripe.paymentMethods.list({
+      customer: subscription.customer as string,
+      limit: 1,
+    });
+    return methods.data.length > 0;
+  }
+
+  // Choosing a plan during the card-less trial: Checkout in setup mode saves
+  // the card (Payment Element with Link, our confirm button); applyTrialPlan
+  // then puts the card and the plan on the running trial
+  private async createTrialPlanCheckout(
+    uniqueId: string,
+    customer: string,
+    trial: Stripe.Subscription,
+    body: BillingSubscribeDto
+  ) {
+    const { client_secret } = await stripe.checkout.sessions.create({
+      ui_mode: 'custom',
+      mode: 'setup',
+      currency: 'usd',
+      customer,
+      // no payment method that leaves the page: applyTrialPlan runs from it
+      payment_method_types: ['card', 'link'],
+      return_url: process.env['FRONTEND_URL'] + `/today?check=${uniqueId}`,
+      metadata: {
+        service: 'gitroom',
+        type: 'trial_plan',
+        subscription: trial.id,
+        billing: body.billing,
+        period: body.period,
+        uniqueId,
+      },
+    });
+
+    return {
+      client_secret,
+      check: uniqueId,
+      trialEnd: trial.trial_end ? new Date(trial.trial_end * 1000) : null,
+    };
+  }
+
+  async applyTrialPlan(organizationId: string, sessionId: string) {
+    const org = await this._organizationService.getOrgById(organizationId);
+    const customer = this.stripeCustomerId(org);
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['setup_intent'],
+    });
+    const meta = session.metadata || {};
+    if (
+      !customer ||
+      session.customer !== customer ||
+      session.mode !== 'setup' ||
+      meta.type !== 'trial_plan' ||
+      session.status !== 'complete'
+    ) {
+      throw new BadRequestException('This checkout is not for this workspace');
+    }
+
+    const setupIntent = session.setup_intent as Stripe.SetupIntent | null;
+    const paymentMethod =
+      typeof setupIntent?.payment_method === 'string'
+        ? setupIntent.payment_method
+        : setupIntent?.payment_method?.id;
+    if (!paymentMethod) {
+      throw new BadRequestException('No payment method was saved');
+    }
+
+    // As a checkout with a trial: a card that can't be charged is refused
+    // now, not when the trial ends
+    if (!(await this.authorizeCard(customer, paymentMethod))) {
+      await stripe.paymentMethods.detach(paymentMethod).catch(() => {});
+      return { failed: true };
+    }
+
+    const trial = await stripe.subscriptions.retrieve(meta.subscription);
+    if (trial.customer !== customer || trial.status !== 'trialing') {
+      throw new BadRequestException('The free trial has already ended');
+    }
+
+    const price = await this.findOrCreatePrice({
+      billing: meta.billing,
+      period: meta.period,
+    } as BillingSubscribeDto);
+    await stripe.customers.update(customer, {
+      invoice_settings: { default_payment_method: paymentMethod },
+    });
+    // Same subscription, same trial end: no second trial and no early charge.
+    // The updated webhook stores the plan (uniqueId answers /billing/check).
+    await stripe.subscriptions.update(trial.id, {
+      items: [{ id: trial.items.data[0].id, price: price.id }],
+      default_payment_method: paymentMethod,
+      proration_behavior: 'none',
+      trial_end: trial.trial_end!,
+      metadata: {
+        ...trial.metadata,
+        billing: meta.billing,
+        period: meta.period,
+        uniqueId: meta.uniqueId,
+      },
+    });
+
+    return { check: meta.uniqueId };
   }
 
   // AI credits top-up: a one-time payment in Embedded Checkout. The pack and
@@ -1263,7 +1379,19 @@ export class StripeService extends PaymentProviderAbstract {
     const id = makeId(10);
     const org = await this._organizationService.getOrgById(organizationId);
     const customer = await this.createOrGetCustomer(org!);
-    if ((await this.getLiveSubscriptions(customer)).length) {
+    const live = await this.getLiveSubscriptions(customer);
+    if (live.length) {
+      // The free trial without a card (started at sign-up or with "Maybe
+      // later"): choosing a plan saves a card for it instead of a new
+      // subscription, so the trial keeps its end date
+      const [trial] = live;
+      if (
+        live.length === 1 &&
+        trial.status === 'trialing' &&
+        !(await this.hasPaymentMethod(trial))
+      ) {
+        return this.createTrialPlanCheckout(id, customer, trial, body);
+      }
       return { blocked: true };
     }
     const findPrice = await this.findOrCreatePrice(body);

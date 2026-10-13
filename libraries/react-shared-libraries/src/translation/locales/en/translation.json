@@ -2579,5 +2579,9 @@
   "tdw_invoice_download": "Download invoice",
   "tdw_invoice_view": "View invoice",
   "tdw_show_more": "Show more",
-  "tdw_ob_channels_after_plan": "You can connect channels as soon as your plan or free trial starts, the last step of this setup."
+  "tdw_ob_channels_after_plan": "You can connect channels as soon as your plan or free trial starts, the last step of this setup.",
+  "tdw_plan_step_title_trial": "Pick your plan to keep going after your free trial",
+  "tdw_plan_step_lead_left_one": "1 day left in your free trial. Nothing is charged before it ends, and you can cancel any time.",
+  "tdw_plan_step_lead_left": "{{n}} days left in your free trial. Nothing is charged before it ends, and you can cancel any time.",
+  "tdw_youre_on_keep_trial": "Your free trial continues. Stripe charges your card when it ends, on {{date}}."
 }

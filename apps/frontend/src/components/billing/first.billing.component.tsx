@@ -1,12 +1,14 @@
 'use client';
 
-// The plan step: what a workspace without a plan sees, as the last step of
-// onboarding (or alone, in the same shell, when it needs a plan later). Like
-// Postiz's first billing screen, each plan has one action: pick it, start the
-// free trial with a card in Stripe (Payment Element with Link, then Confirm),
-// Stripe charges the card when the trial ends. While the workspace can still
-// start a trial, a quiet "Maybe later" starts it without a card instead. Once
-// the trial has ended there is no way around a plan.
+// The plan step: the last step of onboarding, and what a workspace without
+// a plan sees in place of the app. A new workspace is already on its free
+// trial (it starts at sign-up): each plan has one action, "Choose plan",
+// which saves a card for that same trial in Stripe (Payment Element with
+// Link, then Confirm), and Stripe charges the plan when the trial ends.
+// "Maybe later" just opens the app. Without a trial running, the plan's
+// trial starts with the card instead, or without one ("Maybe later") while
+// the workspace can still try; once the trial has ended there is no way
+// around a plan.
 import React, { FC, useCallback, useEffect, useState } from 'react';
 import { useSWRConfig } from 'swr';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +24,7 @@ import {
   PeriodToggle,
 } from '@gitroom/frontend/components/tadween/billing/pricing';
 import { PlanCard } from '@gitroom/frontend/components/tadween/billing/plans.view';
+import { isPaymentFailed } from '@gitroom/frontend/components/tadween/billing/trial.banner';
 import {
   CheckoutPanel,
   OrderSummary,
@@ -50,6 +53,17 @@ export const FirstBillingComponent: FC<{ onDone: () => void }> = ({
   const [locked, setLocked] = useState(false);
   const [skipping, setSkipping] = useState(false);
   const trial = !!user?.allowTrial;
+  // the free trial started at sign-up (a failed renewal sets isTrailing too)
+  const trialing =
+    !!user?.isTrailing && !isPaymentFailed(user?.subscriptionStatus);
+  const daysLeft = user?.trialEndsAt
+    ? Math.max(
+        0,
+        Math.ceil(
+          (new Date(user.trialEndsAt).getTime() - Date.now()) / 86_400_000
+        )
+      )
+    : 0;
   const plan = plans.find((p) => p.tier === chosen);
   const featured = plans.find((p) => p.mostPopular) || plans[0];
   const trialDays = trial ? featured?.trialDays || 0 : 0;
@@ -126,7 +140,7 @@ export const FirstBillingComponent: FC<{ onDone: () => void }> = ({
             <OrderSummary
               plan={plan}
               period={period}
-              trialDays={trial ? plan.trialDays : 0}
+              trialDays={trialing ? daysLeft : trial ? plan.trialDays : 0}
             />
           </div>
           <CheckoutPanel
@@ -146,10 +160,26 @@ export const FirstBillingComponent: FC<{ onDone: () => void }> = ({
       <div className="tdw-plan-step-head">
         <div className="tdw-ob-headline">
           <h1 className="title-1">
-            {t('tdw_plan_step_title', 'Choose your plan')}
+            {trialing
+              ? t(
+                  'tdw_plan_step_title_trial',
+                  'Pick your plan to keep going after your free trial'
+                )
+              : t('tdw_plan_step_title', 'Choose your plan')}
           </h1>
           <p className="pz-ob-lead">
-            {trial
+            {trialing
+              ? daysLeft === 1
+                ? t(
+                    'tdw_plan_step_lead_left_one',
+                    '1 day left in your free trial. Nothing is charged before it ends, and you can cancel any time.'
+                  )
+                : t(
+                    'tdw_plan_step_lead_left',
+                    '{{n}} days left in your free trial. Nothing is charged before it ends, and you can cancel any time.',
+                    { n: daysLeft }
+                  )
+              : trial
               ? t(
                   'tdw_plan_step_lead_trial',
                   'Every plan starts with a {{n}}-day free trial. You’re charged when it ends, and you can cancel any time before.',
@@ -180,7 +210,9 @@ export const FirstBillingComponent: FC<{ onDone: () => void }> = ({
                 disabled={skipping}
                 onClick={() => setChosen(p.tier)}
               >
-                {trial && p.trialDays > 0
+                {trialing
+                  ? t('tdw_choose_plan', 'Choose plan')
+                  : trial && p.trialDays > 0
                   ? t('tdw_start_free_trial', 'Start {{n}}-day free trial', {
                       n: p.trialDays,
                     })
@@ -192,9 +224,14 @@ export const FirstBillingComponent: FC<{ onDone: () => void }> = ({
           />
         ))}
       </div>
-      {trialDays > 0 ? (
+      {trialing || trialDays > 0 ? (
         <div className="tdw-plan-later">
-          <Button variant="ghost" size="sm" loading={skipping} onClick={skip}>
+          <Button
+            variant="ghost"
+            size="sm"
+            loading={skipping}
+            onClick={trialing ? onDone : skip}
+          >
             {t('tdw_paywall_later', 'Maybe later')}
           </Button>
         </div>

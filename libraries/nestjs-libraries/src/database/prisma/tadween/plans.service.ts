@@ -354,6 +354,13 @@ export class PlansService {
     return (await this.activePlans()).find((p) => p.tier === tier);
   }
 
+  // The plan a new workspace tries from sign-up: the highlighted plan on
+  // sale with a trial, else the first one (none: no trial to start)
+  async getSignupTrialTier() {
+    const plans = (await this.activePlans()).filter((p) => p.trialDays > 0);
+    return (plans.find((p) => p.mostPopular) || plans[0])?.tier;
+  }
+
   // Free trial length for a tier's checkout: the plan's, else Postiz's 7 days.
   async getTrialDays(tier: string) {
     const plan = (await this.activePlans()).find((p) => p.tier === tier);

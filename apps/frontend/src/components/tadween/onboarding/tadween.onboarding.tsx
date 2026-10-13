@@ -11,17 +11,17 @@
 //              AddProviderComponent
 //   agents   → the AI assistant guides of Settings → API & MCP
 //   tutorial → the admin's tutorial video (Branding), when there is one
-//   plan     → only while the workspace still needs one: pick a plan, start
-//              the free trial with a card in Stripe, or "Maybe later" for
-//              the trial without a card
-// A workspace that needs a plan outside onboarding (it skipped it, or the
-// trial ended) sees the same shell on the plan step alone.
+//   plan     → while the free trial (started at sign-up) runs without a
+//              card: pick the plan to keep after it and save a card in
+//              Stripe for the same trial, or "Maybe later" into the app
+// A workspace without a plan (its trial didn't start, or ended) sees the
+// same shell on the plan step alone.
 //
 // It renders full screen from LayoutComponent, in place of the app shell.
 // Progress is kept in sessionStorage, so a channel's OAuth round trip comes
 // back to the right step in the same tab.
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { orderBy } from 'lodash';
 import i18next from 'i18next';
 import useCookie from 'react-use-cookie';
@@ -40,6 +40,11 @@ import { AddProviderComponent } from '@gitroom/frontend/components/launches/add.
 import { OrganizationSelector } from '@gitroom/frontend/components/layout/organization.selector';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
+import { useUser } from '@gitroom/frontend/components/layout/user.context';
+import {
+  isPaymentFailed,
+  useTrialInfo,
+} from '@gitroom/frontend/components/tadween/billing/trial.banner';
 import {
   useBrandLinks,
   useInstanceSettings,
@@ -299,16 +304,40 @@ export const TadweenOnboarding: FC<{
   const step: OnboardingStep = requestedStep || 'plan';
   useChannelReturn(!standalone);
 
+  // The free trial starts at sign-up; while it runs without a card, the
+  // plan step asks for the plan to keep after it
+  const user = useUser();
+  const { mutate } = useSWRConfig();
+  const trialing =
+    !!user?.isTrailing && !isPaymentFailed(user?.subscriptionStatus);
+  const { data: trialInfo } = useTrialInfo(trialing);
+  const planStep =
+    needsPlan || (trialing && !!trialInfo && !trialInfo.hasPaymentMethod);
+  // Right after sign-up the trial's subscription is still on its way (Stripe's
+  // webhook): look again for a few seconds before showing channels as locked
+  const trialStarting = !standalone && needsPlan && !!user?.allowTrial;
+  const [waited, setWaited] = useState(0);
+  useEffect(() => {
+    if (!trialStarting || waited >= 10) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      mutate('/user/self');
+      setWaited((n) => n + 1);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [trialStarting, waited]);
+  const starting = trialStarting && waited < 10;
+
   // Postiz's three steps, the tutorial only when Branding has a video, then
-  // the plan while the workspace still needs one
+  // the plan while the workspace has none to keep after its trial
   const order = useMemo(
     () =>
       STEPS.filter(
         (s) =>
-          (s !== 'tutorial' || !!tutorialVideoUrl) &&
-          (s !== 'plan' || needsPlan)
+          (s !== 'tutorial' || !!tutorialVideoUrl) && (s !== 'plan' || planStep)
       ),
-    [tutorialVideoUrl, needsPlan]
+    [tutorialVideoUrl, planStep]
   );
   const index = Math.max(0, order.indexOf(step));
   const last = index === order.length - 1;
@@ -322,7 +351,12 @@ export const TadweenOnboarding: FC<{
   // A step that doesn't apply any more (the plan was bought in another tab,
   // the tutorial was removed) moves on
   useEffect(() => {
-    if (standalone || !settings || order.includes(step)) {
+    if (
+      standalone ||
+      !settings ||
+      (trialing && !trialInfo) ||
+      order.includes(step)
+    ) {
       return;
     }
     const next = order.find((s) => STEPS.indexOf(s) > STEPS.indexOf(step));
@@ -331,7 +365,7 @@ export const TadweenOnboarding: FC<{
     } else {
       finish();
     }
-  }, [standalone, settings, order, step]);
+  }, [standalone, settings, trialing, trialInfo, order, step]);
 
   const labels: Record<OnboardingStep, string> = {
     channels: t('tdw_ob_s_channels', 'Channels'),
@@ -355,7 +389,7 @@ export const TadweenOnboarding: FC<{
 
   // Skipping setup never skips the plan: it goes straight to it
   const skip = () => {
-    if (needsPlan) {
+    if (planStep) {
       move('plan');
       return;
     }
@@ -428,6 +462,7 @@ export const TadweenOnboarding: FC<{
               <ChannelsStep
                 connected={connected}
                 needsPlan={needsPlan}
+                starting={starting}
                 onChoosePlan={() => move('plan')}
               />
             ) : step === 'agents' ? (
@@ -508,8 +543,10 @@ const ChannelsStep: FC<{
   connected: Integration[];
   // no plan yet: the server refuses channels until the plan step starts one
   needsPlan: boolean;
+  // the trial started at sign-up is still arriving
+  starting: boolean;
   onChoosePlan: () => void;
-}> = ({ connected, needsPlan, onChoosePlan }) => {
+}> = ({ connected, needsPlan, starting, onChoosePlan }) => {
   const t = useT();
   const hidden = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -542,7 +579,7 @@ const ChannelsStep: FC<{
           'Pick the networks you post to. You can add more any time.'
         )}
       />
-      {needsPlan ? (
+      {needsPlan && !starting ? (
         <div className="tdw-ob-gate">
           <Icon name="lock" size={16} />
           <span>
@@ -556,8 +593,8 @@ const ChannelsStep: FC<{
           </Button>
         </div>
       ) : null}
-      {!data ? (
-        <div className="pz-ob-cards">
+      {!data || starting ? (
+        <div className="pz-ob-cards" aria-busy="true">
           <Skeleton height={72} radius={14} />
           <Skeleton height={72} radius={14} />
         </div>

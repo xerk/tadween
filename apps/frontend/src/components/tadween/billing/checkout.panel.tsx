@@ -213,6 +213,9 @@ const useCheckoutSession = (tier: string, period: BillingPeriod) => {
       client_secret?: string;
       check?: string;
       blocked?: boolean;
+      // set when the workspace is already on its free trial: the session
+      // saves a card for that trial (setup mode), nothing is charged
+      trialEnd?: string | null;
     };
   }, [tier, period, dub]);
   return useSWR(`/billing/embedded/${tier}/${period}`, load, {
@@ -380,10 +383,13 @@ const PromoCode: FC = () => {
 // Stripe's Payment Element (card, Link, wallets), what is due and our own
 // confirm button. With a trial Stripe saves the card and charges nothing today.
 const PaymentForm: FC<{
+  plan: PublicPlan;
   period: BillingPeriod;
   promo: boolean;
-  onPaid: () => void;
-}> = ({ period, promo, onPaid }) => {
+  // the running free trial's end, when the session only saves a card for it
+  trialEnd?: string | null;
+  onPaid: (sessionId: string) => void;
+}> = ({ plan, period, promo, trialEnd, onPaid }) => {
   const t = useT();
   const per = usePeriodLabel();
   const state = useCheckout();
@@ -400,6 +406,10 @@ const PaymentForm: FC<{
   }
   const checkout = state.type === 'success' ? state.checkout : null;
   const trial = checkout?.recurring?.trial;
+  // Choosing the plan during the free trial: the card is saved now and the
+  // plan's price is charged when the trial ends
+  const keepTrial = trialEnd ? new Date(trialEnd).getTime() / 1000 : 0;
+  const nextDate = keepTrial || trial?.trialEnd || 0;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -416,7 +426,7 @@ const PaymentForm: FC<{
       setPaying(false);
       return;
     }
-    onPaid();
+    onPaid(checkout.id);
   };
 
   return (
@@ -433,21 +443,27 @@ const PaymentForm: FC<{
       ) : null}
       {ready && checkout ? (
         <>
-          {promo ? <PromoCode /> : null}
+          {promo && !keepTrial ? <PromoCode /> : null}
           <dl className="tdw-checkout-total">
             <div>
               <dt>{t('tdw_due_today_label', 'Due today')}</dt>
-              <dd>{checkout.total.total.amount}</dd>
+              <dd>{keepTrial ? formatUsd(0) : checkout.total.total.amount}</dd>
             </div>
-            {trial && checkout.recurring ? (
+            {nextDate ? (
               <div className="is-next">
                 <dt>
                   {t('tdw_then_from', 'From {{date}}', {
-                    date: formatDate(trial.trialEnd),
+                    date: formatDate(nextDate),
                   })}
                 </dt>
                 <dd>
-                  {checkout.recurring.dueNext.total.amount}
+                  {keepTrial
+                    ? formatUsd(
+                        period === 'YEARLY'
+                          ? plan.yearlyPriceUsd
+                          : plan.monthlyPriceUsd
+                      )
+                    : checkout.recurring?.dueNext.total.amount}
                   {per(period)}
                 </dd>
               </div>
@@ -466,7 +482,11 @@ const PaymentForm: FC<{
             loading={paying}
             loadingLabel={t('tdw_confirming', 'Confirming')}
           >
-            {trial
+            {keepTrial
+              ? t('tdw_choose_plan_name', 'Choose {{name}}', {
+                  name: plan.name,
+                })
+              : trial
               ? t('tdw_start_free_trial', 'Start {{n}}-day free trial', {
                   n: trial.trialPeriodDays,
                 })
@@ -476,12 +496,12 @@ const PaymentForm: FC<{
                 })}
           </Button>
           <p className="tdw-checkout-fine">
-            {trial
+            {nextDate
               ? t(
                   'tdw_checkout_trial_fine',
                   'Nothing is charged today. Stripe charges your card on {{date}} unless you cancel before then in Settings → Billing.',
                   {
-                    date: formatDate(trial.trialEnd),
+                    date: formatDate(nextDate),
                     interpolation: { escapeValue: false },
                   }
                 )
@@ -542,16 +562,34 @@ export const CheckoutPanel: FC<{
     onLock?.(step === 'confirming' || step === 'done' || step === 'slow');
   }, [step]);
 
-  // Never trust the client alone: wait until the webhook stored it
-  const onPaid = useCallback(async () => {
-    setStep('confirming');
-    setStep(await waitForSubscription(fetch, check.current));
-  }, []);
+  // Never trust the client alone: wait until the webhook stored it. During
+  // the free trial the saved card and the plan are put on the trial first.
+  const keepTrial = !!session?.trialEnd;
+  const onPaid = useCallback(
+    async (sessionId: string) => {
+      setStep('confirming');
+      if (keepTrial) {
+        const res = await fetch('/billing/trial/plan', {
+          method: 'POST',
+          body: JSON.stringify({ session: sessionId }),
+        });
+        const data = res.ok ? await res.json() : { failed: true };
+        if (data.failed || !data.check) {
+          setStep('failed');
+          return;
+        }
+      }
+      setStep(await waitForSubscription(fetch, check.current));
+    },
+    [keepTrial]
+  );
 
   // Only now: refreshing /user/self ends the paywall
   const finish = useCallback(async () => {
     await mutate('/user/self');
     mutate('/user/subscription');
+    // the trial banner's "Choose plan" becomes "Manage billing"
+    mutate('/billing/trial');
     if (onDone) {
       onDone();
       return;
@@ -608,8 +646,10 @@ export const CheckoutPanel: FC<{
               options={options}
             >
               <PaymentForm
+                plan={plan}
                 period={period}
                 promo={period === 'MONTHLY'}
+                trialEnd={session?.trialEnd}
                 onPaid={onPaid}
               />
             </CheckoutProvider>
@@ -639,7 +679,18 @@ export const CheckoutPanel: FC<{
             {t('tdw_youre_on', 'You’re on {{name}}', { name: plan.name })}
           </h3>
           <p>
-            {trialDays > 0
+            {keepTrial && session?.trialEnd
+              ? t(
+                  'tdw_youre_on_keep_trial',
+                  'Your free trial continues. Stripe charges your card when it ends, on {{date}}.',
+                  {
+                    date: formatDate(
+                      new Date(session.trialEnd).getTime() / 1000
+                    ),
+                    interpolation: { escapeValue: false },
+                  }
+                )
+              : trialDays > 0
               ? t(
                   'tdw_youre_on_trial_desc',
                   'Your {{n}}-day free trial has started. Next: connect your channels and schedule your first post.',

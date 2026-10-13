@@ -46,10 +46,7 @@ import { PaywallModal } from '@gitroom/frontend/components/tadween/billing/paywa
 import { TopMenu } from '@gitroom/frontend/components/layout/top.menu';
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
 import { StreakComponent } from '@gitroom/frontend/components/layout/streak.component';
-import {
-  UpgradeButton,
-  UpgradeTrialLine,
-} from '@gitroom/frontend/components/tadween/billing/upgrade.link';
+import { UpgradeButton } from '@gitroom/frontend/components/tadween/billing/upgrade.link';
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
 import {
   TadweenOnboarding,
@@ -183,7 +180,6 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                             <TopMenu>
                               <SidebarChannels collapsed={sidebar.collapsed} />
                             </TopMenu>
-                            <UpgradeTrialLine />
                             <AccountMenu />
                           </div>
                         </div>

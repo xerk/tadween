@@ -29,7 +29,10 @@ import {
   PeriodToggle,
 } from '@gitroom/frontend/components/tadween/billing/pricing';
 import { PlanUsage } from '@gitroom/frontend/components/tadween/billing/current.plan';
-import { isPaymentFailed } from '@gitroom/frontend/components/tadween/billing/trial.banner';
+import {
+  isPaymentFailed,
+  useTrialInfo,
+} from '@gitroom/frontend/components/tadween/billing/trial.banner';
 import { useBillingDialogs } from '@gitroom/frontend/components/tadween/billing/billing.dialogs';
 import { PlanCard } from '@gitroom/frontend/components/tadween/billing/plans.view';
 import {
@@ -119,6 +122,9 @@ export const MainBillingComponent: FC<{
   const utm = useUtmUrl();
   const t = useT();
   const { plans, planFor } = useTadweenPricing();
+  const { data: trialInfo } = useTrialInfo(
+    !!user?.isTrailing && !isPaymentFailed(user?.subscriptionStatus)
+  );
   const queryParams = useSearchParams();
   const [finishTrial, setFinishTrial] = useState(
     !!queryParams.get('finishTrial')
@@ -355,6 +361,14 @@ export const MainBillingComponent: FC<{
     : undefined;
   const samePeriod = subscription?.period === period;
   const failed = isPaymentFailed(subscription?.status);
+  // The free trial without a card yet: every plan is chosen through the
+  // same checkout as the plan step (it saves a card for this trial)
+  const cardless =
+    !!subscription &&
+    !!user?.isTrailing &&
+    !failed &&
+    !!trialInfo &&
+    !trialInfo.hasPaymentMethod;
   const trial = !!user?.allowTrial;
   const payPlan = plans.find((p) => p.tier === payTier);
   // What the subscription pays a month (a founder price stays locked)
@@ -372,16 +386,17 @@ export const MainBillingComponent: FC<{
       setClicked(plan.tier);
       fn();
     };
-    if (!subscription) {
+    if (!subscription || cardless) {
       return {
-        label:
-          trial && plan.trialDays > 0
-            ? t('tdw_start_free_trial', 'Start {{n}}-day free trial', {
-                n: plan.trialDays,
-              })
-            : t('tdw_choose_plan_name', 'Choose {{name}}', {
-                name: plan.name,
-              }),
+        label: cardless
+          ? t('tdw_choose_plan_name', 'Choose {{name}}', { name: plan.name })
+          : trial && plan.trialDays > 0
+          ? t('tdw_start_free_trial', 'Start {{n}}-day free trial', {
+              n: plan.trialDays,
+            })
+          : t('tdw_choose_plan_name', 'Choose {{name}}', {
+              name: plan.name,
+            }),
         variant: plan.mostPopular ? 'primary' : 'secondary',
         onClick: () => {
           setPayTier(plan.tier);
@@ -522,7 +537,7 @@ export const MainBillingComponent: FC<{
               note={
                 current && currentPlan ? (
                   <PlanUsage plan={currentPlan} />
-                ) : subscription && !subscription.cancelAt ? (
+                ) : subscription && !subscription.cancelAt && !cardless ? (
                   <Prorate period={period} pack={plan.tier} />
                 ) : null
               }

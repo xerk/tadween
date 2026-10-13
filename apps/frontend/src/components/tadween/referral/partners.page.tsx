@@ -1,10 +1,10 @@
 'use client';
 
 // Partner dashboard (/partners): the affiliate's own page, full width.
-// The earnings header (commission earned, available with the next payout,
-// pending, paid out), the audience strip, the link card beside the tier
-// progress, payout history beside how they get paid (the settings open in a
-// drawer), then the creator kit and the rules. Only for AFFILIATE workspaces
+// On top the numbers (the commission tier card, then sign-ups, trials,
+// paying customers, revenue referred, pending, available, paid out) and the
+// link card; then payout history beside how they get paid (the settings
+// open in a drawer), then the creator kit and the rules. Only for AFFILIATE workspaces
 // while the `affiliate` switch is on; everyone else sees an invite-only
 // notice pointing at Invite & earn. Rules and data: docs/tadween/partners.md.
 // Styles: app/tadween/partners.scss.
@@ -24,11 +24,7 @@ import {
 } from '@gitroom/frontend/components/tadween/ui';
 import { formatUsd } from '@gitroom/frontend/components/tadween/billing/pricing';
 import { ReferralLinkCard } from '@gitroom/frontend/components/tadween/referral/referral.link.card';
-import {
-  EarningsHeader,
-  PartnerStatTiles,
-  PartnerTierCard,
-} from '@gitroom/frontend/components/tadween/referral/partner.stat.tiles';
+import { PartnerStatTiles } from '@gitroom/frontend/components/tadween/referral/partner.stat.tiles';
 import {
   PayoutPreferenceCard,
   useMethodLabel,
@@ -175,12 +171,8 @@ export const PartnersPage: FC = () => {
       <div className="tdw-partners-shell">
         <TadweenScope className="tdw-partners-page">
           <Skeleton height={32} width="30%" />
-          <Skeleton height={168} radius={14} />
-          <Skeleton height={112} radius={14} />
-          <div className="tdw-partners-row">
-            <Skeleton height={232} radius={14} />
-            <Skeleton height={232} radius={14} />
-          </div>
+          <PartnerStatTiles loading={true} />
+          <Skeleton height={232} radius={14} />
         </TadweenScope>
       </div>
     );
@@ -259,18 +251,15 @@ export const PartnersPage: FC = () => {
           </Banner>
         ) : null}
 
-        <EarningsHeader affiliate={affiliate} />
-        <PartnerStatTiles stats={affiliate.stats} />
+        <PartnerStatTiles
+          stats={affiliate.stats}
+          rate={affiliate.rate}
+          tiers={affiliate.tiers}
+          fixedRate={fixedRate}
+          holdDays={affiliate.holdDays}
+        />
 
-        <div className="tdw-partners-row">
-          <ReferralLinkCard code={data.code} friendCredits={data.friendCredits} trialDays={data.trialDays} />
-          <PartnerTierCard
-            rate={affiliate.rate}
-            paying={affiliate.stats.paying}
-            tiers={affiliate.tiers}
-            fixedRate={fixedRate}
-          />
-        </div>
+        <ReferralLinkCard code={data.code} friendCredits={data.friendCredits} trialDays={data.trialDays} />
 
         <div className="tdw-partners-row">
           <PayoutHistory affiliate={affiliate} />

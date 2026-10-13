@@ -1,9 +1,9 @@
 'use client';
 
 // Invite & earn (ادعُ واكسب): every workspace's referral page, full width.
-// A hero row (the link card beside the summary strip), "Who invited you?"
-// for new workspaces, the rewards ladder as a progress track, the workspaces
-// invited (initials only) beside the rewards earned, then how it works. Shown in the sidebar
+// The link card and "Who invited you?" for new workspaces on top, the
+// rewards ladder as a progress track, the numbers, the workspaces invited
+// (initials only) beside the rewards earned, then how it works. Shown in the sidebar
 // (/invite) and in Settings, while the `affiliate` switch is on. Rules and
 // data: docs/tadween/partners.md. Styles: app/tadween/referral.scss.
 import React, { FC, useState } from 'react';
@@ -138,10 +138,7 @@ export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
   if (isLoading) {
     return (
       <TadweenScope className={cx('tdw-ref-page', embedded && 'is-embedded')}>
-        <div className="tdw-ref-hero">
-          <Skeleton height={232} radius={14} />
-          <Skeleton height={232} radius={14} />
-        </div>
+        <Skeleton height={232} radius={14} />
         <Skeleton height={200} radius={14} />
         <Skeleton height={220} radius={14} />
       </TadweenScope>
@@ -161,7 +158,6 @@ export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
 
   const paying = data.referrals.filter((r) => r.status === 'PAID' || r.status === 'QUALIFIED').length;
   const earned = data.rewards.filter((r) => r.status === 'PAID' || r.status === 'AVAILABLE' || r.status === 'APPLYING');
-  const next = data.kind === 'REFERRER' ? data.ladder.find((s) => !s.reached) : undefined;
 
   return (
     <TadweenScope className={cx('tdw-ref-page', embedded && 'is-embedded')}>
@@ -171,33 +167,7 @@ export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
         </Banner>
       ) : null}
 
-      <div className="tdw-ref-hero">
-        <ReferralLinkCard code={data.code} friendCredits={data.friendCredits} trialDays={data.trialDays} />
-        <div className={cx('tdw-strip tdw-ref-summary', data.kind !== 'REFERRER' && 'is-three')}>
-          <StatTile label={t('tdw_ref_stat_invited', 'Joined with your link')} value={data.referrals.length.toLocaleString()} />
-          <StatTile label={t('tdw_ref_stat_paying', 'Paying')} value={paying.toLocaleString()} />
-          <StatTile label={t('tdw_ref_stat_credits', 'Credits earned')} value={data.creditsEarned.toLocaleString()} />
-          {data.kind === 'REFERRER' ? (
-            <StatTile
-              label={t('tdw_ref_stat_next', 'Next reward')}
-              value={
-                <span className="tdw-ref-next-value">
-                  {next ? ladder(next) : t('tdw_ref_stat_next_done', 'All earned')}
-                </span>
-              }
-              hint={
-                next
-                  ? next.step - data.qualified === 1
-                    ? t('tdw_ref_stat_next_one', '1 more paying friend')
-                    : t('tdw_ref_stat_next_many', '{{n}} more paying friends', {
-                        n: next.step - data.qualified,
-                      })
-                  : undefined
-              }
-            />
-          ) : null}
-        </div>
-      </div>
+      <ReferralLinkCard code={data.code} friendCredits={data.friendCredits} trialDays={data.trialDays} />
 
       {data.kind === 'AFFILIATE' ? (
         <Link href="/partners" className="tdw-ref-partner-link no-underline">
@@ -236,6 +206,12 @@ export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
           <RewardLadder steps={data.ladder} qualified={data.qualified} />
         </section>
       ) : null}
+
+      <div className="tdw-ref-stats">
+        <StatTile label={t('tdw_ref_stat_invited', 'Joined with your link')} value={data.referrals.length.toLocaleString()} />
+        <StatTile label={t('tdw_ref_stat_paying', 'Paying')} value={paying.toLocaleString()} />
+        <StatTile label={t('tdw_ref_stat_credits', 'Credits earned')} value={data.creditsEarned.toLocaleString()} />
+      </div>
 
       <div className={cx('tdw-ref-split', !earned.length && 'is-single')}>
         <section className="tdw-ref-sec">

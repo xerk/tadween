@@ -1,105 +1,185 @@
 // Tadween onboarding and first load. Loaded from global.scss.
 //
-//   · Onboarding: components/tadween/onboarding/tadween.onboarding.tsx. The
-//     frame (.pz-ob head, progress, stage, step, footer, channel cards) is the
-//     design system's Onboarding and lives in billing.scss; this file adds the
-//     full-page shell and the pieces of the steps.
+//   · First billing: components/billing/first.billing.component.tsx, the
+//     one-page plan picker and payment that replaces the app (Postiz's).
+//   · Onboarding modal: components/onboarding/onboarding.modal.tsx (Postiz's
+//     three steps). The channel tiles, agent chips and panels are the design
+//     system's Onboarding pieces in billing.scss.
 //   · Boot screen: components/tadween/shell/boot.screen.tsx, the Loading
 //     pattern shown while the app's first request is on its way.
 // Everything sits inside `.tdw-ui`, so the kit's tokens (--card, --primary…)
-// and motion variables apply. Reduced motion: steps cross-fade (billing.scss),
+// and motion variables apply. Reduced motion: steps cross-fade,
 // the progress line and shimmer stop (below and in the kit).
 
 $phone: '(max-width: 1025px)';
 
-// Onboarding replaces the app shell, edge to edge
-.tdw-shell:has(> .tdw-ob-page) {
+// ── First billing screen (components/billing/first.billing.component.tsx) ──
+// Postiz's first billing: it replaces the app shell, edge to edge. One page:
+// the plan picker beside Stripe's payment form; phones stack them, plan
+// first, with a bar that leads to the payment while it is out of view.
+.tdw-shell:has(> .tdw-fb) {
   padding: 0 !important;
 }
-.tdw-shell > .tdw-ob-page {
+.tdw-shell > .tdw-fb {
   flex: 1;
 }
 
 .tdw-ui {
-  &.tdw-ob-page { display: flex; flex-direction: column; min-height: 100dvh; background: var(--background); color: var(--foreground); }
-  &.tdw-ob-page > .pz-ob { flex: 1; height: auto; min-height: 100dvh; }
-  // the footer stays reachable when a step is taller than the screen
-  &.tdw-ob-page .pz-ob-foot { position: sticky; bottom: 0; z-index: 2; background: var(--background); }
-  &.tdw-ob-page .pz-ob-stage { padding-top: clamp(24px, 8vh, 72px); padding-bottom: var(--space-12); overflow: visible; }
-  .tdw-ob-head-spacer { width: 84px; flex: none; }
-  // Language (and on the plan step: workspace switch, log out) at the end of the header
-  .tdw-ob-tools { display: flex; align-items: center; gap: var(--space-2); flex: none; }
-  .tdw-ob-logout { display: inline-flex; color: var(--muted-foreground); }
-  .tdw-ob-logout:hover { color: var(--foreground); }
-  // The plan step is wider and starts higher, so the plans fit a laptop screen
-  &.tdw-ob-page .pz-ob-stage.is-plan { padding-top: var(--space-4); }
-  .pz-ob-stage.is-plan .pz-ob-step.is-wide { max-width: 1120px; }
-  .tdw-ob-video { max-width: 880px; margin: 0 auto; }
-  // Channels before a plan exists: what happens, and the way to the plan
-  .tdw-ob-gate { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--primary-soft); font-size: 14px; line-height: 20px; }
-  .tdw-ob-gate > span { flex: 1 1 260px; }
-  .tdw-ob-gate .pz-icon { flex: none; color: var(--primary); }
-  // Agents step: the guide (Settings → API & MCP) stays inside the screen on phones
-  .pz-ob-step > *, .pz-ob-agents > *, .pz-ob-panel, .pz-ob-panel-body { min-width: 0; }
-  .pz-ob-agents .tdw-api-guide-bar { overflow-x: auto; scrollbar-width: none; }
-  .pz-ob-agents .tdw-api-guide-bar .pz-seg { flex: none; }
-  .tdw-ob-link.is-center { justify-self: center; }
+  &.tdw-fb { display: flex; flex-direction: column; min-height: 100dvh; background: var(--background); color: var(--foreground); }
+  .tdw-fb-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4) var(--space-10, 40px); border-bottom: 1px solid var(--border); }
+  .tdw-fb-tools { display: flex; align-items: center; gap: var(--space-2); min-width: 0; color: var(--muted-foreground); }
+  .tdw-fb-icon { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; color: var(--muted-foreground); }
+  .tdw-fb-icon:hover { color: var(--foreground); }
 
-  // A big, friendly headline and one lead line
-  .tdw-ob-headline { display: grid; gap: var(--space-2); }
-  .tdw-ob-headline.is-center { justify-items: center; text-align: center; }
-  .tdw-ob-headline .title-1 { margin: 0; font-size: 34px; line-height: 40px; letter-spacing: -0.025em; text-wrap: balance; }
-  .tdw-ob-headline .pz-ob-lead { margin: 0; font-size: 16px; line-height: 24px; text-wrap: pretty; }
+  .tdw-fb-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 480px); gap: var(--space-12); align-items: start; width: 100%; max-width: 1280px; margin: 0 auto; padding: var(--space-10, 40px) var(--space-10, 40px) 64px; box-sizing: border-box; }
+  .tdw-fb-plans { display: grid; gap: var(--space-6); align-content: start; min-width: 0; }
+  .tdw-fb-pay { position: sticky; top: var(--space-6); display: grid; gap: var(--space-3); min-width: 0; scroll-margin-top: var(--space-4); }
 
-  // Brand mark that opens the first step
-  .tdw-ob-mark { display: inline-flex; width: 56px; height: 56px; animation: pz-pop 600ms var(--ease-bounce) both; }
-  .tdw-ob-mark svg { margin: 0 !important; width: 56px !important; height: 56px !important; min-width: 56px !important; min-height: 56px !important; filter: drop-shadow(0 8px 20px color-mix(in oklab, var(--primary) 28%, transparent)); }
+  .tdw-fb-intro { display: grid; gap: var(--space-3); justify-items: start; }
+  .tdw-fb-title { margin: 0; font-size: 36px; line-height: 44px; font-weight: 600; letter-spacing: -0.025em; text-wrap: balance; }
+  .tdw-fb-lead { margin: 0; max-width: 620px; font-size: 16px; line-height: 24px; color: var(--muted-foreground); text-wrap: pretty; }
+  .tdw-fb-video { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; font: inherit; font-size: 14px; font-weight: 500; color: var(--primary); cursor: pointer; border-radius: var(--radius-sm); }
+  .tdw-fb-video:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .tdw-fb-video:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .tdw-fb-checks { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: var(--space-1) 0 0; padding: 0; list-style: none; font-size: 14px; line-height: 20px; font-weight: 500; }
+  .tdw-fb-checks li { display: flex; align-items: center; gap: 8px; }
+  .tdw-fb-checks .pz-icon { flex: none; color: var(--success); }
 
-  .tdw-ob-form, .tdw-ob-fields { display: grid; gap: var(--space-5); margin-top: var(--space-2); }
-  .tdw-ob-form .pz-input { height: 48px; font-size: 16px; }
-  .tdw-ob-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
-  .tdw-ob-more { margin-top: var(--space-2); max-width: 240px; }
+  .tdw-fb-choose { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-2); }
+  .tdw-fb-h2 { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.02em; }
 
-  // The workspace you are in (yours, or the one you were invited to)
-  .tdw-ob-workspace { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm); animation: pz-rise var(--duration-spring) var(--ease-spring) 120ms both; }
-  .tdw-ob-workspace-mark { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: var(--radius-md); background: var(--primary-soft); color: var(--primary); font-size: 17px; font-weight: 600; }
-  .tdw-ob-workspace-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
-  .tdw-ob-workspace-text .headline { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .tdw-ob-workspace-note { flex-basis: 100%; padding-top: var(--space-3); border-top: 1px solid var(--border); }
+  // Tier cards (Postiz's plan boxes): a radio group, one tap each
+  .tdw-tiers { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: var(--space-3); }
+  .tdw-tiers[data-count='1'] { --cols: 1; }
+  .tdw-tiers[data-count='2'] { --cols: 2; }
+  .tdw-tiers[data-count='4'] { --cols: 4; }
+  .tdw-tier { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; min-height: 104px; margin: 0; padding: var(--space-4) var(--space-5); border: 0; border-radius: var(--radius-xl); background: var(--card); box-shadow: 0 0 0 1px var(--border), var(--shadow-sm); color: var(--foreground); font: inherit; text-align: start; cursor: pointer; transition: box-shadow var(--duration-fast) ease, background-color var(--duration-fast) ease, transform var(--duration-instant) ease-out; }
+  .tdw-tier:hover { box-shadow: 0 0 0 1px var(--input), var(--shadow-md); }
+  .tdw-tier:active { transform: scale(0.98); }
+  .tdw-tier:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .tdw-tier.is-on { background: color-mix(in oklab, var(--primary-soft) 65%, var(--card)); box-shadow: 0 0 0 2px var(--primary), var(--shadow-md); }
+  .tdw-tier:disabled { cursor: default; transform: none; }
+  .tdw-tier:disabled:not(.is-on) { opacity: 0.6; }
+  .tdw-tier-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; }
+  .tdw-tier-name { font-size: 16px; line-height: 22px; font-weight: 600; }
+  .tdw-tier-flag { padding: 2px 8px; border-radius: var(--radius-full); background: var(--primary); color: var(--primary-foreground); font-size: 11px; line-height: 16px; font-weight: 600; white-space: nowrap; }
+  .tdw-tier-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
+  .tdw-tier-amount { font-family: var(--font-mono); font-size: 32px; line-height: 36px; font-weight: 500; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
+  .tdw-tier-per { font-size: 13px; color: var(--muted-foreground); }
+  .tdw-tier .tdw-founder { margin: 0; }
+  // the tile keeps the tag; the regular price is under Features
+  .tdw-tier .tdw-founder-regular { display: none; }
 
-  // Quiet information row (the device's time zone)
-  .tdw-ob-note { display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--muted); font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
-  .tdw-ob-note .pz-icon { flex: none; margin-top: 2px; }
+  .tdw-fb-features { display: grid; gap: var(--space-4); margin-top: var(--space-4); }
+  .tdw-fb-features .tdw-plan-features { margin: 0; padding: 0; border: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-8); }
+  .tdw-fb-faq { margin-top: var(--space-6); }
+  .tdw-fb-pay .tdw-plan-later { padding-top: var(--space-1); }
+  .tdw-fb-bar { display: none; }
 
-  // Ready: the check springs in, then what is set up (design system: Onboarding)
-  .pz-ob-done { display: grid; justify-items: center; text-align: center; gap: var(--space-3); padding-top: var(--space-4); }
-  .pz-ob-done-mark { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: var(--primary); color: var(--primary-foreground); animation: pz-pop 600ms var(--ease-bounce) both; }
-  .pz-ob-done .tdw-ob-headline { margin-top: var(--space-2); }
-  .tdw-ob-summary { display: grid; gap: var(--space-2); width: 100%; max-width: 400px; margin: var(--space-4) 0 0; padding: var(--space-4) var(--space-5); list-style: none; border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm); text-align: start; }
-  .tdw-ob-summary li { display: flex; align-items: center; gap: var(--space-3); font-size: 15px; line-height: 22px; color: var(--muted-foreground); animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
-  .tdw-ob-summary li:nth-child(2) { animation-delay: 80ms; }
-  .tdw-ob-summary li:nth-child(3) { animation-delay: 160ms; }
-  .tdw-ob-summary li.is-done { color: var(--foreground); }
-  .tdw-ob-summary li.is-done .pz-icon { color: var(--success); }
-  .tdw-ob-link { display: inline-flex; align-items: center; gap: 6px; margin-top: var(--space-2); font-size: 14px; font-weight: 500; color: var(--primary); text-decoration: none; border-radius: var(--radius-sm); }
-  .tdw-ob-link:hover { text-decoration: underline; text-underline-offset: 3px; }
-  .tdw-ob-link:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-
-  &.is-ar .tdw-ob-headline .title-1 { font-size: 30px; line-height: 44px; letter-spacing: 0; }
-  &.is-ar .tdw-ob-headline .pz-ob-lead { line-height: 28px; }
+  &.is-ar .tdw-fb-title { font-size: 32px; line-height: 48px; letter-spacing: 0; }
+  &.is-ar .tdw-fb-lead { line-height: 28px; }
 
   @media #{$phone} {
-    .tdw-ob-headline .title-1 { font-size: 28px; line-height: 34px; }
-    &.is-ar .tdw-ob-headline .title-1 { font-size: 26px; line-height: 38px; }
-    .tdw-ob-head-spacer { display: none; }
-    .pz-ob-foot .pz-ob-foot-note { display: none; }
-    .pz-ob-foot { justify-content: flex-end; }
+    .tdw-fb-head { padding: var(--space-3) var(--space-4); gap: var(--space-2); }
+    .tdw-fb-tools { gap: 2px; }
+    .tdw-fb-body { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); padding: var(--space-6) var(--space-4) 112px; }
+    .tdw-fb-pay { position: static; }
+    .tdw-fb-title { font-size: 28px; line-height: 34px; }
+    &.is-ar .tdw-fb-title { font-size: 26px; line-height: 40px; }
+    .tdw-fb-checks { flex-direction: column; gap: var(--space-2); }
+    // as Postiz: the questions stay on wide screens, the payment comes sooner
+    .tdw-fb-faq { display: none; }
+    .tdw-fb-features { margin-top: var(--space-2); }
+    .tdw-fb-features .tdw-plan-features { grid-template-columns: minmax(0, 1fr); }
+    // one row per plan: name and tags at the start, the price at the end
+    .tdw-tiers { --cols: 1 !important; gap: var(--space-2); }
+    .tdw-tier { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px var(--space-3); min-height: 72px; padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); }
+    .tdw-tier-top { grid-column: 1; justify-content: flex-start; }
+    .tdw-tier-price { grid-column: 2; grid-row: 1 / span 2; flex-wrap: nowrap; }
+    .tdw-tier .tdw-founder { grid-column: 1; }
+    .tdw-tier-amount { font-size: 26px; line-height: 30px; }
+    .tdw-fb-bar { position: fixed; z-index: 50; inset-inline: 0; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--border); box-shadow: 0 -8px 24px -16px rgb(0 0 0 / 0.35); animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
+    .tdw-fb-bar-text { display: grid; min-width: 0; font-size: 13px; line-height: 18px; color: var(--muted-foreground); }
+    .tdw-fb-bar-text strong { color: var(--foreground); font-size: 15px; line-height: 20px; font-weight: 600; }
+    .tdw-fb-bar .pz-btn { height: 48px; flex: none; }
   }
   @media #{$phone} and (max-width: 560px) {
-    // phones: the step names don't fit, the bars carry the progress
-    .pz-ob-head { gap: var(--space-3); }
     .pz-ob-logo-word { display: none; }
   }
+  @media (prefers-reduced-motion: reduce) {
+    .tdw-tier, .tdw-tier-amount, .tdw-fb-bar { animation: none !important; transition: none; transform: none !important; }
+  }
+  @media (prefers-contrast: more) {
+    .tdw-tier { box-shadow: 0 0 0 1px var(--input); }
+  }
+}
+
+// ── Onboarding modal (components/onboarding/onboarding.modal.tsx) ─────────────
+// Postiz's full-screen onboarding modal (Connect Channels → Connect Agents →
+// Watch Tutorial) in the kit: a rounded card over the page; on phones a
+// full-screen sheet whose actions stay at the bottom.
+.tdw-ui {
+  &.tdw-obm { display: flex; width: 100%; min-height: 100%; padding: var(--space-6); box-sizing: border-box; color: var(--foreground); }
+  .tdw-obm-card { position: relative; flex: 1; display: flex; flex-direction: column; min-width: 0; border-radius: 20px; background: var(--background); box-shadow: 0 0 0 1px var(--border), var(--shadow-lg, var(--shadow-md)); }
+  .tdw-obm-close { position: absolute; top: var(--space-4); inset-inline-end: var(--space-4); z-index: 3; width: 40px; height: 40px; }
+  .tdw-obm-body { flex: 1; display: flex; flex-direction: column; gap: var(--space-6); padding: var(--space-8); min-width: 0; }
+
+  .tdw-obm-steps { display: flex; align-items: center; justify-content: center; gap: var(--space-4); margin: 0; padding: 0 48px; list-style: none; }
+  .tdw-obm-step { display: flex; align-items: center; gap: 8px; color: var(--muted-foreground); font-size: 14px; line-height: 20px; }
+  .tdw-obm-num { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--muted); color: var(--muted-foreground); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; transition: background-color var(--duration-base) ease, color var(--duration-base) ease; }
+  .tdw-obm-step.is-current { color: var(--foreground); font-weight: 500; }
+  .tdw-obm-step.is-current .tdw-obm-num { background: var(--primary); color: var(--primary-foreground); }
+  .tdw-obm-step.is-done .tdw-obm-num { background: var(--primary-soft); color: var(--primary); }
+  .tdw-obm-line { width: 40px; height: 2px; flex: none; border-radius: 1px; background: var(--border); }
+
+  .tdw-obm-content { flex: 1; display: flex; flex-direction: column; gap: var(--space-6); width: 100%; max-width: 1100px; margin: 0 auto; min-width: 0; animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
+  .tdw-obm-title { display: grid; gap: 4px; text-align: center; }
+  .tdw-obm-title h2 { margin: 0; font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.02em; text-wrap: balance; }
+  .tdw-obm-title p { margin: 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); text-wrap: pretty; }
+  .tdw-obm-connected { display: grid; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--card); box-shadow: 0 0 0 1px var(--border); }
+  .tdw-obm-section { display: grid; gap: var(--space-3); }
+  .tdw-obm-label-row { font-size: 14px; line-height: 20px; font-weight: 500; }
+  .tdw-obm-note { width: 100%; max-width: 860px; margin: 0 auto; padding: var(--space-4); border-radius: var(--radius-lg); background: var(--muted); color: var(--muted-foreground); font-size: 14px; line-height: 20px; text-align: center; }
+  .tdw-obm-agents { width: 100%; }
+  .pz-ob-chips.is-start { justify-content: flex-start; }
+  .tdw-obm-video { flex: none; max-width: 960px; margin: 0 auto; }
+
+  .tdw-obm-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-top: auto; padding-top: var(--space-4); }
+  .tdw-obm-actions.is-end { justify-content: flex-end; }
+  .tdw-obm-actions-note { flex: 1; font-size: 13px; line-height: 18px; color: var(--muted-foreground); text-align: center; }
+
+  &.is-ar .tdw-obm-title h2 { letter-spacing: 0; line-height: 38px; }
+
+  @media #{$phone} {
+    &.tdw-obm { padding: 0; min-height: 100dvh; }
+    .tdw-obm-card { border-radius: 0; box-shadow: none; }
+    .tdw-obm-close { top: var(--space-2); inset-inline-end: var(--space-2); width: 44px; height: 44px; }
+    .tdw-obm-body { gap: var(--space-5); padding: var(--space-4) var(--space-4) 0; }
+    .tdw-obm-steps { justify-content: flex-start; gap: var(--space-2); padding: 6px 0 0; padding-inline-end: 48px; }
+    .tdw-obm-line { width: 16px; }
+    // the step names don't fit: the numbers carry the progress, the current one keeps its name
+    .tdw-obm-step:not(.is-current) .tdw-obm-label { display: none; }
+    .tdw-obm-title { text-align: start; }
+    .tdw-obm-title h2 { font-size: 22px; line-height: 28px; }
+    .tdw-obm-agents .pz-ob-chips:first-child { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; margin-inline: calc(var(--space-4) * -1); padding-inline: var(--space-4); scrollbar-width: none; }
+    .tdw-obm-agents .pz-ob-chips:first-child .pz-ob-agent { flex: none; height: 40px; }
+    .pz-ob-panel.is-row { flex-direction: column; align-items: stretch; }
+    .tdw-obm-actions { position: sticky; bottom: 0; z-index: 2; margin-inline: calc(var(--space-4) * -1); padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); background: var(--background); border-top: 1px solid var(--border); }
+    .tdw-obm-actions-note { display: none; }
+    .tdw-obm-actions .pz-btn { height: 48px; }
+    .tdw-obm-actions.is-end .pz-btn, .tdw-obm-actions .pz-btn-primary { flex: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tdw-obm-content { animation: pz-fade 150ms ease both !important; }
+  }
+}
+
+// AI assistant guides (tadween/settings/api.settings.tsx AgentConnect): the
+// guide bar stays inside the screen on phones
+.tdw-ui {
+  .pz-ob-agents > *, .pz-ob-panel, .pz-ob-panel-body { min-width: 0; }
+  .pz-ob-agents .tdw-api-guide-bar { overflow-x: auto; scrollbar-width: none; }
+  .pz-ob-agents .tdw-api-guide-bar .pz-seg { flex: none; }
 }
 
 // ── Boot screen (first load) ─────────────────────────────────────────────────
@@ -124,10 +204,7 @@ $phone: '(max-width: 1025px)';
   .tdw-boot-line::after { content: ''; position: absolute; inset-block: 0; inset-inline-start: 0; width: 40%; border-radius: 2px; background: var(--primary); animation: tdw-boot-line 1.6s var(--ease-spring) infinite; }
   [dir='rtl'] & .tdw-boot-line::after, &[dir='rtl'] .tdw-boot-line::after { animation-name: tdw-boot-line-rtl; }
 
-  > .pz-ob { flex: 1; min-height: 100dvh; height: auto; }
-  .tdw-boot-progress { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); max-width: 560px; margin: 0 auto; }
-  .tdw-boot-step { display: grid; gap: var(--space-4); width: 100%; max-width: 520px; }
-  .pz-ob-stage { padding-top: clamp(24px, 8vh, 72px); }
+  > .tdw-fb { flex: 1; }
 
   .tdw-boot-shell { flex: 1; display: flex; gap: 8px; padding: 12px; }
   .tdw-boot-side { display: grid; align-content: start; gap: 24px; width: 256px; flex: none; padding: 16px 14px; border-radius: 12px; background: var(--card); }

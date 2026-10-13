@@ -31,7 +31,6 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useDubClickId } from '@gitroom/frontend/components/layout/dubAnalytics';
-import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { PublicPlan } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import {
   Button,
@@ -44,10 +43,6 @@ import {
   BillingPeriod,
   formatUsd,
 } from '@gitroom/frontend/components/tadween/billing/pricing';
-import {
-  FounderNote,
-  usePlanFeatureText,
-} from '@gitroom/frontend/components/tadween/billing/plans.view';
 
 type Step =
   | 'pay'
@@ -79,118 +74,6 @@ export const waitForSubscription = async (
     await new Promise((r) => setTimeout(r, POLL_MS));
   }
   return 'slow';
-};
-
-// The chosen plan: price, founder line, what today costs and what's included.
-// `change` (a live subscription switching plan) leaves the charge lines to
-// the change panel, which shows Stripe's prorated amount instead.
-export const OrderSummary: FC<{
-  plan: PublicPlan;
-  period: BillingPeriod;
-  trialDays: number;
-  change?: boolean;
-}> = ({ plan, period, trialDays, change }) => {
-  const t = useT();
-  const text = usePlanFeatureText();
-  const yearly = period === 'YEARLY';
-  const amount = yearly ? plan.yearlyPriceUsd : plan.monthlyPriceUsd;
-  const per = yearly
-    ? t('tdw_per_year_short', '/year')
-    : t('tdw_per_month_short', '/month');
-  const saving = plan.monthlyPriceUsd * 12 - plan.yearlyPriceUsd;
-  const items = [
-    ...plan.featureItems.map((i) => text(i)),
-    ...plan.extraFeatures,
-  ];
-  const firstCharge = newDayjs().add(trialDays, 'day').toDate();
-  const dateLabel = new Intl.DateTimeFormat(
-    document.documentElement.lang || undefined,
-    {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }
-  ).format(firstCharge);
-  return (
-    <section className="tdw-order">
-      <div className="tdw-order-head">
-        <div className="min-w-0">
-          <h3 className="tdw-order-name">{plan.name}</h3>
-          {plan.description ? (
-            <p className="tdw-order-desc">{plan.description}</p>
-          ) : null}
-        </div>
-        <div className="tdw-order-price">
-          <span className="tdw-order-amount">{formatUsd(amount)}</span>
-          <span className="tdw-order-per">{per}</span>
-        </div>
-      </div>
-      <FounderNote plan={plan} period={period} />
-      <div className="tdw-order-meta">
-        <span>
-          {yearly
-            ? t('tdw_billed_yearly_label', 'Billed yearly')
-            : t('tdw_billed_monthly', 'Billed monthly')}
-        </span>
-        {yearly && saving > 0 ? (
-          <span className="tdw-order-save">
-            {t('tdw_you_save', 'You save {{amount}}', {
-              amount: formatUsd(saving),
-            })}
-          </span>
-        ) : null}
-      </div>
-      {change ? null : trialDays > 0 ? (
-        <p className="tdw-order-trial">
-          <Icon name="sparkles" size={16} />
-          <span>
-            {t(
-              'tdw_trial_line',
-              '{{n}}-day free trial — {{today}} today, then {{amount}}{{per}} from {{date}}',
-              {
-                n: trialDays,
-                today: formatUsd(0),
-                amount: formatUsd(amount),
-                per,
-                date: dateLabel,
-                // React escapes; i18next would turn "/month" into "&#x2F;month"
-                interpolation: { escapeValue: false },
-              }
-            )}
-          </span>
-        </p>
-      ) : (
-        <p className="tdw-order-trial">
-          <Icon name="credit-card" size={16} />
-          <span>
-            {t('tdw_due_today', '{{amount}} today, renews every {{period}}', {
-              amount: formatUsd(amount),
-              period: yearly ? t('tdw_year', 'year') : t('tdw_month', 'month'),
-            })}
-          </span>
-        </p>
-      )}
-      <div className="tdw-order-included">
-        <h4>{t('tdw_whats_included', 'What’s included')}</h4>
-        <ul className="tdw-plan-features">
-          {items.map((f) => (
-            <li key={f}>
-              <Icon name="check" size={16} />
-              <span>{f}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      {change ? null : (
-        <p className="tdw-order-note">
-          {t(
-            'tdw_cancel_anytime_billing',
-            'Cancel any time in Settings → Billing.'
-          )}
-        </p>
-      )}
-    </section>
-  );
 };
 
 // One Checkout Session per plan and period (POST /billing/embedded), kept for

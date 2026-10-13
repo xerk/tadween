@@ -313,12 +313,7 @@
   .tdw-promo-link:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
   .tdw-promo.is-applied .tdw-promo-link { margin-inline-start: auto; color: var(--muted-foreground); }
 
-  // The plan step (first.billing.component.tsx): three cards in one row that
-  // fit a 1366×768 laptop without scrolling, then the chosen plan beside
-  // Stripe's form. Phones stack.
-  .tdw-plan-step { display: grid; gap: var(--space-4); width: 100%; }
-  .tdw-plan-step-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
-  .tdw-plan-step-head .tdw-ob-headline { max-width: 780px; }
+  // Plan cards in one row (Billing, the billing skeleton). Phones stack.
   .tdw-plan-row { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: var(--space-4); align-items: stretch; }
   .tdw-plan-row[data-count='2'] { --cols: 2; }
   .tdw-plan-row[data-count='4'] { --cols: 4; }
@@ -333,19 +328,11 @@
   .tdw-plan-row .tdw-plan.is-featured { box-shadow: 0 0 0 1.5px var(--primary), var(--shadow-md); }
   .tdw-plan-later { display: flex; justify-content: center; }
   .tdw-plan-later .pz-btn { color: var(--muted-foreground); }
-  .tdw-plan-pay { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 480px); gap: var(--space-6); align-items: start; }
-  .tdw-plan-pay-side { display: grid; justify-items: start; gap: var(--space-3); }
-  .tdw-plan-pay-side > .tdw-order { width: 100%; }
-  .tdw-plan-pay .tdw-order-included .tdw-plan-features { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-5); }
 
   @media (max-width: 1025px) {
     .tdw-plan-row { --cols: 1 !important; }
-    .tdw-plan-pay { grid-template-columns: minmax(0, 1fr); }
-    // phones: the summary stays short so the payment form is close
-    .tdw-plan-pay .tdw-order-included, .tdw-plan-pay .tdw-order-note { display: none; }
   }
   @media (max-width: 560px) {
-    .tdw-plan-pay .tdw-order-included .tdw-plan-features { grid-template-columns: minmax(0, 1fr); }
     .tdw-plan-row .tdw-plan { padding: var(--space-5); }
   }
 }

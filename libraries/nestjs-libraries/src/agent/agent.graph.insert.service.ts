@@ -44,7 +44,7 @@ export class AgentGraphInsertService {
         messages: {
           reducer: (currentState, updateValue) =>
             currentState.concat(updateValue),
-          default: () => [],
+          default: (): BaseMessage[] => [],
         },
         topic: null,
         category: null,

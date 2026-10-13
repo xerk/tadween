@@ -462,6 +462,24 @@ export class SubscriptionService {
     return date.subtract(1, 'month');
   }
 
+  async resetCredits(organizationId: string, type: string) {
+    const subscription = await this._subscriptionRepository.getSubscription(
+      organizationId
+    );
+
+    if (!subscription) {
+      return null;
+    }
+
+    const { count } = await this._subscriptionRepository.deleteCreditsFrom(
+      organizationId,
+      this.billingPeriodStart(subscription.createdAt),
+      type
+    );
+
+    return { deleted: count };
+  }
+
   async checkCredits(organization: Organization, checkType = 'ai_images') {
     // Images are paid with AI credits: answer how many images they still buy
     if (checkType === 'ai_images') {

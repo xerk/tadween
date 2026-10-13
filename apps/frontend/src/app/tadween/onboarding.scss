@@ -35,6 +35,10 @@ $phone: '(max-width: 1025px)';
   &.tdw-ob-page .pz-ob-stage.is-plan { padding-top: var(--space-4); }
   .pz-ob-stage.is-plan .pz-ob-step.is-wide { max-width: 1120px; }
   .tdw-ob-video { max-width: 880px; margin: 0 auto; }
+  // Channels before a plan exists: what happens, and the way to the plan
+  .tdw-ob-gate { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--primary-soft); font-size: 14px; line-height: 20px; }
+  .tdw-ob-gate > span { flex: 1 1 260px; }
+  .tdw-ob-gate .pz-icon { flex: none; color: var(--primary); }
   // Agents step: the guide (Settings → API & MCP) stays inside the screen on phones
   .pz-ob-step > *, .pz-ob-agents > *, .pz-ob-panel, .pz-ob-panel-body { min-width: 0; }
   .pz-ob-agents .tdw-api-guide-bar { overflow-x: auto; scrollbar-width: none; }

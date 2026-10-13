@@ -503,7 +503,7 @@ export const CheckoutPanel: FC<{
   plan: PublicPlan;
   period: BillingPeriod;
   onLock?: (locked: boolean) => void;
-  // After "Get started"; the plan is active by then. Default: the calendar.
+  // After "Get started"; the plan is active by then. Default: Today.
   onDone?: () => void;
 }> = ({ plan, period, onLock, onDone }) => {
   const t = useT();
@@ -556,7 +556,7 @@ export const CheckoutPanel: FC<{
       onDone();
       return;
     }
-    router.push('/launches');
+    router.push('/today');
   }, [onDone]);
 
   const options = useMemo(

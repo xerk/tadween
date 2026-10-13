@@ -40,7 +40,10 @@ import { AddProviderComponent } from '@gitroom/frontend/components/launches/add.
 import { OrganizationSelector } from '@gitroom/frontend/components/layout/organization.selector';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
-import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import {
+  useBrandLinks,
+  useInstanceSettings,
+} from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { AgentConnect } from '@gitroom/frontend/components/tadween/settings/api.settings';
 import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
 import {
@@ -172,7 +175,7 @@ const useProviders = () => {
    on that return (event, toast, popup hand-off), since onboarding renders in
    its place. Then the two parameters are dropped, so a reload or Back doesn't
    repeat it. */
-const useChannelReturn = () => {
+const useChannelReturn = (enabled: boolean) => {
   const t = useT();
   const toaster = useToaster();
   const fireEvents = useFireEvents();
@@ -182,7 +185,7 @@ const useChannelReturn = () => {
   useEffect(() => {
     const added = params.get('added');
     const msg = params.get('msg');
-    if (!added && !msg) {
+    if (!enabled || (!added && !msg)) {
       return;
     }
     if (msg) {
@@ -287,12 +290,14 @@ export const TadweenOnboarding: FC<{
   const router = useRouter();
   const connected = useConnected();
   const { tutorialVideoUrl } = useBrandLinks();
+  // the tutorial step depends on Branding: decide nothing before it is in
+  const { data: settings } = useInstanceSettings();
   const rtl = i18n.dir() === 'rtl';
   const ar = i18n.resolvedLanguage === 'ar';
   const [travel, setTravel] = useState(1);
   const standalone = !requestedStep;
   const step: OnboardingStep = requestedStep || 'plan';
-  useChannelReturn();
+  useChannelReturn(!standalone);
 
   // Postiz's three steps, the tutorial only when Branding has a video, then
   // the plan while the workspace still needs one
@@ -317,7 +322,7 @@ export const TadweenOnboarding: FC<{
   // A step that doesn't apply any more (the plan was bought in another tab,
   // the tutorial was removed) moves on
   useEffect(() => {
-    if (standalone || order.includes(step)) {
+    if (standalone || !settings || order.includes(step)) {
       return;
     }
     const next = order.find((s) => STEPS.indexOf(s) > STEPS.indexOf(step));
@@ -326,7 +331,7 @@ export const TadweenOnboarding: FC<{
     } else {
       finish();
     }
-  }, [standalone, order, step]);
+  }, [standalone, settings, order, step]);
 
   const labels: Record<OnboardingStep, string> = {
     channels: t('tdw_ob_s_channels', 'Channels'),
@@ -420,7 +425,11 @@ export const TadweenOnboarding: FC<{
             style={{ ['--travel' as string]: travel }}
           >
             {step === 'channels' ? (
-              <ChannelsStep connected={connected} />
+              <ChannelsStep
+                connected={connected}
+                needsPlan={needsPlan}
+                onChoosePlan={() => move('plan')}
+              />
             ) : step === 'agents' ? (
               <AgentsStep />
             ) : step === 'tutorial' ? (
@@ -453,7 +462,9 @@ export const TadweenOnboarding: FC<{
             {onPlan ? null : (
               <Button
                 variant={
-                  step === 'channels' && !hasChannels ? 'ghost' : 'primary'
+                  step === 'channels' && !hasChannels && !needsPlan
+                    ? 'ghost'
+                    : 'primary'
                 }
                 icon={last ? 'calendar-days' : undefined}
                 iconEnd={last ? undefined : nextIcon}
@@ -461,7 +472,7 @@ export const TadweenOnboarding: FC<{
               >
                 {last
                   ? t('tdw_ob_go_today', 'Go to Today')
-                  : step === 'channels' && !hasChannels
+                  : step === 'channels' && !hasChannels && !needsPlan
                   ? t('tdw_ob_without', 'Continue without channels')
                   : step === 'agents'
                   ? t('tdw_ob_continue_skip', 'Continue or skip')
@@ -493,7 +504,12 @@ export const StepHead: FC<{
    sends (GET /integrations: the focus networks first, as equals, then the
    rest). The cards press Postiz's own provider tile, so each provider's connect
    flow (OAuth, custom fields, web3, extension) is unchanged. */
-const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
+const ChannelsStep: FC<{
+  connected: Integration[];
+  // no plan yet: the server refuses channels until the plan step starts one
+  needsPlan: boolean;
+  onChoosePlan: () => void;
+}> = ({ connected, needsPlan, onChoosePlan }) => {
   const t = useT();
   const hidden = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -526,6 +542,20 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
           'Pick the networks you post to. You can add more any time.'
         )}
       />
+      {needsPlan ? (
+        <div className="tdw-ob-gate">
+          <Icon name="lock" size={16} />
+          <span>
+            {t(
+              'tdw_ob_channels_after_plan',
+              'You can connect channels as soon as your plan or free trial starts, the last step of this setup.'
+            )}
+          </span>
+          <Button size="sm" variant="secondary" onClick={onChoosePlan}>
+            {t('tdw_ob_choose_plan', 'Choose a plan')}
+          </Button>
+        </div>
+      ) : null}
       {!data ? (
         <div className="pz-ob-cards">
           <Skeleton height={72} radius={14} />
@@ -560,7 +590,7 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
                     </div>
                   ) : null}
                 </div>
-                {done.length ? (
+                {needsPlan ? null : done.length ? (
                   <>
                     <span className="pz-ob-ok">
                       <Icon name="circle-check" size={18} />
@@ -630,7 +660,7 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
         </p>
       )}
 
-      {article.length > 0 && (
+      {article.length > 0 && !needsPlan && (
         <div className="pz-ob-section">
           <h2 className="caption pz-ob-section-title">
             {t('tdw_ob_other_networks', 'Other networks')}

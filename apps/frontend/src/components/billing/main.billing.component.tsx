@@ -539,7 +539,12 @@ export const MainBillingComponent: FC<{
               trialDays={trial ? payPlan.trialDays : 0}
             />
           </div>
-          <CheckoutPanel plan={payPlan} period={period} onLock={setLocked} />
+          <CheckoutPanel
+            plan={payPlan}
+            period={period}
+            onLock={setLocked}
+            onDone={() => setPayTier(null)}
+          />
         </div>
       ) : null}
       {!!subscription && (

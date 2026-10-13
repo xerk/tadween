@@ -2578,5 +2578,6 @@
   "tdw_invoice_none_match": "No invoices match your search",
   "tdw_invoice_download": "Download invoice",
   "tdw_invoice_view": "View invoice",
-  "tdw_show_more": "Show more"
+  "tdw_show_more": "Show more",
+  "tdw_ob_channels_after_plan": "You can connect channels as soon as your plan or free trial starts, the last step of this setup."
 }

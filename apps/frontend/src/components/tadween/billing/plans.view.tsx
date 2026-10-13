@@ -200,7 +200,8 @@ export const PlanCard: FC<{
       </div>
       {/* the offer is for new subscriptions: the current plan keeps its price */}
       {current ? null : <FounderNote plan={plan} period={period} />}
-      <p className="tdw-plan-bill">
+      {/* a locked price has no list-price line to compare with */}
+      <p className="tdw-plan-bill" hidden={amount !== undefined}>
         {period === 'YEARLY'
           ? yearlySaving > 0
             ? t(

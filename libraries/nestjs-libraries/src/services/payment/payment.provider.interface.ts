@@ -102,11 +102,12 @@ export abstract class PaymentProviderAbstract {
 
   // A workspace on the card-less trial chose its plan and saved a card in
   // the embedded checkout: apply both to the running trial (same trial end).
-  // Answers { check } to wait for, or { failed: true } when the card is refused.
+  // Answers { check } to wait for, { failed: true } when the card is refused
+  // or { ended: true } when the trial ended meanwhile.
   async applyTrialPlan(
     organizationId: string,
     sessionId: string
-  ): Promise<{ check?: string; failed?: boolean }> {
+  ): Promise<{ check?: string; failed?: boolean; ended?: boolean }> {
     return this.notSupported();
   }
 

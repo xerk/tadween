@@ -550,9 +550,6 @@
   "tdw_paywall_desc": "{{name}} gives you {{what}}.",
   "tdw_not_now": "Not now",
   "tdw_paywall_channels_used": "{{used}} of {{limit}} channels used",
-  "tdw_trial_days_left_one": "1 day left in your trial",
-  "tdw_trial_days_left": "{{n}} days left in your trial",
-  "tdw_add_payment_method": "Add payment method",
   "tdw_trial_not_started": "We couldn’t start your trial. Please try again.",
   "tdw_skip_lead": "Not ready to pay? Try {{name}} free for {{n}} days, no card needed.",
   "tdw_skip_for_now": "Skip for now",
@@ -2583,5 +2580,6 @@
   "tdw_plan_step_title_trial": "Pick your plan to keep going after your free trial",
   "tdw_plan_step_lead_left_one": "1 day left in your free trial. Nothing is charged before it ends, and you can cancel any time.",
   "tdw_plan_step_lead_left": "{{n}} days left in your free trial. Nothing is charged before it ends, and you can cancel any time.",
-  "tdw_youre_on_keep_trial": "Your free trial continues. Stripe charges your card when it ends, on {{date}}."
+  "tdw_youre_on_keep_trial": "Your free trial continues. Stripe charges your card when it ends, on {{date}}.",
+  "tdw_trial_ended_meanwhile": "Your free trial has ended. Enter your card again to subscribe."
 }

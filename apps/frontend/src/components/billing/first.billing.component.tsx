@@ -24,7 +24,7 @@ import {
   PeriodToggle,
 } from '@gitroom/frontend/components/tadween/billing/pricing';
 import { PlanCard } from '@gitroom/frontend/components/tadween/billing/plans.view';
-import { isPaymentFailed } from '@gitroom/frontend/components/tadween/billing/trial.banner';
+import { isOnFreeTrial } from '@gitroom/frontend/components/tadween/billing/trial.banner';
 import {
   CheckoutPanel,
   OrderSummary,
@@ -54,8 +54,7 @@ export const FirstBillingComponent: FC<{ onDone: () => void }> = ({
   const [skipping, setSkipping] = useState(false);
   const trial = !!user?.allowTrial;
   // the free trial started at sign-up (a failed renewal sets isTrailing too)
-  const trialing =
-    !!user?.isTrailing && !isPaymentFailed(user?.subscriptionStatus);
+  const trialing = isOnFreeTrial(user);
   const daysLeft = user?.trialEndsAt
     ? Math.max(
         0,

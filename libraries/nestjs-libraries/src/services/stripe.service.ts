@@ -94,7 +94,10 @@ export class StripeService extends PaymentProviderAbstract {
         return this.deleteSubscription(event);
       case 'checkout.session.completed':
       case 'checkout.session.async_payment_succeeded':
-        return this.aiCreditsPaid(event);
+        return event.data.object.mode === 'setup' &&
+          event.data.object.metadata?.type === 'trial_plan'
+          ? this.trialPlanCompleted(event)
+          : this.aiCreditsPaid(event);
       default:
         return { ok: true };
     }
@@ -1254,6 +1257,17 @@ export class StripeService extends PaymentProviderAbstract {
       throw new BadRequestException('No payment method was saved');
     }
 
+    const trial = await stripe.subscriptions.retrieve(meta.subscription);
+    // Already applied (the app and the webhook both get here)
+    if (trial.metadata?.uniqueId === meta.uniqueId) {
+      return { check: meta.uniqueId };
+    }
+    // The trial ended meanwhile: nothing to keep, the card isn't left behind
+    if (trial.customer !== customer || trial.status !== 'trialing') {
+      await stripe.paymentMethods.detach(paymentMethod).catch(() => {});
+      return { ended: true };
+    }
+
     // As a checkout with a trial: a card that can't be charged is refused
     // now, not when the trial ends
     if (!(await this.authorizeCard(customer, paymentMethod))) {
@@ -1261,25 +1275,20 @@ export class StripeService extends PaymentProviderAbstract {
       return { failed: true };
     }
 
-    const trial = await stripe.subscriptions.retrieve(meta.subscription);
-    if (trial.customer !== customer || trial.status !== 'trialing') {
-      throw new BadRequestException('The free trial has already ended');
-    }
-
     const price = await this.findOrCreatePrice({
       billing: meta.billing,
       period: meta.period,
     } as BillingSubscribeDto);
-    await stripe.customers.update(customer, {
-      invoice_settings: { default_payment_method: paymentMethod },
-    });
     // Same subscription, same trial end: no second trial and no early charge.
     // The updated webhook stores the plan (uniqueId answers /billing/check).
+    // The subscription first: its card alone keeps the trial from cancelling.
     await stripe.subscriptions.update(trial.id, {
       items: [{ id: trial.items.data[0].id, price: price.id }],
       default_payment_method: paymentMethod,
       proration_behavior: 'none',
       trial_end: trial.trial_end!,
+      // a cancel toggled during the trial doesn't outlive choosing a plan
+      cancel_at_period_end: false,
       metadata: {
         ...trial.metadata,
         billing: meta.billing,
@@ -1287,8 +1296,40 @@ export class StripeService extends PaymentProviderAbstract {
         uniqueId: meta.uniqueId,
       },
     });
+    await stripe.customers
+      .update(customer, {
+        invoice_settings: { default_payment_method: paymentMethod },
+      })
+      .catch(() => {});
 
     return { check: meta.uniqueId };
+  }
+
+  // Webhook backstop for the plan chosen during the trial: the app applies
+  // it right after Stripe confirms, but a closed tab must not lose the card.
+  // Must not throw.
+  async trialPlanCompleted(
+    event:
+      | Stripe.CheckoutSessionCompletedEvent
+      | Stripe.CheckoutSessionAsyncPaymentSucceededEvent
+  ) {
+    try {
+      const session = event.data.object;
+      const org = await this._organizationService.getOrgByCustomerId(
+        session.customer as string
+      );
+      if (!org) {
+        return { ok: true };
+      }
+      await this.applyTrialPlan(org.id, session.id);
+    } catch (err) {
+      console.error('trial_plan_not_applied', {
+        stripe_event_id: event.id,
+        stripe_session_id: event.data.object.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return { ok: true };
   }
 
   // AI credits top-up: a one-time payment in Embedded Checkout. The pack and

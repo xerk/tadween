@@ -550,9 +550,6 @@
   "tdw_paywall_desc": "تمنحك خطة {{name}}: {{what}}.",
   "tdw_not_now": "ليس الآن",
   "tdw_paywall_channels_used": "استخدمت {{used}} من {{limit}} قناة",
-  "tdw_trial_days_left_one": "بقي يوم واحد في تجربتك",
-  "tdw_trial_days_left": "بقي {{n}} أيام في تجربتك",
-  "tdw_add_payment_method": "أضف وسيلة دفع",
   "tdw_trial_not_started": "تعذّر بدء تجربتك. حاول مرة أخرى.",
   "tdw_skip_lead": "لست مستعدًا للدفع؟ جرّب {{name}} مجانًا لمدة {{n}} أيام دون بطاقة.",
   "tdw_skip_for_now": "تخطَّ الآن",
@@ -2600,5 +2597,6 @@
   "tdw_plan_step_title_trial": "اختر خطتك لتستمر بعد تجربتك المجانية",
   "tdw_plan_step_lead_left_one": "بقي يوم واحد في تجربتك المجانية. لن يُخصم شيء قبل انتهائها، ويمكنك الإلغاء في أي وقت.",
   "tdw_plan_step_lead_left": "بقي {{n}} أيام في تجربتك المجانية. لن يُخصم شيء قبل انتهائها، ويمكنك الإلغاء في أي وقت.",
-  "tdw_youre_on_keep_trial": "تجربتك المجانية مستمرة. ستخصم Stripe من بطاقتك عند انتهائها في {{date}}."
+  "tdw_youre_on_keep_trial": "تجربتك المجانية مستمرة. ستخصم Stripe من بطاقتك عند انتهائها في {{date}}.",
+  "tdw_trial_ended_meanwhile": "انتهت تجربتك المجانية. أدخل بطاقتك مرة أخرى للاشتراك."
 }

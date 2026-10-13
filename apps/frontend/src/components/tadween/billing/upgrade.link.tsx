@@ -10,7 +10,7 @@ import {
   useTadweenPricing,
 } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { Icon } from '@gitroom/frontend/components/tadween/ui';
-import { isPaymentFailed } from '@gitroom/frontend/components/tadween/billing/trial.banner';
+import { isOnFreeTrial } from '@gitroom/frontend/components/tadween/billing/trial.banner';
 
 // "Upgrade" in the sidebar (above Settings, an entry of layout/top.menu.tsx)
 // and in the top bar, both to /billing. Shown when billing is on, the user
@@ -39,8 +39,7 @@ export const useUpgradeOffer = () => {
     if (!manages) {
       return null;
     }
-    // A failed renewal (past_due) sets isTrailing too, but it isn't a trial
-    if (user.isTrailing && !isPaymentFailed(user.subscriptionStatus)) {
+    if (isOnFreeTrial(user)) {
       return null;
     }
     const top = Math.max(...visible(false).map(([, v]) => v.month_price));

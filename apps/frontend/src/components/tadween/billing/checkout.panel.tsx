@@ -28,6 +28,7 @@ import { useRouter } from 'next/navigation';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useDubClickId } from '@gitroom/frontend/components/layout/dubAnalytics';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
@@ -540,6 +541,7 @@ export const CheckoutPanel: FC<{
   );
   const light = useLightMode();
   const [step, setStep] = useState<Step>('pay');
+  const toaster = useToaster();
   const {
     data: session,
     error,
@@ -574,6 +576,20 @@ export const CheckoutPanel: FC<{
           body: JSON.stringify({ session: sessionId }),
         });
         const data = res.ok ? await res.json() : { failed: true };
+        if (data.ended) {
+          // the trial ended meanwhile: the next try is a regular checkout
+          toaster.show(
+            t(
+              'tdw_trial_ended_meanwhile',
+              'Your free trial has ended. Enter your card again to subscribe.'
+            ),
+            'warning'
+          );
+          await mutate('/user/self');
+          renewSession(undefined);
+          setStep('pay');
+          return;
+        }
         if (data.failed || !data.check) {
           setStep('failed');
           return;

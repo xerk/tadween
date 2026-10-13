@@ -30,6 +30,7 @@ import {
 } from '@gitroom/frontend/components/tadween/billing/pricing';
 import { PlanUsage } from '@gitroom/frontend/components/tadween/billing/current.plan';
 import {
+  isOnFreeTrial,
   isPaymentFailed,
   useTrialInfo,
 } from '@gitroom/frontend/components/tadween/billing/trial.banner';
@@ -122,9 +123,7 @@ export const MainBillingComponent: FC<{
   const utm = useUtmUrl();
   const t = useT();
   const { plans, planFor } = useTadweenPricing();
-  const { data: trialInfo } = useTrialInfo(
-    !!user?.isTrailing && !isPaymentFailed(user?.subscriptionStatus)
-  );
+  const { data: trialInfo } = useTrialInfo(isOnFreeTrial(user));
   const queryParams = useSearchParams();
   const [finishTrial, setFinishTrial] = useState(
     !!queryParams.get('finishTrial')
@@ -365,8 +364,7 @@ export const MainBillingComponent: FC<{
   // same checkout as the plan step (it saves a card for this trial)
   const cardless =
     !!subscription &&
-    !!user?.isTrailing &&
-    !failed &&
+    isOnFreeTrial(user) &&
     !!trialInfo &&
     !trialInfo.hasPaymentMethod;
   const trial = !!user?.allowTrial;

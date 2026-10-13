@@ -42,7 +42,7 @@ import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.comp
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import {
-  isPaymentFailed,
+  isOnFreeTrial,
   useTrialInfo,
 } from '@gitroom/frontend/components/tadween/billing/trial.banner';
 import {
@@ -310,18 +310,17 @@ export const TadweenOnboarding: FC<{
   const { mutate } = useSWRConfig();
   // (only who manages billing: an invited teammate never sees the plan step)
   const trialing =
-    !!user?.isTrailing &&
-    !isPaymentFailed(user?.subscriptionStatus) &&
-    ['ADMIN', 'SUPERADMIN'].includes(user?.role || '');
+    isOnFreeTrial(user) && ['ADMIN', 'SUPERADMIN'].includes(user?.role || '');
   const { data: trialInfo } = useTrialInfo(trialing);
   const planStep =
     needsPlan || (trialing && !!trialInfo && !trialInfo.hasPaymentMethod);
   // Right after sign-up the trial's subscription is still on its way (Stripe's
   // webhook): look again for a few seconds before showing channels as locked
-  const trialStarting = !standalone && needsPlan && !!user?.allowTrial;
+  const trialStarting =
+    !standalone && step === 'channels' && needsPlan && !!user?.allowTrial;
   const [waited, setWaited] = useState(0);
   useEffect(() => {
-    if (!trialStarting || waited >= 10) {
+    if (!trialStarting || waited >= 5) {
       return;
     }
     const timer = setTimeout(() => {
@@ -330,7 +329,7 @@ export const TadweenOnboarding: FC<{
     }, 2000);
     return () => clearTimeout(timer);
   }, [trialStarting, waited]);
-  const starting = trialStarting && waited < 10;
+  const starting = trialStarting && waited < 5;
 
   // Postiz's three steps, the tutorial only when Branding has a video, then
   // the plan while the workspace has none to keep after its trial

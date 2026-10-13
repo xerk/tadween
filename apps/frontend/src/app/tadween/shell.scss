@@ -578,34 +578,6 @@ html[dir='rtl'] .tdw-side-heading-btn {
   }
 }
 
-// Trial line above the account (tadween/billing/upgrade.link.tsx)
-.tdw-side-trial {
-  flex: none;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  color: var(--tdw-muted-foreground);
-  box-shadow: inset 0 0 0 1px var(--tdw-border);
-
-  > svg {
-    color: var(--tdw-smart);
-  }
-}
-
-.tdw-side-trial-link {
-  margin-inline-start: auto;
-  font-weight: 600;
-  color: var(--tdw-primary);
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
 @media #{$tdw-desktop} {
   .tdw-side.is-collapsed {
     .tdw-side-create {
@@ -622,8 +594,7 @@ html[dir='rtl'] .tdw-side-heading-btn {
     }
 
     .tdw-side-heading,
-    .tdw-side-customer,
-    .tdw-side-trial {
+    .tdw-side-customer {
       display: none;
     }
 
@@ -1122,8 +1093,7 @@ body:has(
     white-space: nowrap;
   }
 
-  .tdw-dock-channels,
-  .tdw-side-trial {
+  .tdw-dock-channels {
     margin-top: 20px;
   }
 

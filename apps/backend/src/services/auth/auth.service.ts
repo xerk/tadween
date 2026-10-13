@@ -12,6 +12,7 @@ import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { NewsletterService } from '@gitroom/nestjs-libraries/newsletter/newsletter.service';
 import { PlatformSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/platform-settings.service';
 import { PartnersService } from '@gitroom/nestjs-libraries/database/prisma/partners/partners.service';
+import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
 
 @Injectable()
 export class AuthService {
@@ -21,7 +22,8 @@ export class AuthService {
     private _emailService: EmailService,
     private _providerManager: AuthProviderManager,
     private _platformSettings: PlatformSettingsService,
-    private _partners: PartnersService
+    private _partners: PartnersService,
+    private _paymentService: PaymentService
   ) {}
 
   // Tadween: the mode comes from the super-admin console, falling back to
@@ -86,6 +88,15 @@ export class AuthService {
           body.ref
         );
 
+        // an invited teammate joins a workspace that has its own plan
+        if (!addToOrg || typeof addToOrg === 'boolean') {
+          await this.startSignupTrial(
+            create.id,
+            create.users[0].user.id,
+            body.email
+          );
+        }
+
         const addedOrg =
           addToOrg && typeof addToOrg !== 'boolean'
             ? await this._organizationService.addUserToOrg(
@@ -144,6 +155,32 @@ export class AuthService {
           )
         : false;
     return { addedOrg, jwt: await this.jwt(user) };
+  }
+
+  // A new workspace starts its free trial without a card at sign-up (the
+  // trial "Maybe later" starts), unless another account with this email
+  // already pays: the same rule that blocks its checkout. Never throws.
+  private async startSignupTrial(
+    organizationId: string,
+    userId: string,
+    email: string
+  ) {
+    try {
+      if (
+        await this._userService.getUserWithActiveSubscriptionByEmail(
+          email,
+          userId
+        )
+      ) {
+        return;
+      }
+      await this._paymentService.startSignupTrial(organizationId, userId);
+    } catch (err) {
+      console.error('signup_trial_not_started', {
+        organization_id: organizationId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   public getOrgFromCookie(cookie?: string) {
@@ -213,6 +250,15 @@ export class AuthService {
       create.users[0].user.id,
       body.ref
     );
+
+    // an invited teammate joins a workspace that has its own plan
+    if (!hasInvite) {
+      await this.startSignupTrial(
+        create.id,
+        create.users[0].user.id,
+        providerUser.email
+      );
+    }
 
     this._track('register', providerUser.email, body.datafast_visitor_id).catch(
       (err) => {}

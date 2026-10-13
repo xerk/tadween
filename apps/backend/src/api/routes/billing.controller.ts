@@ -20,6 +20,7 @@ import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
 import { BillingSyncDto } from '@gitroom/nestjs-libraries/dtos/billing/billing.sync.dto';
+import { BillingTrialPlanDto } from '@gitroom/nestjs-libraries/dtos/billing/billing.trial.plan.dto';
 import { BillingAiCreditsDto } from '@gitroom/nestjs-libraries/dtos/billing/billing.ai.credits.dto';
 import {
   aiCreditCost,
@@ -139,6 +140,16 @@ export class BillingController {
       body,
       org.allowTrial
     );
+  }
+
+  // The plan chosen during the card-less trial, after its card was saved in
+  // the embedded checkout (setup mode): kept on the same trial
+  @Post('/trial/plan')
+  async applyTrialPlan(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: BillingTrialPlanDto
+  ) {
+    return (await this.provider(org)).applyTrialPlan(org.id, body.session);
   }
 
   @Get('/trial')

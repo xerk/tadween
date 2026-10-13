@@ -2,12 +2,15 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { PaymentProviderManager } from '@gitroom/nestjs-libraries/services/payment/payment.provider.manager';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { PaymentPlatform } from '@gitroom/nestjs-libraries/services/payment/payment.provider.interface';
+import { BillingSubscribeDto } from '@gitroom/nestjs-libraries/dtos/billing/billing.subscribe.dto';
+import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
 
 @Injectable()
 export class PaymentService {
   constructor(
     private _paymentProviderManager: PaymentProviderManager,
-    private _subscriptionService: SubscriptionService
+    private _subscriptionService: SubscriptionService,
+    private _plans: PlansService
   ) {}
 
   async webhook(
@@ -31,6 +34,36 @@ export class PaymentService {
         error: err instanceof Error ? err.message : String(err),
       });
       return { ok: false };
+    }
+  }
+
+  // Sign-up: the new workspace's free trial without a card starts at once
+  // (the same trial as "Maybe later", one per workspace), so onboarding can
+  // connect channels before the plan is chosen. Nothing to do with billing
+  // off or without a plan that has a trial. Never fails the sign-up.
+  async startSignupTrial(organizationId: string, userId: string) {
+    if (!process.env.STRIPE_PUBLISHABLE_KEY || !process.env.IS_GENERAL) {
+      return;
+    }
+    try {
+      const billing = await this._plans.getSignupTrialTier();
+      if (!billing) {
+        return;
+      }
+      await this._paymentProviderManager
+        .getDefaultProvider('web')
+        .provider.startTrial(
+          '',
+          organizationId,
+          userId,
+          { billing, period: 'MONTHLY' } as BillingSubscribeDto,
+          true
+        );
+    } catch (err) {
+      console.error('signup_trial_not_started', {
+        organization_id: organizationId,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 

@@ -27,6 +27,23 @@ $phone: '(max-width: 1025px)';
   &.tdw-ob-page .pz-ob-foot { position: sticky; bottom: 0; z-index: 2; background: var(--background); }
   &.tdw-ob-page .pz-ob-stage { padding-top: clamp(24px, 8vh, 72px); padding-bottom: var(--space-12); overflow: visible; }
   .tdw-ob-head-spacer { width: 84px; flex: none; }
+  // Language (and on the plan step: workspace switch, log out) at the end of the header
+  .tdw-ob-tools { display: flex; align-items: center; gap: var(--space-2); flex: none; }
+  .tdw-ob-logout { display: inline-flex; color: var(--muted-foreground); }
+  .tdw-ob-logout:hover { color: var(--foreground); }
+  // The plan step is wider and starts higher, so the plans fit a laptop screen
+  &.tdw-ob-page .pz-ob-stage.is-plan { padding-top: var(--space-4); }
+  .pz-ob-stage.is-plan .pz-ob-step.is-wide { max-width: 1120px; }
+  .tdw-ob-video { max-width: 880px; margin: 0 auto; }
+  // Channels before a plan exists: what happens, and the way to the plan
+  .tdw-ob-gate { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--primary-soft); font-size: 14px; line-height: 20px; }
+  .tdw-ob-gate > span { flex: 1 1 260px; }
+  .tdw-ob-gate .pz-icon { flex: none; color: var(--primary); }
+  // Agents step: the guide (Settings → API & MCP) stays inside the screen on phones
+  .pz-ob-step > *, .pz-ob-agents > *, .pz-ob-panel, .pz-ob-panel-body { min-width: 0; }
+  .pz-ob-agents .tdw-api-guide-bar { overflow-x: auto; scrollbar-width: none; }
+  .pz-ob-agents .tdw-api-guide-bar .pz-seg { flex: none; }
+  .tdw-ob-link.is-center { justify-self: center; }
 
   // A big, friendly headline and one lead line
   .tdw-ob-headline { display: grid; gap: var(--space-2); }

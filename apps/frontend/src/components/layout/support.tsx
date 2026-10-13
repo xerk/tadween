@@ -5,10 +5,11 @@ import { useEffect, useState } from 'react';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { ChatbaseComponent } from '@gitroom/frontend/components/layout/chatbase.component';
+import { CrispComponent } from '@gitroom/frontend/components/layout/crisp.component';
 export const supportEmitter = new EventEmitter();
 export const Support = () => {
   const [show, setShow] = useState(true);
-  const { discordUrl, isChatBase } = useVariables();
+  const { discordUrl, isChatBase, crispWebsiteId } = useVariables();
   const t = useT();
 
   useEffect(() => {
@@ -17,6 +18,9 @@ export const Support = () => {
       supportEmitter.off('state', setShow);
     };
   }, []);
+  if (crispWebsiteId) {
+    return <CrispComponent />;
+  }
   if (isChatBase) {
     return <ChatbaseComponent />;
   }

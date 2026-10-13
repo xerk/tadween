@@ -30,6 +30,11 @@ import {
   AdminReferralsQueryDto,
 } from '@gitroom/nestjs-libraries/dtos/partners/partners.dto';
 import { AdminListQueryDto } from '@gitroom/nestjs-libraries/dtos/tadween/admin.list.dto';
+import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
+import {
+  EmailTemplate,
+  EmailTemplateData,
+} from '@gitroom/nestjs-libraries/emails/templates/email.templates';
 
 // Sortable columns of the console lists (anything else: the first entry)
 const PARTNER_SORT: Record<
@@ -129,8 +134,63 @@ export class PartnersService {
     private _settings: PlatformSettingsService,
     private _subscriptions: SubscriptionService,
     private _payments: PaymentService,
-    private _plans: PlansService
+    private _plans: PlansService,
+    private _emails: EmailService
   ) {}
+
+  // ── Emails ─────────────────────────────────────────────────────────────────
+  // To a partner's member or a referred user, in their language. Keyed, so a
+  // replayed webhook or a second read sends nothing. Never throws.
+  private async email<T extends EmailTemplate>(
+    userId: string | null | undefined,
+    template: T,
+    data: EmailTemplateData<T>,
+    dedupeKey: string
+  ) {
+    try {
+      const [user] = userId ? await this._repository.getUsers([userId]) : [];
+      if (!user) {
+        return;
+      }
+      await this._emails.sendTemplate(
+        { email: user.email, language: user.language },
+        template,
+        data,
+        { dedupeKey }
+      );
+    } catch (e) {
+      console.error('partners_email_not_sent', {
+        template,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
+  // The welcome email's invite note: what the workspace gets on its first
+  // payment (and an affiliate's longer trial). Never throws.
+  async welcomeOffer(organizationId: string) {
+    try {
+      if (!(await this.enabled())) {
+        return null;
+      }
+      const referral = await this._repository.getReferralByOrganization(
+        organizationId
+      );
+      if (!referral || referral.status === 'REJECTED') {
+        return null;
+      }
+      const affiliate = referral.partner.kind === 'AFFILIATE';
+      return {
+        kind: referral.partner.kind,
+        credits: affiliate
+          ? PARTNERS.affiliateAudienceCredits
+          : PARTNERS.friendCredits,
+        ...(affiliate ? { trialDays: PARTNERS.affiliateTrialDays } : {}),
+      };
+    } catch (e) {
+      return null;
+    }
+  }
 
   async enabled() {
     try {
@@ -249,6 +309,31 @@ export class PartnersService {
         return { ok: false, reason: 'already_referred' };
       }
       throw e;
+    }
+
+    // affiliates follow their audience by commission, not per sign-up
+    if (partner.kind === 'REFERRER') {
+      await this.email(
+        partner.userId,
+        'referralSignedUp',
+        { credits: PARTNERS.friendCredits },
+        `ref_signup_${organizationId}`
+      );
+    }
+    // a link sign-up hears about its bonus in the welcome email; a code is
+    // added later, from "Who invited you?"
+    if (source === 'CODE') {
+      await this.email(
+        userId,
+        'referralWelcome',
+        {
+          credits:
+            partner.kind === 'AFFILIATE'
+              ? PARTNERS.affiliateAudienceCredits
+              : PARTNERS.friendCredits,
+        },
+        `ref_welcome_${organizationId}`
+      );
     }
     return { ok: true };
   }
@@ -373,10 +458,23 @@ export class PartnersService {
           return;
         }
         firstPaidAt = event.paidAt;
-        await this._repository.moveReferral(referral.id, ['SIGNED_UP'], {
-          status: 'PAID',
-          firstPaidAt,
-        });
+        const moved = await this._repository.moveReferral(
+          referral.id,
+          ['SIGNED_UP'],
+          { status: 'PAID', firstPaidAt }
+        );
+        if (moved && partner.kind === 'REFERRER') {
+          await this.email(
+            partner.userId,
+            'referralFirstPayment',
+            {
+              countsFrom: new Date(
+                event.paidAt.getTime() + PARTNERS.holdDays * DAY
+              ),
+            },
+            `ref_paid_${referral.id}`
+          );
+        }
         // the referred workspace's own bonus, on its first payment
         const id = `fr_${referral.id}`;
         await this._repository.addReward({
@@ -484,20 +582,41 @@ export class PartnersService {
     const tier = tierFor(paying);
     if (tier.tier !== partner.tier) {
       await this._repository.updatePartner(partner.id, { tier: tier.tier });
+      // a rate set by the admin doesn't move with the tiers
+      if (tier.tier > partner.tier && partner.commissionRate === null) {
+        await this.email(
+          partner.userId,
+          'affiliateTierUp',
+          { rate: tier.rate, paying },
+          `tier_${partner.id}_${tier.tier}`
+        );
+      }
     }
     const rate = partner.commissionRate ?? tier.rate;
-    await this._repository.addReward({
+    const amountCents = Math.round((event.amountCents * rate) / 100);
+    const availableAt = new Date(
+      event.paidAt.getTime() + PARTNERS.holdDays * DAY
+    );
+    const created = await this._repository.addReward({
       id: `com_${event.invoiceId}`,
       partnerId: partner.id,
       organizationId: partner.organizationId,
       referralId,
       type: 'COMMISSION',
       status: 'PENDING',
-      amountCents: Math.round((event.amountCents * rate) / 100),
+      amountCents,
       rate,
-      availableAt: new Date(event.paidAt.getTime() + PARTNERS.holdDays * DAY),
+      availableAt,
       invoiceId: event.invoiceId,
     });
+    if (created && amountCents > 0) {
+      await this.email(
+        partner.userId,
+        'affiliateCommissionPending',
+        { amountCents, rate, availableAt },
+        `com_${event.invoiceId}`
+      );
+    }
   }
 
   private async payingCount(partnerId: string) {
@@ -526,9 +645,14 @@ export class PartnersService {
         await this._repository.markInvoiceRefunded(invoice.id, event.at);
         // a referral whose only payments were refunded never counted
         if ((await this._repository.countPaidInvoices(invoice.referralId)) === 0) {
-          await this._repository.moveReferral(invoice.referralId, ['PAID'], {
-            status: 'REFUNDED',
-          });
+          const moved = await this._repository.moveReferral(
+            invoice.referralId,
+            ['PAID'],
+            { status: 'REFUNDED' }
+          );
+          if (moved) {
+            await this.referralReversedEmail(invoice.referralId, event.reason);
+          }
         }
       }
 
@@ -576,6 +700,13 @@ export class PartnersService {
             }
       );
       if (done) {
+        await this.commissionReversedEmail(
+          reward,
+          reward.amountCents - target,
+          target,
+          reason,
+          false
+        );
         return;
       }
       // a payout took it meanwhile: handled like a paid reward below
@@ -601,13 +732,83 @@ export class PartnersService {
           note: `clawback_${reason}`,
           invoiceId: reward.invoiceId,
         });
-      } else if (delta < existing.amountCents) {
-        await this._repository.setRewardIfFree(id, { amountCents: delta });
+        await this.commissionReversedEmail(reward, -delta, target, reason, true);
+      } else if (
+        delta < existing.amountCents &&
+        (await this._repository.setRewardIfFree(id, { amountCents: delta }))
+      ) {
+        await this.commissionReversedEmail(
+          reward,
+          existing.amountCents - delta,
+          target,
+          reason,
+          true
+        );
       }
       return;
     }
   }
 
+
+  // Never throws: it runs between ledger updates
+  private async referralReversedEmail(referralId: string, reason: string) {
+    try {
+      const referral = await this._repository.getReferral(referralId);
+      const partner = referral
+        ? await this._repository.getPartnerById(referral.partnerId)
+        : null;
+      if (partner?.kind !== 'REFERRER') {
+        return;
+      }
+      await this.email(
+        partner.userId,
+        'referralReversed',
+        {
+          reason:
+            reason === 'dispute' ? 'dispute' : reason === 'refund' ? 'refund' : 'rejected',
+        },
+        `ref_reversed_${referralId}`
+      );
+    } catch (e) {
+      console.error('partners_email_not_sent', {
+        referral_id: referralId,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
+  // `remaining`: what the commission is now (it keys the email, so a second
+  // partial refund of the same size is still told). Never throws.
+  private async commissionReversedEmail(
+    reward: RewardRow,
+    amountCents: number,
+    remaining: number,
+    reason: string,
+    alreadyPaid: boolean
+  ) {
+    try {
+      if (!reward.partnerId || amountCents <= 0) {
+        return;
+      }
+      const partner = await this._repository.getPartnerById(reward.partnerId);
+      await this.email(
+        partner?.userId,
+        'affiliateCommissionReversed',
+        {
+          amountCents,
+          reason:
+            reason === 'dispute' ? 'dispute' : reason === 'refund' ? 'refund' : 'rejected',
+          alreadyPaid,
+        },
+        `com_reversed_${reward.id}_${remaining}`
+      );
+    } catch (e) {
+      console.error('partners_email_not_sent', {
+        reward_id: reward.id,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
 
   // ── Settling: holds, ladder, applying rewards ──────────────────────────────
   // Evaluated whenever a partner's data is read or one of its events arrives
@@ -636,7 +837,24 @@ export class PartnersService {
       });
     }
 
+    // commission is released one row at a time, so only the run that moved
+    // a row counts it in its "commission cleared" email
+    const cleared: { id: string; amountCents: number }[] = [];
+    for (const reward of await this._repository.dueHolds(partner.id, now)) {
+      if (await this._repository.releaseHold(reward.id)) {
+        cleared.push(reward);
+      }
+    }
     await this._repository.releaseHolds(partner.id, now);
+    const clearedCents = cleared.reduce((sum, r) => sum + r.amountCents, 0);
+    if (clearedCents > 0) {
+      await this.email(
+        partner.userId,
+        'affiliateCommissionCleared',
+        { amountCents: clearedCents },
+        `cleared_${cleared[0].id}`
+      );
+    }
 
     if (partner.kind === 'REFERRER' && partner.status === 'ACTIVE') {
       await this.climbLadder(partner);
@@ -736,6 +954,19 @@ export class PartnersService {
             });
       if (created && step.ambassador && !partner.ambassador) {
         await this._repository.updatePartner(partner.id, { ambassador: true });
+      }
+      if (created) {
+        await this.email(
+          partner.userId,
+          'referralRewardEarned',
+          {
+            step: step.step,
+            reward: step.reward,
+            credits: step.credits,
+            ambassador: !!step.ambassador,
+          },
+          id
+        );
       }
     }
   }
@@ -897,6 +1128,16 @@ export class PartnersService {
         paidAt: now,
         status: 'PAID',
       });
+      await this.email(
+        partner.userId,
+        'affiliatePayoutSent',
+        {
+          amountCents: amount,
+          method: 'balance',
+          creditCents: Math.round(amount * PARTNERS.balanceMultiplier),
+        },
+        `payout_${payoutId}`
+      );
     } else {
       // nothing was paid (no billing account yet, another currency): no row
       await this._repository.deletePayout(payoutId!);
@@ -1263,7 +1504,7 @@ export class PartnersService {
         organizationId: membership.organizationId,
         userId: user.id,
       }));
-    return this._repository.updatePartner(partner.id, {
+    const updated = await this._repository.updatePartner(partner.id, {
       kind: 'AFFILIATE',
       status: 'ACTIVE',
       userId: user.id,
@@ -1271,6 +1512,19 @@ export class PartnersService {
       approvedById: adminId,
       commissionRate: body.commissionRate ?? null,
     });
+    if (partner.kind !== 'AFFILIATE') {
+      await this.email(
+        user.id,
+        'affiliateApproved',
+        {
+          rate:
+            body.commissionRate ??
+            tierFor(await this.payingCount(partner.id)).rate,
+        },
+        `affiliate_${partner.id}`
+      );
+    }
+    return updated;
   }
 
   async updatePartner(
@@ -1361,6 +1615,9 @@ export class PartnersService {
       status: 'REJECTED' as ReferralStatus,
       rejectionReason: reason || 'rejected_by_admin',
     });
+    if (referral.status !== 'REJECTED') {
+      await this.referralReversedEmail(id, 'rejected');
+    }
     await this._repository.voidReferralRewards(id);
     // commission already paid out (or being paid): taken from the next payout
     for (const reward of await this._repository.rewards({
@@ -1482,6 +1739,12 @@ export class PartnersService {
       amountCents: amount,
       status: 'PAID',
     });
+    await this.email(
+      partner.userId,
+      'affiliatePayoutSent',
+      { amountCents: amount, method: 'cash', reference: body.reference },
+      `payout_${payout.id}`
+    );
     return { id: payout.id, amountCents: amount };
   }
 

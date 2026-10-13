@@ -2553,5 +2553,6 @@
   "tdw_fb_continue_payment": "Continue to payment",
   "hide": "Hide",
   "api": "API",
-  "auth_method": "Authentication"
+  "auth_method": "Authentication",
+  "tdw_support_chat": "Chat with support"
 }

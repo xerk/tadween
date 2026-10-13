@@ -5,6 +5,7 @@ interface VariableContextInterface {
   stripeClient: string;
   billingEnabled: boolean;
   isChatBase: boolean;
+  crispWebsiteId?: string;
   isGeneral: boolean;
   genericOauth: boolean;
   oauthLogoUrl: string;
@@ -48,6 +49,7 @@ const VariableContext = createContext({
   isGeneral: true,
   genericOauth: false,
   isChatBase: false,
+  crispWebsiteId: '',
   oauthLogoUrl: '',
   googleAdsId: '',
   googleAdsTrialTracking: '',

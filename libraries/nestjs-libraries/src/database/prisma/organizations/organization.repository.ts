@@ -634,12 +634,17 @@ export class OrganizationRepository {
       select: {
         users: {
           select: {
+            // Tadween: billing emails go to owners and admins only
+            role: true,
+            disabled: true,
             user: {
               select: {
                 email: true,
                 id: true,
                 sendSuccessEmails: true,
                 sendFailureEmails: true,
+                language: true,
+                deletedAt: true,
               },
             },
           },

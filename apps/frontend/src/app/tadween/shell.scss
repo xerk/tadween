@@ -758,6 +758,16 @@ html[dir='rtl'] .tdw-acct-menu {
   &.is-danger {
     color: var(--tdw-destructive);
   }
+
+  // a <button> item (Chat with support) looks like the links around it
+  @at-root button#{&} {
+    width: 100%;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-weight: 500;
+    text-align: start;
+  }
 }
 
 // Icon slot: our own icons and the wrapped Postiz components share one size.

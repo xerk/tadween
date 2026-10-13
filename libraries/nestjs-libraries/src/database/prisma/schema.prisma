@@ -121,6 +121,9 @@ model User {
   sendSuccessEmails     Boolean              @default(true)
   sendFailureEmails     Boolean              @default(true)
   sendStreakEmails      Boolean              @default(true)
+  /// Tadween: the app language the user last used (en, ar…), for emails.
+  /// Null until they sign up or switch language after this was added.
+  language              String?
   oauthAuthorizations   OAuthAuthorization[]
 
   @@unique([email, providerName])

@@ -140,13 +140,15 @@ export class OrganizationService {
       process.env.FRONTEND_URL +
       `/?org=${AuthService.signJWT({ ...body, orgId: org.id, timeLimit, id })}`;
     if (body.sendEmail) {
-      const inviter = user.name
-        ? `${user.name} (${user.email})`
-        : user.email;
-      await this._notificationsService.sendEmail(
-        body.email,
-        `${user.name || user.email} invited you to join "${org.name}"`,
-        `${inviter} has invited you to join the "${org.name}" team.<br /><a href="${url}">Accept the invitation</a> to get started.<br />The link will expire in 2 days.`
+      // the invitee has no account yet: the email speaks the inviter's language
+      await this._notificationsService.sendTemplate(
+        { email: body.email, language: user.language },
+        'teamInvite',
+        {
+          inviter: user.name ? `${user.name} (${user.email})` : user.email,
+          workspace: org.name,
+          url,
+        }
       );
     }
     return { url };

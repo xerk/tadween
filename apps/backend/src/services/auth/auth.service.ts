@@ -52,7 +52,8 @@ export class AuthService {
     body: CreateOrgUserDto | LoginUserDto,
     ip: string,
     userAgent: string,
-    addToOrg?: boolean | { orgId: string; role: 'USER' | 'ADMIN'; id: string }
+    addToOrg?: boolean | { orgId: string; role: 'USER' | 'ADMIN'; id: string },
+    language?: string
   ) {
     if (provider === Provider.LOCAL) {
       if (process.env.DISALLOW_PLUS && body.email.includes('+')) {
@@ -107,11 +108,13 @@ export class AuthService {
               )
             : false;
 
+        await this.saveLanguage(create.users[0].user.id, language);
         const obj = { addedOrg, jwt: await this.jwt(create.users[0].user) };
-        await this._emailService.sendEmailSync(
-          body.email,
-          'Activate your account',
-          `Click <a href="${process.env.FRONTEND_URL}/auth/activate/${obj.jwt}">here</a> to activate your account`
+        await this._emailService.sendTemplate(
+          { email: body.email, language: language || null },
+          'activateAccount',
+          { url: `${process.env.FRONTEND_URL}/auth/activate/${obj.jwt}` },
+          { sync: true }
         );
         return obj;
       }
@@ -142,7 +145,8 @@ export class AuthService {
       body as CreateOrgUserDto,
       ip,
       userAgent,
-      !!addToOrg && typeof addToOrg !== 'boolean'
+      !!addToOrg && typeof addToOrg !== 'boolean',
+      language
     );
 
     const addedOrg =
@@ -183,6 +187,44 @@ export class AuthService {
     }
   }
 
+  // Tadween: the app language at sign-up (the i18next cookie), for emails
+  private async saveLanguage(userId: string, language?: string) {
+    // a cookie or header: only a language code ("ar", "en-US") is kept
+    if (!language || !/^[a-z]{2}([-_][A-Za-z]{2,4})?$/.test(language)) {
+      return;
+    }
+    try {
+      await this._userService.setLanguage(userId, language);
+    } catch (err) {
+      // never fails the sign-up
+    }
+  }
+
+  // After activation, or right after a provider sign-up. A workspace that
+  // joined with an invite hears about its bonus. Never throws.
+  private async sendWelcome(
+    user: { id: string; email: string; name?: string | null; language?: string | null },
+    organizationId?: string
+  ) {
+    try {
+      const orgId =
+        organizationId ||
+        (await this._organizationService.getOrgsByUserId(user.id))[0]?.id;
+      const referral = orgId ? await this._partners.welcomeOffer(orgId) : null;
+      await this._emailService.sendTemplate(
+        { email: user.email, language: user.language },
+        'welcome',
+        { name: user.name || '', ...(referral ? { referral } : {}) },
+        { dedupeKey: `welcome_${user.id}` }
+      );
+    } catch (err) {
+      console.error('welcome_email_not_sent', {
+        user_id: user.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   public getOrgFromCookie(cookie?: string) {
     if (!cookie) {
       return false;
@@ -210,7 +252,8 @@ export class AuthService {
     body: CreateOrgUserDto,
     ip: string,
     userAgent: string,
-    hasInvite = false
+    hasInvite = false,
+    language?: string
   ) {
     const providerInstance = this._providerManager.getProvider(provider);
     const providerUser = await providerInstance.getUser(body.providerToken);
@@ -274,6 +317,13 @@ export class AuthService {
       // Don't fail registration if postRegistration fails
     }
 
+    // a provider account is active right away: welcome now
+    await this.saveLanguage(create.users[0].user.id, language);
+    await this.sendWelcome(
+      { ...create.users[0].user, language: language || null },
+      create.id
+    );
+
     return create.users[0].user;
   }
 
@@ -313,10 +363,11 @@ export class AuthService {
       expires: dayjs().add(20, 'minutes').format('YYYY-MM-DD HH:mm:ss'),
     });
 
-    await this._emailService.sendEmailSync(
-      user.email,
-      'Reset your password',
-      `You have requested to reset your password. <br />Click <a href="${process.env.FRONTEND_URL}/auth/forgot/${resetValues}">here</a> to reset your password<br />The link will expire in 20 minutes`
+    await this._emailService.sendTemplate(
+      { email: user.email, language: user.language },
+      'resetPassword',
+      { url: `${process.env.FRONTEND_URL}/auth/forgot/${resetValues}` },
+      { sync: true }
     );
   }
 
@@ -347,6 +398,7 @@ export class AuthService {
       user.activated = true;
       this._track('register', user.email, tracking).catch((err) => {});
       await NewsletterService.register(user.email);
+      await this.sendWelcome(getUserAgain);
       return this.jwt(user as any);
     }
 
@@ -366,10 +418,11 @@ export class AuthService {
 
     const jwt = await this.jwt(user);
 
-    await this._emailService.sendEmailSync(
-      user.email,
-      'Activate your account',
-      `Click <a href="${process.env.FRONTEND_URL}/auth/activate/${jwt}">here</a> to activate your account`
+    await this._emailService.sendTemplate(
+      { email: user.email, language: user.language },
+      'activateAccount',
+      { url: `${process.env.FRONTEND_URL}/auth/activate/${jwt}` },
+      { sync: true }
     );
 
     return true;

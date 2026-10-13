@@ -1177,16 +1177,21 @@ export class StripeService extends PaymentProviderAbstract {
     };
   }
 
-  // Whether Stripe can charge this subscription when its trial ends
+  // Whether Stripe can charge this subscription when its trial ends: a
+  // default payment method on it or on the customer (a card only attached,
+  // e.g. from an unfinished plan choice, counts as missing for the trial)
   private async hasPaymentMethod(subscription: Stripe.Subscription) {
     if (subscription.default_payment_method) {
       return true;
     }
-    const methods = await stripe.paymentMethods.list({
-      customer: subscription.customer as string,
-      limit: 1,
-    });
-    return methods.data.length > 0;
+    const customer = await stripe.customers.retrieve(
+      subscription.customer as string
+    );
+    if (customer.deleted) {
+      return false;
+    }
+    return !!(customer as Stripe.Customer).invoice_settings
+      ?.default_payment_method;
   }
 
   // Choosing a plan during the card-less trial: Checkout in setup mode saves

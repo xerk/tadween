@@ -308,8 +308,11 @@ export const TadweenOnboarding: FC<{
   // plan step asks for the plan to keep after it
   const user = useUser();
   const { mutate } = useSWRConfig();
+  // (only who manages billing: an invited teammate never sees the plan step)
   const trialing =
-    !!user?.isTrailing && !isPaymentFailed(user?.subscriptionStatus);
+    !!user?.isTrailing &&
+    !isPaymentFailed(user?.subscriptionStatus) &&
+    ['ADMIN', 'SUPERADMIN'].includes(user?.role || '');
   const { data: trialInfo } = useTrialInfo(trialing);
   const planStep =
     needsPlan || (trialing && !!trialInfo && !trialInfo.hasPaymentMethod);

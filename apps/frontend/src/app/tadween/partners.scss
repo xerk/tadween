@@ -113,78 +113,22 @@ $partners-phone: '(max-width: 640px)';
     align-items: stretch;
   }
 
-  // ── EarningsHeader ──────────────────────────────────────────────────────
-  .tdw-earnings {
+  // ── PartnerStatTiles: the tier card across the top, then the numbers ──
+  .tdw-partners-stats {
     display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 2fr);
-    border-radius: var(--radius-lg);
-    background: var(--card);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-  }
-  .tdw-earnings-total {
-    display: grid;
-    align-content: center;
-    gap: 6px;
-    padding: var(--space-6);
-  }
-  .tdw-earnings-label {
-    font-size: 13px;
-    line-height: 18px;
-    color: var(--muted-foreground);
-  }
-  .tdw-earnings-value {
-    font-size: 44px;
-    line-height: 50px;
-    font-weight: 600;
-    letter-spacing: -0.03em;
-    color: var(--foreground);
-    direction: ltr;
-    unicode-bidi: isolate;
-    text-align: start;
-  }
-  .tdw-earnings-sub {
-    font-size: 13px;
-    line-height: 18px;
-    font-weight: 500;
-    color: var(--primary);
-  }
-  .tdw-earnings-cells {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1px;
-    background: var(--border);
-    border-inline-start: 1px solid var(--border);
-  }
-  .tdw-earnings-cell {
-    display: grid;
-    align-content: start;
-    gap: 4px;
-    padding: var(--space-6);
-    background: var(--card);
-    min-width: 0;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-6);
 
-    .metric {
-      color: var(--foreground);
+    // tiles with and without a hint line up at the top
+    > .pz-tile { align-content: start; }
+
+    .pz-tile .metric {
       direction: ltr;
       unicode-bidi: isolate;
-      text-align: start;
     }
-    &.is-available { background: color-mix(in srgb, var(--primary-soft) 55%, var(--card)); }
   }
-  .tdw-earnings-hint {
-    display: inline-flex;
-    align-items: flex-start;
-    gap: 6px;
-    margin-top: 4px;
-    font-size: 12px;
-    line-height: 16px;
-    font-weight: 500;
-    color: var(--muted-foreground);
-
-    > svg, > .pz-icon { flex: none; margin-top: 1px; }
-    &.is-ok { color: var(--primary); }
-    &.is-warn { color: var(--warning); }
+  .tdw-partners-stats-wide {
+    grid-column: 1 / -1;
   }
 
   // ── Cards ───────────────────────────────────────────────────────────────
@@ -221,22 +165,40 @@ $partners-phone: '(max-width: 640px)';
   }
 
   // ── PartnerTierCard ─────────────────────────────────────────────────────
+  .tdw-partners-tier {
+    gap: var(--space-4);
+  }
   .tdw-partners-tier-head {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
+    align-items: center;
+    gap: 14px;
+  }
+  .tdw-partners-tier-badge {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-lg);
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .tdw-partners-tier-label {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--muted-foreground);
   }
   .tdw-partners-tier-rate {
     display: flex;
-    flex-wrap: wrap;
     align-items: baseline;
+    flex-wrap: wrap;
     gap: 4px 8px;
-    margin-top: 6px;
 
-    .metric {
-      font-size: 36px;
-      line-height: 42px;
+    > [dir='ltr'] {
+      font-size: 28px;
+      line-height: 34px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
       color: var(--foreground);
     }
   }
@@ -244,31 +206,35 @@ $partners-phone: '(max-width: 640px)';
     font-size: 14px;
     color: var(--muted-foreground);
   }
-  .tdw-partners-tier-paying {
+  .tdw-partners-tier-progress {
     display: grid;
-    justify-items: end;
-    font-size: 12px;
-    line-height: 16px;
-    color: var(--muted-foreground);
-    text-align: end;
-
-    .metric {
-      font-size: 22px;
-      line-height: 28px;
-      color: var(--foreground);
-    }
+    gap: 8px;
   }
-  .tdw-partners-tier-track {
-    display: grid;
-    gap: 10px;
-    padding-bottom: 36px;
-    position: relative;
+  .tdw-partners-tier-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--foreground);
+  }
+  .tdw-partners-tier-left {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--muted-foreground);
+  }
+  .tdw-partners-tier-top {
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted-foreground);
   }
   // Fills from the inline start (right in Arabic)
   .tdw-partners-bar {
     display: block;
     height: 8px;
-    border-radius: 4px;
+    border-radius: 999px;
     background: var(--muted);
     overflow: hidden;
 
@@ -279,62 +245,6 @@ $partners-phone: '(max-width: 640px)';
       background: var(--primary);
       transition: width var(--duration-spring, 400ms) var(--ease-spring, ease);
     }
-  }
-  .tdw-partners-tier-marks {
-    position: absolute;
-    inset: 0;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .tdw-partners-tier-mark {
-    position: absolute;
-    top: -4px;
-    display: grid;
-    justify-items: center;
-    transform: translateX(-50%);
-    font-size: 12px;
-    line-height: 16px;
-    white-space: nowrap;
-
-    &:first-child { justify-items: start; transform: none; }
-    &:last-child { justify-items: end; transform: translateX(-100%); }
-  }
-  html[dir='rtl'] & .tdw-partners-tier-mark {
-    transform: translateX(50%);
-    &:first-child { transform: none; }
-    &:last-child { transform: translateX(100%); }
-  }
-  .tdw-partners-tier-tick {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--card);
-    box-shadow: inset 0 0 0 2px var(--border);
-  }
-  .tdw-partners-tier-mark:first-child .tdw-partners-tier-tick { visibility: hidden; }
-  .tdw-partners-tier-mark-rate {
-    margin-top: 4px;
-    font-weight: 600;
-    color: var(--muted-foreground);
-  }
-  .tdw-partners-tier-mark-min { color: var(--muted-foreground); }
-  .tdw-partners-tier-mark.is-reached {
-    .tdw-partners-tier-tick { background: var(--primary); box-shadow: inset 0 0 0 2px var(--primary); }
-    .tdw-partners-tier-mark-rate { color: var(--foreground); }
-  }
-  .tdw-partners-tier-mark.is-next {
-    .tdw-partners-tier-tick { box-shadow: inset 0 0 0 2px var(--primary), 0 0 0 4px color-mix(in srgb, var(--primary) 16%, transparent); }
-    .tdw-partners-tier-mark-rate { color: var(--primary); }
-  }
-  .tdw-partners-tier-note {
-    margin: 0;
-    padding-top: var(--space-4);
-    border-top: 1px solid var(--border);
-    font-size: 14px;
-    line-height: 20px;
-    font-weight: 500;
-    color: var(--foreground);
   }
 
   // ── Payout history ──────────────────────────────────────────────────────
@@ -506,33 +416,17 @@ $partners-phone: '(max-width: 640px)';
   .tdw-ui.tdw-partners-page .tdw-partners-row { grid-template-columns: minmax(0, 1fr); }
 }
 
-@container tdw-partners (max-width: 820px) {
-  .tdw-ui.tdw-partners-page .tdw-earnings { grid-template-columns: minmax(0, 1fr); }
-  .tdw-ui.tdw-partners-page .tdw-earnings-cells { border-inline-start: 0; border-top: 1px solid var(--border); }
-}
-
 @container tdw-partners (max-width: 760px) {
-  .tdw-ui.tdw-partners-page .tdw-partners-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tdw-ui.tdw-partners-page .tdw-partners-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
   .tdw-ui.tdw-partners-page .tdw-partners-kit { grid-template-columns: minmax(0, 1fr); }
 }
 
 // ── Phones ──────────────────────────────────────────────────────────────────
 @container tdw-partners (max-width: 600px) {
   .tdw-ui.tdw-partners-page .tdw-partners-title { font-size: 24px; line-height: 30px; }
-  .tdw-ui.tdw-partners-page .tdw-earnings-total { padding: var(--space-5) var(--space-4); }
-  .tdw-ui.tdw-partners-page .tdw-earnings-value { font-size: 36px; line-height: 42px; }
-  .tdw-ui.tdw-partners-page .tdw-earnings-cells { grid-template-columns: minmax(0, 1fr); }
-  .tdw-ui.tdw-partners-page .tdw-earnings-cell {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: baseline;
-    padding: var(--space-4);
-    .tdw-earnings-label { grid-column: 1; grid-row: 1; }
-    .metric { grid-column: 2; grid-row: 1; font-size: 20px; line-height: 26px; }
-    .tdw-earnings-hint { grid-column: 1 / -1; margin-top: 0; }
-  }
   .tdw-ui.tdw-partners-page .tdw-partners-card, .tdw-ui.tdw-partners-page .tdw-partners-tier { padding: var(--space-5) var(--space-4); }
-  .tdw-ui.tdw-partners-page .tdw-partners-strip > .pz-tile { padding: var(--space-4); }
-  .tdw-ui.tdw-partners-page .tdw-partners-strip .metric { font-size: 22px; line-height: 28px; }
+  .tdw-ui.tdw-partners-page .tdw-partners-stats .pz-tile { padding: var(--space-4); }
+  .tdw-ui.tdw-partners-page .tdw-partners-stats .metric { font-size: 22px; line-height: 28px; }
   .tdw-ui.tdw-partners-page .tdw-partners-table .pz-table { min-width: 0; }
   .tdw-ui.tdw-partners-page .tdw-partners-pref-btn { justify-self: stretch; justify-content: center; }
 }

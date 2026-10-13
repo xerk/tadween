@@ -196,7 +196,7 @@ export const useInvitedTrial = (enabled: boolean) => {
 };
 
 // Cash goes out by hand around the 15th (docs/tadween/partners.md, runbook):
-// the next one, for the affiliate's dashboard and Admin → Payouts
+// the next one, for Admin → Payouts
 const PAYOUT_DAY = 15;
 export const nextPayoutDate = (now = dayjs()) =>
   now.date() <= PAYOUT_DAY ? now.date(PAYOUT_DAY) : now.add(1, 'month').date(PAYOUT_DAY);

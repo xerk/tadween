@@ -2563,7 +2563,7 @@
   "tdw_continue_no_match": "Nothing matches your search.",
   "tdw_continue_keep_note": "If you close this, the channel stays in your list with an alert, so you can finish setting it up later. Reconnect removes it and signs you in again.",
   "tdw_continue_error_title": "We couldn't load this list",
-  "tdw_continue_error_body": "The network did not answer this time. Try again, or reconnect if it keeps happening.",
+  "tdw_continue_error_body": "The network did not answer, or the connection needs to be renewed. Try again, or reconnect if it keeps happening.",
   "tdw_continue_details": "Technical details",
   "tdw_continue_all_connected_title": "Everything here is already connected",
   "tdw_continue_all_connected_body": "Each option on this account is already one of your channels. Reconnect to sign in with a different account.",

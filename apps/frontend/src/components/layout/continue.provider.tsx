@@ -130,6 +130,7 @@ const ModalContent: FC<{
         onSave={onSave}
         existingId={integrations}
         onClose={closeModal}
+        allowReconnect
       />
     </IntegrationContext.Provider>
   );

@@ -3,6 +3,8 @@
 //
 //   · Host: components/layout/continue.provider.tsx opens it in the app modal
 //     (new-modal.tsx), which rises as a bottom sheet on phones.
+//   · Page: components/launches/continue.integration.tsx shows the same step
+//     on a card when the network's sign-in returns to /integrations/social/*.
 //   · Content: components/new-launch/providers/continue-provider/
 //     with-continue-provider.tsx draws the header, list and states inside the
 //     UI kit scope (.tdw-ui), so the tokens below are the kit's names.
@@ -10,7 +12,7 @@
 body {
   // the step draws its own header (network icon, title, account), so the
   // modal's empty title row goes
-  .tdw-modal:has(> div > .tdw-ui > .tdw-continue) > .tdw-modal-head { display: none; }
+  .tdw-modal:has(.tdw-continue) > .tdw-modal-head { display: none; }
 
   // focused on open so the keyboard starts inside; the ring belongs to its controls
   .tdw-continue:focus,
@@ -50,7 +52,6 @@ body {
   .tdw-ui .pz-radio.tdw-continue-row { align-items: center; gap: 12px; padding: 10px 14px; }
   .tdw-ui .tdw-continue-row .pz-radio-dot { margin-top: 0; }
   .tdw-ui .pz-radio.tdw-continue-row.is-on { background: var(--primary-soft); }
-  .tdw-continue-row:has(input:focus-visible) { outline: 2px solid var(--ring); outline-offset: 2px; }
   .tdw-continue-row-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
   .tdw-continue-row-name { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tdw-continue-row-desc { font-size: 12px; line-height: 16px; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -83,7 +84,7 @@ body {
   }
   .tdw-continue-help:hover { text-decoration: underline; }
   .tdw-continue-help:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-  [dir='rtl'] & .tdw-continue-help .pz-icon { transform: scaleX(-1); }
+  html[dir='rtl'] & .tdw-continue-help .pz-icon { transform: scaleX(-1); }
   .tdw-continue-note {
     margin: 4px 0 0;
     max-width: 420px;
@@ -109,12 +110,38 @@ body {
     text-align: start;
   }
 
+  // ── Page (after the network's sign-in) ───────────────────────────────────
+  .tdw-continue-page {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px 56px;
+    background: var(--tdw-background);
+    color: var(--tdw-foreground);
+  }
+  .tdw-continue-card {
+    width: 100%;
+    max-width: 560px;
+    padding: 28px;
+    border-radius: 24px;
+    background: var(--tdw-card);
+    box-shadow: var(--tdw-shadow-md);
+    animation: tdw-auth-in 560ms var(--tdw-ease-spring) both;
+  }
+
   // Phones: the modal is a bottom sheet; actions span its width
   @media (max-width: 640px) {
     .tdw-continue-title { font-size: 18px; line-height: 24px; }
+    .tdw-continue-page { align-items: flex-start; padding: 16px 12px 32px; }
+    .tdw-continue-card { padding: 20px; border-radius: 20px; }
     .tdw-continue-list { max-height: 50dvh; }
     .tdw-continue-foot > .pz-btn { flex: 1; }
     .tdw-continue-state .pz-empty-actions { width: 100%; }
     .tdw-continue-state .pz-empty-actions > .pz-btn { flex: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tdw-continue-card { animation: none; }
   }
 }

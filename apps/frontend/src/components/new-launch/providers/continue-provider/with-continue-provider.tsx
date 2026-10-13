@@ -47,7 +47,11 @@ export interface ContinueProviderProps {
   existingId: string[];
   initialData?: any[];
   isSaving?: boolean;
+  // in the app's modal: closes it (the channel stays half connected)
   onClose?: () => void;
+  // offer Reconnect (delete the channel and sign in again); needs a session,
+  // so the public connect page leaves it off for visitors who aren't logged in
+  allowReconnect?: boolean;
 }
 
 // a translation key and its English default
@@ -131,7 +135,14 @@ export function withContinueProvider<TItem, TSelection>(
   } = config;
 
   return function ContinueProviderComponent(props: ContinueProviderProps) {
-    const { onSave, existingId, initialData, isSaving, onClose } = props;
+    const {
+      onSave,
+      existingId,
+      initialData,
+      isSaving,
+      onClose,
+      allowReconnect,
+    } = props;
     const call = useCustomProviderFunction();
     const { integration } = useIntegration();
     const fetch = useFetch();
@@ -145,9 +156,11 @@ export function withContinueProvider<TItem, TSelection>(
     const [reconnecting, setReconnecting] = useState(false);
     const [query, setQuery] = useState('');
 
-    // keyboard users start inside the dialog
+    // in the modal, keyboard users start inside the dialog
     useEffect(() => {
-      rootRef.current?.focus({ preventScroll: true });
+      if (onClose) {
+        rootRef.current?.focus({ preventScroll: true });
+      }
     }, []);
 
     const loadData = useCallback(async () => {
@@ -212,34 +225,7 @@ export function withContinueProvider<TItem, TSelection>(
       if (!integration) {
         return;
       }
-      setReconnecting(true);
-      const deleteIntegration = await fetch('/integrations', {
-        method: 'DELETE',
-        body: JSON.stringify({
-          id: integration.id,
-        }),
-      });
-      if (deleteIntegration.status === 406) {
-        toaster.show(
-          t(
-            'delete_posts_before_channel',
-            'You have to delete all the posts associated with this channel before deleting it'
-          ),
-          'warning'
-        );
-        setReconnecting(false);
-        return;
-      }
-      const response = await fetch(
-        `/integrations/social/${integration.identifier}`
-      );
-      if (response.status === 402) {
-        setReconnecting(false);
-        onClose?.();
-        return;
-      }
-      const { url, err } = await response.json();
-      if (err || !url) {
+      const failed = () =>
         toaster.show(
           t(
             'could_not_connect_to_platform',
@@ -247,11 +233,47 @@ export function withContinueProvider<TItem, TSelection>(
           ),
           'warning'
         );
+      setReconnecting(true);
+      try {
+        const deleteIntegration = await fetch('/integrations', {
+          method: 'DELETE',
+          body: JSON.stringify({
+            id: integration.id,
+          }),
+        });
+        if (deleteIntegration.status === 406) {
+          toaster.show(
+            t(
+              'delete_posts_before_channel',
+              'You have to delete all the posts associated with this channel before deleting it'
+            ),
+            'warning'
+          );
+          return;
+        }
+        if (!deleteIntegration.ok) {
+          failed();
+          return;
+        }
+        const response = await fetch(
+          `/integrations/social/${integration.identifier}`
+        );
+        if (response.status === 402) {
+          onClose?.();
+          return;
+        }
+        const { url, err } = await response.json();
+        if (err || !url) {
+          failed();
+          onClose?.();
+          return;
+        }
+        window.location.href = url;
+      } catch {
+        failed();
+      } finally {
         setReconnecting(false);
-        onClose?.();
-        return;
       }
-      window.location.href = url;
     }, [integration, onClose]);
 
     const closeButton = onClose ? (
@@ -260,7 +282,7 @@ export function withContinueProvider<TItem, TSelection>(
       </Button>
     ) : null;
 
-    const reconnectButton = (
+    const reconnectButton = allowReconnect ? (
       <Button
         variant="primary"
         icon="refresh-cw"
@@ -269,18 +291,18 @@ export function withContinueProvider<TItem, TSelection>(
       >
         {t('tdw_continue_reconnect', 'Reconnect')}
       </Button>
-    );
+    ) : null;
 
     // Closing leaves the channel half connected, the way it always has: it
     // stays in the channel list with an alert that reopens this dialog
-    const keepNote = (
+    const keepNote = onClose ? (
       <p className="tdw-continue-note">
         {t(
           'tdw_continue_keep_note',
           'If you close this, the channel stays in your list with an alert, so you can finish setting it up later. Reconnect removes it and signs you in again.'
         )}
       </p>
-    );
+    ) : null;
 
     const loading = !initialData && isLoading;
     const failed = !initialData && !loading && !!error;
@@ -293,8 +315,8 @@ export function withContinueProvider<TItem, TSelection>(
       <TadweenScope>
         <div
           ref={rootRef}
-          tabIndex={-1}
-          role="dialog"
+          tabIndex={onClose ? -1 : undefined}
+          role={onClose ? 'dialog' : 'region'}
           aria-labelledby={titleId}
           aria-busy={loading || undefined}
           className="tdw-continue"
@@ -335,7 +357,7 @@ export function withContinueProvider<TItem, TSelection>(
 
             {loading ? (
               <>
-                <p className="sr-only" role="status">
+                <p className="pz-sr" role="status">
                   {t('tdw_continue_loading', 'Loading your options…')}
                 </p>
                 <LoadingRows />
@@ -353,17 +375,19 @@ export function withContinueProvider<TItem, TSelection>(
                   )}
                   body={t(
                     'tdw_continue_error_body',
-                    'The network did not answer this time. Try again, or reconnect if it keeps happening.'
+                    'The network did not answer, or the connection needs to be renewed. Try again, or reconnect if it keeps happening.'
                   )}
                   secondary={
-                    <Button
-                      variant="secondary"
-                      icon="refresh-cw"
-                      loading={reconnecting}
-                      onClick={reconnect}
-                    >
-                      {t('tdw_continue_reconnect', 'Reconnect')}
-                    </Button>
+                    allowReconnect ? (
+                      <Button
+                        variant="secondary"
+                        icon="refresh-cw"
+                        loading={reconnecting}
+                        onClick={reconnect}
+                      >
+                        {t('tdw_continue_reconnect', 'Reconnect')}
+                      </Button>
+                    ) : null
                   }
                   action={
                     <Button variant="primary" onClick={() => mutate()}>
@@ -431,6 +455,12 @@ export function withContinueProvider<TItem, TSelection>(
                     type="search"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    // Enter filters; it never submits what was picked before
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                      }
+                    }}
                     placeholder={t('tdw_continue_search', 'Search by name')}
                     aria-label={t('tdw_continue_search', 'Search by name')}
                   />
@@ -454,11 +484,11 @@ export function withContinueProvider<TItem, TSelection>(
                         <input
                           type="radio"
                           name={radioName}
-                          className="sr-only"
+                          className="pz-sr"
                           checked={on}
                           onChange={() => setSelection(getSelectionValue(item))}
                         />
-                        <span className="pz-radio-dot" />
+                        <span className="pz-radio-dot" aria-hidden="true" />
                         <Avatar
                           name={getItemName(item)}
                           src={getItemPicture?.(item) || undefined}

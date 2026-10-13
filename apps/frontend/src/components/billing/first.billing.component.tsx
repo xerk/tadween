@@ -3,8 +3,11 @@
 // The paywall a workspace without a plan sees in place of the app, as one
 // page (Postiz's first-billing layout): the plans side by side, and under
 // them the chosen plan's summary next to Stripe Embedded Checkout. Choosing
-// another plan or period updates both in place; "Skip for now" starts the
-// card-less trial of the chosen plan.
+// another plan or period updates both in place. While the workspace can still
+// start a trial, the paywall can be escaped: the × in the top bar, "Maybe
+// later" under the title and "Skip for now" all start the card-less trial of
+// the chosen plan and open the app (or the next onboarding step). Without a
+// trial left (it ended without a plan) the paywall stays.
 import React, { useCallback, useState } from 'react';
 import { useSWRConfig } from 'swr';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -22,7 +25,11 @@ import {
   PublicPlan,
   useTadweenPricing,
 } from '@gitroom/frontend/components/tadween/instance/instance.settings';
-import { Button, TadweenScope } from '@gitroom/frontend/components/tadween/ui';
+import {
+  Button,
+  IconButton,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
 import {
   BillingPeriod,
   formatUsd,
@@ -69,6 +76,7 @@ export const FirstBillingComponent = () => {
     plans.find((p) => p.mostPopular) ||
     plans[0];
   const trialDays = trial && plan ? plan.trialDays : 0;
+  const canEscape = trialDays > 0 && !locked;
 
   const skip = useCallback(async () => {
     if (!plan) {
@@ -119,6 +127,17 @@ export const FirstBillingComponent = () => {
           <div className="hover:text-newTextColor">
             <LogoutComponent isIcon={true} />
           </div>
+          {canEscape ? (
+            <>
+              <span className="sep" />
+              <IconButton
+                icon="x"
+                label={t('tdw_paywall_later', 'Maybe later')}
+                disabled={skipping}
+                onClick={skip}
+              />
+            </>
+          ) : null}
         </div>
       </header>
       <main className="tdw-billing-page is-paywall">
@@ -137,6 +156,15 @@ export const FirstBillingComponent = () => {
                   'Plans differ in limits: channels, team members and AI credits.'
                 )}
           </p>
+          {canEscape ? (
+            <Button variant="ghost" loading={skipping} onClick={skip}>
+              {t(
+                'tdw_paywall_later_trial',
+                'Maybe later, start my free {{n}}-day trial',
+                { n: trialDays }
+              )}
+            </Button>
+          ) : null}
         </header>
         {plan ? (
           <>
@@ -155,7 +183,7 @@ export const FirstBillingComponent = () => {
                   period={period}
                   trialDays={trialDays}
                 />
-                {trialDays > 0 && !locked ? (
+                {canEscape ? (
                   <div className="tdw-skip">
                     <span>
                       {t(

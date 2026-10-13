@@ -28,8 +28,6 @@ import {
   useAdminProviders,
 } from './admin.api';
 
-const LINKEDIN_FIRST = ['linkedin', 'linkedin-page'];
-
 // Why a channel type is or isn't in the customers' Add channel list. Customers
 // see it only when it is on and its keys are set (the server applies the same
 // rule to GET /integrations and to new connects).
@@ -289,9 +287,13 @@ export const AdminChannelsPage = () => {
   const toggle = (identifier: string, enabled: boolean) =>
     setRows(rows.map((r) => (r.identifier === identifier ? { ...r, enabled } : r)));
 
-  const linkedinFirst = () => {
-    const first = LINKEDIN_FIRST.map((id) => rows.find((r) => r.identifier === id)!).filter(Boolean);
-    setRows([...first, ...rows.filter((r) => !LINKEDIN_FIRST.includes(r.identifier))]);
+  // The focus networks back on top, as equals in their default order; the
+  // other providers keep the order the admin gave them
+  const focusFirst = () => {
+    const first = rows
+      .filter((r) => r.focus)
+      .sort((a, b) => a.defaultPosition - b.defaultPosition);
+    setRows([...first, ...rows.filter((r) => !r.focus)]);
   };
 
   const submit = async () => {
@@ -512,8 +514,8 @@ export const AdminChannelsPage = () => {
                 { value: 'all', label: t('tdw_admin_ch_view_all', 'All') },
               ]}
             />
-            <Button size="sm" variant="ghost" icon="arrow-up" disabled={view === 'focus'} onClick={linkedinFirst}>
-              LinkedIn first
+            <Button size="sm" variant="ghost" icon="arrow-up" disabled={view === 'focus'} onClick={focusFirst}>
+              {t('tdw_admin_ch_focus_first', 'Focus networks first')}
             </Button>
           </>
         }

@@ -7,7 +7,6 @@ import {
 import {
   credentialStatus,
   focusProviders,
-  PROVIDER_PRIORITY,
 } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { ProviderCredentialsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-credentials.service';
 
@@ -50,15 +49,16 @@ export class ProviderSettingsService {
     return row ? row.enabled : focusProviders().includes(identifier);
   }
 
-  // Default position when the admin has not saved an order: LinkedIn first,
-  // then Postiz's own order.
+  // Default position when the admin has not saved an order: the focus
+  // networks in their listed order, then Postiz's own order.
   private defaultPosition(identifier: string) {
-    const priority = PROVIDER_PRIORITY.indexOf(identifier);
+    const focus = focusProviders();
+    const priority = focus.indexOf(identifier);
     if (priority > -1) {
       return priority;
     }
     return (
-      PROVIDER_PRIORITY.length +
+      focus.length +
       socialIntegrationList.findIndex((p) => p.identifier === identifier)
     );
   }
@@ -97,6 +97,7 @@ export class ProviderSettingsService {
     return (await this.resolved()).map((p) => ({
       ...p,
       focus: focus.includes(p.identifier),
+      defaultPosition: this.defaultPosition(p.identifier),
       hiddenByEnv: this._integrationManager.isHiddenProvider(p.identifier),
       credentials: {
         ...credentialStatus(p.identifier),

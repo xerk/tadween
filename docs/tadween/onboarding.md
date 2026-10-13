@@ -17,7 +17,7 @@ Onboarding, full screen, in place of the app shell
   1 You        name                                    POST /user/personal
   2 Language   English / العربية (+ more), 12/24-hour  i18next cookie, localStorage `isUS`
   3 Plan       only when the workspace has no plan     the one-page /billing paywall
-  4 Channels   LinkedIn profile + page, other networks Postiz's AddProviderComponent
+  4 Channels   every network on offer, focus ones first Postiz's AddProviderComponent
   5 Ready      summary → Go to Today
   ▼
 /today with the "Get started" checklist
@@ -25,6 +25,8 @@ Onboarding, full screen, in place of the app shell
 
 - **One focused step per screen**: a big headline (`title-1` at 34px, 30px in Arabic), one lead line, the step's fields, one primary action in the footer. **Back**, **Continue** and **Skip setup** are always reachable; the footer is sticky, so it stays on screen on phones.
 - **Skip setup** and **Go to Today** end onboarding and open `/today`. If the workspace still needs a plan, the paywall takes over from there, as before.
+- **The plan step can be escaped.** While the workspace can still start a trial, the paywall has a × in its top bar, "Maybe later, start my free N-day trial" under the title and "Skip for now" next to the order summary. All three start the plan's no-card trial (`POST /billing/trial`) and carry on with Channels, so the trial banner and the Upgrade entry points take over from there and the paywall doesn't come back during the trial. When the trial ended without a plan (`allowTrial` is off), the paywall has no way out, as before. Super admins never see it (`billingExempt`).
+- **Channels** lists one card per network customers can add, in the order the server sends: the focus networks first, as equals (Facebook, Instagram, LinkedIn, Threads, YouTube), then the rest. The admin's saved order in Admin → Channels wins.
 - **Invited teammates** see "You joined this workspace" with the workspace's name on the first step (their role there isn't `SUPERADMIN`), and never a step that creates or names a workspace.
 - **Workspace name** stays on the sign-up card: the server needs it to create the workspace (`CreateOrgUserDto.company`) and has no rename endpoint, so onboarding doesn't ask for it twice.
 - **Time zone** is shown, not edited: the app shows every time in the device's zone, and there is no time-zone setting to save to.

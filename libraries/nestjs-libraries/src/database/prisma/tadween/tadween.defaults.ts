@@ -2,7 +2,8 @@
 //
 // Everything here describes what the instance does when the admin has not saved
 // anything yet. Most defaults equal current Postiz behaviour (all features on,
-// registration driven by env vars, LinkedIn first in Postiz's provider order).
+// registration driven by env vars, the focus networks first in Postiz's
+// provider order).
 // The exception is the channel list: only the focus networks (FOCUS_PROVIDERS)
 // can be added until the admin chooses otherwise. Channels a workspace already
 // connected are never affected by it.
@@ -210,24 +211,23 @@ export const PROVIDER_CREDENTIALS: Record<string, ProviderCredentials> = {
   tumblr: { required: ['TUMBLR_CLIENT_ID', 'TUMBLR_CLIENT_SECRET'] },
 };
 
-// Providers that sort to the top when nothing is saved: Tadween is LinkedIn first.
-export const PROVIDER_PRIORITY = ['linkedin', 'linkedin-page'];
-
-// The networks Tadween focuses on. Until the super admin saves Admin → Channels,
-// only these can be added (and only once their app keys are set). A saved
-// choice always wins; a provider without a saved row (e.g. one added upstream
-// later) falls back to this list.
+// The networks Tadween focuses on, as equals in alphabetical order (Facebook,
+// Instagram, LinkedIn, Threads, YouTube). They also sort to the top, in this
+// order, until the admin saves an order. Until the super admin saves Admin →
+// Channels, only these can be added (and only once their app keys are set). A
+// saved choice always wins; a provider without a saved row (e.g. one added
+// upstream later) falls back to this list.
 export const FOCUS_PROVIDERS = [
-  'linkedin',
-  'linkedin-page',
+  'facebook',
   'instagram',
   'instagram-standalone',
-  'facebook',
+  'linkedin',
+  'linkedin-page',
   'threads',
   'youtube',
 ];
 
-// Env override: TADWEEN_ENABLED_PROVIDERS="linkedin,linkedin-page,x" replaces
+// Env override: TADWEEN_ENABLED_PROVIDERS="facebook,linkedin,x" replaces
 // the focus list (same shape as HIDDEN_PROVIDERS).
 export const focusProviders = (): string[] => {
   const fromEnv = (process.env.TADWEEN_ENABLED_PROVIDERS || '')

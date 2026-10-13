@@ -66,6 +66,8 @@ export interface AdminProvider {
   saved: boolean;
   // In the focus list (FOCUS_PROVIDERS or TADWEEN_ENABLED_PROVIDERS)
   focus: boolean;
+  // Position when no order is saved: the focus networks first, then Postiz's order
+  defaultPosition: number;
   hiddenByEnv: boolean;
   credentials: {
     needsCredentials: boolean;

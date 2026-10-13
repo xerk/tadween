@@ -143,7 +143,11 @@ export const useFirstBilling = (
   }, [user?.id]);
 
   const offered =
-    asked && !!trial && !trial.hasPaymentMethod && dismissed !== user?.id;
+    asked &&
+    dismissed !== user?.id &&
+    // still loading: stay on the billing screen rather than open the app
+    // (and its onboarding modal) and take it back a moment later
+    ((!trial && !error) || (!!trial && !trial.hasPaymentMethod));
   // decide nothing before the trial's state is in
   decided.current =
     decided.current ||

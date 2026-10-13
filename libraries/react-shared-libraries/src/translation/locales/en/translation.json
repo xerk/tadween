@@ -2552,5 +2552,6 @@
   "tdw_fb_lead_left_one": "1 day left in your free trial. Schedule posts to Facebook, Instagram, LinkedIn, Threads and YouTube from one calendar.",
   "tdw_fb_continue_payment": "Continue to payment",
   "hide": "Hide",
-  "api": "API"
+  "api": "API",
+  "auth_method": "Authentication"
 }

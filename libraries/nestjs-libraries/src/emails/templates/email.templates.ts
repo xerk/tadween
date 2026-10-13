@@ -80,8 +80,8 @@ interface Format {
 }
 
 const formatFor = (t: EmailStrings, brand: EmailBrand): Format => ({
-  // Arabic spells the currency out ("٣٩٫٠٠ دولار أمريكي"): a symbol next to
-  // Arabic-Indic digits reorders badly in right-to-left text
+  // Arabic spells the currency out ("39.00 دولار أمريكي"): a symbol next to
+  // the number reorders badly in right-to-left text
   money: (cents, currency = 'usd') =>
     new Intl.NumberFormat(t.locale, {
       style: 'currency',
@@ -96,7 +96,7 @@ const formatFor = (t: EmailStrings, brand: EmailBrand): Format => ({
       timeZone: 'UTC',
     }).format(new Date(value)),
   num: (value) =>
-    new Intl.NumberFormat(t.locale, { useGrouping: t.dir !== 'rtl' }).format(value),
+    new Intl.NumberFormat(t.locale).format(value),
   percent: (value) =>
     new Intl.NumberFormat(t.locale, { style: 'percent' }).format(value / 100),
   url: (path) => `${brand.appUrl.replace(/\/$/, '')}${path}`,

@@ -331,8 +331,13 @@
   }
 }
 
-// Trial line at the top of the page card (TrialBanner)
-.tdw-ui .tdw-trial-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; background: var(--primary-soft); color: var(--foreground); font-size: 13px; line-height: 18px; }
+// The trial / payment-failed bar (trial.banner.tsx) floats above the page
+// card as its own rounded card: the floating sidebar's radius, ring and
+// shadow (shell.scss), the shell's 8px gap between them
+.tdw-ui .tdw-trial-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 20px; border-radius: 20px; background: color-mix(in oklab, var(--primary-soft) 70%, var(--card)); box-shadow: inset 0 0 0 1px var(--border), 0 8px 24px -16px rgb(0 0 0 / 0.35); color: var(--foreground); font-size: 13px; line-height: 18px; text-align: center; }
+@media (max-width: 1025px) {
+  .tdw-ui .tdw-trial-bar { min-height: 40px; padding: 8px 14px; border-radius: 16px; }
+}
 .tdw-ui .tdw-trial-bar .pz-icon { color: var(--primary); }
 .tdw-ui .tdw-trial-sep { color: var(--muted-foreground); }
 .tdw-ui .tdw-trial-link { color: var(--primary); font-weight: 600; text-decoration: none; }
@@ -340,7 +345,7 @@
 .tdw-ui button.tdw-trial-link { padding: 0; border: 0; background: none; font: inherit; font-weight: 600; cursor: pointer; }
 .tdw-ui button.tdw-trial-link:disabled { opacity: .6; cursor: progress; }
 // Failed renewal (Stripe past_due): same bar, warning colours
-.tdw-ui .tdw-trial-bar.is-failed { background: var(--warning-soft); }
+.tdw-ui .tdw-trial-bar.is-failed { background: color-mix(in oklab, var(--warning-soft) 80%, var(--card)); }
 .tdw-ui .tdw-trial-bar.is-failed .pz-icon { color: var(--warning); }
 .tdw-ui .tdw-trial-bar.is-failed .tdw-trial-link { color: var(--foreground); text-decoration: underline; }
 .tdw-ui .tdw-skip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg); background: var(--muted); font-size: 14px; line-height: 20px; }
@@ -380,3 +385,59 @@
   .tdw-ui .tdw-credits-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .tdw-ui .tdw-credits-body > .pz-usage { grid-column: 1 / -1; }
 }
+
+// Checkout Elements form (checkout.panel.tsx): Stripe's Payment Element, what
+// is due, the promo code and our confirm button
+.tdw-ui {
+  .tdw-checkout-form { display: grid; gap: var(--space-4); }
+  .tdw-checkout-total { display: grid; gap: var(--space-1); margin: 0; padding: var(--space-4) 0 0; border-top: 1px solid var(--border); }
+  .tdw-checkout-total > div { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+  .tdw-checkout-total dt { font-size: 14px; font-weight: 600; }
+  .tdw-checkout-total dd { margin: 0; font-size: 18px; line-height: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tdw-checkout-total .is-next dt, .tdw-checkout-total .is-next dd { font-size: 13px; line-height: 18px; font-weight: 400; color: var(--muted-foreground); }
+  .tdw-checkout-submit { width: 100%; }
+  .tdw-checkout-fine { margin: 0; font-size: 12px; line-height: 18px; color: var(--muted-foreground); text-align: center; text-wrap: pretty; }
+  .tdw-checkout-error { margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--destructive-soft); color: var(--destructive); font-size: 14px; line-height: 20px; }
+  .tdw-promo { display: flex; align-items: flex-start; gap: var(--space-2); }
+  .tdw-promo > :first-child { flex: 1; min-width: 0; }
+  .tdw-promo.is-applied { align-items: center; font-size: 14px; color: var(--success); }
+  .tdw-promo-link { justify-self: start; padding: 0; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 500; color: var(--primary); cursor: pointer; border-radius: var(--radius-sm); }
+  .tdw-promo-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .tdw-promo-link:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .tdw-promo.is-applied .tdw-promo-link { margin-inline-start: auto; color: var(--muted-foreground); }
+
+  // The plan step (first.billing.component.tsx): three cards in one row that
+  // fit a 1366×768 laptop without scrolling, then the chosen plan beside
+  // Stripe's form. Phones stack.
+  .tdw-plan-step { display: grid; gap: var(--space-5); width: 100%; }
+  .tdw-plan-step-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+  .tdw-plan-step-head .tdw-ob-headline { max-width: 620px; }
+  .tdw-plan-row { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: var(--space-4); align-items: stretch; }
+  .tdw-plan-row[data-count='2'] { --cols: 2; }
+  .tdw-plan-row[data-count='4'] { --cols: 4; }
+  .tdw-plan-row .tdw-plan { padding: var(--space-5) var(--space-6); gap: var(--space-1); }
+  .tdw-plan-row .tdw-plan-name { font-size: 20px; line-height: 26px; }
+  .tdw-plan-row .tdw-plan-for { min-height: 0; }
+  .tdw-plan-row .tdw-plan-price { margin-top: var(--space-2); }
+  .tdw-plan-row .tdw-plan-amount { font-size: 40px; line-height: 44px; }
+  .tdw-plan-row .tdw-plan-bill { margin-bottom: var(--space-2); }
+  .tdw-plan-row .tdw-plan-cta .pz-btn { height: 44px; }
+  .tdw-plan-row .tdw-plan-features { margin-top: var(--space-3); padding-top: var(--space-3); gap: var(--space-2); }
+  .tdw-plan-row .tdw-plan.is-featured { box-shadow: 0 0 0 1.5px var(--primary), var(--shadow-md); }
+  .tdw-plan-later { display: flex; justify-content: center; }
+  .tdw-plan-later .pz-btn { color: var(--muted-foreground); }
+  .tdw-plan-pay { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 480px); gap: var(--space-6); align-items: start; }
+  .tdw-plan-pay-side { display: grid; justify-items: start; gap: var(--space-3); }
+  .tdw-plan-pay-side > .tdw-order { width: 100%; }
+  .tdw-plan-pay .tdw-order-included .tdw-plan-features { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-5); }
+
+  @media (max-width: 1025px) {
+    .tdw-plan-row { --cols: 1 !important; }
+    .tdw-plan-pay { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .tdw-plan-pay .tdw-order-included .tdw-plan-features { grid-template-columns: minmax(0, 1fr); }
+    .tdw-plan-row .tdw-plan { padding: var(--space-5); }
+  }
+}
+

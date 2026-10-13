@@ -1,27 +1,33 @@
 'use client';
 
-// Subscribing on the billing page itself: the chosen plan's summary and
-// Stripe Embedded Checkout sit under the plan cards, no drawer or modal.
-// Stripe handles card, wallets, 3-D Secure, promotion codes and local
-// currency. When Stripe reports the payment complete, the app still waits for
-// the webhook to create the subscription (GET /billing/check/:id) before
-// saying the plan is active.
+// Paying for a plan in the page, the way Postiz's first billing screen does
+// it: a Checkout Session in Stripe's `custom` UI mode, rendered with Checkout
+// Elements. Stripe's Payment Element collects the card (or Link, or a wallet)
+// and our own button confirms it; with a trial nothing is charged today and
+// Stripe charges the card when the trial ends. When Stripe reports the
+// payment confirmed, the app still waits for the webhook to create the
+// subscription (GET /billing/check/:id) before saying the plan is active.
 import React, {
   FC,
-  ReactNode,
+  FormEvent,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
 import {
-  EmbeddedCheckout,
-  EmbeddedCheckoutProvider,
-} from '@stripe/react-stripe-js';
-import { useSWRConfig } from 'swr';
-import { useDebounce } from 'use-debounce';
+  Appearance,
+  loadStripe,
+  StripeElementLocale,
+} from '@stripe/stripe-js';
+import {
+  CheckoutProvider,
+  PaymentElement,
+  useCheckout,
+} from '@stripe/react-stripe-js/checkout';
+import useSWR, { useSWRConfig } from 'swr';
+import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
@@ -33,6 +39,8 @@ import { PublicPlan } from '@gitroom/frontend/components/tadween/instance/instan
 import {
   Button,
   Icon,
+  Input,
+  Skeleton,
   Spinner,
 } from '@gitroom/frontend/components/tadween/ui';
 import {
@@ -75,6 +83,7 @@ export const waitForSubscription = async (
   }
   return 'slow';
 };
+
 
 // The chosen plan: price, founder line, what today costs and what's included.
 // `change` (a live subscription switching plan) leaves the charge lines to
@@ -188,90 +197,393 @@ export const OrderSummary: FC<{
   );
 };
 
-// Stripe Embedded Checkout mounted inline on the billing page, next to the
-// plans. Switching plan or period remounts it for the new choice once the
-// choice settles (each mount is a new Checkout Session); from the moment
-// Stripe reports the payment complete, `onLock` keeps the plans fixed while
-// the app waits for the webhook.
+
+// One Checkout Session per plan and period (POST /billing/embedded), kept for
+// the page's life so going back and forth between plans reuses it
+const useCheckoutSession = (tier: string, period: BillingPeriod) => {
+  const fetch = useFetch();
+  const dub = useDubClickId();
+  const load = useCallback(async () => {
+    const res = await fetch('/billing/embedded', {
+      method: 'POST',
+      body: JSON.stringify({
+        billing: tier,
+        period,
+        ...(dub ? { dub } : {}),
+      }),
+    });
+    if (!res.ok) {
+      throw new Error('checkout');
+    }
+    return (await res.json()) as {
+      client_secret?: string;
+      check?: string;
+      blocked?: boolean;
+    };
+  }, [tier, period, dub]);
+  return useSWR(`/billing/embedded/${tier}/${period}`, load, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    revalidateIfStale: false,
+    refreshWhenOffline: false,
+    refreshWhenHidden: false,
+    shouldRetryOnError: false,
+  });
+};
+
+// Whether the app is in light mode (`light` on <body>, set by the mode switch)
+const useLightMode = () => {
+  const [light, setLight] = useState(false);
+  useEffect(() => {
+    const read = () => setLight(document.body.classList.contains('light'));
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    return () => observer.disconnect();
+  }, []);
+  return light;
+};
+
+const GEIST = 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap';
+
+// Stripe's fields in Tadween's colours: the tokens of the current mode
+const tadweenAppearance = (light: boolean): Appearance => {
+  const css = getComputedStyle(document.body);
+  const token = (name: string) => css.getPropertyValue(name).trim() || undefined;
+  return {
+    theme: light ? 'stripe' : 'night',
+    variables: {
+      colorPrimary: token('--tdw-primary'),
+      colorBackground: token('--tdw-card'),
+      colorText: token('--tdw-foreground'),
+      colorTextSecondary: token('--tdw-muted-foreground'),
+      colorDanger: token('--tdw-destructive'),
+      fontFamily: 'Geist, system-ui, sans-serif',
+      fontSizeBase: '15px',
+      borderRadius: '10px',
+    },
+    rules: {
+      '.Input': {
+        borderColor: token('--tdw-border') || '',
+        boxShadow: 'none',
+      },
+      '.Label': { fontWeight: '500' },
+      '.Tab': { borderColor: token('--tdw-border') || '', boxShadow: 'none' },
+    },
+  };
+};
+
+const usePeriodLabel = () => {
+  const t = useT();
+  return (period: BillingPeriod) =>
+    period === 'YEARLY'
+      ? t('tdw_per_year_short', '/year')
+      : t('tdw_per_month_short', '/month');
+};
+
+const formatDate = (seconds: number) =>
+  new Intl.DateTimeFormat(document.documentElement.lang || undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(seconds * 1000));
+
+// "Have a promo code?": Stripe applies it to the session (monthly plans)
+const PromoCode: FC = () => {
+  const t = useT();
+  const state = useCheckout();
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  if (state.type !== 'success') {
+    return null;
+  }
+  const { checkout } = state;
+  const applied = checkout.discountAmounts?.[0];
+  const apply = async () => {
+    if (!code.trim()) {
+      return;
+    }
+    setBusy(true);
+    setError('');
+    const result = await checkout.applyPromotionCode(code.trim());
+    setBusy(false);
+    if (result.type === 'error') {
+      setError(
+        result.error.message ||
+          t('tdw_promo_invalid', 'This code isn’t valid.')
+      );
+      return;
+    }
+    setCode('');
+    setOpen(false);
+  };
+  if (applied) {
+    return (
+      <div className="tdw-promo is-applied">
+        <Icon name="tag" size={14} />
+        <span>
+          {applied.promotionCode || applied.displayName}
+          {applied.percentOff ? ` · −${applied.percentOff}%` : ''}
+        </span>
+        <button
+          type="button"
+          className="tdw-promo-link"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await checkout.removePromotionCode();
+            setBusy(false);
+          }}
+        >
+          {t('tdw_remove', 'Remove')}
+        </button>
+      </div>
+    );
+  }
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className="tdw-promo-link"
+        onClick={() => setOpen(true)}
+      >
+        {t('tdw_promo_have', 'Have a promo code?')}
+      </button>
+    );
+  }
+  return (
+    <div className="tdw-promo">
+      <Input
+        aria-label={t('tdw_promo_code', 'Promo code')}
+        placeholder={t('tdw_promo_code', 'Promo code')}
+        value={code}
+        autoFocus
+        error={error || undefined}
+        onChange={(e) => setCode(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            apply();
+          }
+          if (e.key === 'Escape') {
+            setOpen(false);
+          }
+        }}
+      />
+      <Button size="sm" loading={busy} onClick={apply}>
+        {t('tdw_apply', 'Apply')}
+      </Button>
+    </div>
+  );
+};
+
+// Stripe's Payment Element (card, Link, wallets), what is due and our own
+// confirm button. With a trial Stripe saves the card and charges nothing today.
+const PaymentForm: FC<{
+  period: BillingPeriod;
+  promo: boolean;
+  onPaid: () => void;
+}> = ({ period, promo, onPaid }) => {
+  const t = useT();
+  const per = usePeriodLabel();
+  const state = useCheckout();
+  const [ready, setReady] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [error, setError] = useState('');
+
+  if (state.type === 'error') {
+    return (
+      <p className="tdw-checkout-error" role="alert">
+        {state.error.message}
+      </p>
+    );
+  }
+  const checkout = state.type === 'success' ? state.checkout : null;
+  const trial = checkout?.recurring?.trial;
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!checkout || paying) {
+      return;
+    }
+    setPaying(true);
+    setError('');
+    // Card, Link and wallets confirm here; only a payment method that needs
+    // its own page goes to the session's return_url (CheckPayment finishes)
+    const result = await checkout.confirm({ redirect: 'if_required' });
+    if (result.type === 'error') {
+      setError(result.error.message);
+      setPaying(false);
+      return;
+    }
+    onPaid();
+  };
+
+  return (
+    <form className="tdw-checkout-form" onSubmit={submit} noValidate>
+      {ready ? null : <Skeleton height={236} radius={12} />}
+      {checkout ? (
+        <PaymentElement
+          options={{
+            layout: 'tabs',
+            fields: { billingDetails: { address: 'if_required' } },
+          }}
+          onReady={() => setReady(true)}
+        />
+      ) : null}
+      {ready && checkout ? (
+        <>
+          {promo ? <PromoCode /> : null}
+          <dl className="tdw-checkout-total">
+            <div>
+              <dt>{t('tdw_due_today_label', 'Due today')}</dt>
+              <dd>{checkout.total.total.amount}</dd>
+            </div>
+            {trial && checkout.recurring ? (
+              <div className="is-next">
+                <dt>
+                  {t('tdw_then_from', 'From {{date}}', {
+                    date: formatDate(trial.trialEnd),
+                  })}
+                </dt>
+                <dd>
+                  {checkout.recurring.dueNext.total.amount}
+                  {per(period)}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+          {error ? (
+            <p className="tdw-checkout-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            className="tdw-checkout-submit"
+            loading={paying}
+            loadingLabel={t('tdw_confirming', 'Confirming')}
+          >
+            {trial
+              ? t('tdw_start_free_trial', 'Start {{n}}-day free trial', {
+                  n: trial.trialPeriodDays,
+                })
+              : t('tdw_subscribe_amount', 'Subscribe · {{amount}}', {
+                  amount: checkout.total.total.amount,
+                  interpolation: { escapeValue: false },
+                })}
+          </Button>
+          <p className="tdw-checkout-fine">
+            {trial
+              ? t(
+                  'tdw_checkout_trial_fine',
+                  'Nothing is charged today. Stripe charges your card on {{date}} unless you cancel before then in Settings → Billing.',
+                  {
+                    date: formatDate(trial.trialEnd),
+                    interpolation: { escapeValue: false },
+                  }
+                )
+              : t(
+                  'tdw_cancel_anytime_billing',
+                  'Cancel any time in Settings → Billing.'
+                )}
+          </p>
+        </>
+      ) : null}
+    </form>
+  );
+};
+
+// The payment form for one plan and period, then what happened: confirming
+// (waiting for the webhook), done, refused, or still activating. `onLock`
+// keeps the choice fixed from the moment Stripe confirmed the payment.
 export const CheckoutPanel: FC<{
   plan: PublicPlan;
   period: BillingPeriod;
   onLock?: (locked: boolean) => void;
-}> = ({ plan, period, onLock }) => {
+  // After "Get started"; the plan is active by then. Default: the calendar.
+  onDone?: () => void;
+}> = ({ plan, period, onLock, onDone }) => {
   const t = useT();
   const fetch = useFetch();
   const user = useUser();
-  const dub = useDubClickId();
   const { mutate } = useSWRConfig();
   const router = useRouter();
+  const { i18n } = useTranslation();
   const { stripeClient } = useVariables();
+  const locale = (i18n.resolvedLanguage || 'auto') as StripeElementLocale;
   const stripePromise = useMemo(
-    () => (stripeClient ? loadStripe(stripeClient) : null),
-    [stripeClient]
+    () => (stripeClient ? loadStripe(stripeClient, { locale }) : null),
+    [stripeClient, locale]
   );
+  const light = useLightMode();
   const [step, setStep] = useState<Step>('pay');
-  const check = useRef<string>('');
+  const { data: session, error } = useCheckoutSession(plan.tier, period);
+  const check = useRef('');
+  check.current = session?.check || '';
   const trialDays = user?.allowTrial ? plan.trialDays : 0;
-  // Clicking or arrowing through plans mounts only the one the user stays on
-  const [mounted] = useDebounce(`${plan.tier}|${period}`, 400);
-  const mountedRef = useRef(mounted);
-  mountedRef.current = mounted;
+
+  useEffect(() => {
+    // Ad blockers or a network error can keep Stripe.js from loading
+    stripePromise?.catch(() => setStep('unavailable'));
+  }, [stripePromise]);
 
   useEffect(() => {
     setStep('pay');
-    check.current = '';
-    // Ad blockers or a network error can keep Stripe.js from loading
-    stripePromise?.catch(() => setStep('unavailable'));
-  }, [mounted, stripePromise]);
+  }, [plan.tier, period]);
 
   useEffect(() => {
     onLock?.(step === 'confirming' || step === 'done' || step === 'slow');
   }, [step]);
 
-  const fetchClientSecret = useCallback(async () => {
-    const [billing, billingPeriod] = mounted.split('|');
-    const data = await (
-      await fetch('/billing/embedded', {
-        method: 'POST',
-        body: JSON.stringify({
-          billing,
-          period: billingPeriod,
-          ...(dub ? { dub } : {}),
-        }),
-      })
-    ).json();
-    // A checkout replaced while its session was being created is going
-    // away: it must not touch the state of the one that replaced it
-    const replaced = mountedRef.current !== mounted;
-    if (data.blocked || !data.client_secret) {
-      if (!replaced) {
-        setStep('blocked');
-      }
-      throw new Error('blocked');
-    }
-    if (!replaced) {
-      check.current = data.check;
-    }
-    return data.client_secret as string;
-  }, [mounted, dub]);
-
-  // Never trust the client callback alone: wait until the webhook stored it
-  const onComplete = useCallback(async () => {
+  // Never trust the client alone: wait until the webhook stored it
+  const onPaid = useCallback(async () => {
     setStep('confirming');
     setStep(await waitForSubscription(fetch, check.current));
   }, []);
 
-  // Only now: refreshing /user/self ends the paywall and leaves this page
+  // Only now: refreshing /user/self ends the paywall
   const finish = useCallback(async () => {
     await mutate('/user/self');
     mutate('/user/subscription');
+    if (onDone) {
+      onDone();
+      return;
+    }
     router.push('/launches');
-  }, []);
+  }, [onDone]);
 
   const options = useMemo(
-    () => ({ fetchClientSecret, onComplete }),
-    [fetchClientSecret, onComplete]
+    () =>
+      session?.client_secret
+        ? {
+            clientSecret: session.client_secret,
+            elementsOptions: {
+              appearance: tadweenAppearance(light),
+              fonts: [{ cssSrc: GEIST }],
+            },
+            // Local currency where Stripe offers it; prices stay USD
+            adaptivePricing: { allowed: true },
+          }
+        : null,
+    [session?.client_secret, light]
   );
+
+  const shown: Step =
+    step !== 'pay'
+      ? step
+      : session?.blocked
+      ? 'blocked'
+      : error
+      ? 'unavailable'
+      : 'pay';
 
   return (
     <section
@@ -279,30 +591,34 @@ export const CheckoutPanel: FC<{
       className="tdw-checkout"
       aria-label={t('tdw_payment', 'Payment')}
     >
-      {step === 'pay' ? (
+      {shown === 'pay' ? (
         <>
           <header className="tdw-checkout-head">
             <h2 className="tdw-checkout-title">
-              {t('tdw_payment', 'Payment')}
+              {t('tdw_payment_details', 'Payment details')}
             </h2>
             <span className="tdw-checkout-secure">
               <Icon name="shield-check" size={14} />
               {t('tdw_trust_stripe', 'Secure payment by Stripe')}
             </span>
           </header>
-          <div className="tdw-checkout-stripe">
-            {stripePromise ? (
-              <EmbeddedCheckoutProvider
-                key={mounted}
-                stripe={stripePromise}
-                options={options}
-              >
-                <EmbeddedCheckout />
-              </EmbeddedCheckoutProvider>
-            ) : null}
-          </div>
+          {options && stripePromise ? (
+            <CheckoutProvider
+              key={options.clientSecret}
+              stripe={stripePromise}
+              options={options}
+            >
+              <PaymentForm
+                period={period}
+                promo={period === 'MONTHLY'}
+                onPaid={onPaid}
+              />
+            </CheckoutProvider>
+          ) : (
+            <Skeleton height={236} radius={12} />
+          )}
         </>
-      ) : step === 'confirming' ? (
+      ) : shown === 'confirming' ? (
         <div className="tdw-checkout-state" role="status">
           <Spinner size={28} label={t('tdw_confirming', 'Confirming')} />
           <h3>{t('tdw_confirming_payment', 'Confirming your subscription…')}</h3>
@@ -313,7 +629,7 @@ export const CheckoutPanel: FC<{
             )}
           </p>
         </div>
-      ) : step === 'done' ? (
+      ) : shown === 'done' ? (
         <div className="tdw-checkout-state is-done" role="status">
           <span className="tdw-checkout-mark">
             <Icon name="circle-check" size={28} />
@@ -331,11 +647,11 @@ export const CheckoutPanel: FC<{
                   'Your plan is active. Next: connect your channels and schedule your first post.'
                 )}
           </p>
-          <Button variant="primary" size="lg" icon="arrow-right" onClick={finish}>
+          <Button variant="primary" size="lg" iconEnd="arrow-right" onClick={finish}>
             {t('tdw_get_started', 'Get started')}
           </Button>
         </div>
-      ) : step === 'failed' ? (
+      ) : shown === 'failed' ? (
         <div className="tdw-checkout-state is-error" role="alert">
           <span className="tdw-checkout-mark">
             <Icon name="circle-x" size={28} />
@@ -351,7 +667,7 @@ export const CheckoutPanel: FC<{
             {t('tdw_try_again', 'Try again')}
           </Button>
         </div>
-      ) : step === 'slow' ? (
+      ) : shown === 'slow' ? (
         <div className="tdw-checkout-state" role="status">
           <span className="tdw-checkout-mark">
             <Icon name="clock" size={28} />
@@ -367,7 +683,7 @@ export const CheckoutPanel: FC<{
             {t('tdw_continue', 'Continue')}
           </Button>
         </div>
-      ) : step === 'unavailable' ? (
+      ) : shown === 'unavailable' ? (
         <div className="tdw-checkout-state is-error" role="alert">
           <span className="tdw-checkout-mark">
             <Icon name="triangle-alert" size={28} />
@@ -397,39 +713,3 @@ export const CheckoutPanel: FC<{
     </section>
   );
 };
-
-// Phones: the plans come first and the form sits further down, so a bar at
-// the bottom names the choice and jumps to the form; it hides once the form
-// (or what replaced it) is on screen
-export const PayBar: FC<{
-  label: ReactNode;
-  action: ReactNode;
-  target: string;
-}> = ({ label, action, target }) => {
-  const [hidden, setHidden] = useState(false);
-  useEffect(() => {
-    const el = document.getElementById(target);
-    if (!el || typeof IntersectionObserver === 'undefined') {
-      return;
-    }
-    const io = new IntersectionObserver(([e]) => setHidden(e.isIntersecting), {
-      threshold: 0.05,
-    });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [target]);
-  return (
-    <div className="tdw-paybar" hidden={hidden}>
-      <span className="tdw-paybar-label">{label}</span>
-      {action}
-    </div>
-  );
-};
-
-export const scrollToCheckout = () =>
-  document.getElementById('tdw-checkout')?.scrollIntoView({
-    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ? 'auto'
-      : 'smooth',
-    block: 'start',
-  });

@@ -20,7 +20,7 @@ import {
   useFetch,
 } from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { CheckPayment } from '@gitroom/frontend/components/layout/check.payment';
 import { ToolTip } from '@gitroom/frontend/components/layout/top.tip';
@@ -51,7 +51,6 @@ import {
   UpgradeTrialLine,
 } from '@gitroom/frontend/components/tadween/billing/upgrade.link';
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
-import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
 import {
   TadweenOnboarding,
   useOnboarding,
@@ -70,7 +69,6 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   // The Sentry feedback button lives in the account menu (tadween/shell/account.menu.tsx)
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const router = useRouter();
   const sidebar = useSidebarCollapsed();
   const phone = usePhoneLayout();
   const load = useCallback(async (path: string) => {
@@ -90,31 +88,17 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     );
   }, [user]);
 
-  // A workspace without a plan lives on /billing (full screen, no app chrome),
-  // like Postiz's first-billing screen; super admins are never held there
+  // A workspace without a plan sees the plan step in place of the app (the
+  // last step of onboarding, or alone in the same shell); super admins never
   const needsPlan =
     !!user &&
     user.tier === 'FREE' &&
     isGeneral &&
     billingEnabled &&
     !user.billingExempt;
-  // Tadween onboarding (after sign-up) takes the whole screen; its plan step
-  // is the paywall below, after which it carries on
+  // Tadween onboarding (after sign-up) takes the whole screen
   const onboarding = useOnboarding(user?.id);
-  const showOnboarding =
-    !!onboarding.step && !(onboarding.step === 'plan' && needsPlan);
-  // A payment return (?check=) stays where it is, so CheckPayment can finish
-  useEffect(() => {
-    if (
-      onboarding.ready &&
-      needsPlan &&
-      !showOnboarding &&
-      !searchParams.get('check') &&
-      pathname !== '/billing'
-    ) {
-      router.replace('/billing');
-    }
-  }, [onboarding.ready, needsPlan, showOnboarding, pathname]);
+  const showOnboarding = !!onboarding.step || needsPlan;
 
   if (!user || !onboarding.ready) {
     return (
@@ -162,12 +146,10 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
               </div>
               {showOnboarding ? (
                 <TadweenOnboarding
-                  step={onboarding.step!}
+                  step={onboarding.step}
                   go={onboarding.go}
                   needsPlan={needsPlan}
                 />
-              ) : needsPlan ? (
-                <FirstBillingComponent />
               ) : (
                 <>
                   <AnnouncementBanner />
@@ -207,6 +189,10 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                         </div>
                       </div>
                     )}
+                    <div className="tdw-main flex-1 min-w-0 flex flex-col gap-[8px]">
+                    {/* the trial / payment-failed bar floats as its own rounded
+                        card above the page card, like the sidebar beside it */}
+                    {billingEnabled && <TrialBanner />}
                     <div className="flex-1 min-w-0 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
                       <div
                         className={clsx(
@@ -232,11 +218,10 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                           <NotificationComponent />
                         </div>
                       </div>
-                      {/* inside the page card: above the shell it ran under the fixed sidebar */}
-                      {billingEnabled && <TrialBanner />}
                       <div className="flex flex-1 min-w-0 gap-[1px] mobile:flex-col">
                         {children}
                       </div>
+                    </div>
                     </div>
                   </div>
                 </>

@@ -1,91 +1,69 @@
 'use client';
 
-// The paywall a workspace without a plan sees in place of the app, as one
-// page (Postiz's first-billing layout): the plans side by side, and under
-// them the chosen plan's summary next to Stripe Embedded Checkout. Choosing
-// another plan or period updates both in place. While the workspace can still
-// start a trial, the paywall can be escaped: the × in the top bar, "Maybe
-// later" under the title and "Skip for now" all start the card-less trial of
-// the chosen plan and open the app (or the next onboarding step). Without a
-// trial left (it ended without a plan) the paywall stays.
-import React, { useCallback, useState } from 'react';
+// The plan step: what a workspace without a plan sees, as the last step of
+// onboarding (or alone, in the same shell, when it needs a plan later). Like
+// Postiz's first billing screen, each plan has one action: pick it, start the
+// free trial with a card in Stripe (Payment Element with Link, then Confirm),
+// Stripe charges the card when the trial ends. While the workspace can still
+// start a trial, a quiet "Maybe later" starts it without a card instead. Once
+// the trial has ended there is no way around a plan.
+import React, { FC, useCallback, useState } from 'react';
 import { useSWRConfig } from 'swr';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'next/navigation';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useToaster } from '@gitroom/react/toaster/toaster';
-import dynamic from 'next/dynamic';
-import { OrganizationSelector } from '@gitroom/frontend/components/layout/organization.selector';
-import { LanguageComponent } from '@gitroom/frontend/components/layout/language.component';
-import { LogoTextComponent } from '@gitroom/frontend/components/ui/logo-text.component';
-import { FAQComponent } from '@gitroom/frontend/components/billing/faq.component';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
-import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
-import {
-  PublicPlan,
-  useTadweenPricing,
-} from '@gitroom/frontend/components/tadween/instance/instance.settings';
-import {
-  Button,
-  IconButton,
-  TadweenScope,
-} from '@gitroom/frontend/components/tadween/ui';
+import { useTadweenPricing } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import { Button, Skeleton } from '@gitroom/frontend/components/tadween/ui';
 import {
   BillingPeriod,
-  formatUsd,
+  PeriodToggle,
 } from '@gitroom/frontend/components/tadween/billing/pricing';
-import {
-  PlanPicker,
-  planPrice,
-  TrustRow,
-} from '@gitroom/frontend/components/tadween/billing/plans.view';
+import { PlanCard } from '@gitroom/frontend/components/tadween/billing/plans.view';
 import {
   CheckoutPanel,
   OrderSummary,
-  PayBar,
-  scrollToCheckout,
   waitForSubscription,
 } from '@gitroom/frontend/components/tadween/billing/checkout.panel';
 
-const ModeComponent = dynamic(
-  () => import('@gitroom/frontend/components/layout/mode.component'),
-  {
-    ssr: false,
-  }
-);
+// What each card compares at a glance; the chosen plan's full list is in the
+// summary next to the payment form
+const CARD_ROWS = ['channels', 'posts', 'team', 'ai_images'];
 
-export const FirstBillingComponent = () => {
+export const FirstBillingComponent: FC<{ onDone: () => void }> = ({
+  onDone,
+}) => {
   const user = useUser();
   const t = useT();
-  const [period, setPeriod] = useState<BillingPeriod>('MONTHLY');
-  const trial = !!user?.allowTrial;
+  const { i18n } = useTranslation();
   const fetch = useFetch();
   const toaster = useToaster();
   const { mutate } = useSWRConfig();
-  const router = useRouter();
   const { plans } = useTadweenPricing();
-  const [skipping, setSkipping] = useState(false);
-  // From the moment Stripe reports the payment, the choice stays as paid
-  const [locked, setLocked] = useState(false);
-  // /billing?plan=TIER (from the upgrade paywall) starts on that plan, else
-  // the highlighted one
+  const [period, setPeriod] = useState<BillingPeriod>('MONTHLY');
+  // /billing?plan=TIER (from the upgrade paywall) opens that plan's payment
   const preselect = useSearchParams().get('plan');
-  const [tier, setTier] = useState(preselect || '');
-  const plan =
-    plans.find((p) => p.tier === tier) ||
-    plans.find((p) => p.mostPopular) ||
-    plans[0];
-  const trialDays = trial && plan ? plan.trialDays : 0;
-  const canEscape = trialDays > 0 && !locked;
+  const [chosen, setChosen] = useState<string | null>(preselect);
+  // From the moment Stripe confirmed the payment, the choice stays as paid
+  const [locked, setLocked] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  const trial = !!user?.allowTrial;
+  const plan = plans.find((p) => p.tier === chosen);
+  const featured = plans.find((p) => p.mostPopular) || plans[0];
+  const trialDays = trial ? featured?.trialDays || 0 : 0;
+  const back = i18n.dir() === 'rtl' ? 'arrow-right' : 'arrow-left';
 
+  // "Maybe later": the trial without a card, on the highlighted plan
   const skip = useCallback(async () => {
-    if (!plan) {
+    if (!featured) {
       return;
     }
     setSkipping(true);
     const res = await fetch('/billing/trial', {
       method: 'POST',
-      body: JSON.stringify({ billing: plan.tier, period: 'MONTHLY' }),
+      body: JSON.stringify({ billing: featured.tier, period: 'MONTHLY' }),
     });
     const data = res.ok ? await res.json() : {};
     const result = data.check
@@ -108,133 +86,113 @@ export const FirstBillingComponent = () => {
       return;
     }
     await mutate('/user/self');
-    router.push('/launches');
-  }, [plan]);
+    onDone();
+  }, [featured, onDone]);
 
-  return (
-    <TadweenScope className="blurMe tdw-paywall">
-      <header className="tdw-paywall-top">
-        <LogoTextComponent />
-        <span className="grow" />
-        <div className="tdw-paywall-tools">
-          <OrganizationSelector />
-          <div className="hover:text-newTextColor">
-            <ModeComponent />
-          </div>
-          <span className="sep" />
-          <LanguageComponent />
-          <span className="sep" />
-          <div className="hover:text-newTextColor">
-            <LogoutComponent isIcon={true} />
-          </div>
-          {canEscape ? (
-            <>
-              <span className="sep" />
-              <IconButton
-                icon="x"
-                label={t('tdw_paywall_later', 'Maybe later')}
-                disabled={skipping}
-                onClick={skip}
-              />
-            </>
-          ) : null}
+  if (!plans.length) {
+    return (
+      <div className="tdw-plan-step" aria-busy="true">
+        <Skeleton height={40} width="50%" radius={8} />
+        <div className="tdw-plan-row">
+          <Skeleton height={360} radius={20} />
+          <Skeleton height={360} radius={20} />
+          <Skeleton height={360} radius={20} />
         </div>
-      </header>
-      <main className="tdw-billing-page is-paywall">
-        <header className="tdw-plans-head">
-          <h1 className="tdw-plans-title">
-            {t('tdw_paywall_title', 'Plan your LinkedIn week with Tadween')}
+      </div>
+    );
+  }
+
+  // Step two: the chosen plan next to Stripe's payment form
+  if (plan) {
+    return (
+      <div className="tdw-plan-step is-pay">
+        <div className="tdw-plan-pay">
+          <div className="tdw-plan-pay-side">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={back}
+              disabled={locked}
+              onClick={() => setChosen(null)}
+            >
+              {t('tdw_all_plans', 'All plans')}
+            </Button>
+            <OrderSummary
+              plan={plan}
+              period={period}
+              trialDays={trial ? plan.trialDays : 0}
+            />
+          </div>
+          <CheckoutPanel
+            plan={plan}
+            period={period}
+            onLock={setLocked}
+            onDone={onDone}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Step one: the plans side by side, one action each
+  return (
+    <div className="tdw-plan-step">
+      <div className="tdw-plan-step-head">
+        <div className="tdw-ob-headline">
+          <h1 className="title-1">
+            {t('tdw_plan_step_title', 'Choose your plan')}
           </h1>
-          <p className="tdw-plans-lead">
+          <p className="pz-ob-lead">
             {trial
               ? t(
-                  'tdw_paywall_trial_lead',
-                  'Start with a free trial on any plan. Plans differ in limits: channels, team members and AI credits.'
+                  'tdw_plan_step_lead_trial',
+                  'Every plan starts with a {{n}}-day free trial. You’re charged when it ends, and you can cancel any time before.',
+                  { n: trialDays }
                 )
               : t(
-                  'tdw_paywall_lead_plans',
-                  'Plans differ in limits: channels, team members and AI credits.'
+                  'tdw_plan_step_lead',
+                  'Pick the plan for your workspace. You can change or cancel it any time in Settings → Billing.'
                 )}
           </p>
-          {canEscape ? (
-            <Button variant="ghost" loading={skipping} onClick={skip}>
-              {t(
-                'tdw_paywall_later_trial',
-                'Maybe later, start my free {{n}}-day trial',
-                { n: trialDays }
-              )}
-            </Button>
-          ) : null}
-        </header>
-        {plan ? (
-          <>
-            <PlanPicker
-              title={t('tdw_choose_a_plan', 'Choose a plan')}
-              value={plan.tier}
-              onChange={setTier}
-              period={period}
-              onPeriod={setPeriod}
-              disabled={locked}
-            />
-            <div className="tdw-pay">
-              <div className="tdw-pay-main">
-                <OrderSummary
-                  plan={plan}
-                  period={period}
-                  trialDays={trialDays}
-                />
-                {canEscape ? (
-                  <div className="tdw-skip">
-                    <span>
-                      {t(
-                        'tdw_skip_lead',
-                        'Not ready to pay? Try {{name}} free for {{n}} days, no card needed.',
-                        { name: plan.name, n: trialDays }
-                      )}
-                    </span>
-                    <Button
-                      variant="secondary"
-                      loading={skipping}
-                      onClick={skip}
-                    >
-                      {t('tdw_skip_for_now', 'Skip for now')}
-                    </Button>
-                  </div>
-                ) : null}
-                <TrustRow />
-              </div>
-              <CheckoutPanel plan={plan} period={period} onLock={setLocked} />
-            </div>
-            {locked ? null : (
-              <PayBar
-                target="tdw-checkout"
-                label={
-                  <>
-                    <strong>{plan.name}</strong> ·{' '}
-                    {formatUsd(planPrice(plan, period))}
-                    {t('tdw_per_month_short', '/month')}
-                  </>
-                }
-                action={
-                  <Button variant="primary" onClick={scrollToCheckout}>
-                    {trialDays > 0
-                      ? t('tdw_start_trial', 'Start {{n}}-day trial', {
-                          n: trialDays,
-                        })
-                      : t('tdw_continue_to_payment', 'Continue to payment')}
-                  </Button>
-                }
-              />
-            )}
-          </>
-        ) : null}
-        <section className="tdw-billing-faq">
-          <h2 className="tdw-section-title">
-            {t('tdw_questions', 'Questions')}
-          </h2>
-          <FAQComponent />
-        </section>
-      </main>
-    </TadweenScope>
+        </div>
+        <PeriodToggle
+          value={period}
+          onChange={setPeriod}
+          save={plans[0]?.yearlyDiscountPercent ?? 0}
+        />
+      </div>
+      <div className="tdw-plan-row" data-count={plans.length}>
+        {plans.map((p) => (
+          <PlanCard
+            key={p.key}
+            plan={p}
+            period={period}
+            rows={CARD_ROWS}
+            cta={
+              <Button
+                variant={p.mostPopular ? 'primary' : 'secondary'}
+                disabled={skipping}
+                onClick={() => setChosen(p.tier)}
+              >
+                {trial && p.trialDays > 0
+                  ? t('tdw_start_free_trial', 'Start {{n}}-day free trial', {
+                      n: p.trialDays,
+                    })
+                  : t('tdw_choose_plan_name', 'Choose {{name}}', {
+                      name: p.name,
+                    })}
+              </Button>
+            }
+          />
+        ))}
+      </div>
+      {trialDays > 0 ? (
+        <div className="tdw-plan-later">
+          <Button variant="ghost" size="sm" loading={skipping} onClick={skip}>
+            {t('tdw_paywall_later', 'Maybe later')}
+          </Button>
+        </div>
+      ) : null}
+    </div>
   );
 };

@@ -1,28 +1,27 @@
 'use client';
 
-// Tadween onboarding: what a new account sees after sign-up, as the design
-// system's Onboarding / ScreenOnboarding (logo, spring progress bar, one
-// focused step at a time that slides in from the direction of travel and
-// mirrors in RTL, Back / Continue / Skip setup always reachable).
-//
-// It renders full screen from LayoutComponent, in place of the app shell, while
-// a step is active. The steps only use what the server already has:
-//   welcome  → your name (POST /user/personal, the same call as Settings → Profile)
-//   language → language (the i18next cookie) and the time format (localStorage
-//              `isUS`, as Settings → Preferences); the time zone is the device's
-//   plan     → only when the workspace still needs a plan: the layout shows the
-//              one-page /billing paywall, and onboarding resumes after it
+// Tadween onboarding: what a new account sees after sign-up. Postiz's
+// onboarding steps (OnboardingModal: connect channels, connect agents, watch
+// the tutorial) in the design system's Onboarding / ScreenOnboarding shell
+// (logo, spring progress bar, one focused step at a time that slides in from
+// the direction of travel and mirrors in RTL, Back / Continue always
+// reachable), with the plan as the last step of the same flow:
 //   channels → every network the admin turned on, in the server's order (the
 //              focus networks first, as equals), through Postiz's own
 //              AddProviderComponent
-//   done     → summary, then Today
-// The workspace name is asked on the sign-up card (it is required to create
-// the workspace). The AI agent setup lives in Settings → API & MCP.
+//   agents   → the AI assistant guides of Settings → API & MCP
+//   tutorial → the admin's tutorial video (Branding), when there is one
+//   plan     → only while the workspace still needs one: pick a plan, start
+//              the free trial with a card in Stripe, or "Maybe later" for
+//              the trial without a card
+// A workspace that needs a plan outside onboarding (it skipped it, or the
+// trial ended) sees the same shell on the plan step alone.
 //
-// Progress is kept in sessionStorage, so a channel's OAuth round trip or the
-// paywall come back to the right step in the same tab.
+// It renders full screen from LayoutComponent, in place of the app shell.
+// Progress is kept in sessionStorage, so a channel's OAuth round trip comes
+// back to the right step in the same tab.
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useSWR, { useSWRConfig } from 'swr';
+import useSWR from 'swr';
 import { orderBy } from 'lodash';
 import i18next from 'i18next';
 import useCookie from 'react-use-cookie';
@@ -37,29 +36,25 @@ import {
   fallbackLng,
   languages,
 } from '@gitroom/react/translation/i18n.config';
-import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { AddProviderComponent } from '@gitroom/frontend/components/launches/add.provider.component';
-import { isUSCitizen } from '@gitroom/frontend/components/launches/helpers/isuscitizen.utils';
+import { OrganizationSelector } from '@gitroom/frontend/components/layout/organization.selector';
+import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
-import { usePersonal } from '@gitroom/frontend/components/tadween/settings/account.settings';
-import { useOrganizations } from '@gitroom/frontend/components/tadween/settings/workspace.settings';
 import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import { AgentConnect } from '@gitroom/frontend/components/tadween/settings/api.settings';
+import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
 import {
   Button,
   cx,
   Icon,
-  Input,
-  RadioGroup,
-  SegmentedControl,
-  Select,
   Skeleton,
   TadweenScope,
 } from '@gitroom/frontend/components/tadween/ui';
 
-export type OnboardingStep = 'welcome' | 'language' | 'plan' | 'channels' | 'done';
+export type OnboardingStep = 'channels' | 'agents' | 'tutorial' | 'plan';
 
 const STORAGE_KEY = 'tdw_onboarding';
-const STEPS: OnboardingStep[] = ['welcome', 'language', 'plan', 'channels', 'done'];
+const STEPS: OnboardingStep[] = ['channels', 'agents', 'tutorial', 'plan'];
 
 // { step, user } while onboarding runs; { done: user } once that user finished
 // or skipped it in this tab, so browser Back to ?onboarding=true doesn't start
@@ -87,8 +82,9 @@ const writeSaved = (saved: Saved) => {
 
 /* Whether onboarding owns the screen, and at which step. Starts from
    `?onboarding=true` (set after sign-up, activation and a channel's OAuth
-   return), resumes from sessionStorage, never restarts after a payment return.
-   Decides once the signed-in user is known. */
+   return), resumes from sessionStorage. A payment return (`?check=`) ends it:
+   the plan is being activated, CheckPayment finishes that. Decides once the
+   signed-in user is known. */
 export const useOnboarding = (userId?: string) => {
   const params = useSearchParams();
   const requested = params.get('onboarding') === 'true';
@@ -104,19 +100,16 @@ export const useOnboarding = (userId?: string) => {
       return;
     }
     const saved = readSaved();
-    if (saved.step && saved.user === userId) {
+    if (returnedFromPayment) {
+      writeSaved({ done: userId });
+      setStep(null);
+    } else if (saved.step && saved.user === userId) {
       started.current = true;
       setStep(saved.step);
-    } else if (
-      requested &&
-      !returnedFromPayment &&
-      !started.current &&
-      saved.done !== userId
-    ) {
+    } else if (requested && !started.current && saved.done !== userId) {
       started.current = true;
-      const first = returnedFromChannel ? 'channels' : 'welcome';
-      writeSaved({ step: first, user: userId });
-      setStep(first);
+      writeSaved({ step: 'channels', user: userId });
+      setStep('channels');
     }
     setReady(true);
   }, [userId, requested, returnedFromChannel, returnedFromPayment]);
@@ -175,52 +168,6 @@ const useProviders = () => {
   return useSWR('get-all-integrations-onboarding', load);
 };
 
-/* The welcome step's name, saved with Settings → Profile's call (bio and
-   picture are sent back unchanged). save() resolves false to keep the step open. */
-const useNameStep = () => {
-  const t = useT();
-  const fetch = useFetch();
-  const { mutate } = useSWRConfig();
-  const { data: personal, isLoading } = usePersonal();
-  const [name, setName] = useState<string>();
-  const [error, setError] = useState('');
-  const value = name ?? personal?.name ?? '';
-
-  const change = useCallback((next: string) => {
-    setError('');
-    setName(next);
-  }, []);
-
-  const save = async () => {
-    const trimmed = value.trim();
-    if (!trimmed || trimmed === (personal?.name || '')) {
-      return true;
-    }
-    if (trimmed.length < 3) {
-      setError(t('tdw_auth_err_min', 'Use at least {{count}} characters.', { count: 3 }));
-      return false;
-    }
-    const response = await fetch('/user/personal', {
-      method: 'POST',
-      body: JSON.stringify({
-        fullname: trimmed,
-        bio: personal?.bio || '',
-        picture: personal?.picture || null,
-      }),
-    });
-    if (!response.ok) {
-      setError(t('tdw_ob_name_error', 'We couldn’t save your name. Try again.'));
-      return false;
-    }
-    mutate('/user/personal');
-    // the sidebar and Today read the name from /user/self
-    mutate('/user/self');
-    return true;
-  };
-
-  return { value, change, error, loading: isLoading, save };
-};
-
 /* Back from a channel's OAuth (`?added=…&msg=…`): what LaunchesComponent does
    on that return (event, toast, popup hand-off), since onboarding renders in
    its place. Then the two parameters are dropped, so a reload or Back doesn't
@@ -257,259 +204,6 @@ const useChannelReturn = () => {
   }, []);
 };
 
-const firstName = (name?: string | null) => (name || '').trim().split(/\s+/)[0] || '';
-
-export const TadweenOnboarding: FC<{
-  step: OnboardingStep;
-  go: (step: OnboardingStep | null) => void;
-  /** the workspace has no plan yet and billing is on */
-  needsPlan: boolean;
-}> = ({ step, go, needsPlan }) => {
-  const t = useT();
-  const { i18n } = useTranslation();
-  const router = useRouter();
-  const user = useUser();
-  const connected = useConnected();
-  const rtl = i18n.dir() === 'rtl';
-  const ar = i18n.resolvedLanguage === 'ar';
-  const [travel, setTravel] = useState(1);
-  const [busy, setBusy] = useState(false);
-  const nameStep = useNameStep();
-  useChannelReturn();
-
-  // The plan step only exists while the workspace still needs one; once the
-  // paywall is done (trial or payment), onboarding carries on with channels
-  const order: OnboardingStep[] =
-    step === 'plan' || needsPlan
-      ? ['welcome', 'language', 'plan', 'channels', 'done']
-      : ['welcome', 'language', 'channels', 'done'];
-  useEffect(() => {
-    if (step === 'plan' && !needsPlan) {
-      go('channels');
-    }
-  }, [step, needsPlan]);
-
-  const labels: Record<OnboardingStep, string> = {
-    welcome: t('tdw_ob_s_you', 'You'),
-    language: t('tdw_ob_s_language', 'Language'),
-    plan: t('tdw_ob_s_plan', 'Plan'),
-    channels: t('tdw_ob_s_channels', 'Channels'),
-    done: t('tdw_ob_s_ready', 'Ready'),
-  };
-  const index = Math.max(0, order.indexOf(step));
-
-  const move = (next: OnboardingStep) => {
-    setTravel(order.indexOf(next) >= index ? 1 : -1);
-    go(next);
-  };
-
-  // replace: browser Back must not land on ?onboarding=true and start over
-  const finish = useCallback(() => {
-    go(null);
-    router.replace('/today');
-  }, []);
-
-  const forward = async () => {
-    if (step === 'welcome') {
-      setBusy(true);
-      const ok = await nameStep.save();
-      setBusy(false);
-      if (!ok) {
-        return;
-      }
-    }
-    if (step === 'done') {
-      finish();
-      return;
-    }
-    move(order[index + 1]);
-  };
-
-  const backIcon = rtl ? 'arrow-right' : 'arrow-left';
-  const nextIcon = rtl ? 'arrow-left' : 'arrow-right';
-  const hasChannels = connected.length > 0;
-
-  return (
-    <TadweenScope className={cx('tdw-ob-page', ar && 'is-ar')}>
-      <div className="pz-ob">
-        <header className="pz-ob-head">
-          <span className="pz-ob-logo">
-            <Logo />
-            <span className="pz-ob-logo-word">Tadween</span>
-          </span>
-          <ol
-            className="pz-ob-progress"
-            style={{ ['--steps' as string]: order.length }}
-            aria-label={t('tdw_ob_progress', 'Step {{n}} of {{total}}', {
-              n: index + 1,
-              total: order.length,
-            })}
-          >
-            {order.map((s, i) => (
-              <li
-                key={s}
-                className={cx(i < index && 'is-done', i === index && 'is-current')}
-                aria-current={i === index ? 'step' : undefined}
-              >
-                <span className="pz-ob-bar">
-                  <span />
-                </span>
-                <span className="caption">{labels[s]}</span>
-              </li>
-            ))}
-          </ol>
-          {step !== 'done' ? (
-            <Button variant="ghost" size="sm" onClick={finish}>
-              {t('tdw_ob_skip', 'Skip setup')}
-            </Button>
-          ) : (
-            <span className="tdw-ob-head-spacer" />
-          )}
-        </header>
-
-        <main className="pz-ob-stage">
-          <div
-            key={step}
-            className="pz-ob-step"
-            style={{ ['--travel' as string]: travel }}
-          >
-            {step === 'welcome' ? (
-              <WelcomeStep {...nameStep} onEnter={forward} />
-            ) : step === 'language' ? (
-              <LanguageStep />
-            ) : step === 'channels' ? (
-              <ChannelsStep connected={connected} />
-            ) : step === 'done' ? (
-              <DoneStep connected={connected} name={firstName(user?.name)} />
-            ) : (
-              <PlanPending />
-            )}
-          </div>
-        </main>
-
-        <footer className="pz-ob-foot">
-          {index > 0 && step !== 'done' ? (
-            <Button variant="ghost" icon={backIcon} onClick={() => move(order[index - 1])}>
-              {t('tdw_back', 'Back')}
-            </Button>
-          ) : null}
-          <span className="pz-ob-foot-note" />
-          {step === 'channels' && !hasChannels ? (
-            <Button variant="ghost" onClick={() => move('done')}>
-              {t('tdw_ob_later', 'I’ll do this later')}
-            </Button>
-          ) : null}
-          {step === 'channels' && !hasChannels ? null : (
-            <Button
-              variant="primary"
-              loading={busy}
-              loadingLabel={t('tdw_ob_saving', 'Saving…')}
-              icon={step === 'done' ? 'calendar-days' : undefined}
-              iconEnd={step === 'done' ? undefined : nextIcon}
-              onClick={forward}
-            >
-              {step === 'done'
-                ? t('tdw_ob_go_today', 'Go to Today')
-                : step === 'language' && order[index + 1] === 'plan'
-                ? t('tdw_ob_choose_plan', 'Choose a plan')
-                : t('tdw_continue', 'Continue')}
-            </Button>
-          )}
-        </footer>
-      </div>
-    </TadweenScope>
-  );
-};
-
-/* Heading shared by every step: big friendly title, one lead line */
-const StepHead: FC<{ title: string; lead: string; center?: boolean }> = ({
-  title,
-  lead,
-  center,
-}) => (
-  <div className={cx('tdw-ob-headline', center && 'is-center')}>
-    <h1 className="title-1">{title}</h1>
-    <p className="pz-ob-lead">{lead}</p>
-  </div>
-);
-
-/* Step 1: your name, and the workspace you're in */
-const WelcomeStep: FC<{
-  value: string;
-  change: (value: string) => void;
-  error: string;
-  loading: boolean;
-  onEnter: () => void;
-}> = ({ value, change, error, loading, onEnter }) => {
-  const t = useT();
-  const user = useUser();
-  const { data: organizations } = useOrganizations();
-  const workspace = organizations?.find?.((org: any) => org?.id === user?.orgId);
-  // Whoever created the workspace owns it; an invited teammate joined one
-  const joined = !!user?.role && user.role !== 'SUPERADMIN';
-
-  return (
-    <>
-      <span className="tdw-ob-mark" aria-hidden="true">
-        <Logo />
-      </span>
-      <StepHead
-        title={t('tdw_ob_welcome_title', 'Welcome to Tadween')}
-        lead={t(
-          'tdw_ob_welcome_lead',
-          'A few quick choices and your workspace is ready. It takes about a minute.'
-        )}
-      />
-      <form
-        className="tdw-ob-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onEnter();
-        }}
-      >
-        {loading ? (
-          <Skeleton height={68} radius={10} />
-        ) : (
-          <Input
-            label={t('tdw_ob_name_label', 'What should we call you?')}
-            placeholder={t('tdw_ob_name_placeholder', 'Your full name')}
-            autoComplete="name"
-            autoFocus
-            value={value}
-            error={error || undefined}
-            hint={
-              error
-                ? undefined
-                : t('tdw_ob_name_hint', 'Your teammates see it, and Today greets you by it.')
-            }
-            onChange={(e) => change(e.target.value)}
-          />
-        )}
-      </form>
-      {workspace ? (
-        <div className="tdw-ob-workspace">
-          <span className="tdw-ob-workspace-mark" aria-hidden="true">
-            {(workspace.name || '?').trim().slice(0, 1).toUpperCase()}
-          </span>
-          <span className="tdw-ob-workspace-text">
-            <span className="caption pz-muted">
-              {joined
-                ? t('tdw_ob_workspace_joined', 'You joined this workspace')
-                : t('tdw_ob_workspace_yours', 'Your workspace')}
-            </span>
-            <span className="headline">{workspace.name}</span>
-          </span>
-          {joined ? null : (
-            <span className="caption pz-muted tdw-ob-workspace-note">
-              {t('tdw_ob_workspace_note', 'Invite your team from Settings when you’re ready.')}
-            </span>
-          )}
-        </div>
-      ) : null}
-    </>
-  );
-};
-
 // Native name of a language ("العربية", "English")
 const languageName = (code: string) => {
   try {
@@ -523,144 +217,271 @@ const languageName = (code: string) => {
   }
 };
 
-// "Cairo · GMT+3" for the device's time zone
-const deviceTimeZone = (language: string) => {
-  try {
-    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-    const city = zone.split('/').pop()?.replace(/_/g, ' ') || zone;
-    const offset =
-      new Intl.DateTimeFormat(language, { timeZoneName: 'shortOffset' })
-        .formatToParts(new Date())
-        .find((p) => p.type === 'timeZoneName')?.value || '';
-    return { zone, label: [city, offset].filter(Boolean).join(' · ') };
-  } catch (e) {
-    return { zone: '', label: '' };
-  }
-};
-
-/* Step 2: language (applied at once, like Settings → Preferences → Language)
-   and time format. Both are saved in this browser. */
-const LanguageStep: FC = () => {
-  const t = useT();
+/* English ⇄ العربية in the header, applied at once like Settings →
+   Preferences → Language. Every other language stays in Settings. */
+const LanguageSwitch: FC = () => {
   const { i18n } = useTranslation();
   const current = i18n.resolvedLanguage || fallbackLng;
   const [, setCookie] = useCookie(cookieName, current);
-  const [timeFormat, setTimeFormat] = useState<'US' | 'GLOBAL'>();
-  useEffect(() => {
-    setTimeFormat(isUSCitizen() ? 'US' : 'GLOBAL');
-  }, []);
-  const zone = useMemo(() => deviceTimeZone(current), [current]);
-
-  const changeLanguage = (language: string) => {
-    setCookie(language);
-    i18next.changeLanguage(language);
-    document.documentElement.setAttribute('dir', i18next.dir(language));
-    document.documentElement.setAttribute('lang', language);
+  const other = current === 'ar' ? 'en' : 'ar';
+  if (!languages.includes(other)) {
+    return null;
+  }
+  const change = () => {
+    setCookie(other);
+    i18next.changeLanguage(other);
+    document.documentElement.setAttribute('dir', i18next.dir(other));
+    document.documentElement.setAttribute('lang', other);
   };
-  const changeTimeFormat = (value: 'US' | 'GLOBAL') => {
-    setTimeFormat(value);
-    try {
-      localStorage.setItem('isUS', value);
-    } catch (e) {
-      // the calendar falls back to the browser's locale
-    }
-  };
-
-  const main = ['en', 'ar'].filter((l) => languages.includes(l));
-  const others = languages.filter((l) => !main.includes(l));
-  const sample = new Date(2026, 0, 1, 9, 30);
-
   return (
-    <>
-      <StepHead
-        title={t('tdw_ob_language_title', 'Language and time')}
-        lead={t(
-          'tdw_ob_language_lead',
-          'Tadween works in English and Arabic. Arabic switches the whole app to right-to-left.'
-        )}
-      />
-      <div className="tdw-ob-fields">
-        <div className="pz-field">
-          <span className="pz-label" aria-hidden="true">
-            {t('tdw_pref_language', 'Language')}
-          </span>
-          <RadioGroup
-            label={t('tdw_pref_language', 'Language')}
-            columns={2}
-            value={main.includes(current) ? current : ''}
-            onChange={changeLanguage}
-            options={main.map((code) => ({
-              value: code,
-              label: languageName(code),
-              description:
-                code === 'ar'
-                  ? t('tdw_ob_rtl', 'Right to left')
-                  : t('tdw_ob_ltr', 'Left to right'),
-            }))}
-          />
-          {others.length ? (
-            <Select
-              size="sm"
-              aria-label={t('tdw_ob_more_languages', 'More languages')}
-              placeholder={t('tdw_ob_more_languages', 'More languages')}
-              value={others.includes(current) ? current : undefined}
-              onChange={changeLanguage}
-              options={others.map((code) => ({ value: code, label: languageName(code) }))}
-              className="tdw-ob-more"
-            />
-          ) : null}
-        </div>
-        <div className="pz-field">
-          <span className="pz-label">{t('tdw_pref_time_format', 'Time format')}</span>
-          {timeFormat ? (
-            <div className="tdw-ob-row">
-              <SegmentedControl
-                label={t('tdw_pref_time_format', 'Time format')}
-                value={timeFormat}
-                onChange={changeTimeFormat}
-                options={[
-                  { value: 'US', label: t('tdw_pref_12h', '12-hour') },
-                  { value: 'GLOBAL', label: t('tdw_pref_24h', '24-hour') },
-                ]}
-              />
-              <span className="time pz-muted">
-                {new Intl.DateTimeFormat(current.replace('_', '-'), {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: timeFormat === 'US',
-                }).format(sample)}
-              </span>
-            </div>
-          ) : (
-            <Skeleton height={36} width={220} radius={10} />
-          )}
-        </div>
-        {zone.label ? (
-          <div className="tdw-ob-note">
-            <Icon name="globe" size={16} />
-            <span>
-              {t('tdw_ob_timezone', 'Times show in this device’s time zone: {{zone}}', {
-                zone: zone.label,
-                interpolation: { escapeValue: false },
-              })}
-            </span>
-          </div>
-        ) : null}
-      </div>
-    </>
+    <Button variant="ghost" size="sm" icon="globe" lang={other} onClick={change}>
+      {languageName(other)}
+    </Button>
   );
 };
 
-/* Shown for a moment while the layout swaps in the paywall */
-const PlanPending: FC = () => (
-  <div className="tdw-ob-fields" aria-busy="true">
-    <Skeleton height={36} width="60%" radius={8} />
-    <Skeleton height={16} width="80%" />
-    <Skeleton height={160} radius={14} />
+// A YouTube or Vimeo page link as its embeddable player; null if unknown
+const embedUrl = (url: string) => {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, '');
+    if (host === 'youtu.be') {
+      return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    }
+    if (host.endsWith('youtube.com')) {
+      if (u.pathname.startsWith('/embed/')) {
+        return url;
+      }
+      const id =
+        u.searchParams.get('v') || u.pathname.match(/^\/shorts\/([^/]+)/)?.[1];
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (host === 'vimeo.com') {
+      const id = u.pathname.split('/').filter(Boolean)[0];
+      return id ? `https://player.vimeo.com/video/${id}` : null;
+    }
+    if (host === 'player.vimeo.com') {
+      return url;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+};
+
+export const TadweenOnboarding: FC<{
+  // null: the plan step alone, for a workspace that needs a plan outside onboarding
+  step: OnboardingStep | null;
+  go: (step: OnboardingStep | null) => void;
+  /** the workspace has no plan yet and billing is on */
+  needsPlan: boolean;
+}> = ({ step: requestedStep, go, needsPlan }) => {
+  const t = useT();
+  const { i18n } = useTranslation();
+  const router = useRouter();
+  const connected = useConnected();
+  const { tutorialVideoUrl } = useBrandLinks();
+  const rtl = i18n.dir() === 'rtl';
+  const ar = i18n.resolvedLanguage === 'ar';
+  const [travel, setTravel] = useState(1);
+  const standalone = !requestedStep;
+  const step: OnboardingStep = requestedStep || 'plan';
+  useChannelReturn();
+
+  // Postiz's three steps, the tutorial only when Branding has a video, then
+  // the plan while the workspace still needs one
+  const order = useMemo(
+    () =>
+      STEPS.filter(
+        (s) =>
+          (s !== 'tutorial' || !!tutorialVideoUrl) &&
+          (s !== 'plan' || needsPlan)
+      ),
+    [tutorialVideoUrl, needsPlan]
+  );
+  const index = Math.max(0, order.indexOf(step));
+  const last = index === order.length - 1;
+
+  // replace: browser Back must not land on ?onboarding=true and start over
+  const finish = useCallback(() => {
+    go(null);
+    router.replace('/today');
+  }, [go]);
+
+  // A step that doesn't apply any more (the plan was bought in another tab,
+  // the tutorial was removed) moves on
+  useEffect(() => {
+    if (standalone || order.includes(step)) {
+      return;
+    }
+    const next = order.find((s) => STEPS.indexOf(s) > STEPS.indexOf(step));
+    if (next) {
+      go(next);
+    } else {
+      finish();
+    }
+  }, [standalone, order, step]);
+
+  const labels: Record<OnboardingStep, string> = {
+    channels: t('tdw_ob_s_channels', 'Channels'),
+    agents: t('tdw_ob_s_agents', 'AI agents'),
+    tutorial: t('tdw_ob_s_tutorial', 'Tutorial'),
+    plan: t('tdw_ob_s_plan', 'Plan'),
+  };
+
+  const move = (next: OnboardingStep) => {
+    setTravel(order.indexOf(next) >= index ? 1 : -1);
+    go(next);
+  };
+
+  const forward = () => {
+    if (last) {
+      finish();
+      return;
+    }
+    move(order[index + 1]);
+  };
+
+  // Skipping setup never skips the plan: it goes straight to it
+  const skip = () => {
+    if (needsPlan) {
+      move('plan');
+      return;
+    }
+    finish();
+  };
+
+  const backIcon = rtl ? 'arrow-right' : 'arrow-left';
+  const nextIcon = rtl ? 'arrow-left' : 'arrow-right';
+  const hasChannels = connected.length > 0;
+  const onPlan = step === 'plan';
+
+  return (
+    <TadweenScope className={cx('tdw-ob-page', ar && 'is-ar')}>
+      <div className="pz-ob">
+        <header className="pz-ob-head">
+          <span className="pz-ob-logo">
+            <Logo />
+            <span className="pz-ob-logo-word">Tadween</span>
+          </span>
+          {standalone ? (
+            <span className="pz-ob-progress" aria-hidden="true" />
+          ) : (
+            <ol
+              className="pz-ob-progress"
+              style={{ ['--steps' as string]: order.length }}
+              aria-label={t('tdw_ob_progress', 'Step {{n}} of {{total}}', {
+                n: index + 1,
+                total: order.length,
+              })}
+            >
+              {order.map((s, i) => (
+                <li
+                  key={s}
+                  className={cx(
+                    i < index && 'is-done',
+                    i === index && 'is-current'
+                  )}
+                  aria-current={i === index ? 'step' : undefined}
+                >
+                  <span className="pz-ob-bar">
+                    <span />
+                  </span>
+                  <span className="caption">{labels[s]}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+          <div className="tdw-ob-tools">
+            {onPlan ? <OrganizationSelector /> : null}
+            <LanguageSwitch />
+            {onPlan ? (
+              <span className="tdw-ob-logout">
+                <LogoutComponent isIcon={true} />
+              </span>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={skip}>
+                {t('tdw_ob_skip', 'Skip setup')}
+              </Button>
+            )}
+          </div>
+        </header>
+
+        <main className={cx('pz-ob-stage', onPlan && 'is-plan')}>
+          <div
+            key={step}
+            className={cx('pz-ob-step', step !== 'channels' && 'is-wide')}
+            style={{ ['--travel' as string]: travel }}
+          >
+            {step === 'channels' ? (
+              <ChannelsStep connected={connected} />
+            ) : step === 'agents' ? (
+              <AgentsStep />
+            ) : step === 'tutorial' ? (
+              <TutorialStep url={tutorialVideoUrl} />
+            ) : (
+              <FirstBillingComponent onDone={finish} />
+            )}
+          </div>
+        </main>
+
+        {standalone ? null : (
+          <footer className="pz-ob-foot">
+            {index > 0 ? (
+              <Button
+                variant="ghost"
+                icon={backIcon}
+                onClick={() => move(order[index - 1])}
+              >
+                {t('tdw_back', 'Back')}
+              </Button>
+            ) : null}
+            <span className="pz-ob-foot-note caption">
+              {step === 'agents'
+                ? t(
+                    'tdw_ob_agents_later',
+                    'Every assistant and the API key are in Settings → API & MCP.'
+                  )
+                : null}
+            </span>
+            {onPlan ? null : (
+              <Button
+                variant={step === 'channels' && !hasChannels ? 'ghost' : 'primary'}
+                icon={last ? 'calendar-days' : undefined}
+                iconEnd={last ? undefined : nextIcon}
+                onClick={forward}
+              >
+                {last
+                  ? t('tdw_ob_go_today', 'Go to Today')
+                  : step === 'channels' && !hasChannels
+                  ? t('tdw_ob_without', 'Continue without channels')
+                  : step === 'agents'
+                  ? t('tdw_ob_continue_skip', 'Continue or skip')
+                  : order[index + 1] === 'plan'
+                  ? t('tdw_ob_choose_plan', 'Choose a plan')
+                  : t('tdw_continue', 'Continue')}
+              </Button>
+            )}
+          </footer>
+        )}
+      </div>
+    </TadweenScope>
+  );
+};
+
+/* Heading shared by every step: big friendly title, one lead line */
+export const StepHead: FC<{ title: string; lead: string; center?: boolean }> = ({
+  title,
+  lead,
+  center,
+}) => (
+  <div className={cx('tdw-ob-headline', center && 'is-center')}>
+    <h1 className="title-1">{title}</h1>
+    <p className="pz-ob-lead">{lead}</p>
   </div>
 );
 
-/* Step 3: one card per network customers can add, in the order the server
+/* Step 1: one card per network customers can add, in the order the server
    sends (GET /integrations: the focus networks first, as equals, then the
    rest). The cards press Postiz's own provider tile, so each provider's connect
    flow (OAuth, custom fields, web3, extension) is unchanged. */
@@ -803,67 +624,54 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
   );
 };
 
-/* Step 4: what's set up, then Today */
-const DoneStep: FC<{ connected: Integration[]; name: string }> = ({ connected, name }) => {
+/* Step 2: an AI assistant (Claude, ChatGPT, Cursor…) or the API, with the
+   exact settings for this workspace, as in Settings → API & MCP */
+const AgentsStep: FC = () => {
   const t = useT();
-  const { i18n } = useTranslation();
-  const { tutorialVideoUrl } = useBrandLinks();
-  const active = connected.filter((c) => !c.disabled);
-  const rows = [
-    {
-      done: !!name,
-      label: name
-        ? t('tdw_ob_sum_name', 'Hi, {{name}}', { name, interpolation: { escapeValue: false } })
-        : t('tdw_ob_sum_no_name', 'Add your name any time in Settings → Profile'),
-    },
-    {
-      done: true,
-      label: t('tdw_ob_sum_language', 'Tadween in {{language}}', {
-        language: languageName(i18n.resolvedLanguage || fallbackLng),
-        interpolation: { escapeValue: false },
-      }),
-    },
-    {
-      done: active.length > 0,
-      label: active.length
-        ? t('tdw_ob_sum_channels', 'Channels connected: {{count}}', { count: active.length })
-        : t('tdw_ob_sum_no_channels', 'Connect a channel any time from the sidebar'),
-    },
-  ];
   return (
-    <div className="pz-ob-done">
-      <span className="pz-ob-done-mark">
-        <Icon name="check" size={28} />
-      </span>
+    <>
       <StepHead
         center
-        title={
-          name
-            ? t('tdw_ob_done_title_name', 'You’re all set, {{name}}', {
-                name,
-                interpolation: { escapeValue: false },
-              })
-            : t('tdw_ob_done_title', 'You’re all set')
-        }
+        title={t('tdw_ob_agents_title', 'Connect your AI agent')}
         lead={t(
-          'tdw_ob_done_lead2',
-          'Today shows what’s next. Write your first post and schedule it when you’re ready.'
+          'tdw_ob_agents_lead',
+          'Pick the agent you use and let it draft and schedule posts for you.'
         )}
       />
-      <ul className="tdw-ob-summary">
-        {rows.map((row) => (
-          <li key={row.label} className={cx(row.done && 'is-done')}>
-            <Icon name={row.done ? 'circle-check' : 'clock'} size={18} />
-            <span>{row.label}</span>
-          </li>
-        ))}
-      </ul>
-      {tutorialVideoUrl ? (
-        <a className="tdw-ob-link" href={tutorialVideoUrl} target="_blank" rel="noreferrer">
+      <AgentConnect />
+    </>
+  );
+};
+
+/* Step 3: the tutorial video from Branding */
+const TutorialStep: FC<{ url: string }> = ({ url }) => {
+  const t = useT();
+  const embed = embedUrl(url);
+  return (
+    <>
+      <StepHead
+        center
+        title={t('tdw_ob_tutorial_title', 'Learn how to use Tadween')}
+        lead={t(
+          'tdw_ob_tutorial_lead',
+          'Watch this short video to get the most out of Tadween.'
+        )}
+      />
+      {embed ? (
+        <div className="pz-ob-video tdw-ob-video">
+          <iframe
+            src={embed}
+            title={t('tdw_ob_tutorial_video', 'Tadween tutorial')}
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      ) : (
+        <a className="tdw-ob-link is-center" href={url} target="_blank" rel="noreferrer">
           <Icon name="play" size={14} />
           {t('tdw_ob_watch_tour', 'Watch a short tour')}
         </a>
-      ) : null}
-    </div>
+      )}
+    </>
   );
 };

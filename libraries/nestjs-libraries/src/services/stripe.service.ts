@@ -774,11 +774,15 @@ export class StripeService extends PaymentProviderAbstract {
     const trialDays = allowTrial
       ? await this.trialDaysFor(customer, body.billing)
       : 0;
-    // Stripe Embedded Checkout, mounted inside the billing page. The app waits
-    // for the webhook (GET /billing/check/:uniqueId) before showing success.
+    // Checkout Elements (custom UI mode), as Postiz: Stripe's Payment Element
+    // and the app's own confirm button. Card, Link and wallets confirm in the
+    // page and the app waits for the webhook (GET /billing/check/:uniqueId);
+    // a payment method that needs its own page comes back to return_url,
+    // where CheckPayment does the same wait.
     const { client_secret } = await stripe.checkout.sessions.create({
-      ui_mode: 'embedded',
-      redirect_on_completion: 'never',
+      ui_mode: 'custom',
+      return_url:
+        process.env['FRONTEND_URL'] + `/today?check=${uniqueId}`,
       customer,
       mode: 'subscription',
       // Local currency at checkout (also needs Adaptive Pricing on in the

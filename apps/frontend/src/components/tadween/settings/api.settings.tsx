@@ -1137,6 +1137,55 @@ const ConnectGallery: FC<{ context: ConnectContext }> = ({ context }) => {
   );
 };
 
+// Onboarding's Agents step: the same guides as the gallery above, picked from
+// a row of chips (like Postiz's onboarding) and shown inline, not in a drawer
+export const AgentConnect: FC = () => {
+  const t = useT();
+  const context = useConnectContext();
+  const guides = useClientGuides(context);
+  const [picked, setPicked] = useState(guides[0]?.id);
+  const guide = guides.find((g) => g.id === picked) || guides[0];
+  if (!guide) {
+    return null;
+  }
+  return (
+    <div className="pz-ob-agents">
+      <div
+        className="pz-ob-chips"
+        role="group"
+        aria-label={t('tdw_ob_agents_pick', 'Your AI assistant')}
+      >
+        {guides.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            aria-pressed={g.id === guide.id}
+            className="pz-ob-agent"
+            onClick={() => setPicked(g.id)}
+          >
+            {g.icon}
+            {g.name}
+          </button>
+        ))}
+      </div>
+      <section className="pz-ob-panel">
+        <header className="pz-ob-panel-head">
+          <h3 className="headline">
+            {t('tdw_api_connect_to', 'Connect {{client}}', {
+              client: guide.name,
+              interpolation: { escapeValue: false },
+            })}
+          </h3>
+          <p>{guide.summary}</p>
+        </header>
+        <div className="pz-ob-panel-body">
+          <GuideBody key={guide.id} guide={guide} context={context} />
+        </div>
+      </section>
+    </div>
+  );
+};
+
 // ── Overview, key, public API, OAuth app ────────────────────────────────────
 const OverviewSection: FC<{ context: ConnectContext }> = ({ context }) => {
   const t = useT();

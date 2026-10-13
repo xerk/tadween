@@ -33,14 +33,14 @@ export interface ChannelFacts {
 
 const P = (slug: string) => `/channels/${slug}.png`;
 
-/** The networks with their own page under /channels: the five Tadween focuses on, LinkedIn
-    first (profile and company pages are two pages). Every `related` slug must be one of these
-    (lib/redirects.ts checks). */
+/** The networks with their own page under /channels: the five Tadween focuses on, as equals
+    in alphabetical order (LinkedIn profile and company pages are two pages). Every `related`
+    slug must be one of these (lib/redirects.ts checks). */
 export const CHANNELS: ChannelFacts[] = [
+  { slug: 'facebook', providers: ['facebook'], name: 'Facebook', icon: P('facebook'), group: 'social', limit: 63206, editor: 'normal', comments: true, preview: 'feed', accent: '#0866ff', related: ['instagram', 'linkedin-page', 'threads'] },
+  { slug: 'instagram', providers: ['instagram', 'instagram-standalone'], name: 'Instagram', icon: P('instagram'), group: 'social', limit: 2200, editor: 'normal', comments: 'text-only', preview: 'photo', accent: '#d62976', related: ['facebook', 'threads', 'linkedin'] },
   { slug: 'linkedin', providers: ['linkedin'], name: 'LinkedIn', icon: P('linkedin'), group: 'professional', limit: 3000, editor: 'normal', comments: true, preview: 'linkedin', accent: '#0a66c2', related: ['linkedin-page', 'instagram', 'youtube'] },
   { slug: 'linkedin-page', providers: ['linkedin-page'], name: 'LinkedIn Page', icon: P('linkedin-page'), group: 'professional', limit: 3000, editor: 'normal', comments: true, preview: 'linkedin', accent: '#0a66c2', related: ['linkedin', 'facebook', 'youtube'] },
-  { slug: 'instagram', providers: ['instagram', 'instagram-standalone'], name: 'Instagram', icon: P('instagram'), group: 'social', limit: 2200, editor: 'normal', comments: 'text-only', preview: 'photo', accent: '#d62976', related: ['facebook', 'threads', 'linkedin'] },
-  { slug: 'facebook', providers: ['facebook'], name: 'Facebook', icon: P('facebook'), group: 'social', limit: 63206, editor: 'normal', comments: true, preview: 'feed', accent: '#0866ff', related: ['instagram', 'linkedin-page', 'threads'] },
   { slug: 'threads', providers: ['threads'], name: 'Threads', icon: P('threads'), group: 'social', limit: 500, editor: 'normal', comments: true, preview: 'feed', accent: '#000000', related: ['instagram', 'linkedin', 'facebook'] },
   { slug: 'youtube', providers: ['youtube'], name: 'YouTube', icon: P('youtube'), group: 'video', limit: 5000, editor: 'normal', comments: false, preview: 'video', accent: '#ff0000', related: ['linkedin', 'instagram', 'facebook'] },
 ];
@@ -81,6 +81,9 @@ export const MORE_CHANNELS: { name: string; icon: string }[] = [
   { name: 'Listmonk', icon: P('listmonk') },
   { name: 'Moltbook', icon: P('moltbook') },
 ];
+
+/** The five focus networks, one mark each, in the same order as CHANNELS. */
+export const FOCUS_NETS = ['facebook', 'instagram', 'linkedin', 'threads', 'youtube'] as const;
 
 export const channelBySlug = (slug: string) => CHANNELS.find((c) => c.slug === slug);
 

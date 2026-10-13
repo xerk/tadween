@@ -12,7 +12,9 @@
 //              `isUS`, as Settings → Preferences); the time zone is the device's
 //   plan     → only when the workspace still needs a plan: the layout shows the
 //              one-page /billing paywall, and onboarding resumes after it
-//   channels → Postiz's own AddProviderComponent, LinkedIn first
+//   channels → every network the admin turned on, in the server's order (the
+//              focus networks first, as equals), through Postiz's own
+//              AddProviderComponent
 //   done     → summary, then Today
 // The workspace name is asked on the sign-up card (it is required to create
 // the workspace). The AI agent setup lives in Settings → API & MCP.
@@ -58,7 +60,6 @@ export type OnboardingStep = 'welcome' | 'language' | 'plan' | 'channels' | 'don
 
 const STORAGE_KEY = 'tdw_onboarding';
 const STEPS: OnboardingStep[] = ['welcome', 'language', 'plan', 'channels', 'done'];
-const LINKEDIN = ['linkedin', 'linkedin-page'];
 
 // { step, user } while onboarding runs; { done: user } once that user finished
 // or skipped it in this tab, so browser Back to ?onboarding=true doesn't start
@@ -659,25 +660,22 @@ const PlanPending: FC = () => (
   </div>
 );
 
-/* Step 3: LinkedIn profile and page first, then every other network the admin
-   turned on. The cards press Postiz's own provider tile, so each provider's
-   connect flow (OAuth, custom fields, web3, extension) is unchanged. */
+/* Step 3: one card per network customers can add, in the order the server
+   sends (GET /integrations: the focus networks first, as equals, then the
+   rest). The cards press Postiz's own provider tile, so each provider's connect
+   flow (OAuth, custom fields, web3, extension) is unchanged. */
 const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
   const t = useT();
-  const user = useUser();
   const hidden = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const { data } = useProviders();
-  const social: { identifier: string; name: string }[] = data?.social || [];
-  const linkedin = LINKEDIN.map((id) => social.find((s) => s.identifier === id)).filter(
-    Boolean
-  ) as typeof social;
-  const rest = social.filter((s) => !LINKEDIN.includes(s.identifier));
+  const social: { identifier: string; name: string; toolTip?: string }[] =
+    data?.social || [];
   const article = data?.article || [];
-  // Channels without a LinkedIn card above (also LinkedIn ones when the admin
-  // hid LinkedIn from Add channel) are listed under "Connected"
+  // Channels without a card above (e.g. a network the admin turned off later)
+  // are listed under "Connected"
   const others = connected.filter(
-    (c) => !linkedin.some((l) => l.identifier === c.identifier)
+    (c) => !social.some((s) => s.identifier === c.identifier)
   );
 
   const connect = (identifier: string) => {
@@ -690,26 +688,13 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
     setTimeout(() => setBusy(null), 4000);
   };
 
-  const cardCopy: Record<string, [string, string]> = {
-    linkedin: [
-      t('tdw_ob_profile', 'LinkedIn profile'),
-      user?.name
-        ? t('tdw_ob_profile_desc_name', 'Posts as you, {{name}}', { name: user.name })
-        : t('tdw_ob_profile_desc', 'Posts as you'),
-    ],
-    'linkedin-page': [
-      t('tdw_ob_page', 'LinkedIn page'),
-      t('tdw_ob_page_desc', 'Posts as a company page you admin'),
-    ],
-  };
-
   return (
     <>
       <StepHead
         title={t('tdw_ob_channels_title', 'Connect your first channel')}
         lead={t(
-          'tdw_ob_channels_lead2',
-          'Start with LinkedIn: your profile, and the company pages you manage. You can add more networks any time.'
+          'tdw_ob_channels_lead3',
+          'Pick the networks you post to. You can add more any time.'
         )}
       />
       {!data ? (
@@ -719,9 +704,8 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
         </div>
       ) : (
         <div className="pz-ob-cards">
-          {linkedin.map((item) => {
+          {social.map((item) => {
             const done = connected.filter((c) => c.identifier === item.identifier);
-            const [title, desc] = cardCopy[item.identifier];
             return (
               <div key={item.identifier} className={cx('pz-ob-card', done.length && 'is-done')}>
                 <img
@@ -729,13 +713,16 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
                   alt=""
                   width={40}
                   height={40}
-                  className={item.identifier === 'linkedin-page' ? 'is-square' : ''}
                 />
                 <div className="pz-ob-card-text">
-                  <div className="headline">{title}</div>
-                  <div className="caption pz-muted">
-                    {done.length ? done.map((d) => d.name).join(', ') : desc}
-                  </div>
+                  <div className="headline">{item.name.replace(/\s*\n\s*/g, ' ')}</div>
+                  {done.length || item.toolTip ? (
+                    <div className="caption pz-muted">
+                      {done.length
+                        ? done.map((d) => d.name).join(', ')
+                        : item.toolTip}
+                    </div>
+                  ) : null}
                 </div>
                 {done.length ? (
                   <>
@@ -750,7 +737,7 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
                 ) : (
                   <Button
                     size="sm"
-                    variant={item.identifier === 'linkedin' ? 'primary' : 'secondary'}
+                    variant="secondary"
                     loading={busy === item.identifier}
                     loadingLabel={t('tdw_ob_connecting', 'Connecting…')}
                     onClick={() => connect(item.identifier)}
@@ -765,7 +752,7 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
       )}
       <div ref={hidden} hidden aria-hidden="true">
         {data && (
-          <AddProviderComponent invite={false} social={linkedin as any} article={[]} onboarding={true} />
+          <AddProviderComponent invite={false} social={social as any} article={[]} onboarding={true} />
         )}
       </div>
 
@@ -797,7 +784,7 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
         </p>
       )}
 
-      {(rest.length > 0 || article.length > 0) && (
+      {article.length > 0 && (
         <div className="pz-ob-section">
           <h2 className="caption pz-ob-section-title">
             {t('tdw_ob_other_networks', 'Other networks')}
@@ -805,7 +792,7 @@ const ChannelsStep: FC<{ connected: Integration[] }> = ({ connected }) => {
           <div className="pz-ob-providers">
             <AddProviderComponent
               invite={false}
-              social={rest as any}
+              social={[]}
               article={article}
               onboarding={true}
             />

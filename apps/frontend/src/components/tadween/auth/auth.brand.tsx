@@ -416,7 +416,7 @@ export const AuthBrand: FC = () => {
 
       <div className="tdw-auth-tagline">
         <p className="tdw-auth-networks" aria-hidden="true">
-          {(['linkedin', 'x', 'instagram', 'facebook', 'threads', 'tiktok'] as Network[]).map(
+          {(['facebook', 'instagram', 'linkedin', 'threads', 'x', 'tiktok'] as Network[]).map(
             (network) => (
               <img
                 key={network}

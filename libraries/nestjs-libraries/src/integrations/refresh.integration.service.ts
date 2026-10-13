@@ -38,7 +38,9 @@ export class RefreshIntegrationService {
       integration.providerIdentifier,
       refresh.accessToken,
       refresh.refreshToken,
-      refresh.expiresIn
+      refresh.expiresIn,
+      undefined,
+      integration.inBetweenSteps
     );
 
     return refresh;
@@ -89,22 +91,10 @@ export class RefreshIntegrationService {
         );
       }
 
-      // informAboutRefreshError (with the failure cause) already notifies
-      // the user, and refreshNeeded sets the same flag disconnectChannel
-      // would — calling disconnectChannel here sent a second, cause-less
-      // copy of the same email for every failed refresh.
-      await this._integrationService.refreshNeeded(
-        integration.organizationId,
-        integration.id
-      );
-
-      await this._integrationService.informAboutRefreshError(
-        integration.organizationId,
+      return this.markRefreshFailed(
         integration,
         socialProvider.refreshErrorMessage?.(refreshError) || cause
       );
-
-      return false;
     }
 
     if (
@@ -114,6 +104,8 @@ export class RefreshIntegrationService {
       return refresh;
     }
 
+    // a reConnect that throws (YouTube "Channel not found") is a failed
+    // refresh too, instead of an unhandled error
     let reConnect;
     try {
       reConnect = await socialProvider.reConnect(
@@ -126,12 +118,36 @@ export class RefreshIntegrationService {
         `Could not reconnect ${integration.providerIdentifier} integration ${integration.id} after a successful token refresh`,
         err?.response?.data || err?.message || err
       );
-      throw err;
+      // the reason reaches the notification, like the orchestrator's
+      // setBetweenSteps used to send it before this was handled here
+      return this.markRefreshFailed(
+        integration,
+        socialProvider.refreshErrorMessage?.(err) || err?.message || cause
+      );
     }
 
     return {
       ...refresh,
       ...reConnect,
     };
+  }
+
+  // informAboutRefreshError (with the failure cause) already notifies
+  // the user, and refreshNeeded sets the same flag disconnectChannel
+  // would — calling disconnectChannel here sent a second, cause-less
+  // copy of the same email for every failed refresh.
+  private async markRefreshFailed(integration: Integration, cause: string) {
+    await this._integrationService.refreshNeeded(
+      integration.organizationId,
+      integration.id
+    );
+
+    await this._integrationService.informAboutRefreshError(
+      integration.organizationId,
+      integration,
+      cause
+    );
+
+    return false as const;
   }
 }

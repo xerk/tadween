@@ -43,6 +43,22 @@ const browserSchemes = [
 export class OAuthService {
   constructor(private _oauthRepository: OAuthRepository) {}
 
+  // RFC 8414 path-based issuer the client discovered, the same values
+  // start.mcp.ts advertises: dynamically registered clients come through the
+  // DCR issuer, the pre-defined ChatGPT app through the ChatGPT one. Other
+  // static apps an org creates (Canva...) never discover an MCP issuer, so
+  // their callback carries no iss
+  issuer(app: Pick<OAuthApp, 'dynamic' | 'clientId'>) {
+    if (!app.dynamic && app.clientId !== openAiOAuthClientId()) {
+      return undefined;
+    }
+
+    return new URL(
+      app.dynamic ? '/mcp-oauth-dynamic' : '/mcp-oauth-chatgpt',
+      process.env.NEXT_PUBLIC_BACKEND_URL!
+    ).toString();
+  }
+
   async getApp(orgId: string) {
     const app = await this._oauthRepository.getAppByOrgId(orgId);
     if (!app) return false;

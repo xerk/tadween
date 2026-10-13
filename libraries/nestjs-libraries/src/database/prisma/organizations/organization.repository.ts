@@ -450,6 +450,23 @@ export class OrganizationRepository {
       return false;
     }
 
+    // already a member: the create below would hit the unique
+    // (userId, organizationId) index and fail the login that carried the invite
+    const checkIfMemberExists =
+      await this._userOrg.model.userOrganization.findFirst({
+        where: {
+          userId,
+          organizationId: orgId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (checkIfMemberExists) {
+      return false;
+    }
+
     const checkForSubscription =
       await this._organization.model.organization.findFirst({
         where: {

@@ -1,4 +1,4 @@
-import { Agent } from 'undici';
+import { Agent, buildConnector } from 'undici';
 import axios, { AxiosInstance } from 'axios';
 import dns from 'node:dns';
 import net from 'node:net';
@@ -45,20 +45,52 @@ function ssrfSafeLookup(
   });
 }
 
+// The `lookup` hook only runs for hostnames that need DNS resolution: Node's
+// net.connect skips it for literal-IP hosts (http://169.254.169.254/,
+// http://[::1]/), so a literal private/loopback IP would bypass the guard.
+// Every connection (redirect hops included) also goes through this check.
+function isBlockedLiteralHost(hostname?: string | null) {
+  const host = (hostname || '').replace(/^\[|\]$/g, '');
+  return net.isIP(host) !== 0 && isBlockedIp(host);
+}
+
+const pinnedConnector = buildConnector({ lookup: ssrfSafeLookup });
+
 export const ssrfSafeDispatcher = new Agent({
-  connect: {
-    lookup: ssrfSafeLookup,
+  connect(options, callback) {
+    if (isBlockedLiteralHost(options.hostname)) {
+      return callback(new Error('Blocked IP'), null);
+    }
+    return pinnedConnector(options, callback);
   },
 });
 
 // axios can't use an undici dispatcher, but Node's http(s) agents accept the
 // same `lookup` hook, so axios requests (providers that need form-data /
 // stream uploads) get the identical pinned-DNS guard as `this.fetch`.
+// The agents' createConnection runs for every socket, literal-IP hosts and
+// redirect hops included, so it gets the same literal-IP check.
+function guardLiteralHosts<T extends http.Agent>(agent: T): T {
+  const createConnection = (agent as any).createConnection.bind(agent);
+  (agent as any).createConnection = (options: any, callback: any) => {
+    if (isBlockedLiteralHost(options.host)) {
+      callback(new Error('Blocked IP'));
+      return undefined;
+    }
+    return createConnection(options, callback);
+  };
+  return agent;
+}
+
 const ssrfSafeAxios = axios.create({
-  httpAgent: new http.Agent({ lookup: ssrfSafeLookup } as http.AgentOptions),
-  httpsAgent: new https.Agent({
-    lookup: ssrfSafeLookup,
-  } as https.AgentOptions),
+  httpAgent: guardLiteralHosts(
+    new http.Agent({ lookup: ssrfSafeLookup } as http.AgentOptions)
+  ),
+  httpsAgent: guardLiteralHosts(
+    new https.Agent({
+      lookup: ssrfSafeLookup,
+    } as https.AgentOptions)
+  ),
 });
 
 // Self-hosters legitimately connect Postiz to WordPress/Mastodon/Lemmy/Listmonk

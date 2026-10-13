@@ -671,7 +671,7 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
                   'tdw_api_n8n_n1',
                   'In n8n open Settings → Community nodes → Install and enter:'
                 ),
-                code: 'n8n-nodes-postiz',
+                code: 'n8n-nodes-tadween',
               },
               {
                 text: t(
@@ -788,7 +788,7 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
             steps: (system) => [
               {
                 text: t('tdw_api_cli_s1', 'Install the CLI (needs Node.js 18 or newer):'),
-                code: 'npm install -g postiz',
+                code: 'npm install -g tadween',
               },
               {
                 text: t(
@@ -797,19 +797,19 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
                 ),
                 code:
                   system === 'windows'
-                    ? `$env:POSTIZ_API_URL = "${c.backend}"\n$env:POSTIZ_API_KEY = "${c.key}"`
-                    : `export POSTIZ_API_URL="${c.backend}"\nexport POSTIZ_API_KEY="${c.key}"`,
+                    ? `$env:TADWEEN_API_URL = "${c.backend}"\n$env:TADWEEN_API_KEY = "${c.key}"`
+                    : `export TADWEEN_API_URL="${c.backend}"\nexport TADWEEN_API_KEY="${c.key}"`,
               },
               {
                 text: t('tdw_api_cli_s3', 'Try it: this lists your channels.'),
-                code: 'postiz integrations:list',
+                code: 'tadween integrations:list',
               },
               {
                 text: t(
                   'tdw_api_cli_s4',
                   'Optional: teach your coding agent (Claude Code, Codex, Cursor…) to use the CLI:'
                 ),
-                code: 'npx skills add gitroomhq/postiz-agent',
+                code: 'npx skills add xerk/tadween-agent',
               },
             ],
           },
@@ -818,7 +818,7 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
           tipKey,
           t(
             'tdw_api_tip_cli_url',
-            'Requests go to the CLI’s default server instead of this one: POSTIZ_API_URL is not set in this terminal. Set it again, or add both lines to your shell profile.'
+            'Requests go to the CLI’s default server instead of this one: TADWEEN_API_URL is not set in this terminal. Set it again, or add both lines to your shell profile.'
           ),
         ],
       },
@@ -838,7 +838,7 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
                   'tdw_api_grok_s1',
                   'Paste this into Grok. It installs the CLI, points it at this server and asks you for the key:'
                 ),
-                code: `Install the CLI with \`npm install -g postiz\`, then install the skill with \`npx skills add gitroomhq/postiz-agent\`. Set the POSTIZ_API_URL environment variable to ${c.backend}, then ask me for my API key and set it as the POSTIZ_API_KEY environment variable before using the CLI.`,
+                code: `Install the CLI with \`npm install -g tadween\`, then install the skill with \`npx skills add xerk/tadween-agent\`. Set the TADWEEN_API_URL environment variable to ${c.backend}, then ask me for my API key and set it as the TADWEEN_API_KEY environment variable before using the CLI.`,
               },
               {
                 text: t(
@@ -1336,7 +1336,7 @@ const ApiKeySection: FC<{ context: ConnectContext }> = ({
           <li>
             {t(
               'tdw_api_breaks_cli',
-              'The CLI, scripts and CI jobs that use POSTIZ_API_KEY.'
+              'The CLI, scripts and CI jobs that use TADWEEN_API_KEY.'
             )}
           </li>
           <li>

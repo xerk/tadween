@@ -85,7 +85,7 @@ limit, request builder, docs link from Branding `docsUrl` when set) and
 | MCP, API key | `<MCP_URL or backend>/mcp` | `Authorization: Bearer <key>` |
 | MCP, sign in | `<MCP_URL or backend>/mcp-oauth-dynamic` | OAuth 2.1 + PKCE; the client registers itself (`/oauth/register`) |
 | Public API | `<backend>/public/v1/*` | `Authorization: <key>` (raw key, **no** `Bearer`) |
-| CLI | `POSTIZ_API_URL=<backend>`, `POSTIZ_API_KEY=<key>` | API key |
+| CLI (`tadween` on npm) | `TADWEEN_API_URL=<backend>`, `TADWEEN_API_KEY=<key>` | API key |
 
 The key never goes into a URL: the `/mcp/<key>` and `/sse/<key>` routes still
 exist on the backend but the page does not offer them. Clients that cannot send
@@ -101,9 +101,9 @@ app's pre-registered client.
 | Claude Code | `claude mcp add --transport http …` with a Bearer header, or the OAuth URL + `/mcp` → Authenticate | |
 | ChatGPT | Developer mode → Create, OAuth URL | |
 | Cursor, VS Code, Windsurf | JSON config with a Bearer header, or the OAuth URL (Cursor, VS Code) | VS Code uses an `inputs` prompt so the key is not written in the file |
-| n8n | MCP Client Tool (HTTP Streamable, Bearer Auth), or the `n8n-nodes-postiz` community node (Host = backend) | |
+| n8n | MCP Client Tool (HTTP Streamable, Bearer Auth), or the `n8n-nodes-tadween` community node (Host = backend) | |
 | Make & Zapier | HTTP request to `POST /public/v1/posts`; Settings → Webhooks for events | |
-| Terminal (CLI) | `npm install -g postiz` + env vars (macOS/Linux and PowerShell tabs) | |
+| Terminal (CLI) | `npm install -g tadween` + env vars (macOS/Linux and PowerShell tabs), skill with `npx skills add xerk/tadween-agent` | Packages: docs/tadween/npm-packages.md |
 | Grok | Chat instructions (CLI pointed at this instance) | |
 | Other MCP clients | Streamable HTTP + header, or the OAuth URL | |
 

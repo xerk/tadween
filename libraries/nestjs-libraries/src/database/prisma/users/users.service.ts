@@ -65,15 +65,9 @@ export class UsersService {
       await Promise.all(
         [kept, switched].map((account) =>
           this._notificationService
-            .sendEmail(
-              account.email,
-              'Your login was changed',
-              `An administrator changed the login for your account. ` +
-                `You can now sign in using ${account.email}. ` +
-                `Your subscription and plan were not changed by this switch — ` +
-                `if you intended to cancel a subscription, please do that ` +
-                `separately from your billing settings.`
-            )
+            .sendTemplate(account.email, 'loginChanged', {
+              email: account.email,
+            })
             .catch((err) =>
               this._logger.error(`Failed to notify ${account.email}`, err)
             )
@@ -153,5 +147,9 @@ export class UsersService {
 
   updateEmailNotifications(userId: string, body: EmailNotificationsDto) {
     return this._usersRepository.updateEmailNotifications(userId, body);
+  }
+
+  setLanguage(userId: string, language: string) {
+    return this._usersRepository.setLanguage(userId, language);
   }
 }

@@ -63,7 +63,11 @@ export class AuthController {
         body,
         ip,
         userAgent,
-        getOrgFromCookie
+        getOrgFromCookie,
+        // Tadween: the app language (i18next cookie, or the browser's) for emails
+        req?.cookies?.i18next ||
+          req?.headers?.['accept-language']?.split(',')[0] ||
+          undefined
       );
 
       const activationRequired =

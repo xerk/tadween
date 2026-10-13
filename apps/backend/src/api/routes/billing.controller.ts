@@ -272,10 +272,10 @@ export class BillingController {
     const result = await (await this.provider(org)).setToCancel(org.id);
 
     if (result.cancel_at) {
-      await this._notificationService.sendEmail(
-        process.env.EMAIL_FROM_ADDRESS,
-        'Subscription Cancelled',
-        `Organization ${org.name} has cancelled their subscription because: ${body.feedback}`,
+      // Tadween: to the team's inbox (never no-reply); replies reach the customer
+      await this._notificationService.sendSupportTemplate(
+        'subscriptionCancelled',
+        { workspace: org.name, email: user.email, feedback: body.feedback },
         user.email
       );
     }

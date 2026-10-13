@@ -25,6 +25,7 @@ import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions
 import { ApiTags } from '@nestjs/swagger';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
+import { UserLanguageDto } from '@gitroom/nestjs-libraries/dtos/users/user.language.dto';
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
 import { HttpForbiddenException } from '@gitroom/nestjs-libraries/services/exception.filter';
 import { RealIP } from 'nestjs-real-ip';
@@ -263,6 +264,20 @@ export class UsersController {
     @Body() body: EmailNotificationsDto
   ) {
     return this._userService.updateEmailNotifications(user.id, body);
+  }
+
+  // Tadween: the app language, so emails are sent in it
+  @Post('/language')
+  async setLanguage(
+    @GetUserFromRequest() user: User,
+    @Body() body: UserLanguageDto,
+    @Req() req: Request
+  ) {
+    // a super admin browsing as someone keeps that person's language
+    if (!(req.cookies.impersonate || req.headers.impersonate)) {
+      await this._userService.setLanguage(user.id, body.language);
+    }
+    return { ok: true };
   }
 
   @Post('/api-key/rotate')

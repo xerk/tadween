@@ -23,6 +23,11 @@ import {
 
 import { STRIPE_PROVIDER } from '@gitroom/nestjs-libraries/services/payment/payment.providers';
 import { PartnersService } from '@gitroom/nestjs-libraries/database/prisma/partners/partners.service';
+import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/notification.service';
+import {
+  EmailTemplate,
+  EmailTemplateData,
+} from '@gitroom/nestjs-libraries/emails/templates/email.templates';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_nothing');
 
@@ -36,7 +41,8 @@ export class StripeService extends PaymentProviderAbstract {
     private _userService: UsersService,
     private _trackService: TrackService,
     private _plans: PlansService,
-    private _partners: PartnersService
+    private _partners: PartnersService,
+    private _notifications: NotificationService
   ) {
     super();
   }
@@ -92,6 +98,8 @@ export class StripeService extends PaymentProviderAbstract {
         return this.updateSubscription(event);
       case 'customer.subscription.deleted':
         return this.deleteSubscription(event);
+      case 'customer.subscription.trial_will_end':
+        return this.trialWillEnd(event);
       case 'checkout.session.completed':
       case 'checkout.session.async_payment_succeeded':
         return event.data.object.mode === 'setup' &&
@@ -312,6 +320,16 @@ export class StripeService extends PaymentProviderAbstract {
         customer,
         STRIPE_PROVIDER
       );
+      // ended at the end of its trial (no card, or cancelled during it)
+      const { trial_end, ended_at } = event.data.object;
+      if (trial_end && ended_at && Math.abs(ended_at - trial_end) < 3600) {
+        await this.billingEmail(
+          customer,
+          'trialEnded',
+          {},
+          `trial_ended_${event.data.object.id}`
+        );
+      }
       return;
     }
 
@@ -416,6 +434,15 @@ export class StripeService extends PaymentProviderAbstract {
         return { ok: true };
       }
       await this.saveProviderState(subscription);
+      const invoice = event.data.object;
+      if (event.type === 'invoice.payment_failed' && invoice.amount_due > 0) {
+        await this.billingEmail(
+          invoice.customer,
+          'paymentFailed',
+          { amountCents: invoice.amount_due, currency: invoice.currency },
+          `payment_failed_${invoice.id}_${invoice.attempt_count}`
+        );
+      }
     } catch (err) {
       console.error('stripe_invoice_status_not_saved', {
         stripe_event_type: event.type,
@@ -1561,9 +1588,104 @@ export class StripeService extends PaymentProviderAbstract {
         );
       }
       await this.recordPartnerInvoice(event.data.object, subscription, customer);
+      await this.receiptEmail(event.data.object, subscription, customer);
     }
 
     return { ok: true };
+  }
+
+  // Tadween: the receipt, or "your plan has started" for the first payment
+  // of a subscription (at checkout or when its trial converts)
+  private async receiptEmail(
+    invoice: Stripe.Invoice,
+    subscription: Stripe.Subscription,
+    customer: string
+  ) {
+    // a subscription invoice's period is the one just ended: the trial's
+    // conversion invoice closes the trial (period_end = trial_end)
+    const started =
+      invoice.billing_reason === 'subscription_create' ||
+      (invoice.billing_reason === 'subscription_cycle' &&
+        !!subscription.trial_end &&
+        Math.abs(invoice.period_end - subscription.trial_end) < 86400);
+    await this.billingEmail(
+      customer,
+      'paymentReceipt',
+      {
+        amountCents: invoice.amount_paid,
+        currency: invoice.currency,
+        plan: await this.planName(subscription.metadata?.billing),
+        paidAt: new Date(
+          (invoice.status_transitions?.paid_at || invoice.created) * 1000
+        ),
+        started,
+      },
+      `receipt_${invoice.id}`
+    );
+  }
+
+  // Tadween: Stripe tells us 3 days before any trial ends, with or without a
+  // card (the card-less trial is a Stripe subscription too). Never throws.
+  async trialWillEnd(event: Stripe.CustomerSubscriptionTrialWillEndEvent) {
+    try {
+      const subscription = event.data.object;
+      if (!subscription.trial_end || subscription.status !== 'trialing') {
+        return { ok: true };
+      }
+      await this.billingEmail(
+        subscription.customer,
+        'trialEnding',
+        {
+          trialEnd: new Date(subscription.trial_end * 1000),
+          plan: await this.planName(subscription.metadata?.billing),
+          hasCard: await this.hasPaymentMethod(subscription),
+        },
+        `trial_ending_${subscription.id}_${subscription.trial_end}`
+      );
+    } catch (err) {
+      console.error('stripe_trial_will_end_failed', {
+        stripe_event_id: event.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return { ok: true };
+  }
+
+  private async planName(tier?: string) {
+    try {
+      return (tier && (await this._plans.getActivePlan(tier))?.name) || '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  // Tadween: a billing email to the workspace's owners and admins, in their
+  // language. Reached from webhooks: logs, never throws.
+  private async billingEmail<T extends EmailTemplate>(
+    customer: string | Stripe.Customer | Stripe.DeletedCustomer | null,
+    template: T,
+    data: EmailTemplateData<T>,
+    dedupeKey: string
+  ) {
+    try {
+      const id = typeof customer === 'string' ? customer : customer?.id;
+      const org = id
+        ? await this._organizationService.getOrgByCustomerId(id)
+        : null;
+      if (org) {
+        await this._notifications.sendTemplateToManagers(
+          org.id,
+          template,
+          data,
+          dedupeKey
+        );
+      }
+    } catch (err) {
+      console.error('stripe_billing_email_failed', {
+        template,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   // Partners program: a paid invoice of a referred workspace, in USD cents

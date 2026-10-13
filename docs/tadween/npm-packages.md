@@ -42,9 +42,9 @@ using the repository secret `NPM_TOKEN`. Run the workflow by hand with
 One-time setup:
 
 1. npm: create the account and the `tadween` organization (for `@tadween/node`), with 2FA.
-2. npm → Access Tokens: a granular token with read and write on packages (or a classic Automation token).
+2. npm → Access Tokens: a granular token with read and write on **all packages** (the new names can't be picked before they exist) and **Bypass 2FA** on, or a classic Automation token. Without the bypass, CI publishing fails with EOTP.
 3. Add it as `NPM_TOKEN` in Settings → Secrets and variables → Actions of `xerk/tadween`, `xerk/tadween-agent` and `xerk/tadween-n8n`.
-4. In each fork, open the Actions tab and enable workflows (forks start with them off).
+4. In each fork, open the Actions tab and click the button to enable workflows if GitHub shows one (forks start with them off).
 
 Release: bump `version` in the package's `package.json`, commit, then push the
 tag from the table above (for the SDK: `git tag sdk-v1.0.0 && git push origin sdk-v1.0.0`).

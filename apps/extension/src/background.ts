@@ -2,26 +2,38 @@ import { ExtensionRequest, GetCookiesResponse, ProviderInfo, StoredRefreshEntry 
 import { getAllProviders, getProvider } from './providers/provider.registry';
 import { CookieProvider } from './providers/cookie-provider.interface';
 
-const EXTENSION_VERSION = '2.0.0';
 const REFRESH_ALARM_NAME = 'cookie-refresh';
 const STORAGE_KEY = 'refreshEntries';
 
-const ALLOWED_ORIGIN_PATTERNS = [
-  /^https?:\/\/localhost(:\d+)?$/,
-];
+// The app pages allowed to talk to the extension are the externally_connectable
+// match patterns set at build time (EXTENSION_ALLOWED_ORIGINS / FRONTEND_URL).
+// Chrome already enforces them; this re-checks the sender origin the same way.
+const MANIFEST = chrome.runtime.getManifest();
 
-// Tadween: the app origin baked into externally_connectable at build time
-// (FRONTEND_URL), instead of a hard-coded postiz.com
-const MANIFEST_ORIGINS = (
-  chrome.runtime.getManifest().externally_connectable?.matches || []
-).map((match) => match.replace(/\/\*$/, ''));
+function matchPatternToRegExp(match: string): RegExp | undefined {
+  const parts = /^(https?|\*):\/\/(\*|\*\.[^/]+|[^/*]+)\//.exec(match);
+  if (!parts) return undefined;
+  const [, scheme, host] = parts;
+  const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const schemePart = scheme === '*' ? 'https?' : scheme;
+  const hostPart =
+    host === '*'
+      ? '[^/:]+'
+      : host.startsWith('*.')
+      ? '(?:[^/:]+\\.)?' + escape(host.slice(2))
+      : escape(host);
+  // a pattern without a port matches every port, like Chrome does
+  const portPart = /:\d+$/.test(host) ? '' : '(?::\\d+)?';
+  return new RegExp(`^${schemePart}:\\/\\/${hostPart}${portPart}$`);
+}
+
+const ALLOWED_ORIGIN_PATTERNS = (MANIFEST.externally_connectable?.matches || [])
+  .map(matchPatternToRegExp)
+  .filter((pattern): pattern is RegExp => !!pattern);
 
 function isOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return false;
-  return (
-    ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin)) ||
-    MANIFEST_ORIGINS.includes(origin)
-  );
+  return ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));
 }
 
 async function extractCookies(provider: CookieProvider): Promise<GetCookiesResponse> {
@@ -138,7 +150,7 @@ chrome.runtime.onMessageExternal.addListener(
 
     switch (message.type) {
       case 'PING': {
-        sendResponse({ status: 'ok', version: EXTENSION_VERSION });
+        sendResponse({ status: 'ok', version: MANIFEST.version });
         break;
       }
 

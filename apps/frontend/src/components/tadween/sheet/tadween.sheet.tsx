@@ -12,7 +12,10 @@ import React, {
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { usePresence } from '@gitroom/frontend/components/tadween/ui/overlays';
+import {
+  useOverlayOpen,
+  usePresence,
+} from '@gitroom/frontend/components/tadween/ui/overlays';
 
 // Phones get the composer's sheets from the same width upstream's `mobile:`
 // screen starts at (tailwind.config.cjs), so both layouts switch together.
@@ -92,6 +95,7 @@ export const TadweenSheet: FC<{
   // enters on the frame after mounting so the spring has a start, and stays
   // mounted through its (quicker) exit
   const { mounted: present, state } = usePresence(active, 280);
+  useOverlayOpen(active);
   const shown = state === 'open';
   const [level, setLevel] = useState<'medium' | 'large'>(
     detent === 'medium' ? 'medium' : 'large'

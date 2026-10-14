@@ -4,7 +4,24 @@
 // own toaster (`useToaster`) so the app keeps a single toast stack.
 import React, { FC, ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { create } from 'zustand';
 import { Button, cx, Icon } from './primitives';
+
+/* useOverlayOpen — counts the open modal layers (the modal manager, dialogs,
+   drawers, sheets, lightboxes), so floating page chrome such as the support
+   chat (layout/crisp.component.tsx) can step aside while any is open. Only
+   the modal manager's own layers: useHasOpenModal (layout/new-modal.tsx) */
+const useOverlayStore = create<{ open: number }>(() => ({ open: 0 }));
+export function useOverlayOpen(open: boolean) {
+  useEffect(() => {
+    if (!open) return;
+    useOverlayStore.setState((s) => ({ open: s.open + 1 }));
+    return () => useOverlayStore.setState((s) => ({ open: s.open - 1 }));
+  }, [open]);
+}
+export const useHasOpenOverlay = () => useOverlayStore((s) => s.open > 0);
+// the same, read outside React (event callbacks)
+export const hasOpenOverlay = () => useOverlayStore.getState().open > 0;
 
 /* usePresence — keeps a node mounted through its exit so it leaves the way it came */
 export function usePresence(open: boolean, ms = 260) {
@@ -54,6 +71,7 @@ export const Dialog: FC<{
 }> = ({ open, onClose, title, description, children, footer, size = 'md' }) => {
   const { mounted, state } = usePresence(open, 280);
   useEscape(open, onClose);
+  useOverlayOpen(open);
   if (!mounted || typeof document === 'undefined') return null;
   // Portalled to <body>, so it carries its own .tdw-ui scope.
   return createPortal(

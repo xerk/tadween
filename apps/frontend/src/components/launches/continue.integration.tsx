@@ -19,10 +19,14 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 const extensionCodes = new Map<string, string>();
 const takeExtensionCode = (state: string) => {
   const key = `extension-cookies:${state}`;
-  const stored = sessionStorage.getItem(key);
-  if (stored) {
-    extensionCodes.set(state, stored);
-    sessionStorage.removeItem(key);
+  try {
+    const stored = sessionStorage.getItem(key);
+    if (stored) {
+      extensionCodes.set(state, stored);
+      sessionStorage.removeItem(key);
+    }
+  } catch {
+    // site storage blocked: nothing was handed over
   }
   return extensionCodes.get(state);
 };

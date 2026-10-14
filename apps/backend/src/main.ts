@@ -11,6 +11,7 @@ process.env.TZ = 'UTC';
 
 import cookieParser from 'cookie-parser';
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
@@ -21,7 +22,7 @@ import { ConfigurationChecker } from '@gitroom/helpers/configuration/configurati
 import { startMcp } from '@gitroom/nestjs-libraries/chat/start.mcp';
 
 async function start() {
-  const corsOptions = {
+  const corsOptions: CorsOptions & { origin: string[] } = {
     ...(!process.env.NOT_SECURED ? { credentials: true } : {}),
     allowedHeaders: [
       'Content-Type',
@@ -58,13 +59,16 @@ async function start() {
 
   // The browser extension (EXTENSION_ID) may call only its cookie refresh
   // route; every other route keeps the app's own origins.
-  const extensionOrigin = process.env.EXTENSION_ID
-    ? `chrome-extension://${process.env.EXTENSION_ID}`
+  const extensionOrigin = process.env.EXTENSION_ID?.trim()
+    ? `chrome-extension://${process.env.EXTENSION_ID.trim()}`
     : '';
 
   const app = await NestFactory.create(AppModule, {
     rawBody: true,
-    cors: (req: any, callback: any) => {
+    cors: (
+      req: any,
+      callback: (error: Error | null, options: CorsOptions) => void
+    ) => {
       callback(
         null,
         extensionOrigin && req.path === '/integrations/extension-refresh'

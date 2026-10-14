@@ -646,15 +646,26 @@ export const AddProviderComponent: FC<{
               return;
             }
             const { url } = await response.json();
-            modal.closeAll();
             // The cookies reach the connect request through this tab's
             // sessionStorage (read once by ContinueIntegration), never the URL
-            sessionStorage.setItem(
-              `extension-cookies:${url}`,
-              Buffer.from(JSON.stringify(cookieResponse.cookies)).toString(
-                'base64'
-              )
-            );
+            try {
+              sessionStorage.setItem(
+                `extension-cookies:${url}`,
+                Buffer.from(JSON.stringify(cookieResponse.cookies)).toString(
+                  'base64'
+                )
+              );
+            } catch {
+              toaster.show(
+                t(
+                  'extension_storage_blocked',
+                  'Your browser blocked site storage, so the channel could not be connected.'
+                ),
+                'warning'
+              );
+              return;
+            }
+            modal.closeAll();
             window.location.href = `/integrations/social/${identifier}?state=${url}${
               onboarding ? '&onboarding=true' : ''
             }`;

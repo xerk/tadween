@@ -24,7 +24,7 @@ with browser cookies instead. Today that is only **Skool**. It is Postiz's exten
    `/integrations/social/skool?state=…`. The cookies are **never in the URL**, so they don't reach browser history
    or web-server access logs. `ContinueIntegration` (`continue.integration.tsx`) reads that entry only when the URL
    has no `code`, removes it at once, and sends it as `code` in the `POST /integrations/social-connect/skool` body.
-   OAuth providers always come back with `code` in the URL, so their flow is unchanged.
+   OAuth callbacks either carry `code` or are handled by their own branch, so their flow is unchanged.
 6. The backend (`SkoolProvider.authenticate`) calls `GET https://api2.skool.com/self` with the cookies, and stores
    them AES-256 encrypted with a key derived from `JWT_SECRET` (`AuthService.fixedEncryption`, in
    `Integration.token` and `Integration.customInstanceDetails`).

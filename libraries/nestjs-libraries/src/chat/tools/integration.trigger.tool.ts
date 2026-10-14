@@ -114,18 +114,26 @@ export class IntegrationTriggerTool implements AgentToolInterface {
                     identifier
                   );
 
-                  // only the declared fields of every item
+                  // only the declared fields of every item, typed as declared
+                  // (an item without an id can't be used in a setting)
                   return {
-                    output: (Array.isArray(output) ? output : []).map(
-                      (item: Record<string, unknown>) =>
-                        Object.keys(directory.output).reduce(
-                          (fields, field) => ({
+                    output: (Array.isArray(output) ? output : [])
+                      .filter(
+                        (item: Record<string, unknown>) =>
+                          !('id' in directory.output) || !!item?.id
+                      )
+                      .map((item: Record<string, unknown>) =>
+                        Object.entries(directory.output).reduce(
+                          (fields, [field, type]) => ({
                             ...fields,
-                            [field]: item[field],
+                            [field]:
+                              type === 'number'
+                                ? Number(item[field]) || 0
+                                : String(item[field] ?? ''),
                           }),
                           {}
                         )
-                    ),
+                      ),
                   };
                 },
               }),
@@ -208,7 +216,7 @@ export class IntegrationTriggerTool implements AgentToolInterface {
           if (!refreshedToken) {
             if (identifier) {
               throw new Error(
-                'The token of this channel expired, the user needs to reconnect it in the Tadween app'
+                'The token of this channel expired, the user needs to reconnect it in the app'
               );
             }
 

@@ -7,9 +7,10 @@ import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import {
   directoryChannelSchemas,
-  directoryProviders,
   directoryUnsupportedMessage,
+  isDirectoryProvider,
 } from '@gitroom/nestjs-libraries/chat/validation.schemas.helper';
+import { brandNameFromEnv } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 
 @Injectable()
 export class PostSettingsTool implements AgentToolInterface {
@@ -25,6 +26,7 @@ export class PostSettingsTool implements AgentToolInterface {
   directory() {
     const variants = directoryChannelSchemas(
       this._integrationManager.getAllRulesDescription(),
+      this._integrationManager.getAllTools(),
       true
     );
 
@@ -41,7 +43,7 @@ export class PostSettingsTool implements AgentToolInterface {
           },
         },
         description: `
-Update the platform settings of an existing Tadween post (scheduled or draft) that was NOT published yet.
+Update the platform settings of an existing ${brandNameFromEnv()} post (scheduled or draft) that was NOT published yet.
 Only the settings change - the content and the publish date stay exactly as they are.
 Find the post first with postsListTool and pass its "id" here, and its "platform" with the settings in the variant of that platform.
 The settings are merged into the existing ones, so only pass the keys you want to change; anything you don't pass stays as it is.
@@ -108,7 +110,7 @@ If validation fails, the result contains output.errors describing what to fix; t
           );
           const identifier = post?.integration?.providerIdentifier;
 
-          if (identifier && !directoryProviders.includes(identifier)) {
+          if (identifier && !isDirectoryProvider(identifier)) {
             return { output: { errors: directoryUnsupportedMessage() } };
           }
 

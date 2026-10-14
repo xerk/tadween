@@ -193,6 +193,9 @@ export interface SocialProvider
   refreshCron?: boolean;
   refreshErrorMessage?(err: any): string | undefined;
   dto?: any;
+  // Listed on the ChatGPT directory endpoint: its `dto` is a static settings
+  // schema, and an id a setting needs comes from a @Tool with `directory`
+  directory?: boolean;
   // Settings a post starts with when it is created without the editor (RSS
   // autopost), so the provider's required `dto` fields are filled
   defaultSettings?: () => Record<string, any>;

@@ -74,6 +74,7 @@ type XPendingData = {
 )
 export class XProvider extends SocialAbstract implements SocialProvider {
   identifier = 'x';
+  directory = true;
   name = 'X';
   isBetweenSteps = false;
   scopes = [] as string[];

@@ -11,24 +11,27 @@ import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import {
   directoryChannelSchemas,
-  directoryProviders,
   directoryUnsupportedMessage,
+  isDirectoryProvider,
 } from '@gitroom/nestjs-libraries/chat/validation.schemas.helper';
+import { brandNameFromEnv } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import {
   ValidUrlExtension,
   ValidUrlPath,
 } from '@gitroom/helpers/utils/valid.url.path';
 
+type SchedulePost = {
+  integrationId: string;
+  date: string;
+  shortLink: boolean;
+  type: 'draft' | 'schedule' | 'now';
+  postsAndComments: Array<{ content: string; attachments: string[] }>;
+  settings: Record<string, any>;
+};
+
+// the ChatGPT directory input: the platform picks the settings variant
 type DirectoryPosts = {
-  socialPost: Array<{
-    platform: string;
-    integrationId: string;
-    date: string;
-    shortLink: boolean;
-    type: 'draft' | 'schedule' | 'now';
-    postsAndComments: Array<{ content: string; attachments: string[] }>;
-    settings: Record<string, any>;
-  }>;
+  socialPost: Array<SchedulePost & { platform: string }>;
 };
 
 const validUrlExtension = new ValidUrlExtension();
@@ -59,7 +62,8 @@ export class IntegrationSchedulePostTool implements AgentToolInterface {
   // pairs described by integrationSchema
   directory() {
     const variants = directoryChannelSchemas(
-      this._integrationManager.getAllRulesDescription()
+      this._integrationManager.getAllRulesDescription(),
+      this._integrationManager.getAllTools()
     );
 
     return {
@@ -75,10 +79,10 @@ export class IntegrationSchedulePostTool implements AgentToolInterface {
           },
         },
         description: `
-Create a draft, a scheduled post or a post published right away on the user's connected Tadween channels.
+Create a draft, a scheduled post or a post published right away on the user's connected ${brandNameFromEnv()} channels.
 Get the channel ids and platforms with integrationList first. Every item of socialPost is one post on one channel: pick the variant of its platform, it lists that platform's rules, its character limit and its settings.
 postsAndComments: the first item is the post, every other item is a comment (or the next post of the thread, on X and Threads).
-Always show the user the full post (text, media, channel, date and time) and get their confirmation before calling this tool. A "now" or "schedule" post is published by Tadween to the social network, a "draft" is never published.
+Always show the user the full post (text, media, channel, date and time) and get their confirmation before calling this tool. A "now" or "schedule" post is published by ${brandNameFromEnv()} to the social network, a "draft" is never published.
 Do not use this to update or delete existing posts.
 On success, each item in output contains a previewUrl the user can open to see the post.
 If the input is rejected as invalid, check that every item uses the variant whose platform list has the channel's platform, with only the settings that variant lists.
@@ -203,7 +207,7 @@ If validation fails, the result contains output.errors describing what to fix; t
               };
             }
 
-            if (!directoryProviders.includes(integration.providerIdentifier)) {
+            if (!isDirectoryProvider(integration.providerIdentifier)) {
               return {
                 output: { errors: directoryUnsupportedMessage() },
               };
@@ -367,14 +371,7 @@ If validation fails, the result contains output.errors describing what to fix; t
   // them. Shared by the key / value tool and the ChatGPT directory one
   private async schedule(
     organizationId: string,
-    socialPost: Array<{
-      integrationId: string;
-      date: string;
-      shortLink: boolean;
-      type: 'draft' | 'schedule' | 'now';
-      postsAndComments: Array<{ content: string; attachments: string[] }>;
-      settings: Record<string, any>;
-    }>
+    socialPost: SchedulePost[]
   ) {
     const finalOutput = [];
 

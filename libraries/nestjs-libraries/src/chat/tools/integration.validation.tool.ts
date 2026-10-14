@@ -111,10 +111,7 @@ export class IntegrationValidationTool implements AgentToolInterface {
             rules: rules[integration.identifier],
             maxLength,
             settings: !schemas ? 'No additional settings required' : schemas,
-            // `directory` names the tool of the ChatGPT endpoint, not one of these
-            tools: tools[integration.identifier].map(
-              ({ directory, ...tool }) => tool
-            ),
+            tools: tools[integration.identifier],
           },
         };
       },

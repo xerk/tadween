@@ -62,7 +62,7 @@ const strictSchema = (schema: any): any => {
 // where only the keys that change are passed
 export function directoryChannelSchemas(
   rules: Record<string, string>,
-  tools: Record<string, Array<{ directory?: { name: string } }>>,
+  tools: Record<string, Array<{ directory: { name: string } }>>,
   partial = false
 ) {
   const schemas = getValidationSchemas();
@@ -85,13 +85,18 @@ export function directoryChannelSchemas(
         .map((p) => {
           const max = p.maxLength(false);
           const premium = p.maxLength(true);
-          const helpers = (tools[p.identifier] || [])
-            .filter((t) => t.directory)
-            .map((t) => t.directory!.name);
-          return `${p.identifier} (${p.name.replace(/\s+/g, ' ')}): up to ${max} characters${
+          const helpers = (tools[p.identifier] || []).map(
+            (t) => t.directory.name
+          );
+          return `${p.identifier} (${p.name.replace(
+            /\s+/g,
+            ' '
+          )}): up to ${max} characters${
             premium !== max ? ` (${premium} with a premium account)` : ''
           }. ${rules[p.identifier] || ''}${
-            helpers.length ? ` Ids for its settings: ${helpers.join(', ')}.` : ''
+            helpers.length
+              ? ` Ids for its settings: ${helpers.join(', ')}.`
+              : ''
           }`.trim();
         })
         .join('\n'),
@@ -106,4 +111,6 @@ export const directoryUnsupportedMessage = () =>
     .filter((p) => p.directory)
     .map((p) => p.name.replace(/\s+/g, ' '))
     .filter((name, index, all) => all.indexOf(name) === index)
-    .join(', ')} channels can be scheduled through this connection. Schedule posts to this channel in the ${brandNameFromEnv()} app.`;
+    .join(
+      ', '
+    )} channels can be scheduled through this connection. Schedule posts to this channel in the ${brandNameFromEnv()} app.`;

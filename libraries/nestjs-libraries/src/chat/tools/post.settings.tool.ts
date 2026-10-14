@@ -26,7 +26,7 @@ export class PostSettingsTool implements AgentToolInterface {
   directory() {
     const variants = directoryChannelSchemas(
       this._integrationManager.getAllRulesDescription(),
-      this._integrationManager.getAllTools(),
+      this._integrationManager.getAllDirectoryTools(),
       true
     );
 
@@ -153,9 +153,7 @@ This relies on the integrationSchema tool [input:settings] to know which keys ex
 If validation fails, the result contains output.errors describing what to fix; the call can be retried with corrected parameters.
 `,
       inputSchema: z.object({
-        id: z
-          .string()
-          .describe('The "id" of the post to update its settings'),
+        id: z.string().describe('The "id" of the post to update its settings'),
         settings: z
           .array(
             z.object({

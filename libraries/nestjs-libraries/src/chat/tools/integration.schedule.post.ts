@@ -63,7 +63,7 @@ export class IntegrationSchedulePostTool implements AgentToolInterface {
   directory() {
     const variants = directoryChannelSchemas(
       this._integrationManager.getAllRulesDescription(),
-      this._integrationManager.getAllTools()
+      this._integrationManager.getAllDirectoryTools()
     );
 
     return {
@@ -115,11 +115,13 @@ If validation fails, the result contains output.errors describing what to fix; t
                     platform: {
                       type: 'string',
                       enum: variant.platforms,
-                      description: 'The platform of the channel, from integrationList',
+                      description:
+                        'The platform of the channel, from integrationList',
                     },
                     integrationId: {
                       type: 'string',
-                      description: 'The id of the channel, from integrationList',
+                      description:
+                        'The id of the channel, from integrationList',
                     },
                     date: {
                       type: 'string',
@@ -150,7 +152,7 @@ If validation fails, the result contains output.errors describing what to fix; t
                           content: {
                             type: 'string',
                             description:
-                              "The content of the post, HTML, Each line must be wrapped in <p> here is the possible tags: h1, h2, h3, u, strong, li, ul, p (you can't have u and strong together), and img (<img src=\"...\">) only when the platform rules say pictures go inside the content",
+                              'The content of the post, HTML, Each line must be wrapped in <p> here is the possible tags: h1, h2, h3, u, strong, li, ul, p (you can\'t have u and strong together), and img (<img src="...">) only when the platform rules say pictures go inside the content',
                           },
                           attachments: {
                             type: 'array',
@@ -299,7 +301,7 @@ If validation fails, the result contains output.errors describing what to fix; t
                     content: z
                       .string()
                       .describe(
-                        "The content of the post, HTML, Each line must be wrapped in <p> here is the possible tags: h1, h2, h3, u, strong, li, ul, p (you can't have u and strong together), and img (<img src=\"...\">) only when the integration rules say pictures go inside the content"
+                        'The content of the post, HTML, Each line must be wrapped in <p> here is the possible tags: h1, h2, h3, u, strong, li, ul, p (you can\'t have u and strong together), and img (<img src="...">) only when the integration rules say pictures go inside the content'
                       ),
                     attachments: z
                       .array(attachmentUrl)
@@ -369,10 +371,7 @@ If validation fails, the result contains output.errors describing what to fix; t
 
   // Validates every post the way the dashboard / public API do, then creates
   // them. Shared by the key / value tool and the ChatGPT directory one
-  private async schedule(
-    organizationId: string,
-    socialPost: SchedulePost[]
-  ) {
+  private async schedule(organizationId: string, socialPost: SchedulePost[]) {
     const finalOutput = [];
 
     const integrations = {} as Record<string, Integration>;
@@ -445,31 +444,35 @@ If validation fails, the result contains output.errors describing what to fix; t
         throw new Error('Integration not found');
       }
 
-      const output = await this._postsService.createPost(organizationId, {
-        date: post.date,
-        type: post.type,
-        shortLink: post.shortLink,
-        tags: [],
-        posts: [
-          {
-            integration,
-            group: makeId(10),
-            settings: {
-              ...post.settings,
-              __type: integration.providerIdentifier,
-            } as AllProvidersSettings,
-            value: post.postsAndComments.map((p: any) => ({
-              content: p.content,
-              id: makeId(10),
-              delay: 0,
-              image: p.attachments.map((p: any) => ({
+      const output = await this._postsService.createPost(
+        organizationId,
+        {
+          date: post.date,
+          type: post.type,
+          shortLink: post.shortLink,
+          tags: [],
+          posts: [
+            {
+              integration,
+              group: makeId(10),
+              settings: {
+                ...post.settings,
+                __type: integration.providerIdentifier,
+              } as AllProvidersSettings,
+              value: post.postsAndComments.map((p: any) => ({
+                content: p.content,
                 id: makeId(10),
-                path: p,
+                delay: 0,
+                image: p.attachments.map((p: any) => ({
+                  id: makeId(10),
+                  path: p,
+                })),
               })),
-            })),
-          },
-        ],
-      }, 'MCP');
+            },
+          ],
+        },
+        'MCP'
+      );
       // Same public preview page the calendar "Preview Post" button opens.
       finalOutput.push(
         ...output.map((p) => ({

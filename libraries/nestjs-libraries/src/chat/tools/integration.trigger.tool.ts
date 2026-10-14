@@ -28,117 +28,112 @@ export class IntegrationTriggerTool implements AgentToolInterface {
   // every provider function flagged with `directory` is its own read-only tool,
   // with a fixed name, typed input and typed output
   directory() {
-    const tools = this._integrationManager.getAllTools();
+    const tools = this._integrationManager.getAllDirectoryTools();
     return Object.entries(tools).reduce(
       (all, [identifier, providerTools]) => ({
         ...all,
-        ...providerTools
-          .filter((p) => p.directory)
-          .reduce((list, p) => {
-            const directory = p.directory!;
-            const provider = socialIntegrationList.find(
-              (s) => s.identifier === identifier
-            )!;
-            return {
-              ...list,
-              [directory.name]: createTool({
-                id: directory.name,
-                description: `${p.description}. Only for ${provider.name.replace(
-                  /\s+/g,
-                  ' '
-                )} channels (platform "${identifier}" in integrationList). Read only: it searches the network and changes nothing.`,
-                mcp: {
-                  annotations: {
-                    title: directory.title,
-                    readOnlyHint: true,
-                    destructiveHint: false,
-                    idempotentHint: true,
-                    openWorldHint: true,
-                  },
+        ...providerTools.reduce((list, p) => {
+          const directory = p.directory;
+          const provider = socialIntegrationList.find(
+            (s) => s.identifier === identifier
+          )!;
+          return {
+            ...list,
+            [directory.name]: createTool({
+              id: directory.name,
+              description: `${p.description}. Only for ${provider.name.replace(
+                /\s+/g,
+                ' '
+              )} channels (platform "${identifier}" in integrationList). Read only: it searches the network and changes nothing.`,
+              mcp: {
+                annotations: {
+                  title: directory.title,
+                  readOnlyHint: true,
+                  destructiveHint: false,
+                  idempotentHint: true,
+                  openWorldHint: true,
                 },
-                inputSchema: z.object({
-                  integrationId: z
-                    .string()
-                    .describe(
-                      `The id of the ${provider.name.replace(
-                        /\s+/g,
-                        ' '
-                      )} channel, from integrationList`
-                    ),
-                  ...p.dataSchema.reduce(
-                    (
-                      keys: Record<string, z.ZodTypeAny>,
-                      key: { key: string; description: string; enum?: string[] }
-                    ) => ({
-                      ...keys,
-                      [key.key]: (key.enum
-                        ? z.enum(key.enum as [string, ...string[]])
-                        : z.string()
-                      )
-                        .optional()
-                        .describe(key.description),
-                    }),
-                    {}
+              },
+              inputSchema: z.object({
+                integrationId: z
+                  .string()
+                  .describe(
+                    `The id of the ${provider.name.replace(
+                      /\s+/g,
+                      ' '
+                    )} channel, from integrationList`
                   ),
-                }),
-                outputSchema: z.object({
-                  output: z.array(
-                    z.object(
+                ...p.dataSchema.reduce(
+                  (keys, key) => ({
+                    ...keys,
+                    [key.key]: (key.enum
+                      ? z.enum(key.enum as [string, ...string[]])
+                      : z.string()
+                    )
+                      .optional()
+                      .describe(key.description),
+                  }),
+                  {} as Record<string, z.ZodTypeAny>
+                ),
+              }),
+              outputSchema: z.object({
+                output: z.array(
+                  z.object(
+                    Object.entries(directory.output).reduce(
+                      (fields, [field, type]) => ({
+                        ...fields,
+                        [field]: type === 'number' ? z.number() : z.string(),
+                      }),
+                      {} as Record<string, z.ZodTypeAny>
+                    )
+                  )
+                ),
+              }),
+              execute: async (inputData, context) => {
+                checkAuth(inputData, context);
+                const organizationId = JSON.parse(
+                  (context?.requestContext as any)?.get(
+                    'organization'
+                  ) as string
+                ).id;
+                const { integrationId, ...data } = inputData as Record<
+                  string,
+                  string
+                >;
+
+                const output = await this.call(
+                  organizationId,
+                  integrationId,
+                  p.methodName,
+                  data,
+                  identifier
+                );
+
+                // only the declared fields of every item, typed as declared
+                // (an item without an id can't be used in a setting)
+                return {
+                  output: (Array.isArray(output) ? output : [])
+                    .filter(
+                      (item: Record<string, unknown>) =>
+                        !('id' in directory.output) || !!item?.id
+                    )
+                    .map((item: Record<string, unknown>) =>
                       Object.entries(directory.output).reduce(
                         (fields, [field, type]) => ({
                           ...fields,
-                          [field]: type === 'number' ? z.number() : z.string(),
+                          [field]:
+                            type === 'number'
+                              ? Number(item[field]) || 0
+                              : String(item[field] ?? ''),
                         }),
-                        {} as Record<string, z.ZodTypeAny>
+                        {}
                       )
-                    )
-                  ),
-                }),
-                execute: async (inputData, context) => {
-                  checkAuth(inputData, context);
-                  const organizationId = JSON.parse(
-                    (context?.requestContext as any)?.get(
-                      'organization'
-                    ) as string
-                  ).id;
-                  const { integrationId, ...data } = inputData as Record<
-                    string,
-                    string
-                  >;
-
-                  const output = await this.call(
-                    organizationId,
-                    integrationId,
-                    p.methodName,
-                    data,
-                    identifier
-                  );
-
-                  // only the declared fields of every item, typed as declared
-                  // (an item without an id can't be used in a setting)
-                  return {
-                    output: (Array.isArray(output) ? output : [])
-                      .filter(
-                        (item: Record<string, unknown>) =>
-                          !('id' in directory.output) || !!item?.id
-                      )
-                      .map((item: Record<string, unknown>) =>
-                        Object.entries(directory.output).reduce(
-                          (fields, [field, type]) => ({
-                            ...fields,
-                            [field]:
-                              type === 'number'
-                                ? Number(item[field]) || 0
-                                : String(item[field] ?? ''),
-                          }),
-                          {}
-                        )
-                      ),
-                  };
-                },
-              }),
-            };
-          }, {} as Record<string, ToolReturn>),
+                    ),
+                };
+              },
+            }),
+          };
+        }, {} as Record<string, ToolReturn>),
       }),
       {} as Record<string, ToolReturn>
     );
@@ -307,7 +302,10 @@ export class IntegrationTriggerTool implements AgentToolInterface {
             inputData.integrationId,
             inputData.methodName,
             inputData.dataSchema.reduce(
-              (all: Record<string, string>, current: { key: string; value: string }) => ({
+              (
+                all: Record<string, string>,
+                current: { key: string; value: string }
+              ) => ({
                 ...all,
                 [current.key]: current.value,
               }),

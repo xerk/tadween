@@ -6,7 +6,7 @@
 import React, { FC, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cx, Icon } from './primitives';
-import { useEscape, usePresence } from './overlays';
+import { useEscape, useOverlayOpen, usePresence } from './overlays';
 
 export const Drawer: FC<{
   open: boolean;
@@ -19,6 +19,7 @@ export const Drawer: FC<{
 }> = ({ open, onClose, title, description, children, footer, size = 'md' }) => {
   const { mounted, state } = usePresence(open, 280);
   useEscape(open, onClose);
+  useOverlayOpen(open);
   if (!mounted || typeof document === 'undefined') return null;
   return createPortal(
     <div className="tdw-ui">

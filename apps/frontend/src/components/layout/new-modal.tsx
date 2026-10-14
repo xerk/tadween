@@ -17,6 +17,7 @@ import { Button } from '@gitroom/react/form/button';
 import { useHotkeys } from 'react-hotkeys-hook';
 import clsx from 'clsx';
 import { EventEmitter } from 'events';
+import { useOverlayOpen } from '@gitroom/frontend/components/tadween/ui/overlays';
 
 interface OpenModalInterface {
   title?: any;
@@ -445,6 +446,7 @@ export const ModalManagerInner: FC = () => {
       modalManager: state.modalManager,
     }))
   );
+  useOverlayOpen(modalManager.length > 0);
 
   useEffect(() => {
     // a drawer keeps the page readable behind it, only the scrim dims it

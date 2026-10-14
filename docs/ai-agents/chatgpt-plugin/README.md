@@ -60,8 +60,8 @@ The clipping tools (`clippingTool`, `clippingStatusTool`, `clippingWidgetTicketT
 
 ## Resubmission
 1. Deploy the backend with `/mcp-oauth-openai` and check `https://studio.tadween.app/.well-known/oauth-protected-resource/mcp-oauth-openai` answers with `"resource": "https://studio.tadween.app/mcp-oauth-openai"`.
-2. Platform dashboard → Plugins → Tadween → upload `tadween-chatgpt-plugin-1.1.0.zip` as a new version.
+2. Platform dashboard → Plugins → Tadween → upload the new ZIP (1.1.0 here, 1.1.1 after step 5) as a new version.
 3. MCPs → Connect: the URL is now `/mcp-oauth-openai`; sign in with the reviewer account and wait for the tool scan. Expect 14 tools and no "not individually exposed" finding.
 4. Review details: paste the reviewer instructions and the annotation notes from REVIEW-NOTES.md (sections 2 and 4).
-5. Re-record the demo (REVIEW-NOTES.md section 3): the current `demo_recording_url` still shows `integrationSchema`. Put the new link in `plugin.json`, bump to 1.1.1 and rebuild the ZIP, or keep the old link if the portal accepts it.
+5. Required before submitting: re-record the demo (REVIEW-NOTES.md section 3). The current `demo_recording_url` shows `integrationSchema`, a tool this endpoint no longer has, which is the pattern the review rejected. Put the new link in `plugin.json`, bump to 1.1.1 and rebuild the ZIP (`cd tadween && zip -X -r ../tadween-chatgpt-plugin-1.1.1.zip assets skills mcp.json plugin.json`, then copy it to `tadween-chatgpt-plugin.zip`).
 6. Submit for review with the reply in REVIEW-NOTES.md section 1.

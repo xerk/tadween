@@ -47,6 +47,24 @@ export class LoadToolsService {
     );
   }
 
+  // The ChatGPT directory toolset: the tools an MCP host gets (the agent and
+  // the mcpOnly ones), each one with `directory` swapped for its explicit tools
+  async loadDirectoryTools() {
+    return (
+      await Promise.all<Record<string, any>>(
+        toolList
+          .map(
+            (p) =>
+              this._moduleRef.get(p, { strict: false }) as AgentToolInterface
+          )
+          .filter((p) => !p.available || p.available())
+          .map(async (p) =>
+            p.directory ? p.directory() : { [p.name]: await p.run() }
+          )
+      )
+    ).reduce((all, current) => ({ ...all, ...current }), {});
+  }
+
   // Tools every install has, whatever features it configured
   coreToolNames() {
     return toolList

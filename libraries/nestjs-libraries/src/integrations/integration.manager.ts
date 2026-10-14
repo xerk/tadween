@@ -160,9 +160,36 @@ export class IntegrationManager {
     return socialIntegrationList.reduce(
       (all, current) => ({
         ...all,
-        [current.identifier]:
+        [current.identifier]: (
           Reflect.getMetadata('custom:tool', current.constructor.prototype) ||
-          [],
+          []
+        ).map(({ directory, ...tool }: { directory?: unknown }) => tool),
+      }),
+      {}
+    );
+  }
+
+  // The provider tools served as their own tools on the ChatGPT directory
+  // endpoint (@Tool `directory`)
+  getAllDirectoryTools(): {
+    [key: string]: {
+      description: string;
+      dataSchema: Array<{ key: string; description: string; enum?: string[] }>;
+      methodName: string;
+      directory: {
+        name: string;
+        title: string;
+        output: Record<string, 'string' | 'number'>;
+      };
+    }[];
+  } {
+    return socialIntegrationList.reduce(
+      (all, current) => ({
+        ...all,
+        [current.identifier]: (
+          Reflect.getMetadata('custom:tool', current.constructor.prototype) ||
+          []
+        ).filter((tool: { directory?: unknown }) => tool.directory),
       }),
       {}
     );

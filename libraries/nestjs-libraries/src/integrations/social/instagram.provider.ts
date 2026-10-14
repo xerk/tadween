@@ -30,6 +30,7 @@ export class InstagramProvider
   implements SocialProvider
 {
   identifier = 'instagram';
+  directory = true;
   name = 'Instagram\n(Facebook Business)';
   isBetweenSteps = true;
   toolTip = 'Instagram must be business and connected to a Facebook page';
@@ -1236,8 +1237,21 @@ export class InstagramProvider
         key: 'type',
         type: 'string',
         description: 'Either "music" or "original_sound", defaults to "music"',
+        enum: ['music', 'original_sound'],
       },
     ],
+    directory: {
+      name: 'searchInstagramAudio',
+      title: 'Search Instagram Audio',
+      output: {
+        id: 'string',
+        title: 'string',
+        artist: 'string',
+        image: 'string',
+        duration: 'number',
+        previewUrl: 'string',
+      },
+    },
   })
   async audioSearch(
     token: string,

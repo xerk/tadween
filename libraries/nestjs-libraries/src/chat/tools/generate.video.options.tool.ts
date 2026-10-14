@@ -13,6 +13,12 @@ export class GenerateVideoOptionsTool implements AgentToolInterface {
   constructor(private _videoManagerService: VideoManager) {}
   name = 'generateVideoOptions';
 
+  // the options point at videoFunctionTool, a generic "call by name" tool the
+  // ChatGPT directory does not list
+  directory() {
+    return {};
+  }
+
   run() {
     return createTool({
       id: 'generateVideoOptions',

@@ -804,6 +804,18 @@ export class TiktokBusinessProvider
           'Genre to filter the tracks by (for example POP, ROCK, ELECTRONIC), leave empty for all genres',
       },
     ],
+    directory: {
+      name: 'searchTikTokMusic',
+      title: 'Search TikTok Music',
+      output: {
+        id: 'string',
+        title: 'string',
+        artist: 'string',
+        image: 'string',
+        duration: 'number',
+        previewUrl: 'string',
+      },
+    },
   })
   async musicSearch(
     accessToken: string,
@@ -867,6 +879,15 @@ export class TiktokBusinessProvider
         description: 'Search query for the location',
       },
     ],
+    directory: {
+      name: 'searchTikTokLocations',
+      title: 'Search TikTok Locations',
+      output: {
+        id: 'string',
+        name: 'string',
+        address: 'string',
+      },
+    },
   })
   async locationSearch(accessToken: string, data: { q: string }, id: string) {
     if (!data?.q) {

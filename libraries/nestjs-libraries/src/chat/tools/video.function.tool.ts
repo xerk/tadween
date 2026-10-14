@@ -14,6 +14,11 @@ export class VideoFunctionTool implements AgentToolInterface {
   ) {}
   name = 'videoFunctionTool';
 
+  // calls a video function by name: not listed on the ChatGPT directory
+  directory() {
+    return {};
+  }
+
   run() {
     return createTool({
       id: 'videoFunctionTool',

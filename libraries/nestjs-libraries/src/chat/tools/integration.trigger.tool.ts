@@ -1,4 +1,7 @@
-import { AgentToolInterface } from '@gitroom/nestjs-libraries/chat/agent.tool.interface';
+import {
+  AgentToolInterface,
+  ToolReturn,
+} from '@gitroom/nestjs-libraries/chat/agent.tool.interface';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { Injectable } from '@nestjs/common';
@@ -20,6 +23,233 @@ export class IntegrationTriggerTool implements AgentToolInterface {
     private _refreshIntegrationService: RefreshIntegrationService
   ) {}
   name = 'triggerTool';
+
+  // The ChatGPT directory endpoint has no "call any provider function" tool:
+  // every provider function flagged with `directory` is its own read-only tool,
+  // with a fixed name, typed input and typed output
+  directory() {
+    const tools = this._integrationManager.getAllTools();
+    return Object.entries(tools).reduce(
+      (all, [identifier, providerTools]) => ({
+        ...all,
+        ...providerTools
+          .filter((p) => p.directory)
+          .reduce((list, p) => {
+            const directory = p.directory!;
+            const provider = socialIntegrationList.find(
+              (s) => s.identifier === identifier
+            )!;
+            return {
+              ...list,
+              [directory.name]: createTool({
+                id: directory.name,
+                description: `${p.description}. Only for ${provider.name.replace(
+                  /\s+/g,
+                  ' '
+                )} channels (platform "${identifier}" in integrationList). Read only: it searches the network and changes nothing.`,
+                mcp: {
+                  annotations: {
+                    title: directory.title,
+                    readOnlyHint: true,
+                    destructiveHint: false,
+                    idempotentHint: true,
+                    openWorldHint: true,
+                  },
+                },
+                inputSchema: z.object({
+                  integrationId: z
+                    .string()
+                    .describe(
+                      `The id of the ${provider.name.replace(
+                        /\s+/g,
+                        ' '
+                      )} channel, from integrationList`
+                    ),
+                  ...p.dataSchema.reduce(
+                    (
+                      keys: Record<string, z.ZodTypeAny>,
+                      key: { key: string; description: string; enum?: string[] }
+                    ) => ({
+                      ...keys,
+                      [key.key]: (key.enum
+                        ? z.enum(key.enum as [string, ...string[]])
+                        : z.string()
+                      )
+                        .optional()
+                        .describe(key.description),
+                    }),
+                    {}
+                  ),
+                }),
+                outputSchema: z.object({
+                  output: z.array(
+                    z.object(
+                      Object.entries(directory.output).reduce(
+                        (fields, [field, type]) => ({
+                          ...fields,
+                          [field]: type === 'number' ? z.number() : z.string(),
+                        }),
+                        {} as Record<string, z.ZodTypeAny>
+                      )
+                    )
+                  ),
+                }),
+                execute: async (inputData, context) => {
+                  checkAuth(inputData, context);
+                  const organizationId = JSON.parse(
+                    (context?.requestContext as any)?.get(
+                      'organization'
+                    ) as string
+                  ).id;
+                  const { integrationId, ...data } = inputData as Record<
+                    string,
+                    string
+                  >;
+
+                  const output = await this.call(
+                    organizationId,
+                    integrationId,
+                    p.methodName,
+                    data,
+                    identifier
+                  );
+
+                  // only the declared fields of every item
+                  return {
+                    output: (Array.isArray(output) ? output : []).map(
+                      (item: Record<string, unknown>) =>
+                        Object.keys(directory.output).reduce(
+                          (fields, field) => ({
+                            ...fields,
+                            [field]: item[field],
+                          }),
+                          {}
+                        )
+                    ),
+                  };
+                },
+              }),
+            };
+          }, {} as Record<string, ToolReturn>),
+      }),
+      {} as Record<string, ToolReturn>
+    );
+  }
+
+  // Runs a provider helper function on a channel, refreshing its token once
+  // when the provider asks to. `identifier` pins the provider the channel must
+  // be on: those calls are read only, so a failed refresh reports the channel
+  // instead of disconnecting it
+  async call(
+    organizationId: string,
+    integrationId: string,
+    methodName: string,
+    data: Record<string, string>,
+    identifier?: string
+  ) {
+    const getIntegration = await this._integrationService.getIntegrationById(
+      organizationId,
+      integrationId
+    );
+
+    if (!getIntegration) {
+      throw new Error(
+        'Integration not found, use integrationList to get a valid integration id'
+      );
+    }
+
+    if (identifier && getIntegration.providerIdentifier !== identifier) {
+      throw new Error(
+        `This tool only works with "${identifier}" channels, and this channel is "${getIntegration.providerIdentifier}". Use integrationList to find a "${identifier}" channel`
+      );
+    }
+
+    const integrationProvider = socialIntegrationList.find(
+      (p) => p.identifier === getIntegration.providerIdentifier
+    )!;
+
+    if (!integrationProvider) {
+      throw new Error(
+        'Integration provider not found, use integrationList to get a valid integration id'
+      );
+    }
+
+    const tools = this._integrationManager.getAllTools();
+    if (
+      // @ts-ignore
+      !tools[integrationProvider.identifier].some(
+        (p) => p.methodName === methodName
+      ) ||
+      // @ts-ignore
+      !integrationProvider[methodName]
+    ) {
+      throw new Error(
+        `Method "${methodName}" not found for this integration, use integrationSchema to get the callable tools`
+      );
+    }
+
+    let refreshed = false;
+    while (true) {
+      try {
+        // @ts-ignore
+        return await integrationProvider[methodName](
+          getIntegration.token,
+          data,
+          getIntegration.internalId,
+          getIntegration
+        );
+      } catch (err) {
+        if (err instanceof RefreshToken && !refreshed) {
+          refreshed = true;
+          const refreshedToken = await this._refreshIntegrationService.refresh(
+            getIntegration
+          );
+
+          if (!refreshedToken) {
+            if (identifier) {
+              throw new Error(
+                'The token of this channel expired, the user needs to reconnect it in the Tadween app'
+              );
+            }
+
+            await this._integrationService.disconnectChannel(
+              organizationId,
+              getIntegration
+            );
+            throw new Error(
+              'The channel was disconnected because its token expired, the user needs to reconnect it in the app'
+            );
+          }
+
+          const { accessToken } = refreshedToken;
+
+          if (accessToken) {
+            getIntegration.token = accessToken;
+
+            if (integrationProvider.refreshWait) {
+              await timer(10000);
+            }
+
+            continue;
+          }
+        }
+
+        if (err instanceof RefreshToken) {
+          throw new Error(
+            'The provider rejected the credentials even after refreshing the token, the user needs to reconnect the channel in the app'
+          );
+        }
+
+        throw new Error(
+          `Provider call failed: ${
+            err instanceof Error && err.message
+              ? err.message
+              : 'unexpected error'
+          }`
+        );
+      }
+    }
+  }
 
   run() {
     return createTool({
@@ -63,105 +293,20 @@ export class IntegrationTriggerTool implements AgentToolInterface {
           (context?.requestContext as any)?.get('organization') as string
         ).id;
 
-        const getIntegration =
-          await this._integrationService.getIntegrationById(
+        return {
+          output: await this.call(
             organizationId,
-            inputData.integrationId
-          );
-
-        if (!getIntegration) {
-          throw new Error(
-            'Integration not found, use integrationList to get a valid integration id'
-          );
-        }
-
-        const integrationProvider = socialIntegrationList.find(
-          (p) => p.identifier === getIntegration.providerIdentifier
-        )!;
-
-        if (!integrationProvider) {
-          throw new Error(
-            'Integration provider not found, use integrationList to get a valid integration id'
-          );
-        }
-
-        const tools = this._integrationManager.getAllTools();
-        if (
-          // @ts-ignore
-          !tools[integrationProvider.identifier].some(
-            (p) => p.methodName === inputData.methodName
-          ) ||
-          // @ts-ignore
-          !integrationProvider[inputData.methodName]
-        ) {
-          throw new Error(
-            `Method "${inputData.methodName}" not found for this integration, use integrationSchema to get the callable tools`
-          );
-        }
-
-        let refreshed = false;
-        while (true) {
-          try {
-            // @ts-ignore
-            const load = await integrationProvider[inputData.methodName](
-              getIntegration.token,
-              inputData.dataSchema.reduce(
-                (all: Record<string, string>, current: { key: string; value: string }) => ({
-                  ...all,
-                  [current.key]: current.value,
-                }),
-                {} as Record<string, string>
-              ),
-              getIntegration.internalId,
-              getIntegration
-            );
-
-            return { output: load };
-          } catch (err) {
-            if (err instanceof RefreshToken && !refreshed) {
-              refreshed = true;
-              const data = await this._refreshIntegrationService.refresh(
-                getIntegration
-              );
-
-              if (!data) {
-                await this._integrationService.disconnectChannel(
-                  organizationId,
-                  getIntegration
-                );
-                throw new Error(
-                  'The channel was disconnected because its token expired, the user needs to reconnect it in the app'
-                );
-              }
-
-              const { accessToken } = data;
-
-              if (accessToken) {
-                getIntegration.token = accessToken;
-
-                if (integrationProvider.refreshWait) {
-                  await timer(10000);
-                }
-
-                continue;
-              }
-            }
-
-            if (err instanceof RefreshToken) {
-              throw new Error(
-                'The provider rejected the credentials even after refreshing the token, the user needs to reconnect the channel in the app'
-              );
-            }
-
-            throw new Error(
-              `Provider call failed: ${
-                err instanceof Error && err.message
-                  ? err.message
-                  : 'unexpected error'
-              }`
-            );
-          }
-        }
+            inputData.integrationId,
+            inputData.methodName,
+            inputData.dataSchema.reduce(
+              (all: Record<string, string>, current: { key: string; value: string }) => ({
+                ...all,
+                [current.key]: current.value,
+              }),
+              {} as Record<string, string>
+            )
+          ),
+        };
       },
     });
   }

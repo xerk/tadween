@@ -22,6 +22,12 @@ export class GenerateVideoTool implements AgentToolInterface {
   ) {}
   name = 'generateVideoTool';
 
+  // its customParams change with the video type (a key / value list), so the
+  // ChatGPT directory does not list it
+  directory() {
+    return {};
+  }
+
   run() {
     return createTool({
       id: 'generateVideoTool',

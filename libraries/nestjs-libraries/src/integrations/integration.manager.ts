@@ -155,6 +155,11 @@ export class IntegrationManager {
       description: string;
       dataSchema: any;
       methodName: string;
+      directory?: {
+        name: string;
+        title: string;
+        output: Record<string, 'string' | 'number'>;
+      };
     }[];
   } {
     return socialIntegrationList.reduce(

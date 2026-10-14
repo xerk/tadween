@@ -170,6 +170,19 @@ export const startMcp = async (app: INestApplication) => {
     appResources: claudeAppResources,
   });
 
+  // ChatGPT plugin directory submission: only explicit tools, each with its own
+  // schema and annotations - no "discover, then call by name" tool and no
+  // free-form key / value settings (see AgentToolInterface.directory). It has
+  // no self-hosted relay: an instance only has the key / value tools
+  const openaiTools = await loadToolsService.loadDirectoryTools();
+  const openaiOauthServer = new MCPServer({
+    name: `${brandNameFromEnv()} MCP`,
+    version: '1.0.0',
+    protocolVersion: '2026-07-28',
+    tools: openaiTools,
+    appResources,
+  });
+
   // Self-hosted connections, built from the agent tools so the ui:// widgets
   // (which upload to this server) are left out
   let selfHostedServer: MCPServer | undefined;
@@ -264,6 +277,8 @@ export const startMcp = async (app: INestApplication) => {
     '/mcp-oauth': { middleware: createResourceMiddleware('/mcp-oauth', '/mcp-oauth-dynamic'), mcpServer: oauthServer, selfHostedServer },
     // Claude connector directory submission
     '/mcp-oauth-claude': { middleware: createResourceMiddleware('/mcp-oauth-claude', '/mcp-oauth-dynamic'), mcpServer: claudeOauthServer, selfHostedServer: claudeSelfHostedServer },
+    // ChatGPT plugin directory submission (DCR, the explicit toolset)
+    '/mcp-oauth-openai': { middleware: createResourceMiddleware('/mcp-oauth-openai', '/mcp-oauth-dynamic'), mcpServer: openaiOauthServer },
     // Clients that register themselves through DCR (/oauth/register) - not
     // directory-reviewed, so they get the full toolset (media generation included)
     '/mcp-oauth-dynamic': { middleware: createResourceMiddleware('/mcp-oauth-dynamic', '/mcp-oauth-dynamic'), mcpServer: oauthServer, selfHostedServer },

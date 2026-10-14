@@ -14,6 +14,12 @@ export class IntegrationValidationTool implements AgentToolInterface {
   constructor(private _integrationManager: IntegrationManager) {}
   name = 'integrationSchema';
 
+  // the ChatGPT directory tools carry each channel's rules and settings in
+  // their own schemas, and the helpers it points at are tools there
+  directory() {
+    return {};
+  }
+
   run() {
     return createTool({
       id: 'integrationSchema',
@@ -105,7 +111,10 @@ export class IntegrationValidationTool implements AgentToolInterface {
             rules: rules[integration.identifier],
             maxLength,
             settings: !schemas ? 'No additional settings required' : schemas,
-            tools: tools[integration.identifier],
+            // `directory` names the tool of the ChatGPT endpoint, not one of these
+            tools: tools[integration.identifier].map(
+              ({ directory, ...tool }) => tool
+            ),
           },
         };
       },

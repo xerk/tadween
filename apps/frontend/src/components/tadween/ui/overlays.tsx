@@ -9,7 +9,8 @@ import { Button, cx, Icon } from './primitives';
 
 /* useOverlayOpen — counts the open modal layers (the modal manager, dialogs,
    drawers, sheets, lightboxes), so floating page chrome such as the support
-   chat (layout/crisp.component.tsx) can step aside while any is open */
+   chat (layout/crisp.component.tsx) can step aside while any is open. Only
+   the modal manager's own layers: useHasOpenModal (layout/new-modal.tsx) */
 const useOverlayStore = create<{ open: number }>(() => ({ open: 0 }));
 export function useOverlayOpen(open: boolean) {
   useEffect(() => {

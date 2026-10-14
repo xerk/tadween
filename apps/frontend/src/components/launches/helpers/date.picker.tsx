@@ -375,11 +375,14 @@ export const DatePicker: FC<{
     const fit = () => {
       const box = { left: 8, top: 8, right: window.innerWidth - 8 };
       for (let p = el.parentElement; p; p = p.parentElement) {
-        if (getComputedStyle(p).overflow !== 'visible') {
-          const r = p.getBoundingClientRect();
+        const { overflowX, overflowY } = getComputedStyle(p);
+        const r = p.getBoundingClientRect();
+        if (overflowX !== 'visible') {
           box.left = Math.max(box.left, r.left + 8);
-          box.top = Math.max(box.top, r.top + 8);
           box.right = Math.min(box.right, r.right - 8);
+        }
+        if (overflowY !== 'visible') {
+          box.top = Math.max(box.top, r.top + 8);
         }
       }
       const a = anchor.getBoundingClientRect();
@@ -394,7 +397,10 @@ export const DatePicker: FC<{
       setPlace({
         translate: shift ? `${Math.round(shift)}px 0` : undefined,
         maxWidth: Math.round(box.right - box.left),
-        maxHeight: Math.round(a.top + el.offsetTop + el.offsetHeight - box.top),
+        maxHeight: Math.max(
+          200,
+          Math.round(a.top + el.offsetTop + el.offsetHeight - box.top)
+        ),
         overflowY: 'auto',
       });
     };

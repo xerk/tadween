@@ -449,8 +449,9 @@ export class NoAuthIntegrationsController {
       false,
       undefined,
       undefined,
-      AuthService.signJWT(
-        JSON.parse(Buffer.from(body.cookies, 'base64').toString())
+      // Encrypted at rest, the same way the first connect stores them
+      AuthService.fixedEncryption(
+        Buffer.from(body.cookies, 'base64').toString()
       )
     );
 

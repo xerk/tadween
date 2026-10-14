@@ -11,6 +11,7 @@ process.env.TZ = 'UTC';
 
 import cookieParser from 'cookie-parser';
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
@@ -21,41 +22,59 @@ import { ConfigurationChecker } from '@gitroom/helpers/configuration/configurati
 import { startMcp } from '@gitroom/nestjs-libraries/chat/start.mcp';
 
 async function start() {
+  const corsOptions: CorsOptions & { origin: string[] } = {
+    ...(!process.env.NOT_SECURED ? { credentials: true } : {}),
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'auth',
+      'showorg',
+      'impersonate',
+      'x-postiz-org',
+      'x-postiz-include-deleted',
+      'x-copilotkit-runtime-client-gql-version',
+    ],
+    exposedHeaders: [
+      'reload',
+      'onboarding',
+      'activate',
+      'x-copilotkit-runtime-client-gql-version',
+      ...(process.env.NOT_SECURED ? ['auth', 'showorg', 'impersonate'] : []),
+    ],
+    origin: [
+      process.env.FRONTEND_URL,
+      'http://localhost:6274',
+      ...(process.env.MAIN_URL ? [process.env.MAIN_URL] : []),
+      // Optional: the Canva app calls the public API from its iframe origin
+      // (browsers send it lowercase, e.g. https://app-aabbcc.canva-apps.com)
+      ...(process.env.CANVA_APP_ORIGIN
+        ? [
+            process.env.CANVA_APP_ORIGIN.trim()
+              .replace(/\/+$/, '')
+              .toLowerCase(),
+          ]
+        : []),
+    ],
+  };
+
+  // The browser extension (EXTENSION_ID) may call only its cookie refresh
+  // route; every other route keeps the app's own origins.
+  const extensionOrigin = process.env.EXTENSION_ID?.trim()
+    ? `chrome-extension://${process.env.EXTENSION_ID.trim()}`
+    : '';
+
   const app = await NestFactory.create(AppModule, {
     rawBody: true,
-    cors: {
-      ...(!process.env.NOT_SECURED ? { credentials: true } : {}),
-      allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'auth',
-        'showorg',
-        'impersonate',
-        'x-postiz-org',
-        'x-postiz-include-deleted',
-        'x-copilotkit-runtime-client-gql-version',
-      ],
-      exposedHeaders: [
-        'reload',
-        'onboarding',
-        'activate',
-        'x-copilotkit-runtime-client-gql-version',
-        ...(process.env.NOT_SECURED ? ['auth', 'showorg', 'impersonate'] : []),
-      ],
-      origin: [
-        process.env.FRONTEND_URL,
-        'http://localhost:6274',
-        ...(process.env.MAIN_URL ? [process.env.MAIN_URL] : []),
-        // Optional: the Canva app calls the public API from its iframe origin
-        // (browsers send it lowercase, e.g. https://app-aabbcc.canva-apps.com)
-        ...(process.env.CANVA_APP_ORIGIN
-          ? [
-              process.env.CANVA_APP_ORIGIN.trim()
-                .replace(/\/+$/, '')
-                .toLowerCase(),
-            ]
-          : []),
-      ],
+    cors: (
+      req: any,
+      callback: (error: Error | null, options: CorsOptions) => void
+    ) => {
+      callback(
+        null,
+        extensionOrigin && req.path === '/integrations/extension-refresh'
+          ? { ...corsOptions, origin: [...corsOptions.origin, extensionOrigin] }
+          : corsOptions
+      );
     },
   });
 

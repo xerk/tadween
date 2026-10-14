@@ -103,7 +103,7 @@ Reads the user's Skool sign-in cookies (client_id and auth_token) for https://ww
 
 **storage**
 ```
-Keeps, in chrome.storage.local, one entry per Skool channel the user connected: the channel id, a token signed by Tadween that identifies the channel (it holds no cookies or passwords), and the Tadween API address. It is used for the daily reconnect and removed when the user deletes the channel in Tadween.
+Keeps, in chrome.storage.local, one entry per Skool channel the user connected: the channel id, a token signed by Tadween that identifies the channel (it holds no cookies or passwords), and the Tadween API address. It is used for the daily reconnect, and removed when the user deletes the channel in Tadween from a browser that has the extension.
 ```
 
 **alarms**

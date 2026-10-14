@@ -78,6 +78,20 @@ work without it; a user whose Skool session expires reconnects the channel. Fixi
 as a host permission (`https://studio.tadween.app/*`, a new permission the store reviews) or allowing the
 extension's origin in the backend's CORS settings once the store ID is known.
 
+Before turning the refresh on, change `extensionRefreshCookies` in
+`apps/backend/src/api/routes/no.auth.integrations.controller.ts`: it saves the refreshed cookies in
+`customInstanceDetails` with `AuthService.signJWT` (signed, not encrypted), while the first connect uses
+`AuthService.fixedEncryption`. `SkoolProvider.getCookies` reads both formats. As long as the refresh is blocked,
+every stored Skool cookie is the encrypted one, which is what the privacy text says.
+
+### Allowed origins
+
+The store build allows `https://studio.tadween.app/*` and `https://*.tadween.app/*`. In Chrome, `*.tadween.app`
+also matches the bare `tadween.app` (the landing site) and every future subdomain, and any of those pages could ask
+for the user's Skool cookies. Only `studio.tadween.app` calls the extension today. To narrow it, rebuild with
+`EXTENSION_ALLOWED_ORIGINS="https://studio.tadween.app/*"` and update the "Talks only to Tadween pages" lines in
+`store-listing.md`.
+
 ## Upload to the Chrome Web Store (owner)
 
 1. Open https://chrome.google.com/webstore/devconsole with the Google account that should own the listing

@@ -2610,5 +2610,15 @@
   "tdw_continue_tumblr_title": "اختر مدوّنة تمبلر",
   "tdw_continue_tumblr_empty_title": "لا توجد مدوّنات تمبلر",
   "tdw_continue_tumblr_empty_body": "لا يملك حساب تمبلر هذا مدوّنة يمكنك النشر عليها. أنشئ واحدة، ثم أعد الربط.",
-  "tdw_continue_tumblr_help": "أنشئ مدوّنة على تمبلر"
+  "tdw_continue_tumblr_help": "أنشئ مدوّنة على تمبلر",
+  "tdw_extension_title": "اربط {{network}} عبر إضافة {{brand}} للمتصفح",
+  "tdw_extension_intro": "يتصل {{network}} عبر إضافتنا للمتصفح، وهي تستخدم تسجيل دخولك إلى {{network}} من هذا المتصفح.",
+  "tdw_extension_risk_account": "خطر على الحساب",
+  "tdw_extension_risk_account_body": "قد يخالف الربط عبر إضافة للمتصفح شروط خدمة {{network}}، وقد يعلّق {{network}} حسابك أو يحظره.",
+  "tdw_extension_risk_reliability": "الموثوقية",
+  "tdw_extension_risk_reliability_body": "هذه الطريقة أقل ثباتًا من القنوات الأخرى، وقد ينقطع الاتصال دون سابق إنذار. وعند انتهاء جلستك على {{network}} ستحتاج إلى إعادة الربط.",
+  "tdw_extension_risk_data": "بياناتك",
+  "tdw_extension_risk_data_body": "نحفظ جلسة تسجيل دخولك إلى {{network}} مشفّرة، ولا نستخدمها إلا للنشر نيابةً عنك.",
+  "tdw_extension_install": "ثبّت الإضافة",
+  "tdw_extension_understand": "أفهم المخاطر"
 }

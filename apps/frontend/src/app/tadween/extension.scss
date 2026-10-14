@@ -1,0 +1,86 @@
+// Tadween: the notice before connecting a channel through the browser
+// extension (components/launches/add.provider.component.tsx,
+// ChromeExtensionWarning). It opens in the app modal (new-modal.tsx), which
+// rises as a bottom sheet on phones, and draws inside the UI kit scope
+// (.tdw-ui), so the tokens below are the kit's names. Loaded from global.scss.
+
+body {
+  // the notice draws its own header (network icon, title, close), so the
+  // modal's empty title row goes
+  .tdw-modal:has(.tdw-extension) > .tdw-modal-head { display: none; }
+
+  // focused on open so the keyboard starts inside; the ring belongs to its controls
+  .tdw-extension:focus,
+  .tdw-extension:focus-visible { outline: none !important; box-shadow: none; }
+  .tdw-extension { display: flex; flex-direction: column; gap: 16px; white-space: normal; }
+
+  // ── Header ───────────────────────────────────────────────────────────────
+  .tdw-extension-head { display: flex; align-items: flex-start; gap: 12px; }
+  .tdw-extension-network {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--card);
+    box-shadow: var(--shadow-sm), 0 0 0 1px var(--border);
+  }
+  .tdw-extension-network img { width: 28px; height: 28px; border-radius: 50%; object-fit: contain; }
+  .tdw-extension-heading { flex: 1; min-width: 0; display: grid; gap: 6px; padding-top: 1px; }
+  .tdw-extension-title { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--foreground); }
+  html[dir='rtl'] & .tdw-extension-title { letter-spacing: 0; }
+  .tdw-extension-intro { margin: 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+  .tdw-extension-close { flex: none; margin-top: -4px; margin-inline-end: -6px; }
+
+  // ── Risks: neutral rows, only the icon carries the tone (as the kit's Banner)
+  .tdw-extension-risks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .tdw-extension-risk {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: var(--radius-lg);
+    background: var(--card);
+    box-shadow: var(--shadow-sm), 0 0 0 1px var(--border);
+  }
+  .tdw-extension-risk-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  .tdw-extension-risk[data-tone='warning'] .tdw-extension-risk-icon { color: var(--warning); }
+  .tdw-extension-risk[data-tone='info'] .tdw-extension-risk-icon { color: var(--primary); }
+  .tdw-extension-risk-text { flex: 1; min-width: 0; display: grid; gap: 2px; font-size: 13px; line-height: 18px; color: var(--muted-foreground); }
+  .tdw-extension-risk-text strong { font-size: 14px; line-height: 20px; font-weight: 600; color: var(--foreground); }
+
+  // ── Install link, consent, actions ───────────────────────────────────────
+  .tdw-extension-install {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+    color: var(--primary);
+    text-decoration: none;
+    border-radius: 6px;
+  }
+  .tdw-extension-install:hover { text-decoration: underline; }
+  .tdw-extension-install:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .tdw-extension-consent { padding-top: 4px; }
+  .tdw-extension-consent .pz-check-text { font-weight: 500; color: var(--foreground); }
+  .tdw-extension-foot { display: flex; justify-content: flex-end; gap: 8px; }
+
+  // Phones: the modal is a bottom sheet; actions span its width
+  @media (max-width: 640px) {
+    .tdw-extension-title { font-size: 18px; line-height: 24px; }
+    .tdw-extension-foot > .pz-btn { flex: 1; }
+  }
+}

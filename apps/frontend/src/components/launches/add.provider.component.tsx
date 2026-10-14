@@ -1,7 +1,15 @@
 'use client';
 
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
-import React, { FC, useCallback, useMemo } from 'react';
+import React, {
+  FC,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Input } from '@gitroom/react/form/input';
 import { FieldValues, FormProvider, useForm } from 'react-hook-form';
@@ -22,6 +30,13 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import clsx from 'clsx';
 import copy from 'copy-to-clipboard';
 import { capitalize } from 'lodash';
+import {
+  Button as TdwButton,
+  Checkbox,
+  Icon,
+  IconButton,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
 const resolver = classValidatorResolver(ApiKeyDto);
 
 export const useAddProvider = (update?: () => void, invite?: boolean) => {
@@ -333,70 +348,166 @@ const ExtensionNotFound: FC = () => {
   );
 };
 
+// Tadween: the risks of connecting through the browser extension, in the
+// app modal (a bottom sheet on phones). The modal's own title row is hidden,
+// the notice draws its header (app/tadween/extension.scss)
 const ChromeExtensionWarning: FC<{
+  identifier: string;
+  name: string;
   onConfirm: () => void;
   onCancel: () => void;
-}> = ({ onConfirm, onCancel }) => {
+}> = ({ identifier, name, onConfirm, onCancel }) => {
   const modals = useModals();
   const t = useT();
+  const brand = useBrandLinks();
+  const { chromeExtensionUrl } = useVariables();
+  const titleId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [understood, setUnderstood] = useState(false);
+
+  // keyboard users start inside the notice
+  useEffect(() => {
+    rootRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  const cancel = useCallback(() => {
+    modals.closeCurrent();
+    onCancel();
+  }, [modals, onCancel]);
+
+  const risks = [
+    {
+      icon: 'triangle-alert',
+      tone: 'warning',
+      title: t('tdw_extension_risk_account', 'Account risk'),
+      body: t(
+        'tdw_extension_risk_account_body',
+        "Connecting through a browser extension may break {{network}}'s terms of service, and {{network}} could suspend or ban your account.",
+        { network: name }
+      ),
+    },
+    {
+      icon: 'refresh-cw',
+      tone: 'warning',
+      title: t('tdw_extension_risk_reliability', 'Reliability'),
+      body: t(
+        'tdw_extension_risk_reliability_body',
+        "It's less reliable than other channels and may disconnect without warning. When your {{network}} session expires, you'll need to reconnect.",
+        { network: name }
+      ),
+    },
+    {
+      icon: 'lock',
+      tone: 'info',
+      title: t('tdw_extension_risk_data', 'Your data'),
+      body: t(
+        'tdw_extension_risk_data_body',
+        'We store your {{network}} login session encrypted and use it only to post for you.',
+        { network: name }
+      ),
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-[16px] pt-[8px]">
-      <p className="text-[14px] text-textColor/80">
-        {t(
-          'chrome_extension_warning_intro',
-          'This channel connects via the browser extension. Please be aware of the following:'
+    <TadweenScope>
+      <div
+        ref={rootRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-labelledby={titleId}
+        className="tdw-extension"
+      >
+        <header className="tdw-extension-head">
+          <span className="tdw-extension-network" aria-hidden="true">
+            <img
+              src={
+                identifier === 'youtube'
+                  ? '/icons/platforms/youtube.svg'
+                  : `/icons/platforms/${identifier}.png`
+              }
+              alt=""
+            />
+          </span>
+          <div className="tdw-extension-heading">
+            <h2 id={titleId} className="tdw-extension-title">
+              {t(
+                'tdw_extension_title',
+                'Connect {{network}} with the {{brand}} browser extension',
+                { network: name, brand: brand.name }
+              )}
+            </h2>
+            <p className="tdw-extension-intro">
+              {t(
+                'tdw_extension_intro',
+                '{{network}} connects through our browser extension, which uses your {{network}} login from this browser.',
+                { network: name }
+              )}
+            </p>
+          </div>
+          <IconButton
+            icon="x"
+            label={t('close', 'Close')}
+            className="tdw-extension-close"
+            onClick={cancel}
+          />
+        </header>
+
+        <ul className="tdw-extension-risks">
+          {risks.map((risk) => (
+            <li
+              key={risk.icon}
+              className="tdw-extension-risk"
+              data-tone={risk.tone}
+            >
+              <span className="tdw-extension-risk-icon" aria-hidden="true">
+                <Icon name={risk.icon} />
+              </span>
+              <span className="tdw-extension-risk-text">
+                <strong>{risk.title}</strong>
+                <span>{risk.body}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        {!!chromeExtensionUrl && (
+          <a
+            className="tdw-extension-install"
+            href={chromeExtensionUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Icon name="puzzle" />
+            {t('tdw_extension_install', 'Install the extension')}
+            <Icon name="external-link" size={14} />
+          </a>
         )}
-      </p>
-      <ul className="flex flex-col gap-[8px] list-disc ps-[20px] text-[14px] text-textColor/80">
-        <li>
-          {t(
-            'chrome_extension_warning_tos',
-            'Using a browser extension to interact with a platform may violate its terms of service and could result in your account being suspended or banned.'
-          )}
-        </li>
-        <li>
-          {t(
-            'chrome_extension_warning_unstable',
-            'This method is not as reliable as native integrations and may experience random disconnections.'
-          )}
-        </li>
-        <li>
-          {t(
-            'chrome_extension_warning_reconnect',
-            'You may need to reconnect periodically if the session expires.'
-          )}
-        </li>
-        <li>
-          We will store your cookies securely to facilitate the connection.
-        </li>
-        <li>
-          We do not take responsibility for any issues arising or account
-          termination due to the use of this method.
-        </li>
-      </ul>
-      <div className="flex gap-[10px] mt-[8px]">
-        <Button
-          type="button"
-          className="flex-1"
-          onClick={() => {
-            modals.closeCurrent();
-            onConfirm();
-          }}
-        >
-          {t('i_understand_continue', 'I understand, continue')}
-        </Button>
-        <Button
-          type="button"
-          className="flex-1 !bg-transparent border border-tableBorder text-textColor"
-          onClick={() => {
-            modals.closeCurrent();
-            onCancel();
-          }}
-        >
-          {t('cancel', 'Cancel')}
-        </Button>
+
+        <div className="tdw-extension-consent">
+          <Checkbox
+            label={t('tdw_extension_understand', 'I understand the risks')}
+            checked={understood}
+            onChange={setUnderstood}
+          />
+        </div>
+
+        <footer className="tdw-extension-foot">
+          <TdwButton variant="ghost" onClick={cancel}>
+            {t('cancel', 'Cancel')}
+          </TdwButton>
+          <TdwButton
+            variant="primary"
+            disabled={!understood}
+            onClick={() => {
+              modals.closeCurrent();
+              onConfirm();
+            }}
+          >
+            {t('continue', 'Continue')}
+          </TdwButton>
+        </footer>
       </div>
-    </div>
+    </TadweenScope>
   );
 };
 
@@ -430,7 +541,7 @@ export const AddProviderComponent: FC<{
   isMobile?: boolean;
 }> = (props) => {
   const { update, social, article, onboarding, isMobile } = props;
-  const { isGeneral, extensionId } = useVariables();
+  const { isGeneral, extensionId, chromeExtensionUrl } = useVariables();
   const toaster = useToaster();
   const router = useRouter();
   const fetch = useFetch();
@@ -439,6 +550,7 @@ export const AddProviderComponent: FC<{
     (
         invite: boolean,
         identifier: string,
+        name: string,
         isExternal: boolean,
         isWeb3: boolean,
         isChromeExtension?: boolean,
@@ -558,11 +670,15 @@ export const AddProviderComponent: FC<{
         if (isChromeExtension) {
           const confirmed = await new Promise<boolean>((resolve) => {
             modal.openModal({
-              title: t('chrome_extension_notice', 'Browser Extension Notice'),
-              withCloseButton: true,
+              // the notice draws its own header (network, title, close)
+              title: '',
+              withCloseButton: false,
+              size: 520,
               onClose: () => resolve(false),
               children: (
                 <ChromeExtensionWarning
+                  identifier={identifier}
+                  name={name}
                   onConfirm={() => {
                     resolve(true);
                   }}
@@ -703,6 +819,30 @@ export const AddProviderComponent: FC<{
 
   const t = useT();
 
+  const available = useMemo(
+    () =>
+      social.filter((item) => {
+        // a channel that connects through the browser extension needs the
+        // extension's store listing (CHROME_EXTENSION_URL); without it the
+        // channel can't be connected, so it isn't offered
+        if (item.isChromeExtension && !chromeExtensionUrl) {
+          return false;
+        }
+
+        if (!props.invite) {
+          return true;
+        }
+
+        return (
+          !item.isExternal &&
+          !item.isWeb3 &&
+          !item.isChromeExtension &&
+          !item.customFields
+        );
+      }),
+    [social, chromeExtensionUrl, props.invite]
+  );
+
   return (
     <div className="w-full flex flex-col gap-[20px] rounded-[4px] relative]">
       <div className="flex flex-col">
@@ -714,26 +854,14 @@ export const AddProviderComponent: FC<{
             isMobile ? {} : onboarding ? 'grid-cols-9' : 'grid-cols-5'
           )}
         >
-          {social
-            .filter((item) => {
-              if (!props.invite) {
-                return true;
-              }
-
-              return (
-                !item.isExternal &&
-                !item.isWeb3 &&
-                !item.isChromeExtension &&
-                !item.customFields
-              );
-            })
-            .map((item) => (
+          {available.map((item) => (
               <div
                 key={item.identifier}
                 data-identifier={item.identifier}
                 onClick={getSocialLink(
                   props.invite,
                   item.identifier,
+                  item.name,
                   item.isExternal,
                   item.isWeb3,
                   item.isChromeExtension,
@@ -792,7 +920,7 @@ export const AddProviderComponent: FC<{
               </div>
             ))}
         </div>
-        {!social.length && !onboarding && (
+        {!available.length && !onboarding && (
           <div className="py-[24px] text-center text-[14px] text-textColor/80">
             {t(
               'tdw_add_channel_none',

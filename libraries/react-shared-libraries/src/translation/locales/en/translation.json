@@ -2593,5 +2593,15 @@
   "tdw_continue_tumblr_title": "Choose a Tumblr blog",
   "tdw_continue_tumblr_empty_title": "No Tumblr blogs found",
   "tdw_continue_tumblr_empty_body": "This Tumblr account doesn't have a blog you can post to. Create one, then reconnect.",
-  "tdw_continue_tumblr_help": "Create a Tumblr blog"
+  "tdw_continue_tumblr_help": "Create a Tumblr blog",
+  "tdw_extension_title": "Connect {{network}} with the {{brand}} browser extension",
+  "tdw_extension_intro": "{{network}} connects through our browser extension, which uses your {{network}} login from this browser.",
+  "tdw_extension_risk_account": "Account risk",
+  "tdw_extension_risk_account_body": "Connecting through a browser extension may break {{network}}'s terms of service, and {{network}} could suspend or ban your account.",
+  "tdw_extension_risk_reliability": "Reliability",
+  "tdw_extension_risk_reliability_body": "It's less reliable than other channels and may disconnect without warning. When your {{network}} session expires, you'll need to reconnect.",
+  "tdw_extension_risk_data": "Your data",
+  "tdw_extension_risk_data_body": "We store your {{network}} login session encrypted and use it only to post for you.",
+  "tdw_extension_install": "Install the extension",
+  "tdw_extension_understand": "I understand the risks"
 }

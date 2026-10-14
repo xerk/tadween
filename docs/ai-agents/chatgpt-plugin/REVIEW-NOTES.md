@@ -1,36 +1,24 @@
 # Tadween plugin: review notes (paste into the portal)
 
-## 1. Tool scan findings: explanation for the review team
-Tools flagged: integrationSchema, triggerTool, generateVideoOptions, videoFunctionTool
-("operations not individually exposed").
-
-> These four tools are helper tools inherited from the open-source Postiz MCP server, which
-> already has an approved listing in the ChatGPT directory with the same tools. In Tadween they
-> are bounded, not generic:
+## 1. Reply to OpenAI (resubmission of 1.1.0)
+> Thank you for the review. We rebuilt the Tadween MCP server for the directory instead of
+> appealing. Version 1.1.0 connects to a dedicated endpoint,
+> https://studio.tadween.app/mcp-oauth-openai, that only exposes explicit tools:
 >
-> - **triggerTool** runs only a method that the target channel's provider has declared in a fixed
->   allowlist, and rejects any other method name server-side ("Method not found for this
->   integration"). The allowlist is part of the provider code; the model cannot add operations.
-> - **integrationSchema** only returns the posting rules, length limit and settings of a channel
->   plus that provider's allowlist. It is read-only (readOnlyHint true).
-> - **For LinkedIn, the channel Tadween is built for, the allowlist is empty**: LinkedIn profiles
->   and pages declare no helper methods, so triggerTool has nothing to run. The helpers exist for
->   other channels (for example Pinterest boards or Reddit flairs) that need an id before posting.
-> - **generateVideoOptions** and **videoFunctionTool** are read-only helpers (readOnlyHint true)
->   for the optional AI video feature; they are not needed for any of the five test cases.
+> - The generic helpers are gone from this endpoint: integrationSchema, triggerTool,
+>   generateVideoOptions and videoFunctionTool (and the video generation tools that depended on
+>   them). No tool takes a function name or a free-form arguments object.
+> - Scheduling (integrationSchedulePostTool) and updating a post's settings (postSettingsTool)
+>   declare every supported network's settings upfront in their input schema, one variant per
+>   network (Facebook, Instagram, LinkedIn, Threads, TikTok, X, YouTube), with its rules,
+>   character limit, enums and required fields.
+> - The network lookups a post can need are their own read-only tools with fixed names and typed
+>   output: searchInstagramAudio, searchTikTokMusic and searchTikTokLocations.
+> - All 14 tools carry title, readOnlyHint, destructiveHint, idempotentHint and openWorldHint, and
+>   every input object is closed (additionalProperties: false).
 >
-> - **Evidence from the live directory:** the published Postiz app in ChatGPT (the open-source server Tadween
->   is built on) lists the same tools with the same descriptions: integrationSchema, triggerTool,
->   generateVideoOptions and videoFunctionTool, among its 10 read and 10 write tools.
->
-> The write actions that publish or change content are separate, individually exposed tools
-> (integrationSchedulePostTool, postSettingsTool, uploadFromUrlTool, generateImageTool), and
-> ChatGPT asks the user before it runs them. If the helpers are a blocker we can hide them from the
-> directory endpoint; please tell us and we will publish a filtered toolset.
-
-Honest note for us: triggerTool is annotated readOnlyHint false, destructiveHint true,
-openWorldHint true in the code (it can refresh a token and disconnect a channel whose token
-expired). Do not describe it as read-only.
+> OAuth is unchanged (dynamic client registration, mcp:read and mcp:write). The reviewer account
+> and test cases are in Review details.
 
 ## 2. Reviewer sign-in instructions (portal: Review details)
 - Sign-in method: Username and password
@@ -50,17 +38,25 @@ expired). Do not describe it as read-only.
 
 ## 3. Demo recording (about 3 minutes), one take
 1. ChatGPT: add Tadween (Settings, connectors) and sign in.
-2. "Which LinkedIn pages do I have connected in Tadween?" (integrationList)
+2. "Which channels do I have connected in Tadween?" (integrationList)
 3. Draft with two images (uploadFromUrlTool, integrationSchedulePostTool, type draft).
-4. "What are the posting rules for my LinkedIn page?" (integrationSchema)
+4. "What is in my media library?" (mediaListTool)
 5. Update a draft's settings (postsListTool, postSettingsTool).
 6. Generate an image (generateImageTool).
 7. Three negative prompts: calendar move, copy-only, email: no Tadween tool is called.
 Share as an unlisted link, then add it as demo_recording_url in plugin.json (bump the version).
 
 ## 4. Annotation justifications (portal, per tool)
-Read-only, closed-world: integrationList, groupList, integrationSchema, postsListTool,
-generateVideoOptions, videoFunctionTool, videoStatusTool.
-Write, additive: integrationSchedulePostTool, postSettingsTool, uploadFromUrlTool,
-generateImageTool, generateVideoTool, upload widget tools.
-triggerTool: write, destructive true, open-world true (token refresh and disconnect on expiry).
+Read-only, closed-world (Tadween data only): integrationList, groupList, postsListTool,
+mediaListTool, uploadWidgetStatusTool.
+Read-only, open-world (search the social network through the connected channel, change
+nothing): searchInstagramAudio, searchTikTokMusic, searchTikTokLocations. When the provider asks
+for it they refresh the channel's access token; a failed refresh is reported, the channel is not
+changed.
+Write, destructive, open-world: integrationSchedulePostTool (a "now" or "schedule" post is
+published to the social network; ChatGPT confirms first).
+Write, destructive, closed-world: postSettingsTool (overwrites settings of a post that is not
+published yet).
+Write, additive, open-world: uploadFromUrlTool (fetches a public URL), generateImageTool (AI
+image, uses AI credits).
+Write, additive, closed-world: uploadWidgetTool, uploadWidgetTicketTool (the upload widget).

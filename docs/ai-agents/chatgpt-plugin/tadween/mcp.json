@@ -3,7 +3,7 @@
   "mcpServers": {
     "tadween": {
       "type": "streamable-http",
-      "url": "https://studio.tadween.app/mcp-oauth-dynamic",
+      "url": "https://studio.tadween.app/mcp-oauth-openai",
       "extensions": {
         "com.openai": {
           "auth": {

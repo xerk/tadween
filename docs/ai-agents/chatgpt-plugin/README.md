@@ -2,7 +2,7 @@
 
 `tadween/` is the package OpenAI's plugin directory takes (Agent Plugins format: `plugin.json`, `mcp.json`, `skills/`, `assets/`). `tadween-chatgpt-plugin.zip` is the same folder zipped, ready to upload. Checked against https://developers.openai.com/plugins/deploy/submission on 2026-10-13.
 
-MCP server: `https://studio.tadween.app/mcp-oauth-dynamic` (OAuth with dynamic client registration, scopes `mcp:read` and `mcp:write`).
+MCP server: `https://studio.tadween.app/mcp-oauth-openai` (OAuth with dynamic client registration through the `/mcp-oauth-dynamic` issuer, scopes `mcp:read` and `mcp:write`). It serves the explicit directory toolset below; every other client keeps `/mcp-oauth-dynamic` and its full toolset.
 
 ## Before uploading
 1. **Verified identity.** OpenAI organization settings → complete business verification (Xerk LLC) so the directory shows the publisher name.
@@ -29,6 +29,39 @@ The published Agent Plugins `mcp.schema.json` 1.0.0 rejects `extensions` on a se
 - Still needed: authorize in the Connect drawer (sign in to Tadween), reviewer credentials, `demo_recording_url`.
 
 ## Tool scan findings (2026-10-13)
-The portal scan flagged `integrationSchema`, `triggerTool`, `generateVideoOptions` and `videoFunctionTool`: "appears to execute operations that are not individually exposed" (generic discover-and-call helpers).
-Decision: no backend change. The plugin keeps `https://studio.tadween.app/mcp-oauth-dynamic` (the same endpoint the other clients use, the full toolset, as Postiz's own ChatGPT app has) and each finding is appealed in the portal (MCPs, tool, Appeal).
-A directory-only endpoint that hides these tools was written and dropped; it is in git history if the appeals are rejected.
+The portal scan flagged `integrationSchema`, `triggerTool`, `generateVideoOptions` and `videoFunctionTool`: "appears to execute operations that are not individually exposed" (generic discover-and-call helpers). The appeal was not accepted: OpenAI rejected 1.0.10 with "Your plugin uses dynamic tools to execute operations that were not individually exposed for review. Please expose each model-callable operation upfront as a separate tool with a clear description, input schema, and annotations."
+
+## What changed since rejection (1.1.0)
+- New endpoint `https://studio.tadween.app/mcp-oauth-openai`, used only by this plugin. Same OAuth as before (dynamic client registration, `mcp:read` / `mcp:write`, RFC 9207 `iss`), so nothing changes for the reviewer account. Production nginx already proxies `/mcp-oauth*` and `/.well-known/oauth-*` (see Server routing), so the path needs no server change beyond deploying the backend.
+- Removed from this endpoint: `integrationSchema`, `triggerTool`, `generateVideoOptions`, `videoFunctionTool`, `generateVideoTool`, `videoStatusTool`. No tool takes a function name or a free-form arguments object.
+- `integrationSchedulePostTool` and `postSettingsTool` list every supported network's settings upfront: one schema variant per network (Facebook, Instagram, LinkedIn profile and page, Threads, TikTok, X, YouTube) with its rules, character limit, enums and required fields. Channels on other networks get a clear "schedule this one in the Tadween app" answer.
+- The network searches a post can need are separate read-only tools with fixed names and typed output: `searchInstagramAudio`, `searchTikTokMusic`, `searchTikTokLocations`.
+- Every tool has `title`, `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`, and every input object is closed (`additionalProperties: false`).
+
+## Tool list (1.1.0, `/mcp-oauth-openai`)
+| Tool | Title | Kind | readOnly | destructive | idempotent | openWorld |
+| --- | --- | --- | --- | --- | --- | --- |
+| `integrationList` | List Integrations | read | true | false | true | false |
+| `groupList` | List Groups | read | true | false | true | false |
+| `postsListTool` | List Posts | read | true | false | true | false |
+| `mediaListTool` | List Media | read | true | false | true | false |
+| `searchInstagramAudio` | Search Instagram Audio | read | true | false | true | true |
+| `searchTikTokMusic` | Search TikTok Music | read | true | false | true | true |
+| `searchTikTokLocations` | Search TikTok Locations | read | true | false | true | true |
+| `uploadWidgetStatusTool` | Upload Widget Status | read | true | false | true | false |
+| `integrationSchedulePostTool` | Schedule Social Media Post | write | false | true | false | true |
+| `postSettingsTool` | Update Post Settings | write | false | true | false | false |
+| `uploadFromUrlTool` | Upload Media From URL | write | false | false | false | true |
+| `generateImageTool` | Generate Image | write | false | false | false | true |
+| `uploadWidgetTool` | Upload Media From Device | write | false | false | false | false |
+| `uploadWidgetTicketTool` | Upload Widget Ticket (called by the widget, `visibility: app`) | write | false | false | false | false |
+
+The clipping tools (`clippingTool`, `clippingStatusTool`, `clippingWidgetTicketTool`) have fixed schemas and annotations and are listed too, only when clipping is configured on the server (`UploadFactory.clippingEnabled()`). Check the scan result: if they show up, they belong in the tool list above.
+
+## Resubmission
+1. Deploy the backend with `/mcp-oauth-openai` and check `https://studio.tadween.app/.well-known/oauth-protected-resource/mcp-oauth-openai` answers with `"resource": "https://studio.tadween.app/mcp-oauth-openai"`.
+2. Platform dashboard → Plugins → Tadween → upload `tadween-chatgpt-plugin-1.1.0.zip` as a new version.
+3. MCPs → Connect: the URL is now `/mcp-oauth-openai`; sign in with the reviewer account and wait for the tool scan. Expect 14 tools and no "not individually exposed" finding.
+4. Review details: paste the reviewer instructions and the annotation notes from REVIEW-NOTES.md (sections 2 and 4).
+5. Re-record the demo (REVIEW-NOTES.md section 3): the current `demo_recording_url` still shows `integrationSchema`. Put the new link in `plugin.json`, bump to 1.1.1 and rebuild the ZIP, or keep the old link if the portal accepts it.
+6. Submit for review with the reply in REVIEW-NOTES.md section 1.

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "tadween",
-  "version": "1.0.10",
+  "version": "1.1.0",
   "description": "Plan, draft, schedule and publish social media posts from ChatGPT, in English or Arabic.",
   "author": {
     "name": "Xerk LLC",
@@ -24,7 +24,7 @@
       "interface": {
         "displayName": "Tadween",
         "shortDescription": "Schedule social media posts",
-        "longDescription": "Tadween is a social media post scheduler for people and brands, in English and Arabic. Use it from ChatGPT to plan, draft, schedule and publish posts to the channels you connected, such as LinkedIn profiles and pages, Instagram, Facebook, Threads, YouTube, X, TikTok, Pinterest, Bluesky, Reddit and more. List your connected channels, check a channel's posting rules, create drafts or scheduled posts, attach or generate images and videos, and review or update upcoming posts. Posts are published by Tadween at the time you choose, and ChatGPT asks for confirmation before publishing. Tadween only reaches the channels you connected to your own account. It does not send email, manage calendars or delete posts.",
+        "longDescription": "Tadween is a social media post scheduler for people and brands, in English and Arabic. Use it from ChatGPT to plan, draft, schedule and publish posts to the channels you connected: Facebook pages, Instagram, LinkedIn profiles and pages, Threads, TikTok, X and YouTube. List your connected channels and media, create drafts or scheduled posts that follow each network's rules, attach images and videos from your media library or a link, generate images, and review or update upcoming posts. Posts are published by Tadween at the time you choose, and ChatGPT asks for confirmation before publishing. Tadween only reaches the channels you connected to your own account. It does not send email, manage calendars or delete posts.",
         "developerName": "Xerk LLC",
         "category": "Communication",
         "capabilities": [
@@ -58,16 +58,16 @@
               "expected_behavior": "Calls integrationList and lists every connected channel with its platform and name. No post is created."
             },
             {
-              "description": "Explain channel rules",
-              "prompt": "What are the posting rules and the available settings for my connected channel in Tadween? Do not create a post.",
-              "tools_triggered": "integrationList, integrationSchema",
-              "expected_behavior": "Resolves the channel and summarises its rules (length limit, media rules, available settings). No post is created."
+              "description": "Media library",
+              "prompt": "Which images and videos do I have in my Tadween media library? Do not create a post.",
+              "tools_triggered": "mediaListTool",
+              "expected_behavior": "Calls mediaListTool and lists the files in the media library, or says it is empty. No post is created."
             },
             {
               "description": "Draft request",
               "prompt": "Create a draft in Tadween for my connected channel for next Monday at 10:00 UTC with the text \"Testing the Tadween ChatGPT plugin\". Do not publish it. If something required is missing, tell me what.",
-              "tools_triggered": "integrationList, integrationSchema",
-              "expected_behavior": "Checks the channel's required fields. Creates a draft when everything required is present, otherwise says which required item is missing (for example a video for YouTube) and creates nothing. Nothing is published."
+              "tools_triggered": "integrationList, integrationSchedulePostTool",
+              "expected_behavior": "Finds the channel with integrationList and reads its platform's rules and settings from the integrationSchedulePostTool schema. Creates a draft (type draft) when everything required is present, otherwise says which required item is missing (for example a video for YouTube) and creates nothing. Nothing is published."
             },
             {
               "description": "Upcoming posts and drafts",
@@ -105,63 +105,63 @@
         "demo_recording_url": "https://youtu.be/GTc4qOZUnS4"
       },
       "publication": {
-        "release_notes": "Removed the country allowlist: available in all supported countries. Multi-channel listing, review walkthrough, 14 translations.",
+        "release_notes": "Explicit toolset: every operation is its own tool with a typed input schema, a typed output and annotations. The generic schema, trigger and video helper tools are gone; each network's settings are part of the scheduling tool's schema, and the network searches it needs are separate read-only tools.",
         "translations": {
           "ar-EG": {
             "subtitle": "جدولة منشورات السوشيال ميديا",
-            "description": "تدوين أداة لجدولة منشورات السوشيال ميديا للأفراد والعلامات التجارية، بالعربية والإنجليزية. استخدمها من ChatGPT لتخطّط وتكتب وتجدول وتنشر على القنوات اللي ربطتها، زي لينكد إن وإنستجرام وفيسبوك وثريدز ويوتيوب وإكس وتيك توك وغيرها. اعرض قنواتك، وشوف قواعد النشر، واعمل مسودات أو منشورات مجدولة، وأضف أو ولّد صور وفيديوهات، وراجع المنشورات القادمة. تدوين بينشر في الوقت اللي تختاره وChatGPT بيطلب تأكيدك قبل النشر، ومبيوصلش غير للقنوات اللي ربطتها بحسابك."
+            "description": "تدوين أداة لجدولة منشورات السوشيال ميديا للأفراد والعلامات التجارية، بالعربية والإنجليزية. استخدمها من ChatGPT لتخطّط وتكتب وتجدول وتنشر على القنوات اللي ربطتها، فيسبوك وإنستجرام ولينكد إن وثريدز وتيك توك وإكس ويوتيوب. اعرض قنواتك، واعمل مسودات أو منشورات مجدولة بتلتزم بقواعد كل شبكة، وأضف صور وفيديوهات أو ولّد صور، وراجع المنشورات القادمة. تدوين بينشر في الوقت اللي تختاره وChatGPT بيطلب تأكيدك قبل النشر، ومبيوصلش غير للقنوات اللي ربطتها بحسابك."
           },
           "bn-BD": {
             "subtitle": "সোশ্যাল মিডিয়া পোস্ট শিডিউল",
-            "description": "Tadween ব্যক্তি ও ব্র্যান্ডের জন্য ইংরেজি ও আরবিতে সোশ্যাল মিডিয়া পোস্ট শিডিউল করার টুল। ChatGPT থেকে লিংকডইন, ইনস্টাগ্রাম, ফেসবুক, থ্রেডস, ইউটিউব, X, টিকটক সহ সংযুক্ত চ্যানেলে পোস্টের পরিকল্পনা, খসড়া, শিডিউল ও প্রকাশ করুন। চ্যানেলের নিয়ম দেখুন, ছবি ও ভিডিও যুক্ত বা তৈরি করুন এবং আসন্ন পোস্ট দেখুন বা আপডেট করুন। আপনার নির্ধারিত সময়ে Tadween প্রকাশ করে এবং প্রকাশের আগে ChatGPT নিশ্চিতকরণ চায়। Tadween শুধু আপনার সংযুক্ত চ্যানেলে কাজ করে।"
+            "description": "Tadween ব্যক্তি ও ব্র্যান্ডের জন্য ইংরেজি ও আরবিতে সোশ্যাল মিডিয়া পোস্ট শিডিউল করার টুল। ChatGPT থেকে সংযুক্ত ফেসবুক, ইনস্টাগ্রাম, লিংকডইন, থ্রেডস, টিকটক, X ও ইউটিউব চ্যানেলে পোস্টের পরিকল্পনা, খসড়া, শিডিউল ও প্রকাশ করুন। ছবি ও ভিডিও যুক্ত করুন বা ছবি তৈরি করুন এবং আসন্ন পোস্ট দেখুন বা আপডেট করুন। আপনার নির্ধারিত সময়ে Tadween প্রকাশ করে এবং প্রকাশের আগে ChatGPT নিশ্চিতকরণ চায়। Tadween শুধু আপনার সংযুক্ত চ্যানেলে কাজ করে।"
           },
           "de-DE": {
             "subtitle": "Social-Posts planen",
-            "description": "Tadween plant und veröffentlicht Social-Media-Posts für Personen und Marken, auf Englisch und Arabisch. Nutze es in ChatGPT, um Posts für deine verbundenen Kanäle zu planen, zu entwerfen, zu terminieren und zu veröffentlichen, etwa LinkedIn, Instagram, Facebook, Threads, YouTube, X, TikTok und mehr. Zeige verbundene Kanäle, prüfe Kanalregeln, erstelle Entwürfe oder geplante Posts, füge Bilder und Videos hinzu oder erzeuge sie und prüfe kommende Posts. Tadween veröffentlicht zur gewählten Zeit, ChatGPT fragt vorher nach deiner Bestätigung, und es erreicht nur Kanäle, die du verbunden hast."
+            "description": "Tadween plant und veröffentlicht Social-Media-Posts für Personen und Marken, auf Englisch und Arabisch. Nutze es in ChatGPT, um Posts für deine verbundenen Kanäle zu planen, zu entwerfen, zu terminieren und zu veröffentlichen, Facebook, Instagram, LinkedIn, Threads, TikTok, X und YouTube. Zeige verbundene Kanäle, erstelle Entwürfe oder geplante Posts, füge Bilder und Videos hinzu oder erzeuge Bilder und prüfe kommende Posts. Tadween veröffentlicht zur gewählten Zeit, ChatGPT fragt vorher nach deiner Bestätigung, und es erreicht nur Kanäle, die du verbunden hast."
           },
           "es-ES": {
             "subtitle": "Programa posts sociales",
-            "description": "Tadween es un programador de publicaciones en redes sociales para personas y marcas, en inglés y árabe. Úsalo desde ChatGPT para planificar, redactar, programar y publicar en los canales que conectaste, como LinkedIn, Instagram, Facebook, Threads, YouTube, X, TikTok y más. Consulta tus canales, revisa sus reglas, crea borradores o publicaciones programadas, adjunta o genera imágenes y vídeos y revisa los próximos posts. Tadween publica a la hora que elijas, ChatGPT pide confirmación antes de publicar y solo accede a los canales de tu cuenta."
+            "description": "Tadween es un programador de publicaciones en redes sociales para personas y marcas, en inglés y árabe. Úsalo desde ChatGPT para planificar, redactar, programar y publicar en los canales que conectaste, Facebook, Instagram, LinkedIn, Threads, TikTok, X y YouTube. Consulta tus canales, crea borradores o publicaciones programadas, adjunta imágenes y vídeos o genera imágenes y revisa los próximos posts. Tadween publica a la hora que elijas, ChatGPT pide confirmación antes de publicar y solo accede a los canales de tu cuenta."
           },
           "fr-FR": {
             "subtitle": "Planifiez vos posts sociaux",
-            "description": "Tadween est un outil de planification de publications pour les réseaux sociaux, pour les personnes et les marques, en anglais et en arabe. Utilisez-le dans ChatGPT pour planifier, rédiger, programmer et publier sur vos canaux connectés, comme LinkedIn, Instagram, Facebook, Threads, YouTube, X, TikTok et plus. Listez vos canaux, consultez leurs règles, créez des brouillons ou des posts programmés, ajoutez ou générez des images et vidéos et consultez les posts à venir. Tadween publie à l'heure choisie, ChatGPT demande votre confirmation avant de publier et n'accède qu'aux canaux connectés à votre compte."
+            "description": "Tadween est un outil de planification de publications pour les réseaux sociaux, pour les personnes et les marques, en anglais et en arabe. Utilisez-le dans ChatGPT pour planifier, rédiger, programmer et publier sur vos canaux connectés, Facebook, Instagram, LinkedIn, Threads, TikTok, X et YouTube. Listez vos canaux, créez des brouillons ou des posts programmés, ajoutez des images et vidéos ou générez des images et consultez les posts à venir. Tadween publie à l'heure choisie, ChatGPT demande votre confirmation avant de publier et n'accède qu'aux canaux connectés à votre compte."
           },
           "it-IT": {
             "subtitle": "Pianifica i post social",
-            "description": "Tadween è un pianificatore di post per i social media, per persone e brand, in inglese e arabo. Usalo da ChatGPT per pianificare, scrivere, programmare e pubblicare sui canali collegati, come LinkedIn, Instagram, Facebook, Threads, YouTube, X, TikTok e altri. Elenca i canali, controlla le regole, crea bozze o post programmati, allega o genera immagini e video e rivedi i post in arrivo. Tadween pubblica all'ora scelta, ChatGPT chiede conferma prima di pubblicare e accede solo ai canali collegati al tuo account."
+            "description": "Tadween è un pianificatore di post per i social media, per persone e brand, in inglese e arabo. Usalo da ChatGPT per pianificare, scrivere, programmare e pubblicare sui canali collegati, Facebook, Instagram, LinkedIn, Threads, TikTok, X e YouTube. Elenca i canali, crea bozze o post programmati, allega immagini e video o genera immagini e rivedi i post in arrivo. Tadween pubblica all'ora scelta, ChatGPT chiede conferma prima di pubblicare e accede solo ai canali collegati al tuo account."
           },
           "ja-JP": {
             "subtitle": "SNS投稿を予約",
-            "description": "Tadweenは、個人やブランド向けのSNS投稿スケジューラーで、英語とアラビア語に対応しています。ChatGPTから、接続済みのLinkedIn、Instagram、Facebook、Threads、YouTube、X、TikTokなどのチャンネルへの投稿を計画・下書き・予約・公開できます。チャンネルの一覧と投稿ルールの確認、下書きや予約投稿の作成、画像や動画の添付・生成、今後の投稿の確認ができます。指定した時刻にTadweenが公開し、公開前にChatGPTが確認を求めます。接続したチャンネルにのみアクセスします。"
+            "description": "Tadweenは、個人やブランド向けのSNS投稿スケジューラーで、英語とアラビア語に対応しています。ChatGPTから、接続済みのFacebook、Instagram、LinkedIn、Threads、TikTok、X、YouTubeのチャンネルへの投稿を計画・下書き・予約・公開できます。チャンネルの一覧の確認、下書きや予約投稿の作成、画像や動画の添付、画像の生成、今後の投稿の確認ができます。指定した時刻にTadweenが公開し、公開前にChatGPTが確認を求めます。接続したチャンネルにのみアクセスします。"
           },
           "ka-GE": {
             "subtitle": "სოც. პოსტების დაგეგმვა",
-            "description": "Tadween არის სოციალური მედიის პოსტების დამგეგმავი ადამიანებისა და ბრენდებისთვის, ინგლისურ და არაბულ ენებზე. გამოიყენეთ ChatGPT-დან დასაგეგმად, დასაწერად და გამოსაქვეყნებლად დაკავშირებულ არხებზე, როგორიცაა LinkedIn, Instagram, Facebook, Threads, YouTube, X, TikTok და სხვა. ნახეთ არხები და მათი წესები, შექმენით დრაფტები ან დაგეგმილი პოსტები, დაამატეთ ან შექმენით სურათები და ვიდეოები. Tadween აქვეყნებს თქვენ მიერ არჩეულ დროს, ChatGPT კი გამოქვეყნებამდე დადასტურებას ითხოვს."
+            "description": "Tadween არის სოციალური მედიის პოსტების დამგეგმავი ადამიანებისა და ბრენდებისთვის, ინგლისურ და არაბულ ენებზე. გამოიყენეთ ChatGPT-დან დასაგეგმად, დასაწერად და გამოსაქვეყნებლად დაკავშირებულ არხებზე, Facebook, Instagram, LinkedIn, Threads, TikTok, X და YouTube. ნახეთ არხები, შექმენით დრაფტები ან დაგეგმილი პოსტები, დაამატეთ სურათები და ვიდეოები ან შექმენით სურათები. Tadween აქვეყნებს თქვენ მიერ არჩეულ დროს, ChatGPT კი გამოქვეყნებამდე დადასტურებას ითხოვს."
           },
           "ko-KR": {
             "subtitle": "소셜 게시물 예약",
-            "description": "Tadween은 개인과 브랜드를 위한 소셜 미디어 게시물 예약 도구로, 영어와 아랍어를 지원합니다. ChatGPT에서 LinkedIn, Instagram, Facebook, Threads, YouTube, X, TikTok 등 연결한 채널에 게시물을 계획하고 작성하고 예약하고 게시할 수 있습니다. 연결된 채널과 게시 규칙을 확인하고, 초안이나 예약 게시물을 만들고, 이미지와 동영상을 첨부하거나 생성하며, 예정된 게시물을 검토할 수 있습니다. 게시물은 선택한 시간에 Tadween이 게시하고 게시 전에 ChatGPT가 확인을 요청하며, 연결한 채널에만 접근합니다."
+            "description": "Tadween은 개인과 브랜드를 위한 소셜 미디어 게시물 예약 도구로, 영어와 아랍어를 지원합니다. ChatGPT에서 연결한 Facebook, Instagram, LinkedIn, Threads, TikTok, X, YouTube 채널에 게시물을 계획하고 작성하고 예약하고 게시할 수 있습니다. 연결된 채널을 확인하고, 초안이나 예약 게시물을 만들고, 이미지와 동영상을 첨부하거나 이미지를 생성하며, 예정된 게시물을 검토할 수 있습니다. 게시물은 선택한 시간에 Tadween이 게시하고 게시 전에 ChatGPT가 확인을 요청하며, 연결한 채널에만 접근합니다."
           },
           "pt-BR": {
             "subtitle": "Agende posts sociais",
-            "description": "O Tadween é um agendador de posts para redes sociais, para pessoas e marcas, em inglês e árabe. Use no ChatGPT para planejar, escrever, agendar e publicar nos canais conectados, como LinkedIn, Instagram, Facebook, Threads, YouTube, X, TikTok e mais. Liste seus canais, confira as regras, crie rascunhos ou posts agendados, anexe ou gere imagens e vídeos e revise os próximos posts. O Tadween publica no horário escolhido, o ChatGPT pede confirmação antes de publicar e só acessa os canais que você conectou à sua conta."
+            "description": "O Tadween é um agendador de posts para redes sociais, para pessoas e marcas, em inglês e árabe. Use no ChatGPT para planejar, escrever, agendar e publicar nos canais conectados, Facebook, Instagram, LinkedIn, Threads, TikTok, X e YouTube. Liste seus canais, crie rascunhos ou posts agendados, anexe imagens e vídeos ou gere imagens e revise os próximos posts. O Tadween publica no horário escolhido, o ChatGPT pede confirmação antes de publicar e só acessa os canais que você conectou à sua conta."
           },
           "ru-RU": {
             "subtitle": "Планируйте посты в соцсетях",
-            "description": "Tadween — планировщик публикаций в соцсетях для людей и брендов на английском и арабском. Используйте его в ChatGPT, чтобы планировать, писать, ставить в расписание и публиковать посты в подключённых каналах: LinkedIn, Instagram, Facebook, Threads, YouTube, X, TikTok и других. Смотрите каналы и их правила, создавайте черновики и запланированные посты, добавляйте или генерируйте изображения и видео, проверяйте предстоящие посты. Tadween публикует в выбранное время, ChatGPT просит подтверждение перед публикацией и работает только с вашими каналами."
+            "description": "Tadween — планировщик публикаций в соцсетях для людей и брендов на английском и арабском. Используйте его в ChatGPT, чтобы планировать, писать, ставить в расписание и публиковать посты в подключённых каналах: Facebook, Instagram, LinkedIn, Threads, TikTok, X и YouTube. Смотрите каналы, создавайте черновики и запланированные посты, добавляйте изображения и видео или генерируйте изображения, проверяйте предстоящие посты. Tadween публикует в выбранное время, ChatGPT просит подтверждение перед публикацией и работает только с вашими каналами."
           },
           "tr-TR": {
             "subtitle": "Sosyal gönderileri planla",
-            "description": "Tadween, kişiler ve markalar için İngilizce ve Arapça çalışan bir sosyal medya gönderi planlayıcısıdır. ChatGPT'den bağladığınız LinkedIn, Instagram, Facebook, Threads, YouTube, X, TikTok gibi kanallara gönderileri planlayın, taslak hazırlayın, zamanlayın ve yayınlayın. Kanallarınızı ve kurallarını görün, taslak veya zamanlanmış gönderiler oluşturun, görsel ve video ekleyin ya da üretin, yaklaşan gönderileri gözden geçirin. Tadween seçtiğiniz zamanda yayınlar, ChatGPT yayından önce onay ister ve yalnızca hesabınıza bağladığınız kanallara erişir."
+            "description": "Tadween, kişiler ve markalar için İngilizce ve Arapça çalışan bir sosyal medya gönderi planlayıcısıdır. ChatGPT'den bağladığınız Facebook, Instagram, LinkedIn, Threads, TikTok, X ve YouTube kanallarına gönderileri planlayın, taslak hazırlayın, zamanlayın ve yayınlayın. Kanallarınızı görün, taslak veya zamanlanmış gönderiler oluşturun, görsel ve video ekleyin ya da görsel üretin, yaklaşan gönderileri gözden geçirin. Tadween seçtiğiniz zamanda yayınlar, ChatGPT yayından önce onay ister ve yalnızca hesabınıza bağladığınız kanallara erişir."
           },
           "vi-VN": {
             "subtitle": "Lên lịch bài đăng mạng xã hội",
-            "description": "Tadween là công cụ lên lịch bài đăng mạng xã hội cho cá nhân và thương hiệu, bằng tiếng Anh và tiếng Ả Rập. Dùng ngay trong ChatGPT để lên kế hoạch, soạn, đặt lịch và đăng bài lên các kênh đã kết nối như LinkedIn, Instagram, Facebook, Threads, YouTube, X, TikTok và nhiều hơn nữa. Xem danh sách kênh và quy tắc, tạo bản nháp hoặc bài đăng theo lịch, đính kèm hoặc tạo hình ảnh và video, xem lại các bài sắp đăng. Tadween đăng đúng giờ bạn chọn, ChatGPT yêu cầu xác nhận trước khi đăng và chỉ truy cập các kênh bạn đã kết nối."
+            "description": "Tadween là công cụ lên lịch bài đăng mạng xã hội cho cá nhân và thương hiệu, bằng tiếng Anh và tiếng Ả Rập. Dùng ngay trong ChatGPT để lên kế hoạch, soạn, đặt lịch và đăng bài lên các kênh đã kết nối Facebook, Instagram, LinkedIn, Threads, TikTok, X và YouTube. Xem danh sách kênh, tạo bản nháp hoặc bài đăng theo lịch, đính kèm hình ảnh và video hoặc tạo hình ảnh, xem lại các bài sắp đăng. Tadween đăng đúng giờ bạn chọn, ChatGPT yêu cầu xác nhận trước khi đăng và chỉ truy cập các kênh bạn đã kết nối."
           },
           "zh-CN": {
             "subtitle": "安排社交媒体帖子",
-            "description": "Tadween 是面向个人和品牌的社交媒体帖子调度工具，支持英语和阿拉伯语。你可以在 ChatGPT 中为已连接的渠道（如 LinkedIn、Instagram、Facebook、Threads、YouTube、X、TikTok 等）规划、撰写、定时和发布帖子。查看已连接渠道及其发布规则，创建草稿或定时帖子，添加或生成图片和视频，并查看即将发布的帖子。Tadween 会在你选定的时间发布，ChatGPT 发布前会请你确认，并且只会访问你已连接的渠道。"
+            "description": "Tadween 是面向个人和品牌的社交媒体帖子调度工具，支持英语和阿拉伯语。你可以在 ChatGPT 中为已连接的渠道（Facebook、Instagram、LinkedIn、Threads、TikTok、X 和 YouTube）规划、撰写、定时和发布帖子。查看已连接渠道，创建草稿或定时帖子，添加图片和视频或生成图片，并查看即将发布的帖子。Tadween 会在你选定的时间发布，ChatGPT 发布前会请你确认，并且只会访问你已连接的渠道。"
           }
         },
         "countries": []

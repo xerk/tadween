@@ -12,6 +12,21 @@ import { IntegrationContext } from '@gitroom/frontend/components/launches/helper
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 
+// Providers connected through the browser extension hand their cookies over in
+// this tab's sessionStorage instead of the URL (see AddProviderComponent). Read
+// once and removed right away; the in-memory copy is dropped after the connect
+// request.
+const extensionCodes = new Map<string, string>();
+const takeExtensionCode = (state: string) => {
+  const key = `extension-cookies:${state}`;
+  const stored = sessionStorage.getItem(key);
+  if (stored) {
+    extensionCodes.set(state, stored);
+    sessionStorage.removeItem(key);
+  }
+  return extensionCodes.get(state);
+};
+
 interface TwoStepState {
   integrationId: string;
   onboarding: boolean;
@@ -100,6 +115,17 @@ export const ContinueIntegration: FC<{
       };
     }
 
+    if (
+      !searchParams.code &&
+      searchParams.state &&
+      typeof window !== 'undefined'
+    ) {
+      const code = takeExtensionCode(searchParams.state);
+      if (code) {
+        return { ...searchParams, code };
+      }
+    }
+
     return searchParams;
   }, []);
 
@@ -127,6 +153,9 @@ export const ContinueIntegration: FC<{
           });
         }
       }
+
+      // The connect request has the extension cookies now; drop our copy
+      extensionCodes.delete(modifiedParams.state);
 
       if (data.status === HttpStatusCode.PreconditionFailed) {
         const { returnURL } = await data.json().catch(() => ({}));

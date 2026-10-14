@@ -647,9 +647,17 @@ export const AddProviderComponent: FC<{
             }
             const { url } = await response.json();
             modal.closeAll();
-            window.location.href = `/integrations/social/${identifier}?state=${url}&code=${Buffer.from(
-              JSON.stringify(cookieResponse.cookies)
-            ).toString('base64')}${onboarding ? '&onboarding=true' : ''}`;
+            // The cookies reach the connect request through this tab's
+            // sessionStorage (read once by ContinueIntegration), never the URL
+            sessionStorage.setItem(
+              `extension-cookies:${url}`,
+              Buffer.from(JSON.stringify(cookieResponse.cookies)).toString(
+                'base64'
+              )
+            );
+            window.location.href = `/integrations/social/${identifier}?state=${url}${
+              onboarding ? '&onboarding=true' : ''
+            }`;
           } catch {
             toaster.show(
               t(

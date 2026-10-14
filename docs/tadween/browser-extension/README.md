@@ -17,16 +17,27 @@ with browser cookies instead. Today that is only **Skool**. It is Postiz's exten
 3. The app page sends `PING`, then `GET_COOKIES` to the extension (`chrome.runtime.sendMessage(EXTENSION_ID, …)`,
    `apps/frontend/src/components/launches/add.provider.component.tsx`).
 4. The extension reads two cookies for `https://www.skool.com`, `client_id` and `auth_token`, and returns them.
-   Chrome only lets pages that match the manifest's `externally_connectable.matches` send messages, and the
-   service worker checks the sender's origin against the same patterns.
-5. The app opens `/integrations/social/skool?state=…&code=<base64 JSON of the two cookies>`, which POSTs to
-   `/integrations/social-connect/skool`. The backend (`SkoolProvider.authenticate`) calls
-   `GET https://api2.skool.com/self` with the cookies, and stores them AES-256 encrypted with a key derived from
-   `JWT_SECRET` (`AuthService.fixedEncryption`, in `Integration.token` and `Integration.customInstanceDetails`).
-6. On success the backend returns a signed `extensionToken` (channel id, workspace id, Skool user id; no
-   cookies). The app passes it to the extension (`STORE_REFRESH_TOKEN`), which keeps it in `chrome.storage.local`
-   and sets a daily alarm that re-reads the cookies and POSTs them to `<API>/integrations/extension-refresh`.
-   Deleting the channel sends `REMOVE_REFRESH_TOKEN`.
+   Chrome only lets pages that match the manifest's `externally_connectable.matches` (the store build:
+   `https://studio.tadween.app/*` only) send messages, and the service worker checks the sender's origin against
+   the same patterns.
+5. The app puts the cookies (base64 JSON) in this tab's `sessionStorage` under `extension-cookies:<state>` and opens
+   `/integrations/social/skool?state=…`. The cookies are **never in the URL**, so they don't reach browser history
+   or web-server access logs. `ContinueIntegration` (`continue.integration.tsx`) reads that entry only when the URL
+   has no `code`, removes it at once, and sends it as `code` in the `POST /integrations/social-connect/skool` body.
+   OAuth providers always come back with `code` in the URL, so their flow is unchanged.
+6. The backend (`SkoolProvider.authenticate`) calls `GET https://api2.skool.com/self` with the cookies, and stores
+   them AES-256 encrypted with a key derived from `JWT_SECRET` (`AuthService.fixedEncryption`, in
+   `Integration.token` and `Integration.customInstanceDetails`).
+7. On success the backend returns a signed `extensionToken` (channel id, workspace id, Skool user id, provider;
+   no cookies). The app passes it to the extension (`STORE_REFRESH_TOKEN`), which keeps it in
+   `chrome.storage.local` and sets a daily alarm. Deleting the channel sends `REMOVE_REFRESH_TOKEN`.
+8. **Daily refresh:** the alarm re-reads the two cookies and POSTs `{ jwt, cookies }` to
+   `<API>/integrations/extension-refresh`. The backend verifies the JWT and that the channel still exists with the
+   same Skool user, checks the cookies against Skool, and saves them encrypted exactly like the first connect.
+   The request comes from `chrome-extension://<EXTENSION_ID>`, so `apps/backend/src/main.ts` adds that origin to
+   CORS **for this one route only**, and only when the backend's `EXTENSION_ID` is set. No other route accepts it.
+   (A host permission for the API would also work, but it's a new permission users are warned about and the store
+   reviews, and every self-hoster would need their API host in the manifest.)
 
 The extension has no popup, no content scripts and no remote code. Its permissions are `cookies`, `storage`
 and `alarms`, with the host `*://*.skool.com/*`, the same as Postiz's published build.
@@ -35,15 +46,16 @@ and `alarms`, with the host `*://*.skool.com/*`, the same as Postiz's published 
 
 ```bash
 # from the repo root
-EXTENSION_ALLOWED_ORIGINS="https://studio.tadween.app/*,https://*.tadween.app/*" pnpm run build:extension
+EXTENSION_ALLOWED_ORIGINS="https://studio.tadween.app/*" pnpm run build:extension
 # -> apps/extension/dist/ (unpacked) and apps/extension/extension.zip
 cp apps/extension/extension.zip docs/tadween/browser-extension/tadween-extension-1.0.0.zip
 ```
 
 - `EXTENSION_ALLOWED_ORIGINS`: comma-separated match patterns of the app pages that may talk to the extension
-  (`externally_connectable.matches`). If it isn't set, the build uses `FRONTEND_URL`'s origin, and if that isn't
-  set either, localhost. A self-hoster builds their own with their app's URL.
-- The store build has **no localhost** origin, so a page on a developer's localhost can't ask it for Skool cookies.
+  (`externally_connectable.matches`), read from the shell. If it isn't set, the build uses `FRONTEND_URL`'s origin,
+  and if that isn't set either, localhost. A self-hoster builds their own with their app's URL.
+- Only `studio.tadween.app` is allowed: the landing site (`tadween.app`) and other subdomains can't ask for
+  cookies. There is **no localhost** in the store build either.
 - Version: `apps/extension/package.json` `version` (also in `manifest.json`). Raise it for every new upload.
 - `pnpm --filter ./apps/extension run dev` builds the dev variant (`manifest.dev.json`: name "Tadween (dev)",
   localhost only, a fixed `key`, so the unpacked ID is always `kgddbfffcmalgflbimlcndpdkjodgfpa`). Put that ID
@@ -53,44 +65,28 @@ cp apps/extension/extension.zip docs/tadween/browser-extension/tadween-extension
 
 ## What was tested (2026-10-14)
 
-The exact `tadween-extension-1.0.0.zip`, unzipped and loaded in Playwright's Chromium
-(`--load-extension`), against a local production build of the app (backend + `next start`) on a copy of the
-database. A local HTTPS proxy served the app as `https://studio.tadween.app` (Chromium `--host-resolver-rules`,
-self-signed certificate), so the store manifest's origins were exercised unchanged. Fake `client_id` and
-`auth_token` cookies were set on `.skool.com`.
+The exact `tadween-extension-1.0.0.zip`, unzipped and loaded in Playwright's Chromium (`--load-extension`), against
+a local production build of this branch (backend + `next start`) on a copy of the database. A local HTTPS proxy
+served the app as `https://studio.tadween.app` (Chromium `--host-resolver-rules`, self-signed certificate), so the
+store manifest's origin was used unchanged. Fake `client_id` / `auth_token` cookies were set on `.skool.com`.
+**Skool's API was stubbed** in the test backend (a preload script, not in the repo) to accept the fake cookies and
+return a test user, so the connect and refresh paths could finish; the real Skool call is the only part not run.
 
 | Step | Result |
 |---|---|
-| Extension loads, manifest version 1.0.0, permissions `cookies, alarms, storage`, host `*://*.skool.com/*` | OK |
-| App page `https://studio.tadween.app` → `PING` | `{"status":"ok","version":"1.0.0"}` |
-| Add channel → Skool → notice → "I understand, continue" | `GET /api/integrations/social/skool` 200, then the extension returned both cookies and the app navigated to `/integrations/social/skool?state=…&code=…` (code = the two fake cookies) |
-| Continue page → `POST /api/integrations/social-connect/skool` (`state, code, timezone`) | Backend called `GET https://api2.skool.com/self` with the cookies → Skool answered **401** → backend replied 409 `Invalid cookie data` → "Could not add provider. Invalid cookie data". **This is where the test stops**: creating the integration needs a real Skool session. |
-| Same app served from `http://localhost:4417` and `https://other.example.test` (not in the manifest) | `chrome.runtime.sendMessage` is undefined on those pages: they can't reach the extension at all |
-| `STORE_REFRESH_TOKEN` / `REMOVE_REFRESH_TOKEN` from the app page | `{"success":true}` both |
-| Daily refresh, forced by firing the alarm | The service worker's request reached the API only as a CORS preflight (`OPTIONS /api/integrations/extension-refresh`, origin `chrome-extension://…`); the backend's CORS list doesn't include the extension, so the `POST` is never sent. See "Known limitation". |
+| Extension loads: version 1.0.0, permissions `cookies, alarms, storage`, host `*://*.skool.com/*`, `externally_connectable` = `https://studio.tadween.app/*` | OK |
+| `PING` from `https://studio.tadween.app` | `{"status":"ok","version":"1.0.0"}` |
+| Add channel → Skool → notice → continue | App went to `/integrations/social/skool?state=…` (no `code=` in any URL), `POST /api/integrations/social-connect/skool` with `state, code, timezone` → 201, landed on `/launches?added=skool`, "Channel Updated". The `extension-cookies:*` sessionStorage entry was gone afterwards. |
+| Stored credentials after connect | `token` and `customInstanceDetails`: hex ciphertext; not JSON, not base64 JSON, not a JWT; decrypts to the cookies |
+| Extension after connect | One refresh entry (channel id, provider `skool`, API URL, signed token), daily alarm set |
+| Daily refresh: new `auth_token` set in the browser, alarm fired | `OPTIONS` then `POST /api/integrations/extension-refresh` from `chrome-extension://<id>`; the backend validated the JWT, called Skool with the new cookies and saved them: both columns re-encrypted (hex) and decrypt to the **new** `auth_token` |
+| CORS (curl preflight) | Extension origin allowed on `/integrations/extension-refresh` only; not on `/integrations/list`; another extension ID or a website origin gets no `Access-Control-Allow-Origin` |
+| Refresh with an invalid JWT | 401 `Invalid token` |
+| Same app on `https://tadween.app`, `https://other.example.test`, `http://localhost:4417` | `chrome.runtime.sendMessage` is undefined there: those pages can't reach the extension |
 
-### Known limitation: the daily refresh doesn't reach the API
-
-The keep-alive POST is a cross-origin request from the extension. Without a host permission for the API (or the
-extension's origin in the backend's CORS list) Chrome blocks it after the preflight. Postiz's published build has
-the same permissions and the same behaviour, so nothing regresses. Connecting and reconnecting Skool from the app
-work without it; a user whose Skool session expires reconnects the channel. Fixing it means either adding the API
-as a host permission (`https://studio.tadween.app/*`, a new permission the store reviews) or allowing the
-extension's origin in the backend's CORS settings once the store ID is known.
-
-Before turning the refresh on, change `extensionRefreshCookies` in
-`apps/backend/src/api/routes/no.auth.integrations.controller.ts`: it saves the refreshed cookies in
-`customInstanceDetails` with `AuthService.signJWT` (signed, not encrypted), while the first connect uses
-`AuthService.fixedEncryption`. `SkoolProvider.getCookies` reads both formats. As long as the refresh is blocked,
-every stored Skool cookie is the encrypted one, which is what the privacy text says.
-
-### Allowed origins
-
-The store build allows `https://studio.tadween.app/*` and `https://*.tadween.app/*`. In Chrome, `*.tadween.app`
-also matches the bare `tadween.app` (the landing site) and every future subdomain, and any of those pages could ask
-for the user's Skool cookies. Only `studio.tadween.app` calls the extension today. To narrow it, rebuild with
-`EXTENSION_ALLOWED_ORIGINS="https://studio.tadween.app/*"` and update the "Talks only to Tadween pages" lines in
-`store-listing.md`.
+Before this branch, the refresh POST never left the browser: Chrome stopped it at the CORS preflight, which is also
+how Postiz's published extension behaves. Refreshed cookies used to be stored as a signed JWT (readable with
+base64); `SkoolProvider.getCookies` still reads that old format, so rows saved that way keep working.
 
 ## Upload to the Chrome Web Store (owner)
 
@@ -121,6 +117,10 @@ The store assigns a new ID; it is **not** the local unpacked or dev ID.
 | `EXTENSION_ID` | the item ID from the developer console (32 letters a–p) |
 | `CHROME_EXTENSION_URL` | the store link, `https://chromewebstore.google.com/detail/<slug>/<EXTENSION_ID>` |
 
-Both are read at request time (`apps/frontend/src/app/(app)/layout.tsx`), so recreating the app container is
-enough; no image rebuild. Also turn **Skool** on in Admin → Providers: it isn't a focus network, so it is off until
-an admin enables it. Then connect a real Skool account once to confirm (unlisted install link).
+The frontend reads them at request time (`apps/frontend/src/app/(app)/layout.tsx`) and the backend reads
+`EXTENSION_ID` at start-up for the refresh route's CORS, so recreating the app container is enough; no image
+rebuild. The app image must include this branch (sessionStorage hand-over, refresh CORS, encrypted refresh); an
+older image still connects Skool, but the daily refresh won't reach the API.
+
+Also turn **Skool** on in Admin → Providers: it isn't a focus network, so it is off until an admin enables it. Then
+connect a real Skool account once through the unlisted install link to confirm.

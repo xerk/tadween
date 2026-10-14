@@ -34,8 +34,8 @@ How to connect Skool
 
 What the extension does
 - Reads two Skool cookies, client_id and auth_token, and only when a Tadween page asks for them.
-- Talks only to Tadween pages (tadween.app). Other websites can't reach it.
-- For Skool channels you connected, tries once a day to send your current Skool sign-in to Tadween so the channel stays connected.
+- Talks only to the Tadween app (studio.tadween.app). Other websites can't reach it.
+- For Skool channels you connected, sends your current Skool sign-in to Tadween once a day, so the channel stays connected.
 
 What it doesn't do
 - No access to your browsing history, to other websites' cookies or to the pages you visit.
@@ -59,8 +59,8 @@ Arabic:
 
 ما تفعله الإضافة
 - تقرأ ملفّي تعريف ارتباط فقط من Skool، هما client_id وauth_token، وذلك فقط عندما تطلبهما صفحة من تدوين.
-- لا تتواصل إلا مع صفحات تدوين (tadween.app)، ولا تستطيع المواقع الأخرى الوصول إليها.
-- تحاول مرة كل يوم إرسال جلستك الحالية في Skool إلى تدوين، للقنوات التي ربطتها، حتى تبقى القناة متصلة.
+- لا تتواصل إلا مع تطبيق تدوين (studio.tadween.app)، ولا تستطيع المواقع الأخرى الوصول إليها.
+- ترسل جلستك الحالية في Skool إلى تدوين مرة كل يوم، للقنوات التي ربطتها، حتى تبقى القناة متصلة.
 
 ما لا تفعله
 - لا تصل إلى سجل التصفح، ولا إلى ملفات تعريف الارتباط الخاصة بالمواقع الأخرى، ولا إلى محتوى الصفحات التي تزورها.
@@ -118,7 +118,7 @@ Needed so the cookies API can read the two Skool sign-in cookies. The extension 
 
 **externally_connectable (if the reviewer asks)**
 ```
-Only https://studio.tadween.app and other https://*.tadween.app pages can message the extension. The service worker also checks the sender's origin and rejects any other page.
+Only https://studio.tadween.app pages can message the extension. The service worker also checks the sender's origin and rejects any other page.
 ```
 
 ### Remote code
@@ -178,5 +178,9 @@ Notes behind the wording (keep it true):
   on account deletion or by email, and doesn't promise it on channel removal. Account deletion
   (`UsersService.deleteAccount` → `deleteIntegrationsForAccount`) overwrites `token` and
   `customInstanceDetails` with hashes for the workspaces the user owns.
-- The app passes the cookies once in its own URL (`/integrations/social/skool?code=…`, base64) before the POST.
-  That URL is on Tadween's own HTTPS domain, but it can end up in browser history and in web-server access logs.
+- The cookies never travel in a URL: the app hands them to its connect request through the tab's
+  `sessionStorage` (removed as soon as it is read), and the request sends them in the POST body over HTTPS.
+- The daily refresh saves the cookies with the same `fixedEncryption` as the first connect (tested: the stored
+  value is hex ciphertext, not JSON, base64 JSON or a JWT). The old refresh code stored a signed JWT instead, but it
+  never ran (CORS blocked it); the backend can still read that format, and a refresh or reconnect re-saves it
+  encrypted.

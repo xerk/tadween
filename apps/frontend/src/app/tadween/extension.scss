@@ -1,12 +1,12 @@
 // Tadween: the notice before connecting a channel through the browser
-// extension (components/launches/add.provider.component.tsx,
-// ChromeExtensionWarning). It opens in the app modal (new-modal.tsx), which
+// extension (components/launches/chrome.extension.warning.tsx, opened from
+// add.provider.component.tsx). It opens in the app modal (new-modal.tsx), which
 // rises as a bottom sheet on phones, and draws inside the UI kit scope
 // (.tdw-ui), so the tokens below are the kit's names. Loaded from global.scss.
 
 body {
-  // the notice draws its own header (network icon, title, close), so the
-  // modal's empty title row goes
+  // the notice draws its own header (the continue step's network icon, a
+  // title, close), so the modal's empty title row goes
   .tdw-modal:has(.tdw-extension) > .tdw-modal-head { display: none; }
 
   // focused on open so the keyboard starts inside; the ring belongs to its controls
@@ -16,18 +16,7 @@ body {
 
   // ── Header ───────────────────────────────────────────────────────────────
   .tdw-extension-head { display: flex; align-items: flex-start; gap: 12px; }
-  .tdw-extension-network {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: var(--card);
-    box-shadow: var(--shadow-sm), 0 0 0 1px var(--border);
-  }
-  .tdw-extension-network img { width: 28px; height: 28px; border-radius: 50%; object-fit: contain; }
-  .tdw-extension-heading { flex: 1; min-width: 0; display: grid; gap: 6px; padding-top: 1px; }
+  .tdw-extension-heading { flex: 1; min-width: 0; display: grid; gap: 4px; padding-top: 1px; }
   .tdw-extension-title { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; color: var(--foreground); }
   html[dir='rtl'] & .tdw-extension-title { letter-spacing: 0; }
   .tdw-extension-intro { margin: 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
@@ -35,6 +24,7 @@ body {
 
   // ── Risks: neutral rows, only the icon carries the tone (as the kit's Banner)
   .tdw-extension-risks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  // the icon tile is the kit's Banner icon (.pz-banner-icon, toned by .pz-banner-<tone>)
   .tdw-extension-risk {
     display: flex;
     align-items: flex-start;
@@ -44,18 +34,6 @@ body {
     background: var(--card);
     box-shadow: var(--shadow-sm), 0 0 0 1px var(--border);
   }
-  .tdw-extension-risk-icon {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: var(--muted);
-    color: var(--muted-foreground);
-  }
-  .tdw-extension-risk[data-tone='warning'] .tdw-extension-risk-icon { color: var(--warning); }
-  .tdw-extension-risk[data-tone='info'] .tdw-extension-risk-icon { color: var(--primary); }
   .tdw-extension-risk-text { flex: 1; min-width: 0; display: grid; gap: 2px; font-size: 13px; line-height: 18px; color: var(--muted-foreground); }
   .tdw-extension-risk-text strong { font-size: 14px; line-height: 20px; font-weight: 600; color: var(--foreground); }
 

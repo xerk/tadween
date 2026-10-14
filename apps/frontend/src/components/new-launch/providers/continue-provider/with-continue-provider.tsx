@@ -87,8 +87,9 @@ export interface ContinueProviderConfig<TItem, TSelection> {
   getItemId: (item: TItem) => string;
 }
 
-// The network's icon, as the Add channel gallery shows it
-const NetworkIcon: FC<{ identifier: string }> = ({ identifier }) => (
+// The network's icon, as the Add channel gallery shows it (also heads the
+// browser extension notice, launches/chrome.extension.warning.tsx)
+export const NetworkIcon: FC<{ identifier: string }> = ({ identifier }) => (
   <span className="tdw-continue-network" aria-hidden="true">
     <img
       src={

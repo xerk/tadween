@@ -37,7 +37,7 @@ export const mcpConnectorUrls = {
 // the agent installs the CLI itself and asks you for the API key
 export const chatOnlyMcpClients = {
   'Grok Bot':
-    'Install the CLI with `npm install -g postiz`, then install the skill with `npx skills add gitroomhq/postiz-agent`. Set the POSTIZ_API_URL environment variable to {API_URL}, then ask me for my API key and set it as the POSTIZ_API_KEY environment variable before using the CLI.',
+    'Install the CLI with `npm install -g tadween`, then install the skill with `npx skills add xerk/tadween-agent`. Set the TADWEEN_API_URL environment variable to {API_URL}, then ask me for my API key and set it as the TADWEEN_API_KEY environment variable before using the CLI.',
 } as const;
 
 export const mcpClients = [
@@ -478,7 +478,7 @@ const McpSection = ({
               ...Object.keys(remoteMcpClients),
               ...mcpClients,
               // chat-only clients get instructions for this instance
-              // (POSTIZ_API_URL + API key), so they show without connectors
+              // (TADWEEN_API_URL + API key), so they show without connectors
               ...Object.keys(chatOnlyMcpClients),
             ].map((client) => (
               <button
@@ -589,25 +589,25 @@ const McpSection = ({
   );
 };
 
-// Tadween: the CLI talks to this instance (POSTIZ_API_URL) with the API key.
-// `postiz auth:login` is left out: it runs a device flow against
-// cli-auth.postiz.com (POSTIZ_AUTH_SERVER), which this instance doesn't host.
+// Tadween: the CLI talks to this instance (TADWEEN_API_URL) with the API key.
+// `tadween auth:login` is left out: it runs a device flow against
+// cli-auth.tadween.app (TADWEEN_AUTH_SERVER), a separate server this instance doesn't host.
 export const cliSteps = [
   {
     label: 'Install the CLI',
-    code: 'npm install -g postiz',
+    code: 'npm install -g tadween',
   },
   {
     label: 'Point the CLI at this workspace',
-    code: 'export POSTIZ_API_URL="{API_URL}"',
+    code: 'export TADWEEN_API_URL="{API_URL}"',
   },
   {
     label: 'Set your API key as an environment variable',
-    code: 'export POSTIZ_API_KEY="{API_KEY}"',
+    code: 'export TADWEEN_API_KEY="{API_KEY}"',
   },
   {
     label: 'Install the skill for your AI agent',
-    code: 'npx skills add gitroomhq/postiz-agent',
+    code: 'npx skills add xerk/tadween-agent',
   },
 ] as const;
 
@@ -800,7 +800,7 @@ const PublicApiContent = () => {
             )}
             <a
               className="cursor-pointer px-[16px] h-[36px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
-              href="https://www.npmjs.com/package/n8n-nodes-postiz"
+              href="https://www.npmjs.com/package/n8n-nodes-tadween"
               target="_blank"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>

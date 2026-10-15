@@ -11,7 +11,7 @@ export const aiClientsEn: AiClientsDict = {
     start: 'Start free trial',
     stepsLink: 'See the {n} steps',
     smallPrint:
-      'Tadween is a LinkedIn-first social media scheduler. {name} works with it through Tadween’s MCP server, using the same tools as the agent inside the app. Read what it schedules before it goes out. {updated}',
+      'Tadween is a social media scheduler for Facebook, Instagram, LinkedIn, Threads and YouTube. {name} works with it through Tadween’s MCP server, using the same tools as the agent inside the app. Read what it schedules before it goes out. {updated}',
     smallPrintLink: 'Every AI tool that works with Tadween',
     connectTitle: 'Set up {name} with Tadween: {n} steps',
     connectSub: 'Tadween is not an app in any AI directory, so you add it to {name} yourself as a remote MCP server. It takes about a minute, and you can remove it at any time.',
@@ -28,7 +28,7 @@ export const aiClientsEn: AiClientsDict = {
     docs: '{name}’s own documentation for these steps:',
     otherMethod: 'With an API key instead',
     orbitTitle: 'Connect once, reach all your channels',
-    orbitSub: 'Your LinkedIn, Instagram, Facebook, Threads and YouTube accounts live in Tadween. {name} uses the ones you name, and Tadween sends each post at its time.',
+    orbitSub: 'Your Facebook, Instagram, LinkedIn, Threads and YouTube accounts live in Tadween. {name} uses the ones you name, and Tadween sends each post at its time.',
     canTitle: '{name}’s tools in Tadween',
     canSub: 'The same tools the agent inside Tadween uses, on the channels you connected.',
     mcpTitle: 'The Tadween MCP server, in short',
@@ -58,8 +58,8 @@ export const aiClientsEn: AiClientsDict = {
     promptsTitle: 'Example requests for {name}',
     promptsSub: 'Write them in plain English or Egyptian Arabic, with the channel, the day and the tone. Four to start with:',
     channelsTitle: 'Channels {name} can reach through Tadween',
-    channelsSub: 'LinkedIn, Instagram, Facebook, Threads and YouTube first, then every other network Tadween publishes to. Once an account is connected in Tadween, {name} can use it.',
-    channelsNote: 'LinkedIn profiles and pages come first in Tadween. Each network keeps its own limits and settings, and {name} reads them before it posts.',
+    channelsSub: 'Facebook, Instagram, LinkedIn, Threads and YouTube first, then every other network Tadween publishes to. Once an account is connected in Tadween, {name} can use it.',
+    channelsNote: 'Profiles, pages and channels all connect the same way. Each network keeps its own limits and settings, and {name} reads them before it posts.',
     thisPage: 'This page',
     helpTitle: 'Cost, safety and fixes',
     costTitle: 'What it costs',
@@ -73,8 +73,8 @@ export const aiClientsEn: AiClientsDict = {
     allClients: 'See every AI tool',
     relatedLabel: 'Related:',
     updated: 'Steps last checked against the vendor’s documentation on 10 October 2026.',
-    ctaTitle: 'Let {name} plan your LinkedIn week',
-    ctaBody: 'Start a seven-day trial, connect LinkedIn, then connect {name} and ask.',
+    ctaTitle: 'Let {name} plan your social week',
+    ctaBody: 'Start a seven-day trial, connect your accounts, then connect {name} and ask.',
     sharedFaq: [
       {
         title: 'Is there an official Tadween app for {name}?',
@@ -89,8 +89,8 @@ export const aiClientsEn: AiClientsDict = {
         content: 'Yes. When {name} schedules a post, Tadween keeps it and publishes it at its time, whether or not the chat is open.',
       },
       {
-        title: 'Does {name} see my LinkedIn password?',
-        content: 'No. Your social accounts are connected in Tadween, and {name} only talks to Tadween. It never sees your LinkedIn or other social logins.',
+        title: 'Does {name} see my social media passwords?',
+        content: 'No. Your social accounts are connected in Tadween, and {name} only talks to Tadween. It never sees your Facebook, Instagram, LinkedIn or other social logins.',
       },
       {
         title: 'How do I disconnect {name}?',
@@ -105,10 +105,10 @@ export const aiClientsEn: AiClientsDict = {
   kinds: { assistant: 'Chat assistants', coding: 'Coding agents and editors' },
   items: {
     chatgpt: {
-      title: 'ChatGPT MCP: schedule LinkedIn posts from ChatGPT | Tadween',
-      description: 'Add Tadween to ChatGPT as a custom MCP app, sign in, and ask ChatGPT to write and schedule your LinkedIn posts. Steps, plans and example prompts.',
-      h1: 'Schedule LinkedIn and social posts with ChatGPT',
-      bullets: ['A custom MCP app in ChatGPT on the web', 'Draft, check and schedule LinkedIn posts by asking', 'Scheduling needs ChatGPT Business, Enterprise or Edu'],
+      title: 'ChatGPT MCP: schedule social posts from ChatGPT | Tadween',
+      description: 'Add Tadween to ChatGPT as a custom MCP app, sign in, and ask ChatGPT to write and schedule your social posts. Steps, plans and example prompts.',
+      h1: 'Schedule social posts with ChatGPT',
+      bullets: ['A custom MCP app in ChatGPT on the web', 'Draft, check and schedule social posts by asking', 'Scheduling needs ChatGPT Business, Enterprise or Edu'],
       blurb: 'Custom MCP app, sign in with Tadween',
       methods: {
         oauth: {
@@ -128,18 +128,18 @@ export const aiClientsEn: AiClientsDict = {
       },
       demo: {
         lang: 'en',
-        prompt: 'Draft a LinkedIn post for Nile Studio about our open studio night on the 22nd and schedule it for Sunday at 9:00.',
+        prompt: 'Draft a Facebook post for Nile Studio about our open studio night on the 22nd and schedule it for Sunday at 9:00.',
         tools: [
-          { tool: 'integrationList', label: 'Found Nile Studio on LinkedIn' },
+          { tool: 'integrationList', label: 'Found Nile Studio on Facebook' },
           { tool: 'integrationSchedulePostTool', label: 'Scheduled 1 post' },
         ],
         reply: 'Done. It goes out on Nile Studio on Sunday at 09:00. Open it in Tadween to change anything before then.',
-        posts: [{ net: 'linkedin-page', name: 'Nile Studio', text: 'Nile Studio opens its doors on the 22nd…', when: 'Sun 09:00' }],
+        posts: [{ net: 'facebook', name: 'Nile Studio', text: 'Nile Studio opens its doors on the 22nd…', when: 'Sun 09:00' }],
       },
       ask: {
-        prompt: 'What is scheduled on LinkedIn this week?',
-        reply: 'Three posts: Monday and Wednesday at 08:30 on your page, and Thursday at 12:00 on your profile. Want me to draft one for Friday?',
-        nets: ['linkedin', 'linkedin-page'],
+        prompt: 'What is scheduled this week?',
+        reply: 'Three posts: Monday at 08:30 on Instagram, Wednesday at 08:30 on your LinkedIn page, and Thursday at 12:00 on YouTube. Want me to draft one for Friday?',
+        nets: ['instagram', 'linkedin-page', 'youtube'],
       },
       alsoTry: ['List my Tadween channels', 'Save a draft for Thursday', 'Turn this article into a post'],
       compare: {
@@ -156,9 +156,9 @@ export const aiClientsEn: AiClientsDict = {
       },
       prompts: [
         { tag: 'Repurpose', nets: ['linkedin-page'], title: 'Turn an article into a post', text: 'Turn this article into a LinkedIn post for my company page and schedule it for Tuesday at 9:00.', lang: 'en' },
-        { tag: 'Check the week', nets: ['linkedin', 'linkedin-page'], title: 'See what is scheduled', text: 'What is scheduled on LinkedIn this week?', lang: 'en' },
-        { tag: 'Draft first', nets: ['linkedin'], title: 'Save a draft to review', text: 'Save a draft about our new hire for Thursday. Don’t schedule it yet.', lang: 'en' },
-        { tag: 'In Arabic', nets: ['linkedin-page'], title: 'Write in Egyptian Arabic', text: 'اكتب بوست لينكدإن عن الويبينار بتاعنا وجدوله يوم الحد الساعة ١٠ الصبح.', lang: 'ar' },
+        { tag: 'Check the week', nets: ['instagram', 'youtube'], title: 'See what is scheduled', text: 'What is scheduled on Instagram and YouTube this week?', lang: 'en' },
+        { tag: 'Draft first', nets: ['threads'], title: 'Save a draft to review', text: 'Save a Threads draft about our new hire for Thursday. Don’t schedule it yet.', lang: 'en' },
+        { tag: 'In Arabic', nets: ['facebook'], title: 'Write in Egyptian Arabic', text: 'اكتب بوست فيسبوك عن الويبينار بتاعنا وجدوله يوم الحد الساعة ١٠ الصبح.', lang: 'ar' },
       ],
       versus: {
         title: 'ChatGPT or Codex: which is this page for?',
@@ -198,10 +198,10 @@ export const aiClientsEn: AiClientsDict = {
       ],
     },
     claude: {
-      title: 'Claude MCP connector: schedule LinkedIn posts | Tadween',
-      description: 'Add Tadween to Claude as a custom connector on the web or desktop, sign in, and ask Claude to write and schedule LinkedIn posts. Steps and example prompts.',
-      h1: 'Schedule LinkedIn and social posts with Claude',
-      bullets: ['A custom connector on claude.ai and Claude Desktop', 'Plan, write and schedule LinkedIn posts by asking', 'Sign in with Tadween: no API key to paste'],
+      title: 'Claude MCP connector: schedule social posts | Tadween',
+      description: 'Add Tadween to Claude as a custom connector on the web or desktop, sign in, and ask Claude to write and schedule social posts. Steps and example prompts.',
+      h1: 'Schedule social posts with Claude',
+      bullets: ['A custom connector on claude.ai and Claude Desktop', 'Plan, write and schedule social posts by asking', 'Sign in with Tadween: no API key to paste'],
       blurb: 'Custom connector on the web and desktop',
       methods: {
         oauth: {
@@ -222,15 +222,15 @@ export const aiClientsEn: AiClientsDict = {
       },
       demo: {
         lang: 'en',
-        prompt: 'Plan three LinkedIn posts for Cairo Coffee Co. next week, one in Arabic, and schedule them Monday, Wednesday and Friday at 8:30.',
+        prompt: 'Plan three posts for Cairo Coffee Co. next week on Facebook, Instagram and LinkedIn, one in Arabic, and schedule them Monday, Wednesday and Friday at 8:30.',
         tools: [
-          { tool: 'integrationList', label: 'Found Cairo Coffee Co. on LinkedIn' },
+          { tool: 'integrationList', label: 'Found Cairo Coffee Co. on Facebook, Instagram and LinkedIn' },
           { tool: 'integrationSchedulePostTool', label: 'Scheduled 3 posts' },
         ],
-        reply: 'All three are on your calendar. The Wednesday post is in Arabic.',
+        reply: 'All three are on your calendar. The Wednesday post, on Instagram, is in Arabic.',
         posts: [
-          { net: 'linkedin-page', name: 'Cairo Coffee Co.', text: 'New single origin from Sidamo…', when: 'Mon 08:30' },
-          { net: 'linkedin-page', name: 'Cairo Coffee Co.', text: 'جلسة تذوق يوم الخميس الساعة ٦…', when: 'Wed 08:30' },
+          { net: 'facebook', name: 'Cairo Coffee Co.', text: 'New single origin from Sidamo…', when: 'Mon 08:30' },
+          { net: 'instagram', name: 'Cairo Coffee Co.', text: 'جلسة تذوق يوم الخميس الساعة ٦…', when: 'Wed 08:30' },
           { net: 'linkedin-page', name: 'Cairo Coffee Co.', text: 'Meet the team behind our new roastery…', when: 'Fri 08:30' },
         ],
       },
@@ -239,7 +239,7 @@ export const aiClientsEn: AiClientsDict = {
         reply: 'Done. I found your LinkedIn page and scheduled it for 09:00 tomorrow. Want an Arabic version for Thursday too?',
         nets: ['linkedin-page'],
       },
-      alsoTry: ['List my Tadween channels', 'Plan next week on LinkedIn', 'Save it as a draft instead'],
+      alsoTry: ['List my Tadween channels', 'Plan next week on Instagram', 'Save it as a draft instead'],
       compare: {
         title: 'Which Claude plans can add Tadween?',
         sub: 'Tadween connects to Claude as a custom connector. Free, Pro, Max, Team and Enterprise can all add one; who adds it depends on the plan.',
@@ -252,10 +252,10 @@ export const aiClientsEn: AiClientsDict = {
         note: 'Claude connects from Anthropic’s servers, so a connector you add works on claude.ai and Claude Desktop, and in Cowork where your plan includes it. Claude’s help center, linked above, has the current plans.',
       },
       prompts: [
-        { tag: 'Plan a week', nets: ['linkedin', 'linkedin-page'], title: 'Plan your LinkedIn week', text: 'Plan three LinkedIn posts for next week from these notes and schedule them Monday, Wednesday and Friday at 8:30.', lang: 'en' },
+        { tag: 'Plan a week', nets: ['facebook', 'instagram', 'linkedin'], title: 'Plan your social week', text: 'Plan three posts for next week from these notes, one each on Facebook, Instagram and LinkedIn, and schedule them Monday, Wednesday and Friday at 8:30.', lang: 'en' },
         { tag: 'From notes', nets: ['linkedin'], title: 'Turn notes into a post', text: 'Write a LinkedIn post from these meeting notes and save it as a draft for Monday.', lang: 'en' },
-        { tag: 'Check the calendar', nets: ['linkedin', 'instagram'], title: 'See what is going out', text: 'Show every post scheduled for next week, by day.', lang: 'en' },
-        { tag: 'In Arabic', nets: ['linkedin-page'], title: 'Write in Egyptian Arabic', text: 'اكتب بوست عن العرض الجديد وحطه مسودة يوم الخميس.', lang: 'ar' },
+        { tag: 'Check the calendar', nets: ['instagram', 'youtube'], title: 'See what is going out', text: 'Show every post scheduled for next week, by day.', lang: 'en' },
+        { tag: 'In Arabic', nets: ['threads'], title: 'Write in Egyptian Arabic', text: 'اكتب بوست على ثريدز عن العرض الجديد وحطه مسودة يوم الخميس.', lang: 'ar' },
       ],
       versus: {
         title: 'Claude, Claude Code or Cowork: which one is this?',
@@ -295,9 +295,9 @@ export const aiClientsEn: AiClientsDict = {
       ],
     },
     cursor: {
-      title: 'Cursor MCP: schedule LinkedIn posts from Cursor | Tadween',
-      description: 'Add Tadween to Cursor’s mcp.json, sign in or read an API key from your environment, and ask Cursor’s agent to schedule LinkedIn posts about what you build.',
-      h1: 'Schedule LinkedIn and social posts from Cursor',
+      title: 'Cursor MCP: schedule social posts from Cursor | Tadween',
+      description: 'Add Tadween to Cursor’s mcp.json, sign in or read an API key from your environment, and ask Cursor’s agent to schedule social posts about what you build.',
+      h1: 'Schedule social posts from Cursor',
       bullets: ['One block in Cursor’s mcp.json', 'Sign in with Tadween, or read an API key from your environment', 'Post about what you built without leaving the editor'],
       blurb: 'A few lines in mcp.json',
       methods: {
@@ -354,9 +354,9 @@ export const aiClientsEn: AiClientsDict = {
       },
       prompts: [
         { tag: 'Ship it', nets: ['linkedin'], title: 'Announce what you built', text: 'Write a LinkedIn post about the feature in this branch and save it as a draft.', lang: 'en' },
-        { tag: 'Release notes', nets: ['linkedin', 'threads'], title: 'One release, two channels', text: 'Schedule a thread on Threads and a LinkedIn post about this release for Monday at 9:00.', lang: 'en' },
-        { tag: 'Check tomorrow', nets: ['linkedin'], title: 'See what goes out', text: 'What’s going out on LinkedIn tomorrow?', lang: 'en' },
-        { tag: 'In Arabic', nets: ['linkedin'], title: 'Write in Egyptian Arabic', text: 'اكتب بوست لينكدإن عن الميزة اللي في البرانش ده بالعربي.', lang: 'ar' },
+        { tag: 'Release notes', nets: ['linkedin', 'threads'], title: 'One release, two channels', text: 'Schedule a LinkedIn post and a thread on Threads about this release for Monday at 9:00.', lang: 'en' },
+        { tag: 'Check tomorrow', nets: ['facebook', 'instagram'], title: 'See what goes out', text: 'What’s going out tomorrow?', lang: 'en' },
+        { tag: 'In Arabic', nets: ['facebook'], title: 'Write in Egyptian Arabic', text: 'اكتب بوست فيسبوك عن الميزة اللي في البرانش ده بالعربي.', lang: 'ar' },
       ],
       versus: {
         title: 'Cursor, Claude Code or Codex?',

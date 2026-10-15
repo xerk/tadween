@@ -13,7 +13,7 @@ export const dynamic = 'force-static';
 export const dynamicParams = false;
 
 const PAGES: Record<string, { eyebrow: string; title: string }> = {
-  home: { eyebrow: 'LinkedIn-first scheduling', title: en.hero.title },
+  home: { eyebrow: 'Social media scheduling', title: en.hero.title },
   pricing: { eyebrow: 'Pricing', title: 'Plans for people, brands and agencies. Seven days free.' },
   features: { eyebrow: 'Features', title: en.featuresIndex.title },
   'ai-agent': { eyebrow: 'AI agent', title: en.agentPage.title },
@@ -59,7 +59,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ card: s
           <div style={{ fontSize: 68, lineHeight: 1.08, fontWeight: 700, letterSpacing: '-0.035em' }}>{page.title}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 24, color: '#68686e' }}>
-          <span>LinkedIn, Instagram, Facebook, Threads, YouTube · English and Arabic</span>
+          <span>Facebook, Instagram, LinkedIn, Threads, YouTube · English and Arabic</span>
           <div style={{ display: 'flex', gap: 8 }}>
             {[0, 1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} style={{ width: 36, height: 24, borderRadius: 6, background: i === 3 ? '#94580a' : i % 2 ? '#0b7062' : '#e2f3ef' }} />

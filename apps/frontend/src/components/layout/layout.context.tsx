@@ -1,7 +1,9 @@
 'use client';
 
 import { openPaywall } from '@gitroom/frontend/components/tadween/billing/paywall.modal';
-import { ReactNode, useCallback } from 'react';
+import { ReactNode, useCallback, useRef } from 'react';
+import { useToaster } from '@gitroom/react/toaster/toaster';
+import i18next from '@gitroom/react/translation/i18next';
 import { FetchWrapperComponent } from '@gitroom/helpers/utils/custom.fetch';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useReturnUrl } from '@gitroom/frontend/app/(app)/auth/return.url.component';
@@ -25,6 +27,28 @@ export function setCookie(cname: string, cvalue: string, exdays: number) {
 function LayoutContextInner(params: { children: ReactNode }) {
   const returnUrl = useReturnUrl();
   const { backendUrl, isGeneral, isSecured } = useVariables();
+  // Tadween: a request that never reached the server says so (once every few
+  // seconds), instead of the click doing nothing
+  const toaster = useToaster();
+  const lastNetworkToast = useRef(0);
+  const onNetworkError = useCallback(() => {
+    if (Date.now() - lastNetworkToast.current < 5000) {
+      return;
+    }
+    lastNetworkToast.current = Date.now();
+    toaster.show(
+      navigator.onLine
+        ? i18next.t(
+            'tdw_network_error',
+            'Couldn’t reach the server. Check your connection and try again.'
+          )
+        : i18next.t(
+            'tdw_offline_toast',
+            'You’re offline. Reconnect and try again.'
+          ),
+      'warning'
+    );
+  }, [toaster]);
   const afterRequest = useCallback(
     async (url: string, options: RequestInit, response: Response) => {
       if (
@@ -120,7 +144,11 @@ function LayoutContextInner(params: { children: ReactNode }) {
     []
   );
   return (
-    <FetchWrapperComponent baseUrl={backendUrl} afterRequest={afterRequest}>
+    <FetchWrapperComponent
+      baseUrl={backendUrl}
+      afterRequest={afterRequest}
+      onNetworkError={onNetworkError}
+    >
       {params?.children || <></>}
     </FetchWrapperComponent>
   );

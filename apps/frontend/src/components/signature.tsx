@@ -2,14 +2,28 @@ import { FC, useCallback } from 'react';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { SignaturesSettings } from '@gitroom/frontend/components/tadween/settings/signatures.settings';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+// The editor (post or comment) the cursor was last in. Every post and comment
+// has its own toolbar, and the signature goes where the user was writing.
+let focusedEditor: any = null;
+export const rememberFocusedEditor = (editor: any) => {
+  focusedEditor = editor;
+};
+
 export const SignatureBox: FC<{
   editor: any;
 }> = ({ editor }) => {
   const modals = useModals();
   const t = useT();
   const appendValue = (val: string) => {
-    editor?.commands?.insertContent('\n\n' + val);
-    editor?.commands?.focus();
+    const focused = focusedEditor && !focusedEditor.isDestroyed;
+    const target = focused ? focusedEditor : editor;
+    // at the cursor it was left at; an editor never written in gets it at
+    // the end (its cursor would be the very start)
+    target
+      ?.chain()
+      .focus(focused ? undefined : 'end')
+      .insertContent(val)
+      .run();
   };
 
   const addSignature = useCallback(() => {

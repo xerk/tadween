@@ -42,6 +42,7 @@ import {
   Title,
 } from '@gitroom/frontend/components/layout/title';
 import { TrialBanner } from '@gitroom/frontend/components/tadween/billing/trial.banner';
+import { OfflineBanner } from '@gitroom/frontend/components/tadween/shell/offline.banner';
 import { PaywallModal } from '@gitroom/frontend/components/tadween/billing/paywall.modal';
 import { TopMenu } from '@gitroom/frontend/components/layout/top.menu';
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
@@ -56,6 +57,7 @@ import { Onboarding } from '@gitroom/frontend/components/onboarding/onboarding';
 import { BootScreen } from '@gitroom/frontend/components/tadween/shell/boot.screen';
 import { TrialTracker } from '@gitroom/frontend/components/layout/gtm.component';
 import { setSentryUser } from '@gitroom/react/sentry/initialize.sentry.client';
+import { useFeatureRouteGuard } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 
 
 export const LayoutComponent = ({ children }: { children: ReactNode }) => {
@@ -69,6 +71,8 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
   const sidebar = useSidebarCollapsed();
   const phone = usePhoneLayout();
+  // a page whose feature the admin switched off goes to Today
+  useFeatureRouteGuard();
   const load = useCallback(async (path: string) => {
     return await (await fetch(path)).json();
   }, []);
@@ -140,13 +144,14 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             <div
               className={clsx(
                 'tdw-shell flex flex-col min-h-screen min-w-screen text-newTextColor p-[12px] mobile:p-[8px]',
+                user?.admin && user?.impersonate && 'is-impersonating',
                 jakartaSans.className
               )}
             >
               {/* Tadween: the full admin bar while impersonating; otherwise the
                   admin tools are one pill in the top bar (here only when the
                   billing screen replaces the top bar) */}
-              <div>
+              <div className="tdw-adminbar-slot">
                 {user?.admin && (user?.impersonate || firstBilling.show) ? (
                   <Impersonate />
                 ) : (
@@ -177,12 +182,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                       >
                         <div
                           id="left-menu"
-                          className={clsx(
-                            'tdw-side-inner fixed h-full flex flex-1 top-0',
-                            user?.admin &&
-                              user?.impersonate &&
-                              'pt-[60px] max-h-[1000px]:w-[500px]'
-                          )}
+                          className="tdw-side-inner fixed h-full flex flex-1 top-0"
                         >
                           <div className="tdw-side-body flex flex-col h-full gap-[32px] flex-1 py-[12px]">
                             <SidebarHeader
@@ -201,6 +201,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                     <div className="tdw-main flex-1 min-w-0 flex flex-col gap-[8px]">
                       {/* the trial / payment-failed bar floats as its own rounded
                         card above the page card, like the sidebar beside it */}
+                      <OfflineBanner />
                       {billingEnabled && <TrialBanner />}
                       <div className="flex-1 min-w-0 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
                         <div

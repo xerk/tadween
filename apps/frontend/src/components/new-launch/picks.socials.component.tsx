@@ -6,9 +6,9 @@ import SafeImage from '@gitroom/react/helpers/safe.image';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
 import { useExistingData } from '@gitroom/frontend/components/launches/helpers/use.existing.data';
-import ImageWithFallback from '@gitroom/react/helpers/image.with.fallback';
 import { Check } from '@gitroom/frontend/components/launches/tags.component';
 import { Integrations } from '@gitroom/frontend/components/launches/calendar.context';
+import { TadweenAvatarImage } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 
 const PlatformBadge: FC<{ integration: Integrations }> = ({ integration }) => {
   return integration.identifier === 'youtube' ? (
@@ -40,13 +40,10 @@ export const IntegrationListRow: FC<{
       className="flex items-center gap-[12px] py-[8px] cursor-pointer select-none"
     >
       <div className="relative">
-        <ImageWithFallback
-          fallbackSrc="/no-picture.jpg"
-          src={integration.picture || '/no-picture.jpg'}
-          className="rounded-[8px] min-w-[40px] min-h-[40px]"
-          alt={integration.identifier}
-          width={40}
-          height={40}
+        <TadweenAvatarImage
+          src={integration.picture}
+          name={integration.name}
+          className="rounded-[8px] w-[40px] h-[40px] min-w-[40px] min-h-[40px]"
         />
         <PlatformBadge integration={integration} />
       </div>
@@ -146,20 +143,17 @@ export const PicksSocialsComponent: FC<{
                       : 'border-[#622FF6]'
                   )}
                 >
-                  <ImageWithFallback
-                    fallbackSrc="/no-picture.jpg"
-                    src={integration.picture || '/no-picture.jpg'}
+                  <TadweenAvatarImage
+                    src={integration.picture}
+                    name={integration.name}
                     className={clsx(
-                      'rounded-full transition-all min-w-[42px] border-[1.5px] min-h-[42px]',
+                      'rounded-full transition-all w-[42px] h-[42px] min-w-[42px] border-[1.5px] min-h-[42px]',
                       selectedIntegrations.findIndex(
                         (p) => p.integration.id === integration.id
                       ) === -1
                         ? 'border-transparent'
                         : 'border-[#000]'
                     )}
-                    alt={integration.identifier}
-                    width={42}
-                    height={42}
                   />
                   <PlatformBadge integration={integration} />
                 </button>

@@ -68,7 +68,7 @@ export const FEATURES: FeatureDefinition[] = [
   { key: 'publicApi', group: 'Developers', label: 'Public API, MCP and CLI', description: 'API key, OAuth apps and the MCP server for each workspace.', hides: 'Settings → API & MCP, and the agent step of onboarding', applied: true },
   { key: 'webhooks', group: 'Developers', label: 'Webhooks', description: 'HTTP callbacks when posts publish or fail.', hides: 'Settings → Webhooks', applied: true },
   { key: 'affiliate', group: 'Growth', label: 'Invite & earn and partners', description: 'Referral links and rewards for every workspace, and the affiliate program (docs/tadween/partners.md). Off unless you switch it on. Switching it off hides the program and stops new referrals; referrals already made keep earning (and can be rejected in Admin → Referrals).', hides: 'Invite & earn in the sidebar and settings, /partners, new referrals', applied: true },
-  { key: 'ugc', group: 'Growth', label: 'UGC videos', description: 'The AgentMedia UGC video shortcut (a Postiz partner deal). Off unless you switch it on.', hides: 'Make UGC in the sidebar', applied: true },
+  { key: 'ugc', group: 'Growth', label: 'UGC videos', description: 'The AgentMedia UGC video shortcut, a partner offer that came with the upstream app. Off unless you switch it on.', hides: 'Make UGC in the sidebar', applied: true },
 ];
 
 // Env fallback: TADWEEN_DISABLED_FEATURES="plugs,ugc" turns features off until
@@ -228,7 +228,8 @@ export const FOCUS_PROVIDERS = [
 ];
 
 // Env override: TADWEEN_ENABLED_PROVIDERS="facebook,linkedin,x" replaces
-// the focus list (same shape as HIDDEN_PROVIDERS).
+// the list of providers that are on (same shape as HIDDEN_PROVIDERS). It does
+// not change the order: FOCUS_PROVIDERS still sort first.
 export const focusProviders = (): string[] => {
   const fromEnv = (process.env.TADWEEN_ENABLED_PROVIDERS || '')
     .split(',')

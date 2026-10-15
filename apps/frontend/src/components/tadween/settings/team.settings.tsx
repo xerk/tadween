@@ -30,6 +30,7 @@ interface TeamMember {
   user: {
     email: string;
     id: string;
+    name?: string | null;
   };
 }
 type Filter = 'all' | 'admins' | 'members';
@@ -37,13 +38,12 @@ type Filter = 'all' | 'admins' | 'members';
 const getLevel = (role?: Role) =>
   role === 'USER' ? 0 : role === 'ADMIN' ? 1 : 2;
 
-// Postiz has no display name on team rows; it shows the first part of the email.
-const memberName = (email: string) =>
-  capitalize(email.split('@')[0]).split('.')[0];
-const memberInitials = (email: string) =>
-  email
-    .split('@')[0]
-    .split(/[._-]+/)
+// The profile name; without one, the first part of the email (as Postiz does).
+const memberName = (user: TeamMember['user']) =>
+  user.name?.trim() || capitalize(user.email.split('@')[0]).split('.')[0];
+const memberInitials = (user: TeamMember['user']) =>
+  (user.name?.trim() || user.email.split('@')[0])
+    .split(/[\s._-]+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0])
@@ -107,15 +107,25 @@ const InviteMember = () => {
         );
         return;
       }
-      const { url } = await response.json();
-      if (values.sendEmail) {
+      const { url, emailSent } = await response.json();
+      if (values.sendEmail && emailSent) {
         modals.closeAll();
         toast.show(t('invitation_link_sent', 'Invitation link sent'));
         return;
       }
       copy(url);
       modals.closeAll();
-      toast.show(t('link_copied_to_clipboard', 'Link copied to clipboard'));
+      // asked to email it, but this server can't send email: the link is
+      // copied instead, and the toast says so
+      toast.show(
+        values.sendEmail
+          ? t(
+              'tdw_invite_email_unavailable',
+              'Email isn’t set up on this server. The invite link was copied instead.'
+            )
+          : t('link_copied_to_clipboard', 'Link copied to clipboard'),
+        values.sendEmail ? 'warning' : 'success'
+      );
     },
     []
   );
@@ -329,7 +339,7 @@ export const TeamSettings = () => {
           (filter === 'admins' ? p.role !== 'USER' : p.role === 'USER')) &&
         (!q ||
           p.user.email.toLowerCase().includes(q) ||
-          memberName(p.user.email).toLowerCase().includes(q))
+          memberName(p.user).toLowerCase().includes(q))
     );
   }, [members, query, filter]);
 
@@ -388,11 +398,11 @@ export const TeamSettings = () => {
             return (
               <li key={p.user.id} className="tdw-member">
                 <span className="tdw-member-av" aria-hidden="true">
-                  {memberInitials(p.user.email)}
+                  {memberInitials(p.user)}
                 </span>
                 <div className="tdw-member-who">
                   <span className="tdw-member-name">
-                    {memberName(p.user.email)}
+                    {memberName(p.user)}
                     {isMe ? (
                       <span className="tdw-you">{t('tdw_you', 'You')}</span>
                     ) : null}

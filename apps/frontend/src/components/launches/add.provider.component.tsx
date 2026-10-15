@@ -741,7 +741,7 @@ export const AddProviderComponent: FC<{
                   'text-center'
                 )}
               >
-                {item.name}
+                <bdi>{item.name}</bdi>
                 {!!item.toolTip && !isMobile && (
                   <svg
                     width="15"

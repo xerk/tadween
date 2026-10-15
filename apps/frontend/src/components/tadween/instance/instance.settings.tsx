@@ -4,7 +4,14 @@
 // the public GET /instance/settings. While loading, or if the request fails,
 // everything behaves like stock Postiz: every feature on and the static
 // pricing map.
-import { createContext, useCallback, useContext, useMemo } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+} from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useInvitedTrial } from '@gitroom/frontend/components/tadween/referral/partners.api';
@@ -131,6 +138,35 @@ export const useFeatures = () => {
       data?.features?.[key] ?? !FEATURES_OFF_BY_DEFAULT.includes(key),
     [data]
   );
+};
+
+// The pages a feature switch hides from the sidebar (layout/top.menu.tsx).
+// Switched off, the page itself is closed too: an old link or bookmark goes
+// to Today instead of opening it.
+const FEATURE_ROUTES: [string, FeatureKey][] = [
+  ['/agents', 'agent'],
+  ['/analytics', 'analytics'],
+  ['/media', 'media'],
+  ['/plugs', 'plugs'],
+  ['/third-party', 'thirdParty'],
+];
+export const useFeatureRouteGuard = () => {
+  const { data } = useInstanceSettings();
+  const isOn = useFeatures();
+  const pathname = usePathname();
+  const router = useRouter();
+  useEffect(() => {
+    // only once the switches are known: never on a failed or slow load
+    if (!data?.features) {
+      return;
+    }
+    const route = FEATURE_ROUTES.find(
+      ([path]) => pathname === path || pathname?.startsWith(`${path}/`)
+    );
+    if (route && !isOn(route[1])) {
+      router.replace('/today');
+    }
+  }, [data, isOn, pathname, router]);
 };
 
 // true once the app's <CopilotKit> crashed and the app rendered without it

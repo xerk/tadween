@@ -381,7 +381,7 @@ body {
 }
 
 // ── Super-admin bar (layout/impersonate.tsx) ────────────────────────────────
-// 40px tall + 8px gap, under the 12px page padding = the 60px the sidebar already reserves.
+// 40px tall + 8px gap: the sidebar starts under it (shell.scss, .is-impersonating).
 body {
   .tdw-adminbar {
     position: relative;

@@ -164,7 +164,8 @@ const readError = async (res: Response) => {
   }
 };
 
-export const usePartnerMe = () => {
+// `enabled` false (the program is switched off): nothing is asked
+export const usePartnerMe = (enabled = true) => {
   const fetch = useFetch();
   const load = useCallback(async (path: string): Promise<PartnerMe> => {
     const res = await fetch(path);
@@ -173,7 +174,7 @@ export const usePartnerMe = () => {
     }
     return res.json();
   }, []);
-  return useSWR<PartnerMe, PartnersError>('/partners/me', load, {
+  return useSWR<PartnerMe, PartnersError>(enabled ? '/partners/me' : null, load, {
     revalidateOnFocus: false,
     shouldRetryOnError: false,
   });

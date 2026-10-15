@@ -497,7 +497,7 @@ export const ChannelPanel: FC<{
               aria-pressed={activeCustomer === c.id}
               onClick={() => setCustomer(c.id)}
             >
-              {c.name}
+              <bdi>{c.name}</bdi>
             </button>
           ))}
         </div>
@@ -547,8 +547,8 @@ export const ChannelPanel: FC<{
               >
                 <TadweenChannelAvatar integration={c} size={36} />
                 <span className="tdw-ag-ch-copy">
-                  <span className="tdw-ag-ch-name">{c.name}</span>
-                  <span className="tdw-ag-ch-meta">{networkName(c.identifier)}</span>
+                  <span className="tdw-ag-ch-name" dir="auto">{c.name}</span>
+                  <span className="tdw-ag-ch-meta" dir="auto">{networkName(c.identifier)}</span>
                   <ChannelState channel={c} />
                 </span>
                 <span className={cx('tdw-ag-check', on && 'is-on')} aria-hidden="true">
@@ -575,18 +575,18 @@ export const usePromptSuggestions = () => {
   return [
     {
       icon: 'pencil' as IconName,
-      title: t('tdw_ag_s1_title', 'Write a LinkedIn post'),
-      prompt: t('tdw_ag_s1', 'Write a LinkedIn post announcing our new feature. Keep it under 150 words, end with a question, and schedule it for Tuesday at 10:00.'),
+      title: t('tdw_ag_s1_title', 'Write a post'),
+      prompt: t('tdw_ag_s1', 'Write a post announcing our new feature. Keep it under 150 words, end with a question, and schedule it for Tuesday at 10:00.'),
     },
     {
       icon: 'calendar-days' as IconName,
       title: t('tdw_ag_s2_title', 'Plan my week'),
-      prompt: t('tdw_ag_s2', 'Plan a week of LinkedIn posts about our product launch: one post every weekday at 9:00, each with a different angle. Save them as drafts.'),
+      prompt: t('tdw_ag_s2', 'Plan a week of posts about our product launch: one post every weekday at 9:00, each with a different angle. Save them as drafts.'),
     },
     {
       icon: 'languages' as IconName,
       title: t('tdw_ag_s3_title', 'English and Arabic'),
-      prompt: t('tdw_ag_s3', 'Write the same LinkedIn post in English and in Arabic (Egyptian business tone) about hiring for our team.'),
+      prompt: t('tdw_ag_s3', 'Write the same post in English and in Arabic (Egyptian business tone) about hiring for our team.'),
     },
     {
       icon: 'layout-list' as IconName,

@@ -13,6 +13,7 @@ import { ColorPicker } from '@gitroom/react/form/color.picker';
 import { uniqBy } from 'lodash';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useClickOutside } from '@mantine/hooks';
+import { usePopupEscape } from '@gitroom/frontend/components/tadween/ui/overlays';
 import clsx from 'clsx';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import {
@@ -84,6 +85,7 @@ export const TagsComponentInner: FC<{
     }
     setIsOpen(false);
   });
+  usePopupEscape(isOpen && allowClose, () => setIsOpen(false));
 
   const addTag = useCallback(async () => {
     onModal?.(true);

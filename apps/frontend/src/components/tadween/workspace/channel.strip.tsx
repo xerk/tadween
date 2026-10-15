@@ -68,6 +68,8 @@ export const ChannelChip: FC<{
   const needsAction = channel.refreshNeeded || channel.inBetweenSteps;
   const status = channel.refreshNeeded
     ? t('channel_disconnected_click_to_reconnect', 'Channel disconnected, click to reconnect.')
+    : channel.inBetweenSteps
+    ? t('tdw_an_finish_setup', 'Finish setup')
     : channel.disabled
     ? t('tdw_ws_channel_disabled', 'Disabled')
     : '';
@@ -97,12 +99,13 @@ export const ChannelChip: FC<{
         <button
           type="button"
           className="tdw-ws-chip-alert"
-          aria-label={t('tdw_ws_reconnect', 'Reconnect')}
+          aria-label={
+            channel.refreshNeeded
+              ? t('tdw_ws_reconnect', 'Reconnect')
+              : t('tdw_an_finish_setup', 'Finish setup')
+          }
           data-tooltip-id="tooltip"
-          data-tooltip-content={t(
-            'channel_disconnected_click_to_reconnect',
-            'Channel disconnected, click to reconnect.'
-          )}
+          data-tooltip-content={status}
           onClick={
             channel.refreshNeeded
               ? handlers.refreshChannel(channel as any)

@@ -6,6 +6,7 @@ import {
 } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import {
   credentialStatus,
+  FOCUS_PROVIDERS,
   focusProviders,
 } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { ProviderCredentialsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-credentials.service';
@@ -50,15 +51,16 @@ export class ProviderSettingsService {
   }
 
   // Default position when the admin has not saved an order: the focus
-  // networks in their listed order, then Postiz's own order.
+  // networks as equals in FOCUS_PROVIDERS order, then Postiz's own order.
+  // TADWEEN_ENABLED_PROVIDERS only decides which providers are on, never the
+  // order, so a deployment's env string can't put one network first.
   private defaultPosition(identifier: string) {
-    const focus = focusProviders();
-    const priority = focus.indexOf(identifier);
+    const priority = FOCUS_PROVIDERS.indexOf(identifier);
     if (priority > -1) {
       return priority;
     }
     return (
-      focus.length +
+      FOCUS_PROVIDERS.length +
       socialIntegrationList.findIndex((p) => p.identifier === identifier)
     );
   }

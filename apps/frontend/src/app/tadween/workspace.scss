@@ -498,16 +498,34 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
     border-radius: 0;
   }
 
+  // Above phones the seven days always fit the card: the columns shrink
+  // (next to the side panel on a laptop) instead of pushing the weekend out
+  // of view. Phones keep a wider week that scrolls sideways (section 10).
   .tdw-ws-week {
-    grid-template-columns: 64px repeat(7, minmax(96px, 1fr));
+    grid-template-columns: 64px repeat(7, minmax(0, 1fr));
     padding-bottom: 12px;
   }
 
   .tdw-ws-month {
-    grid-template-columns: repeat(7, minmax(96px, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     grid-template-rows: 44px;
     // A week grows with its busiest day (auto tracks would just stretch)
     grid-auto-rows: max-content;
+  }
+
+  // Narrow days: short day names, and a chip keeps its time over its avatar
+  .tdw-ws-dh {
+    container-type: inline-size;
+  }
+
+  @container (max-width: 110px) {
+    .tdw-ws-month .tdw-ws-dh-long {
+      display: none;
+    }
+
+    .tdw-ws-month .tdw-ws-dh-short {
+      display: inline;
+    }
   }
 
   .tdw-ws-corner,
@@ -1041,7 +1059,7 @@ html[dir='rtl'] body .tdw-ws .tdw-chip::before {
     height: 18px;
     margin: 0;
 
-    > img:first-child {
+    > :first-child {
       width: 18px;
       height: 18px;
     }
@@ -1085,9 +1103,23 @@ html[dir='rtl'] body .tdw-ws .tdw-chip::before {
   }
 }
 
+// A narrow day (a laptop with the side panel open): the time and the text
+// keep the room, the avatar goes (the network still shows in the preview)
+@container (60px < width <= 104px) {
+  .tdw-ws .tdw-chip--week .tdw-chip-avatar,
+  .tdw-ws .tdw-chip--month .tdw-chip-avatar {
+    display: none;
+  }
+
+  .tdw-ws .tdw-chip--week .tdw-chip-body,
+  .tdw-ws .tdw-chip--month .tdw-chip-body {
+    padding-inline: 8px 4px;
+  }
+}
+
 // A month chip on a phone is a day column wide: only the avatar shows (the
 // status edge stays) and a tap opens the post as before
-@container (max-width: 64px) {
+@container (width <= 60px) {
   .tdw-ws .tdw-chip--month .tdw-chip-main,
   .tdw-ws .tdw-chip--month .tdw-chip-acts,
   .tdw-ws .tdw-chip--month .tdw-chip-published,
@@ -1102,7 +1134,7 @@ html[dir='rtl'] body .tdw-ws .tdw-chip::before {
   }
 
   .tdw-ws .tdw-chip--month .tdw-chip-avatar,
-  .tdw-ws .tdw-chip--month .tdw-chip-avatar > img:first-child {
+  .tdw-ws .tdw-chip--month .tdw-chip-avatar > :first-child {
     width: 24px;
     height: 24px;
   }
@@ -1939,6 +1971,11 @@ html[dir='rtl'] .tdw-ws-sheet-head {
   // All seven days on screen, with short day names and a short "+n"
   .tdw-ws .tdw-ws-month {
     grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  // The week scrolls sideways, about three days at a time
+  .tdw-ws .tdw-ws-week {
+    grid-template-columns: 64px repeat(7, minmax(96px, 1fr));
   }
 
   .tdw-ws .tdw-ws-month .tdw-ws-dh-long,

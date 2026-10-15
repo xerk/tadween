@@ -20,7 +20,7 @@ import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorato
 export class ListmonkProvider extends SocialAbstract implements SocialProvider {
   override maxConcurrentJob = 100; // Bluesky has moderate rate limits
   identifier = 'listmonk';
-  name = 'ListMonk';
+  name = 'Listmonk';
   isBetweenSteps = false;
   scopes = [] as string[];
   editor = 'html' as const;

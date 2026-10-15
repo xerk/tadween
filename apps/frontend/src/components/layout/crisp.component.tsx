@@ -42,8 +42,9 @@ export const openSupportChat = () => {
 };
 
 // Crisp live chat, on when CRISP_WEBSITE_ID is set. The launcher sits in the
-// bottom corner, so it steps aside (with the chat closed) while the composer
-// or any dialog, drawer or sheet is open, and comes back when they close. On
+// bottom corner across from the sidebar, so it steps aside (with the chat
+// closed) while the composer, any dialog, drawer or sheet, or the media upload
+// dock is open, and comes back when they close. On
 // phones it stays hidden (it would cover the dock); the account menu opens
 // the chat.
 export const CrispComponent: FC = () => {
@@ -89,6 +90,16 @@ export const CrispComponent: FC = () => {
   useEffect(() => {
     phoneLayout = phone;
   }, [phone]);
+
+  // The launcher goes in the bottom corner away from the sidebar: right in
+  // English, left in Arabic (the sidebar and its account row are on the right)
+  const rtl = i18n.dir(i18n.language) === 'rtl';
+  useEffect(() => {
+    if (!crispWebsiteId || !window.$crisp) {
+      return;
+    }
+    window.$crisp.push(['config', 'position:reverse', [rtl]]);
+  }, [crispWebsiteId, rtl]);
 
   // an overlay opening closes the chat, even one opened on request
   useEffect(() => {

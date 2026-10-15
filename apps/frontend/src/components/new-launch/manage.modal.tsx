@@ -75,6 +75,7 @@ import { useHasScroll } from '@gitroom/frontend/components/ui/is.scroll.hook';
 import { useShortlinkPreference } from '@gitroom/frontend/components/settings/shortlink-preference.component';
 import dayjs from 'dayjs';
 import { useClickOutside } from '@mantine/hooks';
+import { usePopupEscape } from '@gitroom/frontend/components/tadween/ui/overlays';
 import { EditorChecks } from '@gitroom/frontend/components/tadween/editor/checks';
 import { TadweenChannelAvatar } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 import { TadweenIcon } from '@gitroom/frontend/components/tadween/editor/icons';
@@ -98,6 +99,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   const aiAvailable = useAiAvailable();
   const [assistantRequest, setAssistantRequest] = useState(0);
   const [showPostNow, setShowPostNow] = useState(false);
+  // Escape closes the menu, not the composer behind it
+  usePopupEscape(showPostNow, () => setShowPostNow(false));
   const postNowRef = useClickOutside<HTMLDivElement>(() => {
     setShowPostNow(false);
   });
@@ -236,12 +239,12 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
       !hasUnsavedPostChanges() ||
       (await deleteDialog(
         t(
-          'are_you_sure_you_want_to_close_this_modal_all_data_will_be_lost',
-          'Are you sure you want to close this modal? (all data will be lost)'
+          'tdw_close_unsaved_body',
+          "Your changes haven't been saved and will be lost."
         ),
-        t('yes_close_it', 'Yes, close it!'),
-        undefined,
-        undefined,
+        t('tdw_discard', 'Discard'),
+        t('tdw_close_unsaved_title', 'Close without saving?'),
+        t('tdw_keep_editing', 'Keep editing'),
         // closing drops the draft: the red action
         true
       ))
@@ -557,7 +560,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
         if (!addEditSets) {
           mutate();
           toaster.show(
-            !existingData.integration
+            type === 'draft'
+              ? t('tdw_draft_saved', 'Draft saved')
+              : !existingData.integration
               ? t('added_successfully', 'Added successfully')
               : t('updated_successfully', 'Updated successfully')
           );
@@ -1071,16 +1076,6 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               <div
                 ref={postNowRef}
                 className="tdw-split"
-                onKeyDown={(e) => {
-                  // Escape closes the menu, not the composer behind it
-                  if (e.key === 'Escape' && showPostNow) {
-                    e.stopPropagation();
-                    // Next hydrates the whole document, so React and the
-                    // modal's Escape hotkey listen on the same node
-                    e.nativeEvent.stopImmediatePropagation();
-                    setShowPostNow(false);
-                  }
-                }}
               >
                 <button
                   disabled={actionsDisabled}

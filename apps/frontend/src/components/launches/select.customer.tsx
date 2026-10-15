@@ -6,6 +6,7 @@ import { Integrations } from '@gitroom/frontend/components/launches/calendar.con
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import clsx from 'clsx';
 import { useClickOutside } from '@mantine/hooks';
+import { usePopupEscape } from '@gitroom/frontend/components/tadween/ui/overlays';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -33,6 +34,7 @@ export const SelectCustomer: FC<{
       setOpen(false);
     }
   });
+  usePopupEscape(open, () => setOpen(false));
 
   const openClose = useCallback(() => {
     if (open) {

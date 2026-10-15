@@ -33,6 +33,10 @@ import {
   PartnerAffiliate,
   usePartnerMe,
 } from '@gitroom/frontend/components/tadween/referral/partners.api';
+import {
+  useFeatures,
+  useInstanceSettings,
+} from '@gitroom/frontend/components/tadween/instance/instance.settings';
 
 const usd = (cents: number) => formatUsd(cents / 100);
 
@@ -164,9 +168,13 @@ const PayoutHistory: FC<{ affiliate: PartnerAffiliate }> = ({ affiliate }) => {
 // ── Page ────────────────────────────────────────────────────────────────────
 export const PartnersPage: FC = () => {
   const t = useT();
-  const { data, error, isLoading, mutate } = usePartnerMe();
+  // the program's switch first: while it is off there is no dashboard to ask for
+  const { data: settings, error: settingsError } = useInstanceSettings();
+  const isOn = useFeatures();
+  const programOn = !!settings && isOn('affiliate');
+  const { data, error, isLoading, mutate } = usePartnerMe(programOn);
 
-  if (isLoading) {
+  if (isLoading || (!settings && !settingsError)) {
     return (
       <div className="tdw-partners-shell">
         <TadweenScope className="tdw-partners-page">
@@ -178,10 +186,15 @@ export const PartnersPage: FC = () => {
     );
   }
 
-  // 404: the program is switched off; everyone but affiliates: invite-only
-  if ((error && error.status === 404) || (data && (data.kind !== 'AFFILIATE' || !data.affiliate))) {
+  // the program is switched off (or the API says so: 404); everyone but
+  // affiliates: invite-only
+  if (
+    !programOn ||
+    (error && error.status === 404) ||
+    (data && (data.kind !== 'AFFILIATE' || !data.affiliate))
+  ) {
     return (
-      <div className="tdw-partners-shell">
+      <div className="tdw-partners-shell is-empty">
         <TadweenScope className="tdw-partners-page">
           <EmptyState
             icon="award"

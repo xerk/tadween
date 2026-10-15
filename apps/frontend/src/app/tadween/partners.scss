@@ -16,6 +16,16 @@ $partners-phone: '(max-width: 640px)';
   min-width: 0;
   padding: 24px 28px calc(var(--tdw-dock-space, 0px) + 40px);
 
+  // invite-only: one message in the middle of the page card
+  &.is-empty {
+    align-items: center;
+    background: var(--tdw-background);
+
+    .tdw-partners-page {
+      align-content: center;
+    }
+  }
+
   @media #{$partners-phone} {
     padding-inline: 16px;
     padding-top: 16px;

@@ -4,6 +4,7 @@ import { FC, useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { useShallow } from 'zustand/react/shallow';
 import { useClickOutside } from '@mantine/hooks';
+import { usePopupEscape } from '@gitroom/frontend/components/tadween/ui/overlays';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
@@ -133,6 +134,7 @@ export const EditorChecks: FC<{
   const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useClickOutside<HTMLDivElement>(() => setOpen(false));
+  usePopupEscape(open, () => setOpen(false));
   const { checks, blank } = useEditorChecks();
   const { total, setCurrent, setHide } = useLaunchStore(
     useShallow((state) => ({
@@ -226,16 +228,6 @@ export const EditorChecks: FC<{
     <div
       ref={ref}
       className="tdw-checks-anchor"
-      onKeyDown={(e) => {
-        // Escape closes the list, not the composer behind it
-        if (e.key === 'Escape' && open) {
-          e.stopPropagation();
-          // Next hydrates the whole document, so React and the modal's
-          // Escape hotkey listen on the same node
-          e.nativeEvent.stopImmediatePropagation();
-          setOpen(false);
-        }
-      }}
     >
       <button
         type="button"
@@ -243,6 +235,10 @@ export const EditorChecks: FC<{
         aria-label={label}
         aria-expanded={issueCount ? open : undefined}
         aria-haspopup={issueCount ? 'dialog' : undefined}
+        // a narrow composer shows the icon only (editor.scss): the tooltip
+        // keeps the words
+        data-tooltip-id="tooltip"
+        data-tooltip-content={label}
         onClick={() => issueCount && setOpen(!open)}
       >
         <TadweenIcon name={issueCount ? 'alert' : 'check'} size={15} />

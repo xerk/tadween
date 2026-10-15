@@ -178,7 +178,7 @@ export function RegisterAfter({
                 )
               : t(
                   'tdw_auth_register_subtitle',
-                  'Plan, preview and schedule your LinkedIn posts in one place.'
+                  'Plan, preview and schedule your social posts in one place.'
                 )
           }
         />

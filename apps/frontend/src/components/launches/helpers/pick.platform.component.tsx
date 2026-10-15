@@ -8,6 +8,7 @@ import { useCopilotAction, useCopilotReadable } from '@copilotkit/react-core';
 import { useStateCallback } from '@gitroom/react/helpers/use.state.callback';
 import { timer } from '@gitroom/helpers/utils/timer';
 import { AiOnly } from '@gitroom/frontend/components/tadween/instance/ai.guard';
+import { TadweenAvatarImage } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 
 // What the assistant can read and change in the channel picker; only mounted
 // when AI is available (AiOnly).
@@ -268,12 +269,10 @@ export const PickPlatforms: FC<{
                             : ''
                         )}
                       >
-                        <SafeImage
-                          src={integration.picture || '/no-picture.jpg'}
-                          className="rounded-full"
-                          alt={integration.identifier}
-                          width={32}
-                          height={32}
+                        <TadweenAvatarImage
+                          src={integration.picture}
+                          name={integration.name}
+                          className="rounded-full w-[32px] h-[32px]"
                         />
                         {integration.identifier === 'youtube' ? (
                           <img
@@ -307,12 +306,10 @@ export const PickPlatforms: FC<{
                       >
                         <div className="flex items-center justify-center gap-[10px]">
                           <div className="relative">
-                            <img
-                              src={integration.picture || '/no-picture.jpg'}
-                              className="rounded-full"
-                              alt={integration.identifier}
-                              width={24}
-                              height={24}
+                            <TadweenAvatarImage
+                              src={integration.picture}
+                              name={integration.name}
+                              className="rounded-full w-[24px] h-[24px]"
                             />
                             <SafeImage
                               src={`/icons/platforms/${integration.identifier}.png`}

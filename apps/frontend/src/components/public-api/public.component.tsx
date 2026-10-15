@@ -34,11 +34,15 @@ export const mcpConnectorUrls = {
 } as const;
 
 // Clients with no MCP or CLI settings: you paste instructions into the chat,
-// the agent installs the CLI itself and asks you for the API key
+// the agent calls the public API and asks you for the API key. Tadween: no
+// CLI package is published under its name yet, so nothing gets installed.
 export const chatOnlyMcpClients = {
   'Grok Bot':
-    'Install the CLI with `npm install -g postiz`, then install the skill with `npx skills add gitroomhq/postiz-agent`. Set the POSTIZ_API_URL environment variable to {API_URL}, then ask me for my API key and set it as the POSTIZ_API_KEY environment variable before using the CLI.',
+    'Use the public API at {API_URL}/public/v1 to manage my social posts. Before the first request, ask me for my API key, then send it as the Authorization header (no "Bearer") on every request. Start with GET {API_URL}/public/v1/integrations to list my channels.',
 } as const;
+
+export const chatOnlyInstructions = (client: ChatOnlyMcpClient, apiUrl: string) =>
+  chatOnlyMcpClients[client].split('{API_URL}').join(apiUrl);
 
 export const mcpClients = [
   'OpenClaw',
@@ -96,7 +100,7 @@ export const getMcpConfig = (
 ): { config: string; hint: string } => {
   if (isChatOnlyMcpClient(client)) {
     return {
-      config: chatOnlyMcpClients[client].replace('{API_URL}', apiUrl),
+      config: chatOnlyInstructions(client, apiUrl),
       hint: 'Paste this into the chat. The agent will ask you for your API key.',
     };
   }
@@ -589,25 +593,21 @@ const McpSection = ({
   );
 };
 
-// Tadween: the CLI talks to this instance (POSTIZ_API_URL) with the API key.
-// `postiz auth:login` is left out: it runs a device flow against
-// cli-auth.postiz.com (POSTIZ_AUTH_SERVER), which this instance doesn't host.
+// Tadween: the public API of this instance from a terminal, with the API key.
+// Postiz's CLI (`npm install -g postiz`) is left out: it is Postiz's package,
+// and no CLI is published under Tadween's name yet.
 export const cliSteps = [
   {
-    label: 'Install the CLI',
-    code: 'npm install -g postiz',
-  },
-  {
-    label: 'Point the CLI at this workspace',
-    code: 'export POSTIZ_API_URL="{API_URL}"',
+    label: 'Point requests at this workspace',
+    code: 'export TADWEEN_API_URL="{API_URL}/public/v1"',
   },
   {
     label: 'Set your API key as an environment variable',
-    code: 'export POSTIZ_API_KEY="{API_KEY}"',
+    code: 'export TADWEEN_API_KEY="{API_KEY}"',
   },
   {
-    label: 'Install the skill for your AI agent',
-    code: 'npx skills add gitroomhq/postiz-agent',
+    label: 'List your channels to check the connection',
+    code: 'curl -H "Authorization: $TADWEEN_API_KEY" "$TADWEEN_API_URL/integrations"',
   },
 ] as const;
 

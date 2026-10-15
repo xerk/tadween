@@ -91,7 +91,7 @@ export const useMenuItem = () => {
       path: '/launches',
     },
     {
-      name: 'Agent',
+      name: t('tdw_agent', 'Agent'),
       description: t('tdw_agent_desc', 'Ask the agent to draft, schedule and manage posts for you.'),
       icon: (
         <svg

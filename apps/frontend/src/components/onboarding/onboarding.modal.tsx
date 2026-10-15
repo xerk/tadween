@@ -220,7 +220,7 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
                     alt=""
                   />
                 </span>
-                {integration.name}
+                <bdi>{integration.name}</bdi>
               </span>
             ))}
           </div>
@@ -308,7 +308,9 @@ const OnboardingStep2: FC<{
   const { config, hint } =
     agent === apiTab
       ? { config: '', hint: '' }
-      : getMcpConfig(agent, auth, mcpBase, apiKey);
+      : // the server is listed under the brand's name, and the chat
+        // instructions point at this backend's public API
+        getMcpConfig(agent, auth, mcpBase, apiKey, backendUrl, brand.slug);
 
   const maskedConfig =
     revealed || auth === 'oauth' || !apiKey
@@ -342,6 +344,10 @@ const OnboardingStep2: FC<{
       : null;
 
   const maskedApiKey = revealed ? apiKey : '*'.repeat(apiKey.length);
+  // the key stays hidden in the terminal lines too until Reveal
+  const shownCliCommands = cliCommands.map((line) =>
+    revealed || !apiKey ? line : line.split(apiKey).join(maskedApiKey)
+  );
 
   const revealButton = (
     <Button
@@ -359,8 +365,8 @@ const OnboardingStep2: FC<{
         <h3 className="headline">{t('chat', 'Chat')}</h3>
         <p>
           {t(
-            'chat_onboarding_description',
-            'No MCP or CLI settings needed. Paste this into the chat, the agent installs the {{name}} CLI and asks you for your API key.',
+            'tdw_chat_onboarding_api',
+            'No MCP settings needed. Paste this into the chat: the agent asks you for your API key and calls the {{name}} API.',
             { name: brand.name }
           )}
         </p>
@@ -512,18 +518,19 @@ const OnboardingStep2: FC<{
   const cliSection = (
     <section className="pz-ob-panel">
       <header className="pz-ob-panel-head">
-        <h3 className="headline">{t('cli', 'CLI')}</h3>
+        <h3 className="headline">{t('tdw_terminal', 'Terminal')}</h3>
         <p>
           {t(
-            'cli_onboarding_description',
-            'Install the {{name}} CLI and the skill that teaches your agent how to use it',
+            'tdw_cli_onboarding_api',
+            'Call the {{name}} API from a terminal or a script with your API key',
             { name: brand.name }
           )}
         </p>
       </header>
       <div className="pz-ob-panel-body">
-        <pre className="pz-ob-code">{cliCommands.join('\n')}</pre>
+        <pre className="pz-ob-code">{shownCliCommands.join('\n')}</pre>
         <div className="pz-ob-actions">
+          {revealButton}
           <CopyButton
             text={cliCommands.join(' && ')}
             label={t('copy', 'Copy')}

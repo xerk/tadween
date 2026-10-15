@@ -164,6 +164,11 @@ export const AiImage: FC<{
     <div className="relative">
       <div
         onClick={openImageModal}
+        // the label hides on narrower screens: the tooltip and name stay
+        role="button"
+        aria-label={t('tdw_ai_image', 'AI image')}
+        data-tooltip-id="tooltip"
+        data-tooltip-content={t('tdw_ai_image', 'AI image')}
         className={clsx(
           'cursor-pointer h-[30px] mobile:h-[40px] mobile:min-w-[40px] rounded-[6px] mobile:rounded-[8px] justify-center items-center flex bg-newColColor mobile:bg-newSettings px-[8px]'
         )}
@@ -205,7 +210,7 @@ export const AiImage: FC<{
             </svg>
           </div>
           <div className="text-[10px] font-[600] iconBreak:hidden block">
-            {t('ai', 'AI')} Image
+            {t('tdw_ai_image', 'AI image')}
           </div>
         </div>
       </div>

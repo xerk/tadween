@@ -17,7 +17,10 @@ import EmojiPicker from 'emoji-picker-react';
 import { Theme } from 'emoji-picker-react';
 import { BoldText } from '@gitroom/frontend/components/new-launch/bold.text';
 import { UText } from '@gitroom/frontend/components/new-launch/u.text';
-import { SignatureBox } from '@gitroom/frontend/components/signature';
+import {
+  rememberFocusedEditor,
+  SignatureBox,
+} from '@gitroom/frontend/components/signature';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import {
   SelectedIntegrations,
@@ -1355,6 +1358,8 @@ export const OnlyEditor = forwardRef<
     onUpdate: (innerProps) => {
       onChange?.(innerProps.editor.getHTML());
     },
+    // the signature goes to the post or comment that was being written
+    onFocus: (innerProps) => rememberFocusedEditor(innerProps.editor),
   });
 
   useImperativeHandle(ref, () => ({

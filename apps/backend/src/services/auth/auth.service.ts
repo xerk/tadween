@@ -202,22 +202,29 @@ export class AuthService {
     }
   }
 
-  // Takes the name and photo the sign-in provider shares, for an account that
-  // has none yet (new, or created before providers shared them). The photo is
-  // copied into the workspace media so it doesn't depend on the provider URL.
-  // Never fails the sign-in.
+  // Takes the name and photo the sign-in provider shares, for an account whose
+  // profile was never saved (new, or created before providers shared them).
+  // The photo is copied into the user's own workspace media so it doesn't
+  // depend on the provider URL. Runs in the background (a slow photo host
+  // must not hold the sign-in) and never throws.
   private async fillProfile(
     user: { id: string; name?: string | null; pictureId?: string | null },
     providerUser: { name?: string; picture?: string },
     organizationId?: string
   ) {
     try {
-      const name = !user.name ? providerUser.name : undefined;
+      if (user.name) {
+        return;
+      }
+
       let pictureId: string | undefined;
       if (!user.pictureId && providerUser.picture) {
+        // never a team the user was invited to
         const orgId =
           organizationId ||
-          (await this._organizationService.getOrgsByUserId(user.id))[0]?.id;
+          (await this._organizationService.getOrgsByUserId(user.id)).find(
+            (org) => org.users[0]?.role === 'SUPERADMIN'
+          )?.id;
         if (orgId) {
           pictureId = (
             await this._mediaService.uploadFromUrl(orgId, providerUser.picture)
@@ -225,8 +232,11 @@ export class AuthService {
         }
       }
 
-      if (name || pictureId) {
-        await this._userService.fillProfile(user.id, { name, pictureId });
+      if (providerUser.name || pictureId) {
+        await this._userService.fillProfile(user.id, {
+          name: providerUser.name,
+          pictureId,
+        });
       }
     } catch (err) {
       console.error('provider_profile_not_saved', {
@@ -303,7 +313,7 @@ export class AuthService {
       provider
     );
     if (user) {
-      await this.fillProfile(user, providerUser);
+      this.fillProfile(user, providerUser);
       return user;
     }
 
@@ -354,7 +364,7 @@ export class AuthService {
       // Don't fail registration if postRegistration fails
     }
 
-    await this.fillProfile(create.users[0].user, providerUser, create.id);
+    this.fillProfile(create.users[0].user, providerUser, create.id);
 
     // a provider account is active right away: welcome now
     await this.saveLanguage(create.users[0].user.id, language);
@@ -500,7 +510,7 @@ export class AuthService {
       provider as Provider
     );
     if (checkExists) {
-      await this.fillProfile(checkExists, user);
+      this.fillProfile(checkExists, user);
       return { jwt: await this.jwt(checkExists) };
     }
 

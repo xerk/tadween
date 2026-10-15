@@ -134,7 +134,7 @@ export const EditorChecks: FC<{
   const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useClickOutside<HTMLDivElement>(() => setOpen(false));
-  usePopupEscape(open, () => setOpen(false));
+  usePopupEscape(open, () => setOpen(false), ref);
   const { checks, blank } = useEditorChecks();
   const { total, setCurrent, setHide } = useLaunchStore(
     useShallow((state) => ({

@@ -85,10 +85,12 @@ export const TagsComponentInner: FC<{
     }
     setIsOpen(false);
   });
-  usePopupEscape(isOpen && allowClose, () => setIsOpen(false));
+  usePopupEscape(isOpen && allowClose, () => setIsOpen(false), ref);
 
   const addTag = useCallback(async () => {
     onModal?.(true);
+    // the list stays open under the dialog (as in editTag)
+    setAllowClose(false);
     try {
       const val: string | undefined = await new Promise((resolve) => {
         modals.openModal({
@@ -120,6 +122,9 @@ export const TagsComponentInner: FC<{
     } finally {
       // after onChange, so a remounted list starts with the new tag selected
       onModal?.(false);
+      setTimeout(() => {
+        setAllowClose(true);
+      }, 500);
     }
   }, [tagValue, name, onChange, mutate, modals, t, onModal]);
 

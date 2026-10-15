@@ -3,6 +3,7 @@
 // The 404 page (app/(app)/not-found.tsx): the brand mark, a translated
 // message and a way home, in the reader's theme and direction.
 import { FC } from 'react';
+import Link from 'next/link';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { EmptyState, TadweenScope } from '@gitroom/frontend/components/tadween/ui';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
@@ -11,9 +12,9 @@ export const PageNotFound: FC = () => {
   const t = useT();
   return (
     <TadweenScope className="tdw-404">
-      <a href="/" className="tdw-404-logo" aria-label={t('tdw_home', 'Home')}>
+      <Link href="/" className="tdw-404-logo" aria-label={t('tdw_home', 'Home')}>
         <Logo />
-      </a>
+      </Link>
       <main className="tdw-404-main">
         <EmptyState
           size="lg"
@@ -24,9 +25,9 @@ export const PageNotFound: FC = () => {
             'The link may be old or mistyped. Everything else is where you left it.'
           )}
           action={
-            <a href="/" className="pz-btn pz-btn-primary pz-btn-md no-underline">
+            <Link href="/" className="pz-btn pz-btn-primary pz-btn-md no-underline">
               {t('tdw_404_home', 'Go to Tadween')}
-            </a>
+            </Link>
           }
         />
       </main>

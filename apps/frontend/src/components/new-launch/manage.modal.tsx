@@ -99,11 +99,11 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   const aiAvailable = useAiAvailable();
   const [assistantRequest, setAssistantRequest] = useState(0);
   const [showPostNow, setShowPostNow] = useState(false);
-  // Escape closes the menu, not the composer behind it
-  usePopupEscape(showPostNow, () => setShowPostNow(false));
   const postNowRef = useClickOutside<HTMLDivElement>(() => {
     setShowPostNow(false);
   });
+  // Escape closes the menu, not the composer behind it
+  usePopupEscape(showPostNow, () => setShowPostNow(false), postNowRef);
   const { data: shortlinkPreferenceData } = useShortlinkPreference();
   // desktop layout choices, remembered on this device like the sidebar's
   const drawer = useModalDrawer();

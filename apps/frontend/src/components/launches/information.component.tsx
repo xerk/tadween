@@ -22,7 +22,7 @@ export const InformationComponent: FC<{
   const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useClickOutside<HTMLDivElement>(() => setOpen(false));
-  usePopupEscape(open, () => setOpen(false));
+  usePopupEscape(open, () => setOpen(false), ref);
   const { isGlobal, selectedIntegrations, internal, currentIntegration } =
     useLaunchStore(
       useShallow((state) => ({

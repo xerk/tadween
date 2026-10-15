@@ -66,7 +66,7 @@ export const RepeatComponent: FC<{
     }
     setIsOpen(false);
   });
-  usePopupEscape(isOpen, () => setIsOpen(false));
+  usePopupEscape(isOpen, () => setIsOpen(false), ref);
 
   const everyLabel = useMemo(() => {
     if (!repeat) {

@@ -140,7 +140,8 @@ export const useFeatures = () => {
   );
 };
 
-// The pages a feature switch hides from the sidebar (layout/top.menu.tsx).
+// The pages a feature switch hides from the sidebar (layout/top.menu.tsx;
+// keep the two lists in step).
 // Switched off, the page itself is closed too: an old link or bookmark goes
 // to Today instead of opening it.
 const FEATURE_ROUTES: [string, FeatureKey][] = [

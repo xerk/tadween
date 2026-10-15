@@ -1,7 +1,7 @@
 'use client';
 
 import { openPaywall } from '@gitroom/frontend/components/tadween/billing/paywall.modal';
-import { ReactNode, useCallback, useRef } from 'react';
+import { ReactNode, useCallback, useEffect, useRef } from 'react';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import i18next from '@gitroom/react/translation/i18next';
 import { FetchWrapperComponent } from '@gitroom/helpers/utils/custom.fetch';
@@ -31,8 +31,31 @@ function LayoutContextInner(params: { children: ReactNode }) {
   // seconds), instead of the click doing nothing
   const toaster = useToaster();
   const lastNetworkToast = useRef(0);
+  // requests cut off by a reload, a logout redirect or a hidden tab are not
+  // the user's problem: no toast while the page is leaving
+  const leaving = useRef(false);
+  useEffect(() => {
+    const leave = () => {
+      leaving.current = true;
+    };
+    const back = () => {
+      leaving.current = false;
+    };
+    window.addEventListener('beforeunload', leave);
+    window.addEventListener('pagehide', leave);
+    window.addEventListener('pageshow', back);
+    return () => {
+      window.removeEventListener('beforeunload', leave);
+      window.removeEventListener('pagehide', leave);
+      window.removeEventListener('pageshow', back);
+    };
+  }, []);
   const onNetworkError = useCallback(() => {
-    if (Date.now() - lastNetworkToast.current < 5000) {
+    if (
+      leaving.current ||
+      document.visibilityState === 'hidden' ||
+      Date.now() - lastNetworkToast.current < 5000
+    ) {
       return;
     }
     lastNetworkToast.current = Date.now();

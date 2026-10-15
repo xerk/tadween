@@ -107,6 +107,8 @@ export const useMenuItem = () => {
           />
         </svg>
       ),
+      // pages hidden by a feature switch are also closed to direct links:
+      // FEATURE_ROUTES in tadween/instance/instance.settings.tsx
       path: '/agents',
       hide: !isOn('agent'),
     },

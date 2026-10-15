@@ -34,7 +34,7 @@ export const SelectCustomer: FC<{
       setOpen(false);
     }
   });
-  usePopupEscape(open, () => setOpen(false));
+  usePopupEscape(open, () => setOpen(false), ref);
 
   const openClose = useCallback(() => {
     if (open) {

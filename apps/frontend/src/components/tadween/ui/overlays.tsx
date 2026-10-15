@@ -65,8 +65,14 @@ export function useEscape(open: boolean, onClose?: () => void) {
    can't ask to close the composer. Listens on window in the capture phase,
    before the modal's document listener and wherever the focus is. A text
    field inside the popup keeps its own Escape (the picker's time field
-   reverts what was typed); the modal ignores keys from fields anyway. */
-const popups: { current: () => void }[] = [];
+   reverts what was typed); the modal ignores keys from fields anyway. With
+   `ref`, a dialog opened above the popup (a confirm, "Add new tag") keeps
+   its Escape: the popup only answers when it sits in the topmost dialog. */
+type PopupEntry = {
+  close: { current: () => void };
+  node?: React.RefObject<HTMLElement | null>;
+};
+const popups: PopupEntry[] = [];
 const onPopupEscape = (e: KeyboardEvent) => {
   const top = popups[popups.length - 1];
   if (e.key !== 'Escape' || e.isComposing || !top) return;
@@ -74,11 +80,21 @@ const onPopupEscape = (e: KeyboardEvent) => {
   if (target?.closest?.('input, textarea, select, [contenteditable="true"]')) {
     return;
   }
+  const dialogs = document.querySelectorAll('[aria-modal="true"]');
+  const topDialog = dialogs[dialogs.length - 1];
+  const node = top.node?.current;
+  if (topDialog && node && !topDialog.contains(node)) {
+    return;
+  }
   e.stopPropagation();
   e.preventDefault();
-  top.current();
+  top.close.current();
 };
-export function usePopupEscape(open: boolean, onClose: () => void) {
+export function usePopupEscape(
+  open: boolean,
+  onClose: () => void,
+  node?: React.RefObject<HTMLElement | null>
+) {
   const close = useRef(onClose);
   close.current = onClose;
   useEffect(() => {
@@ -86,9 +102,10 @@ export function usePopupEscape(open: boolean, onClose: () => void) {
     if (!popups.length) {
       window.addEventListener('keydown', onPopupEscape, true);
     }
-    popups.push(close);
+    const entry: PopupEntry = { close, node };
+    popups.push(entry);
     return () => {
-      const i = popups.lastIndexOf(close);
+      const i = popups.lastIndexOf(entry);
       if (i > -1) popups.splice(i, 1);
       if (!popups.length) {
         window.removeEventListener('keydown', onPopupEscape, true);

@@ -2933,6 +2933,5 @@
   "tdw_post_comment": "انشر",
   "tdw_terminal": "الطرفية",
   "tdw_today_hello": "أهلًا.",
-  "tdw_today_hello_name": "أهلًا يا {{name}}.",
-  "tdw_share": "مشاركة"
+  "tdw_today_hello_name": "أهلًا يا {{name}}."
 }

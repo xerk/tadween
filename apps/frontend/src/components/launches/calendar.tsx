@@ -88,12 +88,13 @@ i18next.on('languageChanged', () => {
 updateDayjsLocale();
 
 // The hour labels of the week view: 12:00 AM (not 0:00 AM) at midnight, and
-// AM / PM in the reader's language (dayjs locale)
+// AM / PM in the reader's language (dayjs locale). A fixed UTC day, so a
+// daylight-saving switch today can't shift a label.
 const convertTimeFormatBasedOnLocality = (time: number) =>
-  newDayjs()
+  dayjs
+    .utc('2000-01-01')
     .hour(time)
-    .minute(0)
-    .format(isUSCitizen() ? 'h:mm A' : 'HH:mm');
+    .format(isUSCitizen() ? 'h:mm A' : 'H:mm');
 
 export const hours = Array.from(
   {

@@ -2916,6 +2916,5 @@
   "tdw_post_comment": "Post",
   "tdw_terminal": "Terminal",
   "tdw_today_hello": "Hello.",
-  "tdw_today_hello_name": "Hello, {{name}}.",
-  "tdw_share": "Share"
+  "tdw_today_hello_name": "Hello, {{name}}."
 }

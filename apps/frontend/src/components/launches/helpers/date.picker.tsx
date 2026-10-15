@@ -358,7 +358,7 @@ export const DatePicker: FC<{
   const ref = useClickOutside<HTMLDivElement>(() => {
     setOpen(false);
   });
-  usePopupEscape(open, () => setOpen(false));
+  usePopupEscape(open, () => setOpen(false), ref);
   const popover = useRef<HTMLDivElement>(null);
   const [place, setPlace] = useState<CSSProperties>();
 

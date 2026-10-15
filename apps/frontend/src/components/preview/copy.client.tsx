@@ -22,7 +22,7 @@ export const CopyClient = () => {
       <span className="tdw-pp-cta-long">
         {t('share_with_a_client', 'Share with a client')}
       </span>
-      <span className="tdw-pp-cta-short">{t('tdw_share', 'Share')}</span>
+      <span className="tdw-pp-cta-short">{t('tdw_pp_share', 'Share')}</span>
     </Button>
   );
 };

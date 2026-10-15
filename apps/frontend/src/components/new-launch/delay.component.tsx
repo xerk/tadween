@@ -52,7 +52,7 @@ export const DelayComponent: FC<{
     }
     setIsOpen(false);
   });
-  usePopupEscape(isOpen, () => setIsOpen(false));
+  usePopupEscape(isOpen, () => setIsOpen(false), ref);
 
   const setDelay = useCallback(
     (index: number) => (minutes: number) => {

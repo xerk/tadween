@@ -3,9 +3,13 @@ import { Injectable } from '@nestjs/common';
 export abstract class AuthProviderAbstract {
   abstract generateLink(query?: any): Promise<string> | string;
   abstract getToken(code: string, redirectUri?: string): Promise<string>;
+  // name and picture (a public image URL) are optional: a provider that
+  // shares them fills in the profile of the account it signs in
   abstract getUser(
     providerToken: string
-  ): Promise<{ email: string; id: string }> | false;
+  ):
+    | Promise<{ email: string; id: string; name?: string; picture?: string }>
+    | false;
   async postRegistration(
     providerToken: string,
     orgId: string

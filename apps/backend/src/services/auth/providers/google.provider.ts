@@ -76,6 +76,9 @@ export class GoogleProvider extends AuthProviderAbstract {
     return {
       id: data.id!,
       email: data.email!,
+      name: data.name || undefined,
+      // Google serves the photo at 96px unless asked for a size
+      picture: data.picture?.replace(/=s\d+-c$/, '=s256-c') || undefined,
     };
   }
 }

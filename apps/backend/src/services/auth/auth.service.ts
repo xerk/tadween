@@ -13,6 +13,7 @@ import { NewsletterService } from '@gitroom/nestjs-libraries/newsletter/newslett
 import { PlatformSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/platform-settings.service';
 import { PartnersService } from '@gitroom/nestjs-libraries/database/prisma/partners/partners.service';
 import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
+import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 
 @Injectable()
 export class AuthService {
@@ -23,7 +24,8 @@ export class AuthService {
     private _providerManager: AuthProviderManager,
     private _platformSettings: PlatformSettingsService,
     private _partners: PartnersService,
-    private _paymentService: PaymentService
+    private _paymentService: PaymentService,
+    private _mediaService: MediaService
   ) {}
 
   // Tadween: the mode comes from the super-admin console, falling back to
@@ -200,6 +202,40 @@ export class AuthService {
     }
   }
 
+  // Takes the name and photo the sign-in provider shares, for an account that
+  // has none yet (new, or created before providers shared them). The photo is
+  // copied into the workspace media so it doesn't depend on the provider URL.
+  // Never fails the sign-in.
+  private async fillProfile(
+    user: { id: string; name?: string | null; pictureId?: string | null },
+    providerUser: { name?: string; picture?: string },
+    organizationId?: string
+  ) {
+    try {
+      const name = !user.name ? providerUser.name : undefined;
+      let pictureId: string | undefined;
+      if (!user.pictureId && providerUser.picture) {
+        const orgId =
+          organizationId ||
+          (await this._organizationService.getOrgsByUserId(user.id))[0]?.id;
+        if (orgId) {
+          pictureId = (
+            await this._mediaService.uploadFromUrl(orgId, providerUser.picture)
+          ).id;
+        }
+      }
+
+      if (name || pictureId) {
+        await this._userService.fillProfile(user.id, { name, pictureId });
+      }
+    } catch (err) {
+      console.error('provider_profile_not_saved', {
+        user_id: user.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   // After activation, or right after a provider sign-up. A workspace that
   // joined with an invite hears about its bonus. Never throws.
   private async sendWelcome(
@@ -267,6 +303,7 @@ export class AuthService {
       provider
     );
     if (user) {
+      await this.fillProfile(user, providerUser);
       return user;
     }
 
@@ -316,6 +353,8 @@ export class AuthService {
     } catch (err) {
       // Don't fail registration if postRegistration fails
     }
+
+    await this.fillProfile(create.users[0].user, providerUser, create.id);
 
     // a provider account is active right away: welcome now
     await this.saveLanguage(create.users[0].user.id, language);
@@ -461,6 +500,7 @@ export class AuthService {
       provider as Provider
     );
     if (checkExists) {
+      await this.fillProfile(checkExists, user);
       return { jwt: await this.jwt(checkExists) };
     }
 

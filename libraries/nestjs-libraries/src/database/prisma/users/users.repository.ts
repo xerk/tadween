@@ -288,6 +288,37 @@ export class UsersRepository {
   }
 
   // Tadween: the app language, for emails (select: nothing returned)
+  // Fills only what the account is missing, so a name or photo the user set
+  // in Settings is never replaced by the provider's
+  async fillProfile(
+    userId: string,
+    profile: { name?: string; pictureId?: string }
+  ) {
+    const user = await this._user.model.user.findUnique({
+      where: { id: userId },
+      select: { name: true, pictureId: true },
+    });
+    if (!user) {
+      return;
+    }
+
+    const data = {
+      ...(!user.name && profile.name ? { name: profile.name } : {}),
+      ...(!user.pictureId && profile.pictureId
+        ? { pictureId: profile.pictureId }
+        : {}),
+    };
+    if (!Object.keys(data).length) {
+      return;
+    }
+
+    await this._user.model.user.update({
+      where: { id: userId },
+      data,
+      select: { id: true },
+    });
+  }
+
   async setLanguage(userId: string, language: string) {
     await this._user.model.user.update({
       where: { id: userId },

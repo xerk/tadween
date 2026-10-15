@@ -100,6 +100,18 @@ const en = {
   },
   notification: {
     button: 'Open Tadween',
+    // Emails whose English title and HTML come from workflows that can't
+    // change (streak): looked up by that title so they read in the user's language
+    legacy: {
+      'Streak Ended': {
+        subject: 'Your posting streak ended',
+        body: "You didn't post in the last 24 hours, so your streak ended. Schedule a post to start a new one.",
+      },
+      'Streak Reminder': {
+        subject: 'Your streak ends in 2 hours',
+        body: 'Schedule a post in the next 2 hours to keep your posting streak going.',
+      },
+    } as Record<string, { subject: string; body: string }>,
   },
 
   welcome: {
@@ -367,6 +379,16 @@ const ar: EmailStrings = {
   },
   notification: {
     button: 'افتح تدوين',
+    legacy: {
+      'Streak Ended': {
+        subject: 'انتهت سلسلة نشرك',
+        body: 'لم تنشر خلال آخر 24 ساعة، فانتهت سلسلتك. جدول منشورًا لتبدأ سلسلة جديدة.',
+      },
+      'Streak Reminder': {
+        subject: 'تنتهي سلسلتك خلال ساعتين',
+        body: 'جدول منشورًا خلال الساعتين القادمتين لتحافظ على سلسلة نشرك.',
+      },
+    } as Record<string, { subject: string; body: string }>,
   },
 
   welcome: {

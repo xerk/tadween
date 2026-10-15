@@ -253,15 +253,28 @@ const templates = {
     t: EmailStrings,
     f: Format,
     d: { title: string; html: string }
-  ): EmailContent => ({
-    subject: d.title,
-    preheader: '',
-    title: esc(d.title),
-    blocks: [{ raw: d.html }],
-    button: { label: t.notification.button, url: f.url('/launches') },
-    category: 'notification',
-    manage: true,
-  }),
+  ): EmailContent => {
+    const legacy = t.notification.legacy[d.title];
+    // The inbox preview line: without one, Gmail shows the header ("Tadween") instead
+    const preview = d.html
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&#39;|&apos;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 140);
+    return {
+      subject: legacy?.subject || d.title,
+      preheader: legacy?.body || preview,
+      title: esc(legacy?.subject || d.title),
+      blocks: [{ raw: legacy ? `<p>${esc(legacy.body)}</p>` : d.html }],
+      button: { label: t.notification.button, url: f.url('/launches') },
+      category: 'notification',
+      manage: true,
+    };
+  },
 
   welcome: (
     t: EmailStrings,
@@ -716,7 +729,7 @@ const layout = (
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" dir="${t.dir}" class="container" style="width:600px;max-width:600px;">
 <tr><td class="pad" style="padding:0 8px 20px;text-align:${align};">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" dir="${t.dir}" align="${align}"><tr>
-<td style="vertical-align:middle;"><a href="${esc(brand.appUrl)}" style="text-decoration:none;"><img src="${esc(brand.logoUrl)}" width="36" height="36" alt="${esc(brand.name)}" style="display:block;border:0;border-radius:8px;width:36px;height:36px;"></a></td>
+<td style="vertical-align:middle;"><a href="${esc(brand.appUrl)}" style="text-decoration:none;"><img src="${esc(brand.logoUrl)}" width="36" height="36" alt="" style="display:block;border:0;border-radius:8px;width:36px;height:36px;"></a></td>
 <td class="fg" style="vertical-align:middle;padding:0 10px;font-family:${FONT};font-size:19px;font-weight:700;letter-spacing:-0.3px;color:${C.fg};">${esc(brand.name)}</td>
 </tr></table>
 </td></tr>

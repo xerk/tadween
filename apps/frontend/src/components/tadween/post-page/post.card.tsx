@@ -165,7 +165,7 @@ export const PostCard: FC<{ post: PublicPost; withActions?: boolean }> = ({
           <div className="tdw-pp-author-meta">
             {!!integration.profile && (
               <span className="tdw-pp-ellipsis tdw-pp-handle lbox">
-                @{integration.profile}
+                @{integration.profile.replace(/^@/, '')}
               </span>
             )}
             <NetworkMark identifier={integration.providerIdentifier} />

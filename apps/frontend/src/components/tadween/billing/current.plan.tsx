@@ -8,6 +8,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { PublicPlan } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { Skeleton, UsageMeter } from '@gitroom/frontend/components/tadween/ui';
+import { useIntegrationList } from '@gitroom/frontend/components/launches/helpers/use.integration.list';
 
 const useJson = () => {
   const fetch = useFetch();
@@ -20,17 +21,14 @@ const useJson = () => {
   }, []);
 };
 
-// Same key the launches screen uses, so the list is usually cached already
+// The launches screen's hook: '/integrations/list' is cached as the array of
+// channels, so a second fetcher on that key must not store another shape
 const useChannelsUsed = () => {
-  const load = useJson();
-  const { data } = useSWR('/integrations/list', load, {
-    revalidateOnFocus: false,
-  });
-  return data
-    ? ((data.integrations || []) as { disabled?: boolean }[]).filter(
-        (i) => !i.disabled
-      ).length
-    : undefined;
+  const { data, isLoading } = useIntegrationList();
+  return isLoading
+    ? undefined
+    : ((data || []) as { disabled?: boolean }[]).filter((i) => !i.disabled)
+        .length;
 };
 
 // Only for plans with a team: without one the server refuses the list (402),

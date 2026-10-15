@@ -149,6 +149,10 @@ export class UsersService {
     return this._usersRepository.updateEmailNotifications(userId, body);
   }
 
+  fillProfile(userId: string, profile: { name?: string; pictureId?: string }) {
+    return this._usersRepository.fillProfile(userId, profile);
+  }
+
   setLanguage(userId: string, language: string) {
     return this._usersRepository.setLanguage(userId, language);
   }

@@ -9,7 +9,7 @@ export const aiClientsAr: AiClientsDict = {
     start: 'ابدأ التجربة المجانية',
     stepsLink: 'اعرض خطوات الربط',
     smallPrint:
-      'تدوين أداة لجدولة منشورات الشبكات الاجتماعية تضع لينكدإن أولًا. يعمل {name} معها عبر خادم MCP الخاص بتدوين، بالأدوات نفسها التي يستخدمها الوكيل داخل التطبيق. راجِع بنفسك ما يجدوله قبل نشره. {updated}',
+      'تدوين أداة لجدولة منشورات الشبكات الاجتماعية على فيسبوك وإنستغرام ولينكدإن وثريدز ويوتيوب. يعمل {name} معها عبر خادم MCP الخاص بتدوين، بالأدوات نفسها التي يستخدمها الوكيل داخل التطبيق. راجِع بنفسك ما يجدوله قبل نشره. {updated}',
     smallPrintLink: 'كل أدوات الذكاء الاصطناعي التي تعمل مع تدوين',
     connectTitle: 'إعداد {name} مع تدوين: {n} خطوات',
     connectSub: 'تدوين ليس تطبيقًا في أي متجر للذكاء الاصطناعي، لذلك تضيفه إلى {name} بنفسك كخادم MCP بعيد. يستغرق ذلك دقيقة تقريبًا، ويمكنك إزالته في أي وقت.',
@@ -26,7 +26,7 @@ export const aiClientsAr: AiClientsDict = {
     docs: 'توثيق {name} الرسمي لهذه الخطوات:',
     otherMethod: 'بمفتاح برمجي بدلًا من ذلك',
     orbitTitle: 'اربط مرة واحدة، وتصل إلى كل قنواتك',
-    orbitSub: 'حساباتك على لينكدإن وإنستغرام وفيسبوك وثريدز ويوتيوب موجودة في تدوين. يستخدم {name} ما تسمّيه منها، ويرسل تدوين كل منشور في موعده.',
+    orbitSub: 'حساباتك على فيسبوك وإنستغرام ولينكدإن وثريدز ويوتيوب موجودة في تدوين. يستخدم {name} ما تسمّيه منها، ويرسل تدوين كل منشور في موعده.',
     canTitle: 'أدوات {name} في تدوين',
     canSub: 'الأدوات نفسها التي يستخدمها الوكيل داخل تدوين، على القنوات التي ربطتها.',
     mcpTitle: 'خادم MCP في تدوين باختصار',
@@ -56,8 +56,8 @@ export const aiClientsAr: AiClientsDict = {
     promptsTitle: 'أمثلة على طلبات لـ{name}',
     promptsSub: 'اكتبها بالعربية المصرية أو بالإنجليزية، مع القناة واليوم والنبرة. أربعة أمثلة للبداية:',
     channelsTitle: 'القنوات التي يصل إليها {name} عبر تدوين',
-    channelsSub: 'لينكدإن وإنستغرام وفيسبوك وثريدز ويوتيوب أولًا، ثم كل شبكة أخرى ينشر عليها تدوين. بمجرد ربط الحساب في تدوين، يستطيع {name} استخدامه.',
-    channelsNote: 'حسابات لينكدإن وصفحاته تأتي أولًا في تدوين. ولكل شبكة حدودها وإعداداتها، ويقرؤها {name} قبل أن ينشر.',
+    channelsSub: 'فيسبوك وإنستغرام ولينكدإن وثريدز ويوتيوب أولًا، ثم كل شبكة أخرى ينشر عليها تدوين. بمجرد ربط الحساب في تدوين، يستطيع {name} استخدامه.',
+    channelsNote: 'الحسابات والصفحات والقنوات كلها تُربط بالطريقة نفسها. ولكل شبكة حدودها وإعداداتها، ويقرؤها {name} قبل أن ينشر.',
     thisPage: 'هذه الصفحة',
     helpTitle: 'التكلفة والأمان والحلول',
     costTitle: 'ما التكلفة',
@@ -71,8 +71,8 @@ export const aiClientsAr: AiClientsDict = {
     allClients: 'اعرض كل الأدوات',
     relatedLabel: 'صفحات ذات صلة:',
     updated: 'آخر مراجعة للخطوات على توثيق الشركات المطوّرة في ١٠ أكتوبر ٢٠٢٦.',
-    ctaTitle: 'دع {name} يخطط أسبوعك على لينكدإن',
-    ctaBody: 'ابدأ تجربة لسبعة أيام، اربط لينكدإن، ثم اربط {name} واطلب.',
+    ctaTitle: 'دع {name} يخطط أسبوعك على مواقع التواصل',
+    ctaBody: 'ابدأ تجربة لسبعة أيام، اربط حساباتك، ثم اربط {name} واطلب.',
     sharedFaq: [
       {
         title: 'هل يوجد تطبيق رسمي لتدوين في {name}؟',
@@ -87,8 +87,8 @@ export const aiClientsAr: AiClientsDict = {
         content: 'نعم. حين يجدول {name} منشورًا يحتفظ به تدوين وينشره في موعده، سواء كانت المحادثة مفتوحة أم لا.',
       },
       {
-        title: 'هل يرى {name} كلمة مرور لينكدإن؟',
-        content: 'لا. حساباتك الاجتماعية مربوطة في تدوين، و{name} يتحدث مع تدوين فقط. لا يرى أبدًا بيانات دخولك إلى لينكدإن أو غيره.',
+        title: 'هل يرى {name} كلمات مرور حساباتك الاجتماعية؟',
+        content: 'لا. حساباتك الاجتماعية مربوطة في تدوين، و{name} يتحدث مع تدوين فقط. لا يرى أبدًا بيانات دخولك إلى فيسبوك أو إنستغرام أو لينكدإن أو غيرها.',
       },
       {
         title: 'كيف أفصل {name}؟',
@@ -103,10 +103,10 @@ export const aiClientsAr: AiClientsDict = {
   kinds: { assistant: 'مساعدات المحادثة', coding: 'وكلاء البرمجة والمحررات' },
   items: {
     chatgpt: {
-      title: 'ChatGPT MCP: جدولة منشورات لينكدإن من ChatGPT | تدوين',
-      description: 'أضف تدوين إلى ChatGPT كتطبيق MCP مخصّص، وسجّل الدخول، واطلب من ChatGPT كتابة منشورات لينكدإن وجدولتها. الخطوات والخطط وأمثلة الطلبات.',
-      h1: 'جدولة منشورات لينكدإن والشبكات الاجتماعية مع ChatGPT',
-      bullets: ['تطبيق MCP مخصّص في ChatGPT على الويب', 'اكتب منشورات لينكدإن وراجعها وجدولها بطلب بسيط', 'الجدولة تحتاج ChatGPT Business أو Enterprise أو Edu'],
+      title: 'ChatGPT MCP: جدولة منشورات التواصل الاجتماعي من ChatGPT | تدوين',
+      description: 'أضف تدوين إلى ChatGPT كتطبيق MCP مخصّص، وسجّل الدخول، واطلب من ChatGPT كتابة منشوراتك وجدولتها. الخطوات والخطط وأمثلة الطلبات.',
+      h1: 'جدولة منشورات التواصل الاجتماعي مع ChatGPT',
+      bullets: ['تطبيق MCP مخصّص في ChatGPT على الويب', 'اكتب منشوراتك وراجعها وجدولها بطلب بسيط', 'الجدولة تحتاج ChatGPT Business أو Enterprise أو Edu'],
       blurb: 'تطبيق MCP مخصّص، بتسجيل الدخول',
       methods: {
         oauth: {
@@ -126,18 +126,18 @@ export const aiClientsAr: AiClientsDict = {
       },
       demo: {
         lang: 'ar',
-        prompt: 'اكتب بوست لينكدإن لصفحة Nile Studio عن ليلة الاستوديو المفتوح يوم ٢٢ وجدوله يوم الحد الساعة ٩ الصبح.',
+        prompt: 'اكتب بوست فيسبوك لصفحة Nile Studio عن ليلة الاستوديو المفتوح يوم ٢٢ وجدوله يوم الحد الساعة ٩ الصبح.',
         tools: [
-          { tool: 'integrationList', label: 'وجد Nile Studio على لينكدإن' },
+          { tool: 'integrationList', label: 'وجد Nile Studio على فيسبوك' },
           { tool: 'integrationSchedulePostTool', label: 'جدول منشورًا واحدًا' },
         ],
         reply: 'تمام. هيتنشر على Nile Studio يوم الحد الساعة ٩:٠٠. افتحه في تدوين لو حابب تعدّل حاجة قبلها.',
-        posts: [{ net: 'linkedin-page', name: 'Nile Studio', text: 'ستوديو النيل بيفتح أبوابه يوم ٢٢…', when: 'الأحد ٠٩:٠٠' }],
+        posts: [{ net: 'facebook', name: 'Nile Studio', text: 'ستوديو النيل بيفتح أبوابه يوم ٢٢…', when: 'الأحد ٠٩:٠٠' }],
       },
       ask: {
-        prompt: 'إيه المنشورات اللي متجدولة على لينكدإن الأسبوع ده؟',
-        reply: 'تلات منشورات: الاتنين والأربع الساعة ٨:٣٠ على صفحتك، والخميس الساعة ١٢:٠٠ على البروفايل. أكتبلك واحد للجمعة؟',
-        nets: ['linkedin', 'linkedin-page'],
+        prompt: 'إيه المنشورات اللي متجدولة الأسبوع ده؟',
+        reply: 'تلات منشورات: الاتنين الساعة ٨:٣٠ على إنستغرام، والأربع الساعة ٨:٣٠ على صفحتك في لينكدإن، والخميس الساعة ١٢:٠٠ على يوتيوب. أكتبلك واحد للجمعة؟',
+        nets: ['instagram', 'linkedin-page', 'youtube'],
       },
       alsoTry: ['اعرض قنواتي في تدوين', 'احفظ مسودة ليوم الخميس', 'حوّل المقال ده لبوست'],
       compare: {
@@ -154,9 +154,9 @@ export const aiClientsAr: AiClientsDict = {
       },
       prompts: [
         { tag: 'من مقال', nets: ['linkedin-page'], title: 'حوّل مقالًا إلى منشور', text: 'اكتب بوست لينكدإن لصفحة الشركة من المقال ده وجدوله يوم التلات الساعة ٩.', lang: 'ar' },
-        { tag: 'راجع الأسبوع', nets: ['linkedin', 'linkedin-page'], title: 'اعرف ما هو مجدول', text: 'إيه المنشورات اللي متجدولة الأسبوع ده؟', lang: 'ar' },
-        { tag: 'مسودة أولًا', nets: ['linkedin'], title: 'احفظ مسودة للمراجعة', text: 'احفظ مسودة عن الموظف الجديد ليوم الخميس، ومتجدولهاش لسه.', lang: 'ar' },
-        { tag: 'بالإنجليزية', nets: ['linkedin-page'], title: 'اكتب بالإنجليزية', text: 'Write a LinkedIn post about our webinar and schedule it for Sunday at 10:00.', lang: 'en' },
+        { tag: 'راجع الأسبوع', nets: ['instagram', 'youtube'], title: 'اعرف ما هو مجدول', text: 'إيه المنشورات اللي متجدولة على إنستغرام ويوتيوب الأسبوع ده؟', lang: 'ar' },
+        { tag: 'مسودة أولًا', nets: ['threads'], title: 'احفظ مسودة للمراجعة', text: 'احفظ مسودة على ثريدز عن الموظف الجديد ليوم الخميس، ومتجدولهاش لسه.', lang: 'ar' },
+        { tag: 'بالإنجليزية', nets: ['facebook'], title: 'اكتب بالإنجليزية', text: 'Write a Facebook post about our webinar and schedule it for Sunday at 10:00.', lang: 'en' },
       ],
       versus: {
         title: 'ChatGPT أم Codex: لأيهما هذه الصفحة؟',
@@ -196,10 +196,10 @@ export const aiClientsAr: AiClientsDict = {
       ],
     },
     claude: {
-      title: 'موصِّل Claude MCP: جدولة منشورات لينكدإن | تدوين',
-      description: 'أضف تدوين إلى Claude كموصِّل مخصّص على الويب أو سطح المكتب، وسجّل الدخول، واطلب من Claude كتابة منشورات لينكدإن وجدولتها. الخطوات وأمثلة الطلبات.',
-      h1: 'جدولة منشورات لينكدإن والشبكات الاجتماعية مع Claude',
-      bullets: ['موصِّل مخصّص على claude.ai وClaude Desktop', 'خطّط منشورات لينكدإن واكتبها وجدولها بطلب بسيط', 'تسجيل دخول بتدوين: لا مفتاح تلصقه'],
+      title: 'موصِّل Claude MCP: جدولة منشورات التواصل الاجتماعي | تدوين',
+      description: 'أضف تدوين إلى Claude كموصِّل مخصّص على الويب أو سطح المكتب، وسجّل الدخول، واطلب من Claude كتابة منشوراتك وجدولتها. الخطوات وأمثلة الطلبات.',
+      h1: 'جدولة منشورات التواصل الاجتماعي مع Claude',
+      bullets: ['موصِّل مخصّص على claude.ai وClaude Desktop', 'خطّط منشوراتك واكتبها وجدولها بطلب بسيط', 'تسجيل دخول بتدوين: لا مفتاح تلصقه'],
       blurb: 'موصِّل مخصّص على الويب وسطح المكتب',
       methods: {
         oauth: {
@@ -220,15 +220,15 @@ export const aiClientsAr: AiClientsDict = {
       },
       demo: {
         lang: 'ar',
-        prompt: 'خطّط ٣ بوستات لينكدإن لـCairo Coffee Co. الأسبوع الجاي، واحد منهم بالإنجليزي، وجدولهم الاتنين والأربع والجمعة الساعة ٨:٣٠.',
+        prompt: 'خطّط ٣ بوستات لـCairo Coffee Co. الأسبوع الجاي على فيسبوك وإنستغرام ولينكدإن، واحد منهم بالإنجليزي، وجدولهم الاتنين والأربع والجمعة الساعة ٨:٣٠.',
         tools: [
-          { tool: 'integrationList', label: 'وجد Cairo Coffee Co. على لينكدإن' },
+          { tool: 'integrationList', label: 'وجد Cairo Coffee Co. على فيسبوك وإنستغرام ولينكدإن' },
           { tool: 'integrationSchedulePostTool', label: 'جدول ٣ منشورات' },
         ],
-        reply: 'التلاتة على التقويم، وبوست الأربع بالإنجليزي.',
+        reply: 'التلاتة على التقويم، وبوست الأربع على إنستغرام بالإنجليزي.',
         posts: [
-          { net: 'linkedin-page', name: 'Cairo Coffee Co.', text: 'بن جديد من سيدامو وصل…', when: 'الاثنين ٠٨:٣٠' },
-          { net: 'linkedin-page', name: 'Cairo Coffee Co.', text: 'Cupping session this Thursday at 18:00…', when: 'الأربعاء ٠٨:٣٠' },
+          { net: 'facebook', name: 'Cairo Coffee Co.', text: 'بن جديد من سيدامو وصل…', when: 'الاثنين ٠٨:٣٠' },
+          { net: 'instagram', name: 'Cairo Coffee Co.', text: 'Cupping session this Thursday at 18:00…', when: 'الأربعاء ٠٨:٣٠' },
           { net: 'linkedin-page', name: 'Cairo Coffee Co.', text: 'تعرّف على الفريق اللي ورا المحمصة الجديدة…', when: 'الجمعة ٠٨:٣٠' },
         ],
       },
@@ -237,7 +237,7 @@ export const aiClientsAr: AiClientsDict = {
         reply: 'تمام. لقيت صفحتك على لينكدإن وجدولت البوست بكرة الساعة ٩:٠٠. أعملك نسخة إنجليزي للخميس؟',
         nets: ['linkedin-page'],
       },
-      alsoTry: ['اعرض قنواتي في تدوين', 'خطّط الأسبوع الجاي على لينكدإن', 'احفظه مسودة بدل الجدولة'],
+      alsoTry: ['اعرض قنواتي في تدوين', 'خطّط الأسبوع الجاي على إنستغرام', 'احفظه مسودة بدل الجدولة'],
       compare: {
         title: 'أي خطط Claude تستطيع إضافة تدوين؟',
         sub: 'يتصل تدوين بـClaude كموصِّل مخصّص. خطط Free وPro وMax وTeam وEnterprise كلها تستطيع إضافته، ومن يضيفه يختلف حسب الخطة.',
@@ -250,10 +250,10 @@ export const aiClientsAr: AiClientsDict = {
         note: 'يتصل Claude من خوادم Anthropic، لذلك يعمل الموصِّل الذي تضيفه على claude.ai وClaude Desktop، وفي Cowork إن كانت خطتك تشمله. مركز مساعدة Claude المرتبط أعلاه فيه الخطط الحالية.',
       },
       prompts: [
-        { tag: 'خطة الأسبوع', nets: ['linkedin', 'linkedin-page'], title: 'خطّط أسبوعك على لينكدإن', text: 'خطّط لي ٣ بوستات لينكدإن للأسبوع الجاي، واحد منهم بالإنجليزي، وجدولهم الاتنين والأربع والجمعة الساعة ٨:٣٠.', lang: 'ar' },
+        { tag: 'خطة الأسبوع', nets: ['facebook', 'instagram', 'linkedin'], title: 'خطّط أسبوعك على مواقع التواصل', text: 'خطّط لي ٣ بوستات للأسبوع الجاي، واحد على فيسبوك وواحد على إنستغرام وواحد على لينكدإن، وجدولهم الاتنين والأربع والجمعة الساعة ٨:٣٠.', lang: 'ar' },
         { tag: 'من ملاحظات', nets: ['linkedin'], title: 'حوّل ملاحظاتك إلى منشور', text: 'اكتب بوست لينكدإن من ملاحظات الاجتماع دي وحطه مسودة يوم الاتنين.', lang: 'ar' },
-        { tag: 'راجع التقويم', nets: ['linkedin', 'instagram'], title: 'اعرف ما سيُنشر', text: 'وريني كل المنشورات المتجدولة الأسبوع الجاي يوم بيوم.', lang: 'ar' },
-        { tag: 'بالإنجليزية', nets: ['linkedin-page'], title: 'اكتب بالإنجليزية', text: 'Write a post about our new offer and save it as a draft for Thursday.', lang: 'en' },
+        { tag: 'راجع التقويم', nets: ['instagram', 'youtube'], title: 'اعرف ما سيُنشر', text: 'وريني كل المنشورات المتجدولة الأسبوع الجاي يوم بيوم.', lang: 'ar' },
+        { tag: 'بالإنجليزية', nets: ['threads'], title: 'اكتب بالإنجليزية', text: 'Write a Threads post about our new offer and save it as a draft for Thursday.', lang: 'en' },
       ],
       versus: {
         title: 'Claude أم Claude Code أم Cowork: أيها هذه الصفحة؟',
@@ -293,9 +293,9 @@ export const aiClientsAr: AiClientsDict = {
       ],
     },
     cursor: {
-      title: 'Cursor MCP: جدولة منشورات لينكدإن من Cursor | تدوين',
-      description: 'أضف تدوين إلى ملف mcp.json في Cursor، بتسجيل الدخول أو بمفتاح برمجي يُقرأ من بيئتك، واطلب من وكيل Cursor جدولة منشورات لينكدإن عمّا تبنيه.',
-      h1: 'جدولة منشورات لينكدإن والشبكات الاجتماعية من Cursor',
+      title: 'Cursor MCP: جدولة منشورات التواصل الاجتماعي من Cursor | تدوين',
+      description: 'أضف تدوين إلى ملف mcp.json في Cursor، بتسجيل الدخول أو بمفتاح برمجي يُقرأ من بيئتك، واطلب من وكيل Cursor جدولة منشورات عمّا تبنيه.',
+      h1: 'جدولة منشورات التواصل الاجتماعي من Cursor',
       bullets: ['كتلة واحدة في ملف mcp.json في Cursor', 'تسجيل دخول بتدوين، أو مفتاح برمجي يُقرأ من بيئتك', 'انشر عمّا بنيته دون أن تغادر المحرر'],
       blurb: 'بضعة أسطر في mcp.json',
       methods: {
@@ -352,9 +352,9 @@ export const aiClientsAr: AiClientsDict = {
       },
       prompts: [
         { tag: 'أطلقها', nets: ['linkedin'], title: 'أعلن عمّا بنيته', text: 'اكتب بوست لينكدإن عن الميزة اللي في البرانش ده بالعربي واحفظه مسودة.', lang: 'ar' },
-        { tag: 'ملاحظات الإصدار', nets: ['linkedin', 'threads'], title: 'إصدار واحد وقناتان', text: 'جدول ثريد على ثريدز وبوست لينكدإن عن الإصدار ده يوم الاتنين الساعة ٩.', lang: 'ar' },
-        { tag: 'راجع الغد', nets: ['linkedin'], title: 'اعرف ما سيُنشر', text: 'إيه اللي هيتنشر على لينكدإن بكرة؟', lang: 'ar' },
-        { tag: 'بالإنجليزية', nets: ['linkedin'], title: 'اكتب بالإنجليزية', text: 'Write a LinkedIn post about the feature in this branch and save it as a draft.', lang: 'en' },
+        { tag: 'ملاحظات الإصدار', nets: ['linkedin', 'threads'], title: 'إصدار واحد وقناتان', text: 'جدول بوست لينكدإن وثريد على ثريدز عن الإصدار ده يوم الاتنين الساعة ٩.', lang: 'ar' },
+        { tag: 'راجع الغد', nets: ['facebook', 'instagram'], title: 'اعرف ما سيُنشر', text: 'إيه اللي هيتنشر بكرة؟', lang: 'ar' },
+        { tag: 'بالإنجليزية', nets: ['facebook'], title: 'اكتب بالإنجليزية', text: 'Write a Facebook post about the feature in this branch and save it as a draft.', lang: 'en' },
       ],
       versus: {
         title: 'Cursor أم Claude Code أم Codex؟',

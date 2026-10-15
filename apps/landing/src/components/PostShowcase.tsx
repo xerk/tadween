@@ -9,10 +9,10 @@ import type { IconName } from './icons';
 // the app tell the same story. The brands are made up and the photos are Unsplash
 // (public/showcase/README.md). Post bodies stay in their own language; only the feed
 // chrome and the status chips follow the page. Motion is CSS and stops under
-// prefers-reduced-motion. The site shows only Tadween's focus networks here (LinkedIn,
-// Instagram, Facebook, Threads, YouTube), so it no longer matches the sign-in page card for card.
+// prefers-reduced-motion. The site shows only Tadween's focus networks here (Facebook,
+// Instagram, LinkedIn, Threads, YouTube), so it no longer matches the sign-in page card for card.
 
-type Network = 'linkedin' | 'instagram' | 'facebook' | 'threads' | 'youtube';
+type Network = 'facebook' | 'instagram' | 'linkedin' | 'threads' | 'youtube';
 
 interface ShowcasePost {
   id: string;

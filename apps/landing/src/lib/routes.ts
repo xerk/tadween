@@ -44,7 +44,8 @@ export const ALL_PAGES: { path: string; priority: number }[] = [
   { path: PATHS.features, priority: 0.8 },
   { path: PATHS.agent, priority: 0.8 },
   { path: PATHS.channels, priority: 0.8 },
-  ...CHANNELS.map((c) => ({ path: channelPath(c.slug), priority: c.group === 'professional' ? 0.8 : 0.6 })),
+  // The focus networks are equals, so every channel page gets the same priority.
+  ...CHANNELS.map((c) => ({ path: channelPath(c.slug), priority: 0.8 })),
   ...AI_CLIENTS.map((c) => ({ path: clientPath(c.slug), priority: 0.7 })),
   ...(REFERRAL_PROGRAM ? [{ path: PATHS.referral, priority: 0.5 }] : []),
   ...LEGAL_PAGES.map((key) => ({ path: PATHS[key], priority: 0.3 })),

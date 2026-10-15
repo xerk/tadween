@@ -1,4 +1,7 @@
-import { Button } from '@gitroom/react/form/button';
+import {
+  Button as TdwButton,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
 import { FC, useCallback, useState } from 'react';
 import clsx from 'clsx';
 import Loading from '@gitroom/frontend/components/layout/loading';
@@ -78,48 +81,57 @@ ${style}
     setLoading(false);
   }, [prompt, style, onChange]);
 
+  // Tadween: the kit's field, style chips and the smart (Papyrus) action
   return (
-    <div className="flex flex-col gap-[16px]">
-      <div className="flex flex-col gap-[6px]">
+    <TadweenScope className="tdw-modal-form">
+      <div className="pz-field">
         <div className="flex items-center justify-between gap-[8px]">
-          <div className="text-[14px]">{t('prompt', 'Prompt')}</div>
+          <label htmlFor="ai-image-prompt" className="pz-label">
+            {t('prompt', 'Prompt')}
+          </label>
           <AiCreditsBadge />
         </div>
         <textarea
+          id="ai-image-prompt"
+          autoFocus
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder={t(
             'describe_the_image_you_want_to_generate',
             'Describe the image you want to generate'
           )}
-          className="bg-input min-h-[150px] p-[16px] outline-none border-fifth border rounded-[4px] text-inputText placeholder-inputText"
+          rows={5}
+          className="pz-input pz-textarea"
         />
       </div>
-      <div className="flex flex-col gap-[6px]">
-        <div className="text-[14px]">{t('style', 'Style')}</div>
-        <div className="flex flex-wrap gap-[8px]">
+      <div className="pz-field">
+        <span className="pz-label" id="ai-image-style">
+          {t('style', 'Style')}
+        </span>
+        <div
+          className="tdw-modal-chips"
+          role="group"
+          aria-labelledby="ai-image-style"
+        >
           {list.map((p) => (
-            <div
+            <button
+              type="button"
               key={p}
+              aria-pressed={style === p}
               onClick={() => setStyle(p)}
-              className={clsx(
-                'cursor-pointer rounded-[4px] px-[10px] h-[30px] flex items-center text-[12px] border',
-                style === p
-                  ? 'bg-[#612BD3] border-[#612BD3] text-white'
-                  : 'bg-newColColor border-newBgLineColor'
-              )}
+              className="tdw-modal-chip"
             >
               {p}
-            </div>
+            </button>
           ))}
         </div>
       </div>
-      <div className="flex">
-        <Button type="button" onClick={generate} className="flex-1">
+      <div className="tdw-modal-foot">
+        <TdwButton variant="smart" icon="sparkles" onClick={generate}>
           {t('generate', 'Generate')}
-        </Button>
+        </TdwButton>
       </div>
-    </div>
+    </TadweenScope>
   );
 };
 

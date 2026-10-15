@@ -5,7 +5,11 @@ import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { Integration } from '@prisma/client';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
-import { Button } from '@gitroom/react/form/button';
+import {
+  Button as TdwButton,
+  Input as TdwInput,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 export const CustomerModal: FC<{
   integration: Integration & {
@@ -47,36 +51,53 @@ export const CustomerModal: FC<{
     [customer]
   );
   const { data } = useSWR('/customers', loadCustomers);
+  // Tadween: the kit's field and actions; the names come from a datalist
   return (
-    <div className="relative w-full">
-      <div className="mb-[80px] flex flex-col gap-[6px]">
-        <label htmlFor="customer-name" className="text-[14px] text-white">
-          {t('select_customer_label', 'Select Customer')}
-        </label>
-        <input
+    <TadweenScope>
+      <form
+        className="tdw-modal-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          saveCustomer();
+        }}
+      >
+        <p className="tdw-modal-lead">
+          {t(
+            'tdw_customer_lead',
+            'Group channels by customer to filter the calendar and the composer by them. Pick a customer or type a new name.'
+          )}
+        </p>
+        <TdwInput
           id="customer-name"
           list="customer-name-options"
+          icon="users"
+          autoFocus
+          label={t('select_customer_label', 'Select Customer')}
           value={customer ?? ''}
           onChange={(e) => setCustomer(e.target.value)}
           placeholder={t('start_typing', 'Start typing...')}
           autoComplete="off"
-          className="bg-newBgColorInner h-[42px] border-newTableBorder border rounded-[8px] text-textColor placeholder-textColor px-[16px] text-[14px] outline-none"
         />
         <datalist id="customer-name-options">
           {(data?.map((p: any) => p.name) || []).map((name: string) => (
             <option key={name} value={name} />
           ))}
         </datalist>
-      </div>
-
-      <div className="my-[16px] flex gap-[10px]">
-        <Button onClick={() => saveCustomer()}>{t('save', 'Save')}</Button>
-        {!!integration?.customer?.name && (
-          <Button className="bg-red-700" onClick={removeFromCustomer}>
-            {t('remove_from_customer', 'Remove from customer')}
-          </Button>
-        )}
-      </div>
-    </div>
+        <div className="tdw-modal-foot">
+          {!!integration?.customer?.name && (
+            <TdwButton
+              variant="ghost"
+              className="is-start tdw-danger-text"
+              onClick={removeFromCustomer}
+            >
+              {t('remove_from_customer', 'Remove from customer')}
+            </TdwButton>
+          )}
+          <TdwButton type="submit" variant="primary" disabled={!customer}>
+            {t('save', 'Save')}
+          </TdwButton>
+        </div>
+      </form>
+    </TadweenScope>
   );
 };

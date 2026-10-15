@@ -125,7 +125,7 @@ export const PlugPop: FC<{
         })),
       }),
     });
-    toaster.show('Plug updated', 'success');
+    toaster.show(t('tdw_plug_updated', 'Plug updated'), 'success');
     closeAll();
   }, []);
 
@@ -134,8 +134,8 @@ export const PlugPop: FC<{
   return (
     <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(submit)}>
-        <div className="relative mx-auto">
-          <div className="my-[20px]">{plug.description}</div>
+        <div className="tdw-modal-form">
+          <p className="tdw-modal-lead">{plug.description}</p>
           <div>
             {plug.fields.map((field) => (
               <div key={field.name}>
@@ -145,7 +145,7 @@ export const PlugPop: FC<{
                   <Input
                     name={field.name}
                     label={field.description}
-                    className="w-full mt-[8px] p-[8px] border border-tableBorder rounded-md text-black"
+                    className="w-full"
                     placeholder={field.placeholder}
                     type={field.type}
                   />
@@ -153,7 +153,7 @@ export const PlugPop: FC<{
               </div>
             ))}
           </div>
-          <div className="mt-[20px]">
+          <div className="tdw-modal-foot">
             <Button type="submit">{t('activate', 'Activate')}</Button>
           </div>
         </div>

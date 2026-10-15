@@ -27,6 +27,7 @@ const resolver = classValidatorResolver(ApiKeyDto);
 
 export const useAddProvider = (update?: () => void, invite?: boolean) => {
   const modal = useModals();
+  const t = useT();
   const fetch = useFetch();
   const user = useUser();
   const { billingEnabled } = useVariables();
@@ -47,13 +48,13 @@ export const useAddProvider = (update?: () => void, invite?: boolean) => {
     }
     const data = await (await fetch('/integrations')).json();
     modal.openModal({
-      title: 'Add Channel',
+      title: t('add_channel', 'Add Channel'),
       withCloseButton: true,
       children: (
         <AddProviderComponent invite={!!invite} update={update} {...data} />
       ),
     });
-  }, [user, billingEnabled]);
+  }, [user, billingEnabled, t]);
 };
 export const AddProviderButton: FC<{
   update?: () => void;
@@ -170,7 +171,7 @@ export const UrlModal: FC<{
           <div className="pt-[10px]">
             <Input label="URL" name="url" />
           </div>
-          <div>
+          <div className="tdw-modal-foot">
             <Button type="submit">{t('connect', 'Connect')}</Button>
           </div>
         </form>
@@ -254,7 +255,7 @@ export const CustomVariables: FC<{
     <div className="rounded-[4px] relative">
       <FormProvider {...methods}>
         <form
-          className="gap-[8px] flex flex-col pt-[10px]"
+          className="tdw-modal-form"
           onSubmit={methods.handleSubmit(submit)}
         >
           {variables.map((variable) => (
@@ -286,7 +287,7 @@ export const CustomVariables: FC<{
               )}
             </div>
           ))}
-          <div>
+          <div className="tdw-modal-foot">
             <Button type="submit">{t('connect', 'Connect')}</Button>
           </div>
         </form>
@@ -301,34 +302,33 @@ const ExtensionNotFound: FC = () => {
   const { chromeExtensionUrl } = useVariables();
   const brand = useBrandLinks();
   return (
-    <div className="flex flex-col gap-[16px] pt-[8px]">
-      <p className="text-[14px] text-textColor/80">
+    <div className="tdw-modal-form">
+      <p className="tdw-modal-lead">
         {t(
           'extension_not_available',
           'The {{name}} browser extension is not installed. You need to install it before connecting this channel.',
           { name: brand.name }
         )}
       </p>
-      <div className="flex gap-[10px]">
-        {!!chromeExtensionUrl && (
+      <div className="tdw-modal-foot">
         <Button
           type="button"
-          className="flex-1"
-          onClick={() => {
-            window.open(chromeExtensionUrl, '_blank');
-            modals.closeCurrent();
-          }}
-        >
-          {t('install_extension', 'Install Extension')}
-        </Button>
-        )}
-        <Button
-          type="button"
-          className="flex-1 !bg-transparent border border-tableBorder text-textColor"
+          className="bg-transparent"
           onClick={() => modals.closeCurrent()}
         >
           {t('cancel', 'Cancel')}
         </Button>
+        {!!chromeExtensionUrl && (
+          <Button
+            type="button"
+            onClick={() => {
+              window.open(chromeExtensionUrl, '_blank');
+              modals.closeCurrent();
+            }}
+          >
+            {t('install_extension', 'Install Extension')}
+          </Button>
+        )}
       </div>
     </div>
   );

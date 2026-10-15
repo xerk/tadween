@@ -13,10 +13,13 @@ export const Element: FC<{
 }> = (props) => {
   const { setting, onChange } = props;
   const [value, setValue] = useState(setting.value);
+  // Tadween: a settings row, the switch on the end side
   return (
-    <div className="flex flex-col gap-[10px]">
-      <div>{setting.title}</div>
-      <div className="text-[14px]">{setting.description}</div>
+    <div className="tdw-modal-setting">
+      <div className="tdw-modal-setting-text">
+        <span className="tdw-modal-setting-title">{setting.title}</span>
+        <span className="tdw-modal-setting-desc">{setting.description}</span>
+      </div>
       <Slider
         value={value === true ? 'on' : 'off'}
         onChange={() => {
@@ -63,8 +66,8 @@ export const SettingsModal: FC<{
     onClose();
   }, [values, integration]);
   return (
-    <div>
-      <div className="mt-[16px]">
+    <div className="tdw-modal-form">
+      <div className="tdw-modal-settings">
         {values.map((setting: any, index: number) => (
           <Element
             key={setting.title}
@@ -74,7 +77,10 @@ export const SettingsModal: FC<{
         ))}
       </div>
 
-      <div className="my-[16px] flex gap-[10px]">
+      <div className="tdw-modal-foot">
+        <Button className="bg-transparent" onClick={() => modal.closeAll()}>
+          {t('cancel', 'Cancel')}
+        </Button>
         <Button onClick={save}>{t('save', 'Save')}</Button>
       </div>
     </div>

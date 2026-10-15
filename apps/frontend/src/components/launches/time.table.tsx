@@ -4,8 +4,6 @@ import React, { FC, useCallback, useMemo, useState } from 'react';
 import { Integrations } from '@gitroom/frontend/components/launches/calendar.context';
 import dayjs from 'dayjs';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
-import { Select } from '@gitroom/react/form/select';
-import { Button } from '@gitroom/react/form/button';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
@@ -16,23 +14,26 @@ import { sortBy } from 'lodash';
 import { usePreventWindowUnload } from '@gitroom/react/helpers/use.prevent.window.unload';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
-import clsx from 'clsx';
 import {
-  TrashIcon,
-  PlusIcon,
-  DelayIcon,
-} from '@gitroom/frontend/components/ui/icons';
+  Button as TdwButton,
+  Icon,
+  IconButton,
+  Select,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
 import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const hours = [...Array(24).keys()].map((i) => ({
+const hourOptions = [...Array(24).keys()].map((i) => ({
   value: i,
+  label: i.toString().padStart(2, '0'),
 }));
 
-const minutes = [...Array(60).keys()].map((i) => ({
+const minuteOptions = [...Array(60).keys()].map((i) => ({
   value: i,
+  label: i.toString().padStart(2, '0'),
 }));
 
 export const TimeTable: FC<{
@@ -58,7 +59,11 @@ export const TimeTable: FC<{
           'are_you_sure_you_want_to_close_the_window',
           'Are you sure you want to close the window?'
         ),
-        t('yes_close', 'Yes, close')
+        t('yes_close', 'Yes, close'),
+        undefined,
+        undefined,
+        // closing drops the slots that weren't saved: the red action
+        true
       ))
     ) {
       return;
@@ -68,8 +73,10 @@ export const TimeTable: FC<{
 
   useKeypress('Escape', askClose);
 
+  // `value` is the slot's minutes: the list on screen is sorted, the saved
+  // one isn't, so the slot is found by its time rather than its position
   const removeSlot = useCallback(
-    (index: number) => async () => {
+    (value: number) => async () => {
       if (
         !(await deleteDialog(
           t(
@@ -80,7 +87,10 @@ export const TimeTable: FC<{
       ) {
         return;
       }
-      setCurrentTimes((prev) => prev.filter((_, i) => i !== index));
+      setCurrentTimes((prev) => {
+        const index = prev.findIndex((p) => p.time === value);
+        return prev.filter((_, i) => i !== index);
+      });
     },
     []
   );
@@ -128,65 +138,37 @@ export const TimeTable: FC<{
     modal.closeAll();
   }, [currentTimes]);
 
+  // Tadween: the kit's selects, rows and actions
   return (
-    <div className="relative w-full max-w-[400px] mx-auto">
-      {/* Add Time Slot Section */}
-      <div className="bg-newBgColorInner rounded-[12px] p-[20px] border border-newTableBorder">
-        <div className="text-[15px] font-semibold mb-[16px] flex items-center gap-[8px]">
-          <DelayIcon size={18} className="text-[#612BD3]" />
-          {t('add_time_slot', 'Add Time Slot')}
-        </div>
-
-        <div className="flex gap-[12px] items-end">
-          <div className="flex-1">
-            <Select
-              label={t('hour', 'Hour')}
-              name="hour"
-              disableForm={true}
-              hideErrors={true}
-              value={hour}
-              onChange={(e) => setHour(Number(e.target.value))}
-            >
-              {hours.map((h) => (
-                <option key={h.value} value={h.value}>
-                  {h.value.toString().padStart(2, '0')}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="flex-1">
-            <Select
-              label={t('minutes', 'Minutes')}
-              name="minutes"
-              disableForm={true}
-              hideErrors={true}
-              value={minute}
-              onChange={(e) => setMinute(Number(e.target.value))}
-            >
-              {minutes.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.value.toString().padStart(2, '0')}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <button
-            type="button"
-            onClick={addHour}
-            className="h-[42px] px-[16px] bg-[#612BD3] hover:bg-[#7640e0] transition-colors rounded-[8px] flex items-center gap-[6px] text-white text-[14px] font-medium"
-          >
-            <PlusIcon size={14} />
-            {t('add', 'Add')}
-          </button>
-        </div>
+    <TadweenScope className="tdw-modal-form tdw-slots">
+      <p className="tdw-modal-lead">
+        {t(
+          'tdw_time_slots_lead',
+          'New posts for this channel snap to these times. Times are in your time zone.'
+        )}
+      </p>
+      <div className="tdw-slots-add">
+        <Select<number>
+          label={t('hour', 'Hour')}
+          value={hour}
+          onChange={setHour}
+          options={hourOptions}
+        />
+        <Select<number>
+          label={t('minutes', 'Minutes')}
+          value={minute}
+          onChange={setMinute}
+          options={minuteOptions}
+        />
+        <TdwButton icon="plus" onClick={addHour}>
+          {t('add', 'Add')}
+        </TdwButton>
       </div>
 
-      {/* Time Slots List */}
-      <div className="mt-[20px]">
-        <div className="text-[14px] text-newTextColor/60 mb-[12px]">
-          {t('scheduled_times', 'Scheduled Times')} ({times.length})
+      <div className="tdw-slots-list">
+        <div className="tdw-slots-count">
+          {t('scheduled_times', 'Scheduled Times')} · {times.length}
         </div>
-
         {times.length === 0 ? (
           <TadweenEmptyState
             size="sm"
@@ -199,42 +181,32 @@ export const TimeTable: FC<{
             )}
           />
         ) : (
-          <div className="flex flex-col gap-[8px]">
+          <ul>
             {times.map((timeSlot, index) => (
-              <div
-                key={`${timeSlot.value}-${index}`}
-                className={clsx(
-                  'group flex items-center justify-between',
-                  'h-[48px] px-[16px] rounded-[8px]',
-                  'bg-newBgColorInner border border-newTableBorder',
-                  'hover:border-[#612BD3]/40 transition-colors'
-                )}
-              >
-                <div className="flex items-center gap-[12px]">
-                  <div className="w-[8px] h-[8px] rounded-full bg-[#612BD3]" />
-                  <span className="text-[15px] font-medium tabular-nums">
-                    {timeSlot.formatted}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={removeSlot(index)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-[8px] hover:bg-red-500/10 rounded-[6px] text-red-400 hover:text-red-500"
-                >
-                  <TrashIcon size={16} />
-                </button>
-              </div>
+              <li key={`${timeSlot.value}-${index}`} className="tdw-slots-row">
+                <Icon name="clock" size={16} />
+                <span className="time">{timeSlot.formatted}</span>
+                <IconButton
+                  icon="trash-2"
+                  size="sm"
+                  className="tdw-danger-icon"
+                  label={`${t('delete', 'Delete')} ${timeSlot.formatted}`}
+                  onClick={removeSlot(timeSlot.value)}
+                />
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
 
-      {/* Save Button */}
-      <div className="mt-[24px]">
-        <Button type="button" className="w-full rounded-[8px]" onClick={save}>
+      <div className="tdw-modal-foot">
+        <TdwButton variant="ghost" onClick={askClose}>
+          {t('cancel', 'Cancel')}
+        </TdwButton>
+        <TdwButton variant="primary" onClick={save}>
           {t('save_changes', 'Save Changes')}
-        </Button>
+        </TdwButton>
       </div>
-    </div>
+    </TadweenScope>
   );
 };

@@ -5,6 +5,7 @@ import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
 import clsx from 'clsx';
 import { useClickOutside } from '@mantine/hooks';
+import { usePopupEscape } from '@gitroom/frontend/components/tadween/ui/overlays';
 import { capitalize } from 'lodash';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { hasLinks } from '@gitroom/helpers/utils/strip.links';
@@ -21,6 +22,7 @@ export const InformationComponent: FC<{
   const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useClickOutside<HTMLDivElement>(() => setOpen(false));
+  usePopupEscape(open, () => setOpen(false), ref);
   const { isGlobal, selectedIntegrations, internal, currentIntegration } =
     useLaunchStore(
       useShallow((state) => ({

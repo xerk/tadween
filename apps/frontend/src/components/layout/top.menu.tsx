@@ -91,7 +91,7 @@ export const useMenuItem = () => {
       path: '/launches',
     },
     {
-      name: 'Agent',
+      name: t('tdw_agent', 'Agent'),
       description: t('tdw_agent_desc', 'Ask the agent to draft, schedule and manage posts for you.'),
       icon: (
         <svg
@@ -107,6 +107,8 @@ export const useMenuItem = () => {
           />
         </svg>
       ),
+      // pages hidden by a feature switch are also closed to direct links:
+      // FEATURE_ROUTES in tadween/instance/instance.settings.tsx
       path: '/agents',
       hide: !isOn('agent'),
     },

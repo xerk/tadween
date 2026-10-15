@@ -30,6 +30,11 @@ import {
 } from './admin.api';
 import { ChangePlanDialog, PlanTarget } from './admin.change.plan';
 
+// A workspace membership as the team page names it: Postiz's SUPERADMIN role
+// is the workspace owner, not the instance's super admin
+const workspaceRole = (role: string) =>
+  role === 'SUPERADMIN' ? 'owner' : role === 'USER' ? 'member' : role.toLowerCase();
+
 type Workspace = AdminUser['organizations'][number];
 
 const fullName = (u: AdminUser) => [u.name, u.lastName].filter(Boolean).join(' ') || u.email;
@@ -126,7 +131,7 @@ const UserDrawer: FC<{
                       <a href={`/admin/organizations?open=${w.organization.id}`} className="grid no-underline text-inherit">
                         <span className="pz-set-label">{w.organization.name}</span>
                         <span className="caption pz-muted">
-                          {w.role.toLowerCase()} · {w.organization._count.Integration} channels
+                          {workspaceRole(w.role)} · {w.organization._count.Integration} channels
                           {w.disabled ? ' · disabled member' : ''}
                         </span>
                       </a>
@@ -181,6 +186,7 @@ const UserDrawer: FC<{
 };
 
 // ── Page ────────────────────────────────────────────────────────────────────
+
 export const AdminUsersPage = () => {
   const t = useT();
   const toast = useToaster();

@@ -14,7 +14,10 @@ import {
   useInstanceSettings,
 } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { McpClientIcon } from '@gitroom/frontend/components/public-api/mcp.client.icons';
-import { getMcpOauthUrl } from '@gitroom/frontend/components/public-api/public.component';
+import {
+  chatOnlyInstructions,
+  getMcpOauthUrl,
+} from '@gitroom/frontend/components/public-api/public.component';
 import { DeveloperComponent } from '@gitroom/frontend/components/developer/developer.component';
 import {
   TadweenSheet,
@@ -190,6 +193,8 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
   const t = useT();
   return useMemo(() => {
     const bearer = `Bearer ${c.key}`;
+    // environment variable prefix for the terminal guide: TADWEEN_API_KEY
+    const apiEnv = c.slug.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
     const vars = { name: c.name, interpolation: { escapeValue: false } };
     const testPrompt = t(
       'tdw_api_test_prompt',
@@ -662,30 +667,31 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
             ],
           },
           {
+            // the public API from n8n's own HTTP Request node: no community
+            // package to install
             value: 'node',
-            label: t('tdw_api_method_n8n_node', 'Community node (API)'),
+            label: t('tdw_api_method_n8n_http', 'HTTP Request (API)'),
             auth: 'key',
             steps: () => [
               {
                 text: t(
-                  'tdw_api_n8n_n1',
-                  'In n8n open Settings → Community nodes → Install and enter:'
+                  'tdw_api_n8n_h1',
+                  'Add an HTTP Request node. This URL lists your channels:'
                 ),
-                code: 'n8n-nodes-postiz',
+                code: `${c.api}/integrations`,
               },
               {
                 text: t(
-                  'tdw_api_n8n_n2',
-                  'Create its credential. Host is this server, without /public/v1:'
-                ),
-                code: c.backend,
-              },
-              {
-                text: t(
-                  'tdw_api_n8n_n3',
-                  'API Key is your key as it is (no "Bearer"). Save: n8n tests the connection for you.'
+                  'tdw_api_n8n_h2',
+                  'Under Headers, add Authorization with your key as it is (no "Bearer"):'
                 ),
                 code: c.key,
+              },
+              {
+                text: t(
+                  'tdw_api_n8n_h3',
+                  'Posts, uploads and the other endpoints work the same way. The API docs list them.'
+                ),
               },
             ],
           },
@@ -776,7 +782,7 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
       },
       {
         id: 'cli',
-        name: t('tdw_api_cli_name', 'Terminal (CLI)'),
+        name: t('tdw_api_cli_name', 'Terminal (API)'),
         icon: <Icon name="terminal" size={20} />,
         summary: t('tdw_api_cli_tile', 'Scripts, CI and coding agents'),
         methods: [
@@ -785,31 +791,31 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
             label: t('tdw_api_method_key', 'API key'),
             auth: 'key',
             os: osLinux,
+            // the public API from a shell; no CLI package is published under
+            // this name yet, so nothing to install
             steps: (system) => [
               {
-                text: t('tdw_api_cli_s1', 'Install the CLI (needs Node.js 18 or newer):'),
-                code: 'npm install -g postiz',
-              },
-              {
                 text: t(
-                  'tdw_api_cli_s2',
-                  'Point it at this server and give it your key:'
+                  'tdw_api_term_s1',
+                  'Give this terminal the API address and your key:'
                 ),
                 code:
                   system === 'windows'
-                    ? `$env:POSTIZ_API_URL = "${c.backend}"\n$env:POSTIZ_API_KEY = "${c.key}"`
-                    : `export POSTIZ_API_URL="${c.backend}"\nexport POSTIZ_API_KEY="${c.key}"`,
+                    ? `$env:${apiEnv}_API_URL = "${c.api}"\n$env:${apiEnv}_API_KEY = "${c.key}"`
+                    : `export ${apiEnv}_API_URL="${c.api}"\nexport ${apiEnv}_API_KEY="${c.key}"`,
               },
               {
                 text: t('tdw_api_cli_s3', 'Try it: this lists your channels.'),
-                code: 'postiz integrations:list',
+                code:
+                  system === 'windows'
+                    ? `Invoke-RestMethod -Headers @{ Authorization = $env:${apiEnv}_API_KEY } "$env:${apiEnv}_API_URL/integrations"`
+                    : `curl -H "Authorization: $${apiEnv}_API_KEY" "$${apiEnv}_API_URL/integrations"`,
               },
               {
                 text: t(
-                  'tdw_api_cli_s4',
-                  'Optional: teach your coding agent (Claude Code, Codex, Cursor…) to use the CLI:'
+                  'tdw_api_term_s3',
+                  'Coding agents (Claude Code, Codex, Cursor…) work best through MCP: see their own guide or Other MCP clients.'
                 ),
-                code: 'npx skills add gitroomhq/postiz-agent',
               },
             ],
           },
@@ -817,8 +823,8 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
         tips: [
           tipKey,
           t(
-            'tdw_api_tip_cli_url',
-            'Requests go to the CLI’s default server instead of this one: POSTIZ_API_URL is not set in this terminal. Set it again, or add both lines to your shell profile.'
+            'tdw_api_tip_term_profile',
+            'A new terminal forgets both lines. Add them to your shell profile, or to your CI secrets, to keep them.'
           ),
         ],
       },
@@ -836,9 +842,9 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
               {
                 text: t(
                   'tdw_api_grok_s1',
-                  'Paste this into Grok. It installs the CLI, points it at this server and asks you for the key:'
+                  'Paste this into Grok. It uses the API of this server and asks you for the key:'
                 ),
-                code: `Install the CLI with \`npm install -g postiz\`, then install the skill with \`npx skills add gitroomhq/postiz-agent\`. Set the POSTIZ_API_URL environment variable to ${c.backend}, then ask me for my API key and set it as the POSTIZ_API_KEY environment variable before using the CLI.`,
+                code: chatOnlyInstructions('Grok Bot', c.backend),
               },
               {
                 text: t(
@@ -1384,8 +1390,8 @@ const ApiKeySection: FC<{ context: ConnectContext }> = ({
           </li>
           <li>
             {t(
-              'tdw_api_breaks_cli',
-              'The CLI, scripts and CI jobs that use POSTIZ_API_KEY.'
+              'tdw_api_breaks_scripts',
+              'Scripts, terminals and CI jobs that send the key.'
             )}
           </li>
           <li>

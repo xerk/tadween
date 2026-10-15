@@ -12,7 +12,7 @@ import { FC, ReactNode } from 'react';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { cx, Icon, IconName } from '@gitroom/frontend/components/tadween/ui';
 
-type Network = 'x' | 'linkedin' | 'instagram' | 'facebook' | 'threads' | 'tiktok';
+type Network = 'x' | 'linkedin' | 'instagram' | 'facebook' | 'threads' | 'tiktok' | 'youtube';
 
 interface ShowcasePost {
   network: Network;
@@ -416,7 +416,8 @@ export const AuthBrand: FC = () => {
 
       <div className="tdw-auth-tagline">
         <p className="tdw-auth-networks" aria-hidden="true">
-          {(['facebook', 'instagram', 'linkedin', 'threads', 'x', 'tiktok'] as Network[]).map(
+          {/* the five focus networks, as equals in alphabetical order */}
+          {(['facebook', 'instagram', 'linkedin', 'threads', 'youtube'] as Network[]).map(
             (network) => (
               <img
                 key={network}

@@ -298,7 +298,7 @@ const CommentComposer: FC<{
             </Button>
           )}
           <Button type="submit" loading={loading}>
-            {parentId ? t('reply', 'Reply') : t('post', 'Post')}
+            {parentId ? t('reply', 'Reply') : t('tdw_post_comment', 'Post')}
           </Button>
         </div>
       </form>

@@ -9,7 +9,6 @@ import SafeImage from '@gitroom/react/helpers/safe.image';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Select } from '@gitroom/react/form/select';
 import { Button } from '@gitroom/react/form/button';
-import { useRouter } from 'next/navigation';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { PlugsContext } from '@gitroom/frontend/components/plugs/plugs.context';
 import { Plug } from '@gitroom/frontend/components/plugs/plug';
@@ -18,9 +17,11 @@ import useCookie from 'react-use-cookie';
 import { SVGLine } from '@gitroom/frontend/components/launches/launches.component';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
+import { useAddProvider } from '@gitroom/frontend/components/launches/add.provider.component';
 export const Plugs = () => {
   const fetch = useFetch();
-  const router = useRouter();
+  // Tadween: the empty state opens Add channel instead of sending to the calendar
+  const addChannel = useAddProvider();
   const [current, setCurrent] = useState(0);
   const [refresh, setRefresh] = useState(false);
   const toaster = useToaster();
@@ -100,18 +101,15 @@ export const Plugs = () => {
           icon="plug"
           title={t(
             'there_are_not_plugs_matching_your_channels',
-            'There are not plugs matching your channels'
+            'No plugs match your channels yet'
           )}
           body={t(
             'you_have_to_add_x_linkedin_page_threads_or_bluesky',
             'You have to add: X, LinkedIn Page, Threads or Bluesky'
           )}
           action={
-            <Button onClick={() => router.push('/launches')}>
-              {t(
-                'go_to_the_calendar_to_add_channels',
-                'Go to the calendar to add channels'
-              )}
+            <Button onClick={() => addChannel()}>
+              {t('add_channel', 'Add Channel')}
             </Button>
           }
         />

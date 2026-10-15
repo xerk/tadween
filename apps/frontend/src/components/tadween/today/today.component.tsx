@@ -102,16 +102,26 @@ const countdown = (t: T, minutes: number) => {
 
 const greeting = (t: T, hour: number, name?: string | null) => {
   const first = (name || '').trim().split(/\s+/)[0];
-  const period = hour >= 5 && hour < 12 ? 'morning' : hour >= 12 && hour < 18 ? 'afternoon' : 'evening';
+  // midnight to 5:00 is neither morning nor evening: a plain hello
+  const period =
+    hour < 5
+      ? 'night'
+      : hour < 12
+      ? 'morning'
+      : hour < 18
+      ? 'afternoon'
+      : 'evening';
   const withName = {
     morning: t('today_good_morning_name', 'Good morning, {{name}}.', { name: first }),
     afternoon: t('today_good_afternoon_name', 'Good afternoon, {{name}}.', { name: first }),
     evening: t('today_good_evening_name', 'Good evening, {{name}}.', { name: first }),
+    night: t('tdw_today_hello_name', 'Hello, {{name}}.', { name: first }),
   };
   const plain = {
     morning: t('today_good_morning', 'Good morning.'),
     afternoon: t('today_good_afternoon', 'Good afternoon.'),
     evening: t('today_good_evening', 'Good evening.'),
+    night: t('tdw_today_hello', 'Hello.'),
   };
   return first ? withName[period] : plain[period];
 };
@@ -243,7 +253,7 @@ const FirstRun: FC<{
     {
       done: hasChannels,
       title: t('today_first_connect', 'Connect a channel'),
-      body: t('today_first_connect_body', 'Your LinkedIn profile or a page you manage.'),
+      body: t('today_first_connect_body', 'Facebook, Instagram, LinkedIn, Threads or YouTube.'),
       action: t('today_connect_channel', 'Connect a channel'),
       onClick: onConnect,
     },
@@ -486,7 +496,7 @@ const Attention: FC<{
             <li key={c.id} className="tdw-attn">
               <TadweenChannelAvatar integration={c} size={32} />
               <div>
-                <b>{c.name}</b>
+                <b dir="auto">{c.name}</b>
                 <span>
                   {c.inBetweenSteps
                     ? t('today_finish_connecting', 'Finish connecting this channel to post to it.')
@@ -784,7 +794,7 @@ export const TodayComponent: FC = () => {
             <TadweenEmptyState
               icon="channels"
               title={t('today_no_channels', 'Connect your first channel')}
-              body={t('today_no_channels_body', 'Add a LinkedIn profile or page, or any other network, and Today fills with your plan.')}
+              body={t('today_no_channels_body', 'Add Facebook, Instagram, LinkedIn, Threads, YouTube or any other network, and Today fills with your plan.')}
               action={
                 <Button variant="primary" icon="plus" onClick={addChannel}>
                   {t('today_connect_channel', 'Connect a channel')}

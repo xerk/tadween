@@ -2,14 +2,41 @@ import { FC, useCallback } from 'react';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { SignaturesSettings } from '@gitroom/frontend/components/tadween/settings/signatures.settings';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+// The editor (post or comment) the cursor was last in: the signature goes to
+// the toolbar's own editor, at the cursor when that is where the user was
+// writing, at the end otherwise (a never-focused editor's cursor is its start).
+let focusedEditor: any = null;
+export const rememberFocusedEditor = (editor: any) => {
+  focusedEditor = editor;
+};
+
+// Signatures are saved as HTML paragraphs; an older plain-text one becomes
+// paragraphs too, so it always starts on its own line
+const asParagraphs = (value: string) =>
+  /^\s*</.test(value)
+    ? value
+    : value
+        .split('\n')
+        .map(
+          (line) =>
+            `<p>${line
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')}</p>`
+        )
+        .join('');
+
 export const SignatureBox: FC<{
   editor: any;
 }> = ({ editor }) => {
   const modals = useModals();
   const t = useT();
   const appendValue = (val: string) => {
-    editor?.commands?.insertContent('\n\n' + val);
-    editor?.commands?.focus();
+    editor
+      ?.chain()
+      .focus(focusedEditor === editor ? undefined : 'end')
+      .insertContent(asParagraphs(val))
+      .run();
   };
 
   const addSignature = useCallback(() => {

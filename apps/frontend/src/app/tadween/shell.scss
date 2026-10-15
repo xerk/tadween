@@ -70,6 +70,27 @@ $tdw-mobile: '(max-width: 1025px)';
   padding-bottom: 12px;
 }
 
+// Impersonating: the super-admin bar (40px + 8px gap, consistency.scss) stays
+// on top of the page, and the sidebar card and its fixed column start under it
+@media not #{$tdw-mobile} {
+  .tdw-shell.is-impersonating {
+    --tdw-adminbar-h: 48px;
+
+    .tdw-adminbar-slot {
+      position: sticky;
+      top: 12px;
+      z-index: calc(var(--tdw-z-sticky) + 2);
+    }
+
+    .tdw-side,
+    .tdw-side .tdw-side-inner {
+      top: calc(12px + var(--tdw-adminbar-h));
+      height: calc(100vh - 24px - var(--tdw-adminbar-h));
+      height: calc(100dvh - 24px - var(--tdw-adminbar-h));
+    }
+  }
+}
+
 // The sticky menu is a stacking context of its own: lift it above the page,
 // so Postiz's channel menu (fixed, inside it) isn't painted over by the
 // calendar next to it.
@@ -520,6 +541,9 @@ html[dir='rtl'] .tdw-side-heading-btn {
 
 .tdw-side-chname {
   flex: 1;
+  // the name runs in its own direction (dir="auto"), but lines up with the
+  // list: an Arabic name starts at the left in English, and the reverse
+  text-align: match-parent;
 }
 
 .tdw-side-fix {
@@ -1197,4 +1221,26 @@ html[dir='rtl'] .tdw-dock-sheet .tdw-sheet-host.is-destructive svg {
   .tdw-dock-create:active {
     transform: none;
   }
+}
+
+// ── 404 (components/tadween/page.not.found.tsx) ────────────────────────────
+.tdw-404 {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--tdw-background);
+  color: var(--tdw-foreground);
+}
+
+.tdw-404-logo {
+  align-self: flex-start;
+  margin: 20px 24px 0;
+}
+
+.tdw-404-main {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px 64px;
 }

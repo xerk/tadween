@@ -48,12 +48,12 @@ export const ReferralLinkCard: FC<{
   const message = trialDays
     ? t(
         'tdw_ref_share_text_trial',
-        'I plan and schedule my LinkedIn with Tadween. Start a {{days}}-day free trial with my link and get {{n}} AI credits when you subscribe:',
+        'I plan and schedule my social posts with Tadween. Start a {{days}}-day free trial with my link and get {{n}} AI credits when you subscribe:',
         { n: friendCredits.toLocaleString(), days: trialDays }
       )
     : t(
         'tdw_ref_share_text',
-        'I plan and schedule my LinkedIn with Tadween. Sign up with my link and get {{n}} AI credits when you subscribe:',
+        'I plan and schedule my social posts with Tadween. Sign up with my link and get {{n}} AI credits when you subscribe:',
         { n: friendCredits.toLocaleString() }
       );
 

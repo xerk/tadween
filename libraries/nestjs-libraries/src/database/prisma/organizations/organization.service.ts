@@ -139,7 +139,11 @@ export class OrganizationService {
     const url =
       process.env.FRONTEND_URL +
       `/?org=${AuthService.signJWT({ ...body, orgId: org.id, timeLimit, id })}`;
-    if (body.sendEmail) {
+    // Tadween: tell the app whether an email went out (none without an email
+    // provider), so it can hand over the link instead
+    const emailSent =
+      !!body.sendEmail && this._notificationsService.hasEmailProvider();
+    if (emailSent) {
       // the invitee has no account yet: the email speaks the inviter's language
       await this._notificationsService.sendTemplate(
         { email: body.email, language: user.language },
@@ -151,7 +155,7 @@ export class OrganizationService {
         }
       );
     }
-    return { url };
+    return { url, emailSent };
   }
 
   async addTeamMemberByEmail(org: Organization, body: AdminAddTeamMemberDto) {

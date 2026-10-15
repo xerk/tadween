@@ -1,4 +1,5 @@
 import { FC } from 'react';
+import { TadweenAvatarImage } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 import { useIntegration } from '@gitroom/frontend/components/launches/helpers/use.integration';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useMediaDirectory } from '@gitroom/react/helpers/use.media.directory';
@@ -64,10 +65,10 @@ export const YoutubePreview: FC<{
       <div className="flex items-center">
         <div className="flex flex-1 gap-[17px] items-center">
           <div>
-            <img
-              src={integration?.picture || '/no-picture.jpg'}
-              alt="social"
-              className="rounded-full z-[2] w-[40px] h-[40px]"
+            <TadweenAvatarImage
+              src={integration?.picture}
+              name={integration?.name}
+              className="rounded-full z-[2] w-[40px] h-[40px] flex-none"
             />
           </div>
           <div className="flex flex-col">

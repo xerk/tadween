@@ -331,7 +331,7 @@ body {
   .tdw-chip.is-past { filter: grayscale(0.8); opacity: 0.75; cursor: default; }
   .tdw-chip-body { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 6px 8px; cursor: pointer; text-align: start; min-width: 0; }
   .tdw-chip-avatar { position: relative; flex: none; width: 22px; height: 22px; margin-top: 1px; }
-  .tdw-chip-avatar > img:first-child { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+  .tdw-chip-avatar > :first-child { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; font-size: 9px; }
   .tdw-chip-network { position: absolute; inset-inline-end: -3px; bottom: -3px; width: 12px; height: 12px; border-radius: 3px; box-shadow: 0 0 0 1.5px var(--chip-bg); }
   .tdw-chip-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .tdw-chip-meta { display: flex; align-items: center; gap: 6px; min-width: 0; }

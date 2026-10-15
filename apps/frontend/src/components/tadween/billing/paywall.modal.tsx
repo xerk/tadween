@@ -155,12 +155,14 @@ export const PaywallModal: FC = () => {
                 // same as Upgrade: an unsaved composer asks before closing
                 if (
                   !(await closeAllModals({
+                    title: t('tdw_close_unsaved_title', 'Close without saving?'),
                     description: t(
-                      'are_you_sure_you_want_to_close_this_modal_all_data_will_be_lost',
-                      'Are you sure you want to close this modal? (all data will be lost)'
+                      'tdw_close_unsaved_body',
+                      "Your changes haven't been saved and will be lost."
                     ),
-                    approveLabel: t('yes_close_it', 'Yes, close it!'),
-                    cancelLabel: t('no', 'No'),
+                    approveLabel: t('tdw_discard', 'Discard'),
+                    cancelLabel: t('tdw_keep_editing', 'Keep editing'),
+                    destructive: true,
                   }))
                 ) {
                   return;
@@ -181,12 +183,14 @@ export const PaywallModal: FC = () => {
                 // a composer with unsaved text asks first and can be kept
                 if (
                   !(await closeAllModals({
+                    title: t('tdw_close_unsaved_title', 'Close without saving?'),
                     description: t(
-                      'are_you_sure_you_want_to_close_this_modal_all_data_will_be_lost',
-                      'Are you sure you want to close this modal? (all data will be lost)'
+                      'tdw_close_unsaved_body',
+                      "Your changes haven't been saved and will be lost."
                     ),
-                    approveLabel: t('yes_close_it', 'Yes, close it!'),
-                    cancelLabel: t('no', 'No'),
+                    approveLabel: t('tdw_discard', 'Discard'),
+                    cancelLabel: t('tdw_keep_editing', 'Keep editing'),
+                    destructive: true,
                   }))
                 ) {
                   return;

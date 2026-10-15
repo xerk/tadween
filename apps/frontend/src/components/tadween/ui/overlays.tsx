@@ -2,7 +2,7 @@
 
 // Tadween UI kit: overlays (design system overlays.tsx). Toasts reuse Postiz's
 // own toaster (`useToaster`) so the app keeps a single toast stack.
-import React, { FC, ReactNode, useEffect, useState } from 'react';
+import React, { FC, ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { create } from 'zustand';
 import { Button, cx, Icon } from './primitives';
@@ -57,6 +57,61 @@ export function useEscape(open: boolean, onClose?: () => void) {
     document.addEventListener('keydown', k);
     return () => document.removeEventListener('keydown', k);
   }, [open, onClose]);
+}
+
+/* usePopupEscape — a popup (date picker, repeat, tags…) closes on Escape and
+   keeps the key to itself: only the newest open popup closes, and the modal
+   or drawer around it (layout/new-modal.tsx) never sees that Escape, so it
+   can't ask to close the composer. Listens on window in the capture phase,
+   before the modal's document listener and wherever the focus is. A text
+   field inside the popup keeps its own Escape (the picker's time field
+   reverts what was typed); the modal ignores keys from fields anyway. With
+   `ref`, a dialog opened above the popup (a confirm, "Add new tag") keeps
+   its Escape: the popup only answers when it sits in the topmost dialog. */
+type PopupEntry = {
+  close: { current: () => void };
+  node?: React.RefObject<HTMLElement | null>;
+};
+const popups: PopupEntry[] = [];
+const onPopupEscape = (e: KeyboardEvent) => {
+  const top = popups[popups.length - 1];
+  if (e.key !== 'Escape' || e.isComposing || !top) return;
+  const target = e.target as HTMLElement | null;
+  if (target?.closest?.('input, textarea, select, [contenteditable="true"]')) {
+    return;
+  }
+  const dialogs = document.querySelectorAll('[aria-modal="true"]');
+  const topDialog = dialogs[dialogs.length - 1];
+  const node = top.node?.current;
+  if (topDialog && node && !topDialog.contains(node)) {
+    return;
+  }
+  e.stopPropagation();
+  e.preventDefault();
+  top.close.current();
+};
+export function usePopupEscape(
+  open: boolean,
+  onClose: () => void,
+  node?: React.RefObject<HTMLElement | null>
+) {
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    if (!open) return;
+    if (!popups.length) {
+      window.addEventListener('keydown', onPopupEscape, true);
+    }
+    const entry: PopupEntry = { close, node };
+    popups.push(entry);
+    return () => {
+      const i = popups.lastIndexOf(entry);
+      if (i > -1) popups.splice(i, 1);
+      if (!popups.length) {
+        window.removeEventListener('keydown', onPopupEscape, true);
+      }
+    };
+  }, [open]);
 }
 
 /* Dialog — modal: scrim dims, the surface materializes (blur + scale) */

@@ -6,6 +6,9 @@ export interface Params {
     options: RequestInit,
     response: Response
   ) => Promise<boolean>;
+  // the request never reached the server (offline, DNS, CORS): the error is
+  // still thrown to the caller, this only lets the app say so
+  onNetworkError?: (url: string) => void;
 }
 // With NOT_SECURED the session lives in readable cookies and travels in
 // headers instead of credentialed requests (the backend's CORS doesn't allow
@@ -46,35 +49,45 @@ export const customFetch = (
     const authNonSecuredOrg = nonSecuredCookie('showorg');
     const authNonSecuredImpersonate = nonSecuredCookie('impersonate');
 
-    const fetchRequest = await fetch(params.baseUrl + url, {
-      ...(secured ? { credentials: 'include' } : {}),
-      ...(newRequestObject || options),
-      headers: {
-        ...(showorg
-          ? { showorg }
-          : authNonSecuredOrg
-          ? { showorg: authNonSecuredOrg }
+    let fetchRequest: Response;
+    try {
+      fetchRequest = await fetch(params.baseUrl + url, {
+        ...(secured ? { credentials: 'include' } : {}),
+        ...(newRequestObject || options),
+        headers: {
+          ...(showorg
+            ? { showorg }
+            : authNonSecuredOrg
+            ? { showorg: authNonSecuredOrg }
+            : {}),
+          ...(options.body instanceof FormData
+            ? {}
+            : { 'Content-Type': 'application/json' }),
+          Accept: 'application/json',
+          ...(loggedAuth ? { auth: loggedAuth } : {}),
+          ...options?.headers,
+          ...(auth
+            ? { auth }
+            : authNonSecuredCookie
+            ? { auth: authNonSecuredCookie }
+            : {}),
+          ...(authNonSecuredImpersonate
+            ? { impersonate: authNonSecuredImpersonate }
+            : {}),
+        },
+        // @ts-ignore
+        ...(!options.next && options.cache !== 'force-cache'
+          ? { cache: options.cache || 'no-store' }
           : {}),
-        ...(options.body instanceof FormData
-          ? {}
-          : { 'Content-Type': 'application/json' }),
-        Accept: 'application/json',
-        ...(loggedAuth ? { auth: loggedAuth } : {}),
-        ...options?.headers,
-        ...(auth
-          ? { auth }
-          : authNonSecuredCookie
-          ? { auth: authNonSecuredCookie }
-          : {}),
-        ...(authNonSecuredImpersonate
-          ? { impersonate: authNonSecuredImpersonate }
-          : {}),
-      },
-      // @ts-ignore
-      ...(!options.next && options.cache !== 'force-cache'
-        ? { cache: options.cache || 'no-store' }
-        : {}),
-    });
+      });
+    } catch (err) {
+      // fetch rejects with a TypeError when there is no response at all; an
+      // abort is a DOMException and stays silent
+      if (err instanceof TypeError) {
+        params?.onNetworkError?.(url);
+      }
+      throw err;
+    }
 
     if (
       !params?.afterRequest ||

@@ -2,6 +2,7 @@ import { ChangeEvent, CSSProperties, FC, KeyboardEvent, useCallback, useEffect, 
 import dayjs from 'dayjs';
 import clsx from 'clsx';
 import { useClickOutside } from '@mantine/hooks';
+import { usePopupEscape } from '@gitroom/frontend/components/tadween/ui/overlays';
 import { isUSCitizen } from './isuscitizen.utils';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
@@ -357,6 +358,7 @@ export const DatePicker: FC<{
   const ref = useClickOutside<HTMLDivElement>(() => {
     setOpen(false);
   });
+  usePopupEscape(open, () => setOpen(false), ref);
   const popover = useRef<HTMLDivElement>(null);
   const [place, setPlace] = useState<CSSProperties>();
 
@@ -434,6 +436,8 @@ export const DatePicker: FC<{
           role="dialog"
           aria-label={t('pick_date_and_time', 'Pick date and time')}
           onClick={(e) => e.stopPropagation()}
+          // from the time field: the first Escape reverts what was typed,
+          // the next closes the picker (usePopupEscape leaves fields alone)
           onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
           ref={popover}
           style={place}

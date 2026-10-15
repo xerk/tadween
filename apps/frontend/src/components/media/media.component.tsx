@@ -457,6 +457,10 @@ export const MultiMediaComponent: FC<{
               <div className="flex py-[10px] mobile:py-0 mobile:shrink-0 b2 items-center gap-[4px]">
                 <div
                   onClick={showModal}
+                  role="button"
+                  aria-label={t('insert_media', 'Insert Media')}
+                  data-tooltip-id="tooltip"
+                  data-tooltip-content={t('insert_media', 'Insert Media')}
                   className="cursor-pointer h-[30px] mobile:h-[40px] mobile:min-w-[40px] rounded-[6px] mobile:rounded-[8px] justify-center items-center flex bg-newColColor mobile:bg-newSettings px-[8px]"
                 >
                   <div className="flex gap-[8px] items-center">
@@ -470,6 +474,10 @@ export const MultiMediaComponent: FC<{
                 </div>
                 <div
                   onClick={designMedia}
+                  role="button"
+                  aria-label={t('design_media', 'Design Media')}
+                  data-tooltip-id="tooltip"
+                  data-tooltip-content={t('design_media', 'Design Media')}
                   className="cursor-pointer h-[30px] rounded-[6px] justify-center items-center flex bg-newColColor px-[8px] mobile:hidden"
                 >
                   <div className="flex gap-[5px] items-center">

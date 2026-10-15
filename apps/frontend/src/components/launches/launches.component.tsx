@@ -32,6 +32,7 @@ import {
 } from '@gitroom/frontend/components/tadween/ui';
 import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 import { CalendarWorkspace } from '@gitroom/frontend/components/tadween/workspace/workspace';
+import { useSWRConfig } from 'swr';
 
 export const SVGLine = () => {
   return (
@@ -538,11 +539,17 @@ export const LaunchesComponent = () => {
       ['desc', 'asc']
     );
   }, [sortedIntegrations]);
+  // Tadween: the side panel's Up next and drafts lists drop or show the
+  // posts of a channel that was just disabled, enabled or deleted
+  const { mutate: mutateKeys } = useSWRConfig();
   const update = useCallback(async (shouldReload: boolean) => {
     if (shouldReload) {
       setReload(true);
     }
     await mutate();
+    mutateKeys(
+      (key) => typeof key === 'string' && key.startsWith('tdw-ws-')
+    );
     if (shouldReload) {
       setReload(false);
     }

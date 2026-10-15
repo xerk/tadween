@@ -13,6 +13,7 @@ import { ColorPicker } from '@gitroom/react/form/color.picker';
 import { uniqBy } from 'lodash';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useClickOutside } from '@mantine/hooks';
+import { usePopupEscape } from '@gitroom/frontend/components/tadween/ui/overlays';
 import clsx from 'clsx';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import {
@@ -84,9 +85,12 @@ export const TagsComponentInner: FC<{
     }
     setIsOpen(false);
   });
+  usePopupEscape(isOpen && allowClose, () => setIsOpen(false), ref);
 
   const addTag = useCallback(async () => {
     onModal?.(true);
+    // the list stays open under the dialog (as in editTag)
+    setAllowClose(false);
     try {
       const val: string | undefined = await new Promise((resolve) => {
         modals.openModal({
@@ -118,6 +122,9 @@ export const TagsComponentInner: FC<{
     } finally {
       // after onChange, so a remounted list starts with the new tag selected
       onModal?.(false);
+      setTimeout(() => {
+        setAllowClose(true);
+      }, 500);
     }
   }, [tagValue, name, onChange, mutate, modals, t, onModal]);
 

@@ -1,4 +1,5 @@
 import { useIntegration } from '@gitroom/frontend/components/launches/helpers/use.integration';
+import { TadweenAvatarImage } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useMediaDirectory } from '@gitroom/react/helpers/use.media.directory';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
@@ -124,10 +125,10 @@ export const FacebookPreview: FC<{
     <div className="py-[15px] flex flex-col px-[15px] w-full gap-[20px] bg-bgFacebook rounded-[12px]">
       <div className="flex gap-[8px]">
         <div className="w-[36px] h-[36px]">
-          <img
-            src={integration?.picture || '/no-picture.jpg'}
-            alt="social"
-            className="rounded-full relative z-[2] w-[36px] h-[36px]"
+          <TadweenAvatarImage
+            src={integration?.picture}
+            name={integration?.name}
+            className="rounded-full relative z-[2] w-[36px] h-[36px] flex-none"
           />
         </div>
         <div className="flex flex-col leading-[18px]">
@@ -285,10 +286,10 @@ export const FacebookPreview: FC<{
             <div key={index} className="flex flex-col gap-[12px]">
               <div className="flex gap-[6px] leading-[17px]">
                 <div className="h-[34px]">
-                  <img
-                    src={integration?.picture || '/no-picture.jpg'}
-                    alt="social"
-                    className="rounded-full relative z-[2] h-[34px] w-[34px]"
+                  <TadweenAvatarImage
+                    src={integration?.picture}
+                    name={integration?.name}
+                    className="rounded-full relative z-[2] h-[34px] w-[34px] flex-none"
                   />
                 </div>
                 <div className="flex flex-col gap-[6px] min-w-[150px]">

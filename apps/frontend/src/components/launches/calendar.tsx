@@ -66,6 +66,7 @@ import {
   TadweenScope,
 } from '@gitroom/frontend/components/tadween/ui';
 import { ChipPreview } from '@gitroom/frontend/components/tadween/workspace/chip.preview';
+import { TadweenAvatarImage } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -86,13 +87,14 @@ i18next.on('languageChanged', () => {
 // Initial setup
 updateDayjsLocale();
 
-const convertTimeFormatBasedOnLocality = (time: number) => {
-  if (isUSCitizen()) {
-    return `${time === 12 ? 12 : time % 12}:00 ${time >= 12 ? 'PM' : 'AM'}`;
-  } else {
-    return `${time}:00`;
-  }
-};
+// The hour labels of the week view: 12:00 AM (not 0:00 AM) at midnight, and
+// AM / PM in the reader's language (dayjs locale). A fixed UTC day, so a
+// daylight-saving switch today can't shift a label.
+const convertTimeFormatBasedOnLocality = (time: number) =>
+  dayjs
+    .utc('2000-01-01')
+    .hour(time)
+    .format(isUSCitizen() ? 'h:mm A' : 'H:mm');
 
 export const hours = Array.from(
   {
@@ -175,6 +177,8 @@ export const usePostActions = (onMutate?: () => void) => {
                         content,
                       })
                     ),
+                    // the copy starts on the same channel, ready to schedule
+                    selectedChannels: [data.integration],
                   }
                 : {})}
               allIntegrations={integrations.map((p) => ({ ...p }))}
@@ -1039,14 +1043,10 @@ export const CalendarColumn: FC<{
                           'relative w-[34px] h-[34px] rounded-[8px] flex justify-center items-center filter transition-all duration-500'
                         )}
                       >
-                        <SafeImage
-                          src={
-                            selectedIntegrations.picture || '/no-picture.jpg'
-                          }
-                          className="rounded-[8px]"
-                          alt={selectedIntegrations.identifier}
-                          width={32}
-                          height={32}
+                        <TadweenAvatarImage
+                          src={selectedIntegrations.picture}
+                          name={selectedIntegrations.name}
+                          className="rounded-[8px] w-[32px] h-[32px]"
                         />
                         {selectedIntegrations.identifier === 'youtube' ? (
                           <img
@@ -1231,7 +1231,10 @@ const CalendarItem: FC<{
       )}
       <div onClick={editPost} className="tdw-chip-body">
         <div className="tdw-chip-avatar">
-          <img src={post.integration.picture! || '/no-picture.jpg'} alt="" />
+          <TadweenAvatarImage
+            src={post.integration.picture}
+            name={post.integration.name}
+          />
           <img
             className="tdw-chip-network"
             src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}

@@ -782,7 +782,7 @@ const useClientGuides = (c: ConnectContext): ClientGuide[] => {
       },
       {
         id: 'cli',
-        name: t('tdw_api_cli_name', 'Terminal (CLI)'),
+        name: t('tdw_api_cli_name', 'Terminal (API)'),
         icon: <Icon name="terminal" size={20} />,
         summary: t('tdw_api_cli_tile', 'Scripts, CI and coding agents'),
         methods: [

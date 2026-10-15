@@ -1972,7 +1972,7 @@
   "tdw_api_make_w1": "Create a trigger that gives you a URL: in Make, Webhooks → Custom webhook; in Zapier, Webhooks by Zapier → Catch Hook.",
   "tdw_api_make_w2": "In {{name}} open Settings → Webhooks, add a webhook with that URL and pick the channels.",
   "tdw_api_make_w3": "Each time a post is published, {{name}} sends the post to the URL. Use Send test to see the fields.",
-  "tdw_api_cli_name": "Terminal (CLI)",
+  "tdw_api_cli_name": "Terminal (API)",
   "tdw_api_cli_tile": "Scripts, CI and coding agents",
   "tdw_api_cli_s1": "Install the CLI (needs Node.js 18 or newer):",
   "tdw_api_cli_s2": "Point it at this server and give it your key:",

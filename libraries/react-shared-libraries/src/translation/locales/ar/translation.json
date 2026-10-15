@@ -1980,7 +1980,7 @@
   "tdw_api_make_w1": "أنشئ مشغّلًا يعطيك رابطًا: في Make اختر Webhooks ← Custom webhook، وفي Zapier اختر Webhooks by Zapier ← Catch Hook.",
   "tdw_api_make_w2": "في {{name}} افتح الإعدادات ← روابط الويب، وأضف رابط ويب بهذا الرابط واختر القنوات.",
   "tdw_api_make_w3": "في كل مرة يُنشر فيها منشور، يرسل {{name}} المنشور إلى الرابط. استخدم «إرسال تجربة» لترى الحقول.",
-  "tdw_api_cli_name": "الطرفية (CLI)",
+  "tdw_api_cli_name": "الطرفية (API)",
   "tdw_api_cli_tile": "السكربتات وCI ووكلاء البرمجة",
   "tdw_api_cli_s1": "ثبّت أداة سطر الأوامر (تتطلب Node.js بالإصدار 18 أو أحدث):",
   "tdw_api_cli_s2": "وجّهها إلى هذا الخادم وأعطها مفتاحك:",

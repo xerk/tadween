@@ -12,12 +12,19 @@ import React, {
   useId,
   useMemo,
   useRef,
+  useState,
 } from 'react';
-import { Button } from '@gitroom/react/form/button';
 import { useHotkeys } from 'react-hotkeys-hook';
 import clsx from 'clsx';
 import { EventEmitter } from 'events';
 import { useOverlayOpen } from '@gitroom/frontend/components/tadween/ui/overlays';
+import {
+  Button as TdwButton,
+  Icon,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui/primitives';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import i18next from '@gitroom/react/translation/i18next';
 
 interface OpenModalInterface {
   title?: any;
@@ -94,21 +101,23 @@ export const useModalDrawer = () => useContext(ModalDrawerContext);
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
 
-// A side sheet: role="dialog" + aria-modal, focus moves in on open and back
-// on close, Tab cycles inside it, the scrim closes it (through askClose), and
-// Escape in a text field first leaves the field so the next Escape closes.
-// Styles: app/tadween/drawer.scss.
-const ModalDrawer: FC<{
-  zIndex: string;
-  isLast: boolean;
-  onClose?: () => void;
-  children: ReactNode;
-}> = ({ zIndex, isLast, onClose, children }) => {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const titleId = useId();
-
+// Keyboard for a modal layer (a drawer or a dialog): focus moves in on open
+// and back on close, Tab cycles inside the panel, and Escape in a text field
+// first leaves the field so the next Escape closes. `nested` marks a layer of
+// its own inside the panel (a sheet on phones) that keeps Tab in itself.
+const useLayerFocus = (
+  panelRef: React.RefObject<HTMLDivElement | null>,
+  isLast: boolean,
+  nested = '[role="dialog"]'
+) => {
+  // the trigger, read while rendering: a control inside that has autoFocus
+  // takes the focus before this layer's effects run
+  const [previous] = useState(() =>
+    typeof document === 'undefined'
+      ? null
+      : (document.activeElement as HTMLElement | null)
+  );
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
     if (!panelRef.current?.contains(document.activeElement)) {
       panelRef.current?.focus({ preventScroll: true });
     }
@@ -148,7 +157,7 @@ const ModalDrawer: FC<{
     return () => document.removeEventListener('keydown', onTab);
   }, [isLast]);
 
-  const onKeyDown = useCallback(
+  return useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       const panel = panelRef.current;
       if (!isLast || !panel) {
@@ -172,7 +181,7 @@ const ModalDrawer: FC<{
       if (
         e.key !== 'Tab' ||
         e.defaultPrevented ||
-        target.closest('[role="dialog"]') !== panel
+        target.closest(nested) !== panel
       ) {
         return;
       }
@@ -197,8 +206,21 @@ const ModalDrawer: FC<{
         first.focus();
       }
     },
-    [isLast]
+    [isLast, nested]
   );
+};
+
+// A side sheet: role="dialog" + aria-modal, keyboard through useLayerFocus,
+// and the scrim closes it (through askClose). Styles: app/tadween/drawer.scss.
+const ModalDrawer: FC<{
+  zIndex: string;
+  isLast: boolean;
+  onClose?: () => void;
+  children: ReactNode;
+}> = ({ zIndex, isLast, onClose, children }) => {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const onKeyDown = useLayerFocus(panelRef, isLast);
 
   const context = useMemo(() => ({ isLast, titleId }), [isLast, titleId]);
 
@@ -249,6 +271,77 @@ export const useModals = () => {
   } satisfies ModalManagerInterface;
 };
 
+// The dialog itself: titled by its header (role="dialog" + aria-modal), with
+// the keyboard of every modal layer (useLayerFocus). Styles:
+// app/tadween/consistency.scss (Modal shell).
+const ModalPanel: FC<{
+  modal: { id: string } & OpenModalInterface;
+  isLast: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}> = ({ modal, isLast, onClose, children }) => {
+  const t = useT();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  // a body inside the panel that is a layer of its own keeps Tab in itself
+  const onKeyDown = useLayerFocus(panelRef, isLast, '[aria-modal="true"]');
+  const titled = !!modal.title && typeof modal.title !== 'boolean';
+
+  return (
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titled ? titleId : undefined}
+      tabIndex={-1}
+      onKeyDown={onKeyDown}
+      className={clsx(
+        !modal.removeLayout &&
+          'gap-[20px] p-[24px] mobile:gap-[16px] mobile:p-[20px]',
+        'tdw-modal bg-newBgColorInner mx-auto flex flex-col w-fit rounded-[20px] relative mobile:!max-w-full',
+        modal.size ? '' : 'min-w-[600px] mobile:min-w-0 mobile:w-full',
+        modal.fullScreen && 'h-full'
+      )}
+      {...((!!modal.size || !!modal.height || !!modal.maxSize) && {
+        style: {
+          ...(modal.size ? { width: modal.size } : {}),
+          ...(modal.height ? { height: modal.height } : {}),
+          ...(modal.maxSize ? { maxWidth: modal.maxSize } : {}),
+        },
+      })}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="tdw-modal-head flex items-center">
+        <div
+          id={titleId}
+          className="tdw-modal-title text-[20px] mobile:text-[18px] pe-[36px] font-[600] flex-1"
+        >
+          {modal.title}
+        </div>
+        {typeof modal.withCloseButton === 'undefined' ||
+        modal.withCloseButton ? (
+          <button
+            className="tdw-modal-close outline-none absolute end-[16px] top-[16px] cursor-pointer"
+            type="button"
+            aria-label={t('close', 'Close')}
+            onClick={onClose}
+          >
+            <Icon name="x" size={16} />
+          </button>
+        ) : null}
+      </div>
+      <div
+        className={clsx(
+          'whitespace-pre-line',
+          !!modal.height && !!modal.size && 'flex flex-1 flex-col'
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
 export const Component: FC<{
   closeModal: (id: string) => void;
   zIndex: string;
@@ -260,7 +353,17 @@ export const Component: FC<{
     if (
       typeof modal.askClose === 'function' ? modal.askClose() : modal.askClose
     ) {
-      const open = await decision.open();
+      // closing loses what was typed: the confirm says so and is red
+      const open = await decision.open({
+        title: i18next.t('tdw_close_unsaved_title', 'Close without saving?'),
+        description: i18next.t(
+          'tdw_close_unsaved_body',
+          "Your changes haven't been saved and will be lost."
+        ),
+        approveLabel: i18next.t('tdw_discard', 'Discard'),
+        cancelLabel: i18next.t('tdw_keep_editing', 'Keep editing'),
+        destructive: true,
+      });
       if (!open) {
         return;
       }
@@ -375,63 +478,13 @@ export const Component: FC<{
                 : 'top-0 left-0'
             )}
           >
-            <div
-              className={clsx(
-                !modal.removeLayout &&
-                  'gap-[20px] p-[24px] mobile:gap-[16px] mobile:p-[20px]',
-                'tdw-modal bg-newBgColorInner mx-auto flex flex-col w-fit rounded-[20px] relative mobile:!max-w-full',
-                modal.size ? '' : 'min-w-[600px] mobile:min-w-0 mobile:w-full',
-                modal.fullScreen && 'h-full'
-              )}
-              {...((!!modal.size || !!modal.height || !!modal.maxSize) && {
-                style: {
-                  ...(modal.size ? { width: modal.size } : {}),
-                  ...(modal.height ? { height: modal.height } : {}),
-                  ...(modal.maxSize ? { maxWidth: modal.maxSize } : {}),
-                },
-              })}
-              onClick={(e) => e.stopPropagation()}
+            <ModalPanel
+              modal={modal}
+              isLast={isLast}
+              onClose={closeModalFunction}
             >
-              <div className="tdw-modal-head flex items-center">
-                <div className="tdw-modal-title text-[20px] mobile:text-[18px] pe-[36px] font-[600] flex-1">
-                  {modal.title}
-                </div>
-                {typeof modal.withCloseButton === 'undefined' ||
-                modal.withCloseButton ? (
-                  <div className="cursor-pointer">
-                    <button
-                      className="tdw-modal-close outline-none absolute end-[16px] top-[16px] cursor-pointer"
-                      type="button"
-                      aria-label="Close"
-                      onClick={closeModalFunction}
-                    >
-                      <svg
-                        viewBox="0 0 15 15"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                      >
-                        <path
-                          d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z"
-                          fill="currentColor"
-                          fillRule="evenodd"
-                          clipRule="evenodd"
-                        ></path>
-                      </svg>
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-              <div
-                className={clsx(
-                  'whitespace-pre-line',
-                  !!modal.height && !!modal.size && 'flex flex-1 flex-col'
-                )}
-              >
-                {RenderComponent}
-              </div>
-            </div>
+              {RenderComponent}
+            </ModalPanel>
           </div>
         </div>
       </div>
@@ -516,8 +569,15 @@ export const ModalManagerEmitter: FC = () => {
   return null;
 };
 
+// Tadween: no exclamation marks in the product's voice; labels Postiz call
+// sites pass ("Yes, delete it!") read as plain actions
+const plainLabel = (label: string) =>
+  typeof label === 'string' ? label.replace(/\s*[!\uFF01]+$/u, '') : label;
+
+// The confirm: the question, then Cancel (ghost) and the action, which is red
+// for a destructive one. The safe choice has the focus first.
 export const DecisionModal: FC<{
-  description: string;
+  description: ReactNode;
   approveLabel: string;
   cancelLabel: string;
   onlyApprove: boolean;
@@ -533,43 +593,53 @@ export const DecisionModal: FC<{
 }) => {
   const { closeCurrent } = useModals();
   return (
-    <div className="tdw-confirm flex flex-col">
-      <div className="tdw-confirm-desc max-w-[600px]">{description}</div>
-      <div className="tdw-confirm-actions flex justify-end gap-[8px] mt-[20px]">
+    <TadweenScope className="tdw-confirm">
+      {description ? <p className="tdw-confirm-desc">{description}</p> : null}
+      <div className="tdw-confirm-actions">
         {!onlyApprove && (
-          <Button
-            secondary={true}
+          <TdwButton
+            variant="ghost"
+            autoFocus={destructive}
             onClick={() => {
               resolution(false);
               closeCurrent();
             }}
           >
-            {cancelLabel}
-          </Button>
+            {plainLabel(cancelLabel)}
+          </TdwButton>
         )}
-        <Button
-          className={destructive ? 'is-danger' : undefined}
+        <TdwButton
+          variant={destructive ? 'destructive' : 'primary'}
+          autoFocus={!destructive || onlyApprove}
           onClick={() => {
             resolution(true);
             closeCurrent();
           }}
         >
-          {approveLabel}
-        </Button>
+          {plainLabel(approveLabel)}
+        </TdwButton>
       </div>
-    </div>
+    </TadweenScope>
   );
 };
 
 export const decisionModalEmitter = new EventEmitter();
 
+interface ConfirmOptions {
+  title?: ReactNode;
+  description?: ReactNode;
+  approveLabel?: string;
+  cancelLabel?: string;
+  destructive?: boolean;
+}
+
 export const areYouSure = ({
-  title = 'Are you sure?',
-  description = 'Are you sure you want to close this modal?' as any,
-  approveLabel = 'Yes',
-  cancelLabel = 'No',
+  title,
+  description,
+  approveLabel,
+  cancelLabel,
   destructive = false,
-} = {}): Promise<boolean> => {
+}: ConfirmOptions = {}): Promise<boolean> => {
   return new Promise<boolean>((newRes) => {
     decisionModalEmitter.emit('open', {
       title,
@@ -619,13 +689,20 @@ export const useDecisionModal = () => {
   const modals = useModals();
   const open = useCallback(
     ({
-      title = 'Are you sure?',
-      description = 'Are you sure you want to close this modal?' as any,
+      // the defaults, in the reader's language
+      title = i18next.t('are_you_sure', 'Are you sure?'),
+      description = i18next.t(
+        'tdw_confirm_close_body',
+        'Close without saving? Your changes will be lost.'
+      ),
       onlyApprove = false,
-      approveLabel = 'Yes',
-      cancelLabel = 'No',
+      approveLabel = i18next.t('yes', 'Yes'),
+      cancelLabel = i18next.t('no', 'No'),
       destructive = false,
-      newRes = undefined as any,
+      newRes = undefined as ((value: boolean) => void) | undefined,
+    }: ConfirmOptions & {
+      onlyApprove?: boolean;
+      newRes?: (value: boolean) => void;
     } = {}) => {
       return new Promise<boolean>((res) => {
         modals.openModal({

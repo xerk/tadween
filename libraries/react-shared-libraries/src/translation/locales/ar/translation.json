@@ -2620,5 +2620,10 @@
   "tdw_extension_risk_data": "بياناتك",
   "tdw_extension_risk_data_body": "نحفظ جلسة تسجيل دخولك إلى {{network}} مشفّرة، ولا نستخدمها إلا للنشر نيابةً عنك.",
   "tdw_extension_install": "ثبّت الإضافة",
-  "tdw_extension_understand": "أفهم المخاطر"
+  "tdw_extension_understand": "أفهم المخاطر",
+  "tdw_confirm_close_body": "هل تريد الإغلاق دون حفظ؟ ستفقد تغييراتك.",
+  "tdw_close_unsaved_title": "الإغلاق دون حفظ؟",
+  "tdw_close_unsaved_body": "لم تُحفظ تغييراتك وستفقدها.",
+  "tdw_discard": "تجاهل التغييرات",
+  "tdw_keep_editing": "متابعة التعديل"
 }

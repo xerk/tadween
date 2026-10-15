@@ -2603,5 +2603,10 @@
   "tdw_extension_risk_data": "Your data",
   "tdw_extension_risk_data_body": "We store your {{network}} login session encrypted and use it only to post for you.",
   "tdw_extension_install": "Install the extension",
-  "tdw_extension_understand": "I understand the risks"
+  "tdw_extension_understand": "I understand the risks",
+  "tdw_confirm_close_body": "Close without saving? Your changes will be lost.",
+  "tdw_close_unsaved_title": "Close without saving?",
+  "tdw_close_unsaved_body": "Your changes haven't been saved and will be lost.",
+  "tdw_discard": "Discard",
+  "tdw_keep_editing": "Keep editing"
 }

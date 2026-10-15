@@ -34,7 +34,7 @@ export const SaveSetModal: FC<{
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="tdw-modal-form">
       <div>
         <Input
           label="Set Name"
@@ -43,12 +43,12 @@ export const SaveSetModal: FC<{
           value={name}
           disableForm={true}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Enter a name for this set"
+          placeholder={t('tdw_set_name_placeholder', 'Enter a name for this set')}
           autoFocus
         />
       </div>
-      <div className="flex gap-2 justify-end">
-        <Button type="button" secondary onClick={onCancel}>
+      <div className="tdw-modal-foot">
+        <Button type="button" className="bg-transparent" onClick={onCancel}>
           {t('cancel', 'Cancel')}
         </Button>
         <Button type="submit" disabled={!name.trim()}>

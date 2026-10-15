@@ -1,10 +1,12 @@
 import { FC, useCallback } from 'react';
-import { SignaturesComponent } from '@gitroom/frontend/components/settings/signatures.component';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
+import { SignaturesSettings } from '@gitroom/frontend/components/tadween/settings/signatures.settings';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 export const SignatureBox: FC<{
   editor: any;
 }> = ({ editor }) => {
   const modals = useModals();
+  const t = useT();
   const appendValue = (val: string) => {
     editor?.commands?.insertContent('\n\n' + val);
     editor?.commands?.focus();
@@ -12,20 +14,20 @@ export const SignatureBox: FC<{
 
   const addSignature = useCallback(() => {
     modals.openModal({
-      title: 'Add Signature',
+      title: t('tdw_insert_signature', 'Insert a signature'),
       withCloseButton: true,
       children: (close) => (
         <SignatureModal appendSignature={appendValue} close={close} />
       ),
     });
-  }, [appendValue]);
+  }, [appendValue, t]);
 
   return (
     <>
       <div
         onClick={addSignature}
         data-tooltip-id="tooltip"
-        data-tooltip-content="Add Signature"
+        data-tooltip-content={t('tdw_insert_signature', 'Insert a signature')}
         className="select-none cursor-pointer rounded-[6px] mobile:rounded-[8px] w-[30px] h-[30px] mobile:w-[40px] mobile:h-[40px] bg-newColColor mobile:bg-newSettings flex justify-center items-center"
       >
         <svg
@@ -65,10 +67,11 @@ export const SignatureModal: FC<{
   appendSignature: (sign: string) => void;
 }> = (props) => {
   const { appendSignature, close } = props;
-  // using a signature is the end of this dialog, back to the post
+  // using a signature is the end of this dialog, back to the post. Tadween:
+  // the list of Settings → Signatures, where a row is used, edited or deleted
   return (
-    <SignaturesComponent
-      appendSignature={(sign) => {
+    <SignaturesSettings
+      onUse={(sign) => {
         appendSignature(sign);
         close();
       }}

@@ -408,7 +408,8 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
   transition: opacity 140ms ease, transform 200ms var(--tdw-ease-spring);
   pointer-events: none;
 
-  > div {
+  // the menu's trigger button (launches/menu/menu.tsx) is the badge
+  > div > .tdw-chmenu-trigger {
     display: grid;
     place-items: center;
     width: 17px;
@@ -419,7 +420,7 @@ html[dir='rtl'] .tdw-ws .tdw-ws-new > button {
     box-shadow: var(--tdw-shadow-sm);
   }
 
-  > div > svg {
+  > div > .tdw-chmenu-trigger > svg {
     width: 14px;
     height: 14px;
     transform: rotate(90deg);

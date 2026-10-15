@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { HttpStatusCode } from 'axios';
 import { useRouter } from 'next/navigation';
 import { Redirect } from '@gitroom/frontend/components/layout/redirect';
@@ -11,6 +11,10 @@ import { continueProviderList } from '@gitroom/frontend/components/new-launch/pr
 import { IntegrationContext } from '@gitroom/frontend/components/launches/helpers/use.integration';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
+import {
+  EmptyState,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
 
 // Providers connected through the browser extension hand their cookies over in
 // this tab's sessionStorage instead of the URL (see AddProviderComponent). Read
@@ -41,6 +45,25 @@ interface TwoStepState {
 interface SuccessState {
   message: string;
 }
+
+// Tadween: connecting, connected or failed, on the continue step's page card
+// (app/tadween/continue.scss) with the kit's empty-state layout
+const ConnectState: FC<{
+  icon: string;
+  tone: 'success' | 'error' | 'busy';
+  title: ReactNode;
+  body: ReactNode;
+}> = ({ icon, tone, title, body }) => (
+  <TadweenScope className="tdw-continue-page">
+    <div
+      className={`tdw-continue-card tdw-continue-state is-${tone}`}
+      role={tone === 'error' ? 'alert' : 'status'}
+      aria-busy={tone === 'busy' || undefined}
+    >
+      <EmptyState icon={icon} title={title} body={body} />
+    </div>
+  </TadweenScope>
+);
 
 export const ContinueIntegration: FC<{
   provider: string;
@@ -314,39 +337,19 @@ export const ContinueIntegration: FC<{
   // Success state for non-logged users without returnURL
   if (successState) {
     return (
-      <div className="flex flex-1 items-center justify-center text-white relative overflow-hidden">
-        {/* Background gradient decoration */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-[#612BD3] rounded-full blur-[120px]" />
-          <div className="absolute bottom-[20%] right-[10%] w-[250px] h-[250px] bg-[#FC69FF] rounded-full blur-[120px]" />
-        </div>
-
-        <div className="relative z-10 text-center">
-          <div className="w-[80px] h-[80px] mx-auto mb-[24px] rounded-full bg-green-500/20 flex items-center justify-center">
-            <svg
-              className="w-[40px] h-[40px] text-green-500"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="text-[28px] font-semibold mb-[12px]">
-            {t('channel_connected', 'Channel Connected!')}
-          </div>
-          <div className="text-[16px] text-gray-400 max-w-[400px]">
-            {successState.message ||
-              t(
-                'channel_connected_description',
-                `Your ${providerDisplayName} channel has been successfully connected. You can close this window now.`
-              )}
-          </div>
-        </div>
-      </div>
+      <ConnectState
+        icon="circle-check"
+        tone="success"
+        title={t('tdw_channel_connected', 'Channel connected')}
+        body={
+          successState.message ||
+          t(
+            'channel_connected_description',
+            'Your {{name}} channel is connected. You can close this window now.',
+            { name: providerDisplayName }
+          )
+        }
+      />
     );
   }
 
@@ -392,64 +395,31 @@ export const ContinueIntegration: FC<{
 
   if (error) {
     return (
-      <div className="flex flex-1 items-center justify-center text-white relative overflow-hidden">
-        {/* Background gradient decoration */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-[#612BD3] rounded-full blur-[120px]" />
-          <div className="absolute bottom-[20%] right-[10%] w-[250px] h-[250px] bg-[#FC69FF] rounded-full blur-[120px]" />
-        </div>
-
-        <div className="relative z-10 text-center">
-          <div className="w-[80px] h-[80px] mx-auto mb-[24px] rounded-full bg-red-500/20 flex items-center justify-center">
-            <svg
-              className="w-[40px] h-[40px] text-red-500"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="text-[28px] font-semibold mb-[12px]">
-            {t('could_not_add_provider', 'Could not add provider')}
-          </div>
-          <div className="text-[16px] text-gray-400 max-w-[400px]">
+      <ConnectState
+        icon="circle-x"
+        tone="error"
+        title={t('tdw_connect_failed', "We couldn't connect this channel")}
+        body={
+          <>
             {errorMessage ||
               t(
                 'you_are_being_redirected_back',
                 'An error occurred. Please try again.'
               )}
-          </div>
-          {logged && <Redirect url="/launches" delay={3000} />}
-        </div>
-      </div>
+            {logged && <Redirect url="/launches" delay={3000} />}
+          </>
+        }
+      />
     );
   }
 
   // Loading state
   return (
-    <div className="flex flex-1 items-center justify-center text-white relative overflow-hidden">
-      {/* Background gradient decoration */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-[#612BD3] rounded-full blur-[120px]" />
-        <div className="absolute bottom-[20%] right-[10%] w-[250px] h-[250px] bg-[#FC69FF] rounded-full blur-[120px]" />
-      </div>
-
-      <div className="relative z-10 text-center">
-        <div className="text-[28px] font-semibold mb-[12px]">
-          {t('adding_channel', 'Adding Channel')}
-        </div>
-        <div className="text-[16px] text-gray-400">
-          {t('please_wait', 'Please wait while we connect your account...')}
-        </div>
-        {/* Loading spinner */}
-        <div className="mt-[32px] flex justify-center">
-          <div className="w-[48px] h-[48px] border-[3px] border-[#612BD3] border-t-transparent rounded-full animate-spin" />
-        </div>
-      </div>
-    </div>
+    <ConnectState
+      icon="loader-circle"
+      tone="busy"
+      title={t('tdw_connecting_channel', 'Connecting your channel')}
+      body={t('please_wait', 'Please wait while we connect your account...')}
+    />
   );
 };

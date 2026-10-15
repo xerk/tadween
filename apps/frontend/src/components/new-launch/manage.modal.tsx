@@ -66,11 +66,14 @@ import {
 } from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
 import { ComposerTopBar } from '@gitroom/frontend/components/tadween/composer-mobile/top.bar';
 import { ComposerMetaBar } from '@gitroom/frontend/components/tadween/composer-mobile/meta.bar';
-import { Icon } from '@gitroom/frontend/components/tadween/ui/primitives';
+import {
+  Button as TdwButton,
+  Icon,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui/primitives';
 import { useHasScroll } from '@gitroom/frontend/components/ui/is.scroll.hook';
 import { useShortlinkPreference } from '@gitroom/frontend/components/settings/shortlink-preference.component';
 import dayjs from 'dayjs';
-import { Button } from '@gitroom/react/form/button';
 import { useClickOutside } from '@mantine/hooks';
 import { EditorChecks } from '@gitroom/frontend/components/tadween/editor/checks';
 import { TadweenChannelAvatar } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
@@ -236,7 +239,11 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           'are_you_sure_you_want_to_close_this_modal_all_data_will_be_lost',
           'Are you sure you want to close this modal? (all data will be lost)'
         ),
-        t('yes_close_it', 'Yes, close it!')
+        t('yes_close_it', 'Yes, close it!'),
+        undefined,
+        undefined,
+        // closing drops the draft: the red action
+        true
       ))
     ) {
       if (customClose) {
@@ -288,47 +295,39 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           modal.openModal({
             title: t('what_do_you_want_to_do', 'What do you want to do?'),
             children: (
-              <div className="flex flex-col">
-                <div className="text-[20px] mb-[20px]">
+              <TadweenScope className="tdw-modal-form">
+                <p className="tdw-modal-lead">
                   {t(
                     'post_already_published_republish_warning',
                     'This post was already published. Republishing will publish it again to'
                   )}{' '}
                   {channels} {t('republish_at', 'at')}{' '}
                   {date.format('DD/MM/YYYY HH:mm')}.
-                  {isRecurring && (
-                    <div className="mt-[10px]">
-                      {t(
-                        'republish_recurring_note',
-                        'This is a recurring post: your changes apply to all future recurrences starting now.'
-                      )}
-                    </div>
-                  )}
+                </p>
+                {isRecurring && (
+                  <p className="tdw-modal-note">
+                    <Icon name="repeat" size={16} />
+                    {t(
+                      'republish_recurring_note',
+                      'This is a recurring post: your changes apply to all future recurrences starting now.'
+                    )}
+                  </p>
+                )}
+                <div className="tdw-modal-foot">
+                  <TdwButton onClick={() => resolve('update')}>
+                    {t(
+                      'just_update_post_details',
+                      'Just update the post details'
+                    )}
+                  </TdwButton>
+                  <TdwButton
+                    variant="primary"
+                    onClick={() => resolve('republish')}
+                  >
+                    {t('republish_the_post', 'Republish the post')}
+                  </TdwButton>
                 </div>
-                <div className="flex w-full gap-[10px]">
-                  <div className="flex-1 flex">
-                    <Button
-                      type="button"
-                      className="flex-1"
-                      onClick={() => resolve('update')}
-                    >
-                      {t(
-                        'just_update_post_details',
-                        'Just update the post details'
-                      )}
-                    </Button>
-                  </div>
-                  <div className="flex-1 flex">
-                    <Button
-                      type="button"
-                      className="flex-1"
-                      onClick={() => resolve('republish')}
-                    >
-                      {t('republish_the_post', 'Republish the post')}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              </TadweenScope>
             ),
           });
         });

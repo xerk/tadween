@@ -49,7 +49,10 @@ export const ApiModal: FC<{
       });
 
       if (add.ok) {
-        toaster.show('Integration added successfully', 'success');
+        toaster.show(
+          t('tdw_integration_added', 'Integration added'),
+          'success'
+        );
         if (closePopup) {
           closePopup();
         } else {
@@ -77,13 +80,16 @@ export const ApiModal: FC<{
     <div className="relative">
       <FormProvider {...methods}>
         <form
-          className="gap-[8px] flex flex-col"
+          className="tdw-modal-form"
           onSubmit={methods.handleSubmit(submit)}
         >
-          <div className="pt-[10px]">
-            <Input label="API Key" name="api" />
-          </div>
           <div>
+            <Input label="API Key" translationKey="tdw_api_key" name="api" />
+          </div>
+          <div className="tdw-modal-foot">
+            <Button className="bg-transparent" onClick={close}>
+              {t('cancel', 'Cancel')}
+            </Button>
             <Button loading={loading} type="submit">
               {t('add_integration', 'Add Integration')}
             </Button>
@@ -97,6 +103,7 @@ export const ApiModal: FC<{
 export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
   const fetch = useFetch();
   const modals = useModals();
+  const t = useT();
   const { reload } = props;
 
   const integrationsList = useCallback(async () => {
@@ -115,14 +122,16 @@ export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
   const addApiKey = useCallback(
     (title: string, identifier: string) => () => {
       modals.openModal({
-        title: `Add API key for ${title}`,
-        withCloseButton: false,
+        title: t('tdw_add_api_key_for', 'Add an API key for {{name}}', {
+          name: title,
+        }),
+        withCloseButton: true,
         children: (
           <ApiModal identifier={identifier} title={title} update={reload} />
         ),
       });
     },
-    []
+    [t]
   );
 
   return (
@@ -142,7 +151,7 @@ export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
           <div className="tdw-tile-title whitespace-pre-wrap text-left text-lg">{p.title}</div>
           <div className="tdw-tile-desc whitespace-pre-wrap text-left">{p.description}</div>
           <div className="w-full flex">
-            <Button className="w-full">Add</Button>
+            <Button className="w-full">{t('add', 'Add')}</Button>
           </div>
         </div>
       ))}

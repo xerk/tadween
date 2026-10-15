@@ -4,9 +4,12 @@ import { FC, useCallback, useMemo, useState } from 'react';
 import { ReactTags } from 'react-tag-autocomplete';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import useSWR from 'swr';
-import { Input } from '@gitroom/react/form/input';
+import {
+  Button as TdwButton,
+  Input as TdwInput,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
 import { ColorPicker } from '@gitroom/react/form/color.picker';
-import { Button } from '@gitroom/react/form/button';
 import { uniqBy } from 'lodash';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useClickOutside } from '@mantine/hooks';
@@ -590,35 +593,38 @@ const ConfirmDeleteModal: FC<{
 }> = ({ tagName, close, resolve }) => {
   const t = useT();
 
+  // Tadween: the confirm's look (layout/new-modal.tsx DecisionModal)
   return (
-    <div className="flex flex-col gap-[16px]">
-      <p className="text-[14px]">
+    <TadweenScope className="tdw-confirm">
+      <p className="tdw-confirm-desc">
         {t(
           'confirm_delete_tag',
           'Are you sure you want to delete the tag "{{tagName}}"?',
           { tagName }
         )}
       </p>
-      <div className="flex gap-[8px] justify-end">
-        <Button
+      <div className="tdw-confirm-actions">
+        <TdwButton
+          variant="ghost"
+          autoFocus
           onClick={() => {
             resolve(false);
             close();
           }}
         >
           {t('cancel', 'Cancel')}
-        </Button>
-        <Button
+        </TdwButton>
+        <TdwButton
+          variant="destructive"
           onClick={() => {
             resolve(true);
             close();
           }}
-          className="bg-red-500 hover:bg-red-600"
         >
           {t('delete', 'Delete')}
-        </Button>
+        </TdwButton>
       </div>
-    </div>
+    </TadweenScope>
   );
 };
 
@@ -647,25 +653,38 @@ const ShowModal: FC<{
     close();
   }, [tagName, color, id]);
   return (
-    <div>
-      <Input
-        name="name"
-        disableForm={true}
-        label={t('tag_name', 'Name')}
-        value={tagName}
-        onChange={(e) => setTagName(e.target.value)}
-      />
-      <ColorPicker
-        onChange={(e) => setColor(e.target.value)}
-        label={t('label_tag_color', 'Tag Color')}
-        name="color"
-        value={color}
-        enabled={true}
-        canBeCancelled={false}
-      />
-      <Button onClick={save} className="mt-[16px]">
-        {t('save', 'Save')}
-      </Button>
-    </div>
+    <TadweenScope>
+      <form
+        className="tdw-modal-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save();
+        }}
+      >
+        <TdwInput
+          name="name"
+          autoFocus
+          label={t('tag_name', 'Name')}
+          value={tagName}
+          onChange={(e) => setTagName(e.target.value)}
+        />
+        <ColorPicker
+          onChange={(e) => setColor(e.target.value)}
+          label={t('label_tag_color', 'Tag Color')}
+          name="color"
+          value={color}
+          enabled={true}
+          canBeCancelled={false}
+        />
+        <div className="tdw-modal-foot">
+          <TdwButton variant="ghost" onClick={close}>
+            {t('cancel', 'Cancel')}
+          </TdwButton>
+          <TdwButton type="submit" variant="primary">
+            {t('save', 'Save')}
+          </TdwButton>
+        </div>
+      </form>
+    </TadweenScope>
   );
 };

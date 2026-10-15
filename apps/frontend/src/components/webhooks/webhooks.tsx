@@ -257,7 +257,7 @@ export const AddOrEditWebhook: FC<{
   return (
     <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(callBack)}>
-        <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px] pt-0">
+        <div className="tdw-modal-form">
           <div>
             <Input
               label="Name"
@@ -293,22 +293,11 @@ export const AddOrEditWebhook: FC<{
                 isMain={true}
               />
             )}
-            <div className="flex gap-[10px]">
-              <Button
-                type="submit"
-                className="mt-[24px]"
-                disabled={
-                  !form.formState.isValid ||
-                  (allIntegrations.value === 'specific' &&
-                    !integrations?.length)
-                }
-              >
-                {t('save', 'Save')}
-              </Button>
+            {/* Tadween: the test is the secondary action, Save the last one */}
+            <div className="tdw-modal-foot mt-[24px]">
               <Button
                 type="button"
                 secondary={true}
-                className="mt-[24px]"
                 onClick={sendTest}
                 disabled={
                   !form.formState.isValid ||
@@ -317,6 +306,16 @@ export const AddOrEditWebhook: FC<{
                 }
               >
                 {t('send_test', 'Send Test')}
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  !form.formState.isValid ||
+                  (allIntegrations.value === 'specific' &&
+                    !integrations?.length)
+                }
+              >
+                {t('save', 'Save')}
               </Button>
             </div>
           </div>

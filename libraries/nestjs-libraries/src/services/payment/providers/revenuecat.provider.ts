@@ -29,6 +29,7 @@ interface RevenueCatSubscription {
 // load the subscriber from the API instead of trusting the event payload.
 // app_user_id === Postiz organization id (the app calls Purchases.logIn(orgId)).
 // Product ids end with <tier>.<period> or <tier>_<period>, e.g. com.postiz.mob.pro.yearly
+// (Google Play adds :<base plan id>, which is ignored)
 @PaymentProvider({ provider: REVENUECAT_PROVIDER })
 export class RevenueCatProvider extends PaymentProviderAbstract {
   platform: PaymentPlatform = 'mobile';
@@ -186,7 +187,9 @@ export class RevenueCatProvider extends PaymentProviderAbstract {
   }
 
   private parseProductId(productId: string) {
-    const parts = productId.split(/[._]/);
+    // Google Play products come as <subscription id>:<base plan id>
+    // (app.tadween.team.monthly:monthly); the tier and period are in the id.
+    const parts = productId.split(':')[0].split(/[._]/);
     const period = (parts.pop() || '').toUpperCase();
     const billing = (parts.pop() || '').toUpperCase();
 

@@ -7,10 +7,8 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
 import { OAuthSelfHosted } from '@gitroom/frontend/components/oauth/self.hosted.component';
-import {
-  McpClientIcon,
-  mcpClientFromRequest,
-} from '@gitroom/frontend/components/public-api/mcp.client.icons';
+import { McpClientIcon } from '@gitroom/frontend/components/public-api/mcp.client.icons';
+import { mcpClientFromRequest } from '@gitroom/helpers/utils/mcp.client.match';
 import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 import { useLegalLinks } from '@gitroom/frontend/components/tadween/auth/auth.parts';
 import { useOrganizations } from '@gitroom/frontend/components/tadween/shell/sidebar';

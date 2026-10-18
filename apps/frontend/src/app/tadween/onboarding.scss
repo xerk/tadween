@@ -144,6 +144,10 @@ $phone: '(max-width: 1025px)';
   .tdw-obm-label-row { font-size: 14px; line-height: 20px; font-weight: 500; }
   .tdw-obm-note { width: 100%; max-width: 860px; margin: 0 auto; padding: var(--space-4); border-radius: var(--radius-lg); background: var(--muted); color: var(--muted-foreground); font-size: 14px; line-height: 20px; text-align: center; }
   .tdw-obm-agents { width: 100%; }
+  // "About you": three chip questions, a calm column
+  .tdw-obm-about { display: grid; gap: var(--space-6); width: 100%; max-width: 720px; margin: 0 auto; }
+  .tdw-obm-about .pz-ob-agent { height: 40px; padding: 0 14px; font-size: 14px; }
+  .tdw-obm-about-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
   .pz-ob-chips.is-start { justify-content: flex-start; }
 
   .tdw-obm-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-top: auto; padding-top: var(--space-4); }
@@ -159,6 +163,8 @@ $phone: '(max-width: 1025px)';
     .tdw-obm-body { gap: var(--space-5); padding: var(--space-4) var(--space-4) 0; }
     .tdw-obm-steps { justify-content: flex-start; gap: var(--space-2); padding: 6px 0 0; padding-inline-end: 48px; }
     .tdw-obm-line { width: 16px; }
+    .tdw-obm-about { gap: var(--space-5); }
+    .tdw-obm-about-pair { grid-template-columns: minmax(0, 1fr); }
     // the step names don't fit: the numbers carry the progress, the current one keeps its name
     .tdw-obm-step:not(.is-current) .tdw-obm-label { display: none; }
     .tdw-obm-title { text-align: start; }

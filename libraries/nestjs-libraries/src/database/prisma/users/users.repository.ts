@@ -9,6 +9,7 @@ import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
 import { DeviceDto } from '@gitroom/nestjs-libraries/dtos/users/device.dto';
+import { OnboardingAnswersDto } from '@gitroom/nestjs-libraries/dtos/users/onboarding.answers.dto';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 
 @Injectable()
@@ -16,7 +17,8 @@ export class UsersRepository {
   constructor(
     private _user: PrismaRepository<'user'>,
     private _transaction: PrismaTransaction,
-    private _userDevice: PrismaRepository<'userDevice'>
+    private _userDevice: PrismaRepository<'userDevice'>,
+    private _userOnboarding: PrismaRepository<'userOnboarding'>
   ) {}
 
   async switchUserCredentials(currentUserId: string, targetUserId: string) {
@@ -371,5 +373,33 @@ export class UsersRepository {
     await this._userDevice.model.userDevice.deleteMany({
       where: { userId, token },
     });
+  }
+
+  // Tadween: the "About you" onboarding answers (select: nothing returned)
+  async saveOnboardingAnswers(
+    userId: string,
+    answers: Pick<OnboardingAnswersDto, 'source' | 'role' | 'goal'> & {
+      sourceOther: string | null;
+      roleOther: string | null;
+      goalOther: string | null;
+      company: string | null;
+      website: string | null;
+    }
+  ) {
+    await this._userOnboarding.model.userOnboarding.upsert({
+      where: { userId },
+      create: { userId, ...answers },
+      update: answers,
+      select: { id: true },
+    });
+  }
+
+  async getOnboardingAnsweredAt(userId: string) {
+    return (
+      await this._userOnboarding.model.userOnboarding.findUnique({
+        where: { userId },
+        select: { createdAt: true },
+      })
+    )?.createdAt;
   }
 }

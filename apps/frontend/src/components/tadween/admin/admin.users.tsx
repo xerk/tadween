@@ -12,6 +12,7 @@ import {
   DataTable,
   Drawer,
   Pill,
+  Row,
   Section,
   Table,
   tableQueryString,
@@ -21,6 +22,7 @@ import {
 import { AdminPage } from './admin.shell';
 import {
   AdminUser,
+  onboardingAnswer,
   TIER_LABEL,
   useAdminMutation,
   date,
@@ -48,6 +50,21 @@ const tierOf = (w: Workspace) => liveSub(w)?.subscriptionTier || 'FREE';
 
 // No subscription row: Free when billing is on, everything when Stripe is off.
 const planLabel = (w: Workspace) => (liveSub(w) ? TIER_LABEL[tierOf(w)] : 'No subscription');
+
+// One "About you" answer; the free text shows in full on hover and in the drawer
+const OnboardingCell: FC<{ user: AdminUser; question: 'source' | 'role' | 'goal' }> = ({ user, question }) => {
+  const answers = user.onboarding;
+  if (!answers) {
+    return <span className="caption pz-muted">—</span>;
+  }
+  const other = answers[`${question}Other` as const];
+  const text = onboardingAnswer(question, answers[question], other);
+  return (
+    <span className="caption truncate" title={text}>
+      {text}
+    </span>
+  );
+};
 
 // ── User detail ─────────────────────────────────────────────────────────────
 const UserDrawer: FC<{
@@ -117,6 +134,29 @@ const UserDrawer: FC<{
               {user.isSuperAdmin ? <Pill tone="brand" icon="shield-check">Super admin</Pill> : null}
               <Pill icon="clock">Last seen {date(user.lastOnline)}</Pill>
             </div>
+            <Section
+              title="About you"
+              description={
+                user.onboarding
+                  ? `Answered at onboarding on ${date(user.onboarding.createdAt)}`
+                  : 'Skipped or not asked yet'
+              }
+            >
+              {user.onboarding ? (
+                <>
+                  <Row label="Heard via" description={onboardingAnswer('source', user.onboarding.source, user.onboarding.sourceOther)} control={null} />
+                  <Row label="User type" description={onboardingAnswer('role', user.onboarding.role, user.onboarding.roleOther)} control={null} />
+                  <Row label="Goal" description={onboardingAnswer('goal', user.onboarding.goal, user.onboarding.goalOther)} control={null} />
+                  {user.onboarding.company || user.onboarding.website ? (
+                    <Row
+                      label="Company"
+                      description={[user.onboarding.company, user.onboarding.website].filter(Boolean).join(' · ')}
+                      control={null}
+                    />
+                  ) : null}
+                </>
+              ) : null}
+            </Section>
             <Section title={`Workspaces · ${user.organizations.length}`}>
               <Table
                 dense
@@ -268,6 +308,37 @@ export const AdminUsersPage = () => {
           {u.isSuperAdmin ? <Pill tone="brand" icon="shield-check">Admin</Pill> : null}
         </span>
       ),
+    },
+    // "About you" onboarding answers
+    {
+      key: 'source',
+      label: t('tdw_admin_heard_via', 'Heard via'),
+      title: 'Heard via',
+      csv: (u) => (u.onboarding ? onboardingAnswer('source', u.onboarding.source, u.onboarding.sourceOther) : ''),
+      render: (u) => <OnboardingCell user={u} question="source" />,
+    },
+    {
+      key: 'userType',
+      label: t('tdw_admin_user_type', 'User type'),
+      title: 'User type',
+      csv: (u) => (u.onboarding ? onboardingAnswer('role', u.onboarding.role, u.onboarding.roleOther) : ''),
+      render: (u) => <OnboardingCell user={u} question="role" />,
+    },
+    {
+      key: 'goal',
+      label: t('tdw_admin_goal', 'Goal'),
+      title: 'Goal',
+      defaultHidden: true,
+      csv: (u) => (u.onboarding ? onboardingAnswer('goal', u.onboarding.goal, u.onboarding.goalOther) : ''),
+      render: (u) => <OnboardingCell user={u} question="goal" />,
+    },
+    {
+      key: 'company',
+      label: t('tdw_admin_company', 'Company'),
+      title: 'Company',
+      defaultHidden: true,
+      csv: (u) => [u.onboarding?.company, u.onboarding?.website].filter(Boolean).join(' · '),
+      render: (u) => <span className="caption">{[u.onboarding?.company, u.onboarding?.website].filter(Boolean).join(' · ') || '—'}</span>,
     },
     { key: 'provider', label: t('tdw_admin_sign_in', 'Sign-in'), title: 'Sign-in', defaultHidden: true, csv: (u) => u.providerName, render: (u) => <span className="caption">{u.providerName.toLowerCase()}</span> },
     { key: 'lastOnline', label: t('tdw_admin_last_seen', 'Last seen'), title: 'Last seen', sortable: true, csv: (u) => u.lastOnline, render: (u) => <span className="time">{date(u.lastOnline)}</span> },

@@ -615,8 +615,14 @@ export class OrganizationRepository {
               select: {
                 email: true,
                 id: true,
-                // Tadween: the team list shows the profile name
+                // Tadween: the team list shows the profile name and photo
                 name: true,
+                picture: {
+                  select: {
+                    id: true,
+                    path: true,
+                  },
+                },
                 sendSuccessEmails: true,
                 sendFailureEmails: true,
                 sendStreakEmails: true,

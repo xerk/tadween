@@ -287,6 +287,37 @@ export class UsersRepository {
     });
   }
 
+  // Only for an account whose profile was never saved: Settings requires a
+  // name, so an empty name means the user never set (or removed) anything
+  async fillProfile(
+    userId: string,
+    profile: { name?: string; pictureId?: string }
+  ) {
+    const user = await this._user.model.user.findUnique({
+      where: { id: userId },
+      select: { name: true, pictureId: true },
+    });
+    if (!user || user.name) {
+      return;
+    }
+
+    const data = {
+      ...(profile.name ? { name: profile.name } : {}),
+      ...(!user.pictureId && profile.pictureId
+        ? { pictureId: profile.pictureId }
+        : {}),
+    };
+    if (!Object.keys(data).length) {
+      return;
+    }
+
+    await this._user.model.user.update({
+      where: { id: userId },
+      data,
+      select: { id: true },
+    });
+  }
+
   // Tadween: the app language, for emails (select: nothing returned)
   async setLanguage(userId: string, language: string) {
     await this._user.model.user.update({

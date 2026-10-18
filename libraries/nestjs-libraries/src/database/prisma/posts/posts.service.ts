@@ -92,8 +92,18 @@ export class PostsService {
     return this._postRepository.updatePost(id, postId, releaseURL);
   }
 
-  setReleaseDetails(id: string, postId: string, releaseURL: string) {
-    return this._postRepository.setReleaseDetails(id, postId, releaseURL);
+  updateResolvedRelease(
+    id: string,
+    orgId: string,
+    releaseId: string,
+    releaseURL: string
+  ) {
+    return this._postRepository.updateResolvedRelease(
+      id,
+      orgId,
+      releaseId,
+      releaseURL
+    );
   }
 
   async getMissingContent(
@@ -958,6 +968,8 @@ export class PostsService {
           } catch (err) {}
         }
       } catch (err) {}
+
+      return { id: post.id };
     }
 
     return { error: true };

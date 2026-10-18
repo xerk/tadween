@@ -24,6 +24,7 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useIntegrationList } from '@gitroom/frontend/components/launches/helpers/use.integration.list';
 import { ChannelsAfterPayment } from '@gitroom/frontend/components/layout/check.payment';
+import { HubspotInstalled } from '@gitroom/frontend/components/launches/hubspot.installed';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import {
   Button as TdwButton,
@@ -645,6 +646,7 @@ export const LaunchesComponent = () => {
       {/* Tadween: Postiz's <Onboarding /> (?onboarding=true) is mounted by
           LayoutComponent, so it opens on Today too */}
       <ChannelsAfterPayment integrations={integrations} />
+      <HubspotInstalled />
       <CalendarWeekProvider integrations={sortedIntegrations}>
         {/* Tadween: the channel column became chips + an "All channels"
             sheet; the list below is the column's content, unchanged. */}

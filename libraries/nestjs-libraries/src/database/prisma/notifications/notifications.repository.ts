@@ -7,8 +7,39 @@ export class NotificationsRepository {
     private _notifications: PrismaRepository<'notifications'>,
     private _user: PrismaRepository<'user'>,
     private _post: PrismaRepository<'post'>,
-    private _integration: PrismaRepository<'integration'>
+    private _integration: PrismaRepository<'integration'>,
+    private _userDevice: PrismaRepository<'userDevice'>
   ) {}
+
+  // Tadween: the phones of the workspace's active members, for push
+  getOrganizationDevices(organizationId: string) {
+    return this._userDevice.model.userDevice.findMany({
+      where: {
+        user: {
+          deletedAt: null,
+          organizations: {
+            some: { organizationId, disabled: false },
+          },
+        },
+      },
+      select: {
+        token: true,
+        user: {
+          select: {
+            language: true,
+            sendSuccessEmails: true,
+            sendFailureEmails: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteDevices(tokens: string[]) {
+    await this._userDevice.model.userDevice.deleteMany({
+      where: { token: { in: tokens } },
+    });
+  }
 
   // What the notifications panel shows about a post and its channel. Only
   // display fields: the channel's credentials never leave the repository.

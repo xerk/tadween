@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   Post,
@@ -27,6 +28,10 @@ import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/us
 import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
 import { UserLanguageDto } from '@gitroom/nestjs-libraries/dtos/users/user.language.dto';
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
+import {
+  DeviceDto,
+  DeviceTokenDto,
+} from '@gitroom/nestjs-libraries/dtos/users/device.dto';
 import { HttpForbiddenException } from '@gitroom/nestjs-libraries/services/exception.filter';
 import { RealIP } from 'nestjs-real-ip';
 import { UserAgent } from '@gitroom/nestjs-libraries/user/user.agent';
@@ -277,6 +282,30 @@ export class UsersController {
     if (!(req.cookies.impersonate || req.headers.impersonate)) {
       await this._userService.setLanguage(user.id, body.language);
     }
+    return { ok: true };
+  }
+
+  // Tadween: the mobile app registers its push token after notifications are
+  // allowed, and forgets it on sign-out
+  @Post('/devices')
+  async saveDevice(
+    @GetUserFromRequest() user: User,
+    @Body() body: DeviceDto,
+    @Req() req: Request
+  ) {
+    // a super admin browsing as someone doesn't get their pushes
+    if (!(req.cookies.impersonate || req.headers.impersonate)) {
+      await this._userService.saveDevice(user.id, body);
+    }
+    return { ok: true };
+  }
+
+  @Delete('/devices')
+  async deleteDevice(
+    @GetUserFromRequest() user: User,
+    @Body() body: DeviceTokenDto
+  ) {
+    await this._userService.deleteDevice(user.id, body.token);
     return { ok: true };
   }
 

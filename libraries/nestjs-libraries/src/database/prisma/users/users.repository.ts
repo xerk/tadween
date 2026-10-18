@@ -8,13 +8,15 @@ import { Provider, Role } from '@prisma/client';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
+import { DeviceDto } from '@gitroom/nestjs-libraries/dtos/users/device.dto';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 
 @Injectable()
 export class UsersRepository {
   constructor(
     private _user: PrismaRepository<'user'>,
-    private _transaction: PrismaTransaction
+    private _transaction: PrismaTransaction,
+    private _userDevice: PrismaRepository<'userDevice'>
   ) {}
 
   async switchUserCredentials(currentUserId: string, targetUserId: string) {
@@ -351,6 +353,23 @@ export class UsersRepository {
         sendFailureEmails: body.sendFailureEmails,
         sendStreakEmails: body.sendStreakEmails,
       },
+    });
+  }
+
+  // Tadween: the phone the app runs on, for push. A token belongs to one
+  // account at a time: signing in as someone else on that phone moves it.
+  async saveDevice(userId: string, body: DeviceDto) {
+    await this._userDevice.model.userDevice.upsert({
+      where: { token: body.token },
+      create: { userId, token: body.token, platform: body.platform },
+      update: { userId, platform: body.platform },
+      select: { id: true },
+    });
+  }
+
+  async deleteDevice(userId: string, token: string) {
+    await this._userDevice.model.userDevice.deleteMany({
+      where: { userId, token },
     });
   }
 }

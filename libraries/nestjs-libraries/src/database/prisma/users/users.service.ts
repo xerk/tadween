@@ -3,6 +3,7 @@ import { UsersRepository } from '@gitroom/nestjs-libraries/database/prisma/users
 import { Provider, Role } from '@prisma/client';
 import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
+import { DeviceDto } from '@gitroom/nestjs-libraries/dtos/users/device.dto';
 import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.repository';
 import { IntegrationRepository } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.repository';
 import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/notification.service';
@@ -151,6 +152,15 @@ export class UsersService {
 
   fillProfile(userId: string, profile: { name?: string; pictureId?: string }) {
     return this._usersRepository.fillProfile(userId, profile);
+  }
+
+  // Tadween: the mobile app's push token for this phone
+  saveDevice(userId: string, body: DeviceDto) {
+    return this._usersRepository.saveDevice(userId, body);
+  }
+
+  deleteDevice(userId: string, token: string) {
+    return this._usersRepository.deleteDevice(userId, token);
   }
 
   setLanguage(userId: string, language: string) {

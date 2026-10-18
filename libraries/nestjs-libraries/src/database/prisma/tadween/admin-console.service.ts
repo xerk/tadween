@@ -96,6 +96,10 @@ export class AdminConsoleService {
     return this._repository.overview(new Date());
   }
 
+  onboarding() {
+    return this._repository.onboarding(20);
+  }
+
   async listUsers(query: AdminUsersQueryDto) {
     const { page, pageSize, skip } = paging(query);
     const { total, users } = await this._repository.listUsers(

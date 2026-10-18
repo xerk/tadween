@@ -126,6 +126,7 @@ model User {
   language              String?
   oauthAuthorizations   OAuthAuthorization[]
   devices               UserDevice[]
+  onboarding            UserOnboarding?
 
   @@unique([email, providerName])
   @@index([lastReadNotifications])
@@ -565,6 +566,27 @@ model UserDevice {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Tadween: the "About you" onboarding answers, one row per user, set once.
+/// Its own table so the full User row (JWT, /user/self) never carries them.
+/// Admin-only reporting: where users come from, who they are, what they want.
+model UserOnboarding {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  source      String
+  sourceOther String?
+  role        String
+  roleOther   String?
+  goal        String
+  goalOther   String?
+  company     String?
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
 }
 
 model MessagesGroup {

@@ -28,6 +28,7 @@ import {
 import {
   AdminPartnersQueryDto,
   AdminReferralsQueryDto,
+  PartnerApplicationDto,
 } from '@gitroom/nestjs-libraries/dtos/partners/partners.dto';
 import { AdminListQueryDto } from '@gitroom/nestjs-libraries/dtos/tadween/admin.list.dto';
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
@@ -1258,6 +1259,12 @@ export class PartnersService {
           appliedAt: r.appliedAt,
         })),
       },
+      // the affiliate offer, for "Become a partner" (every workspace)
+      program: {
+        tierRates: PARTNERS.tierRates,
+        commissionMonths: PARTNERS.commissionMonths,
+        holdDays: PARTNERS.holdDays,
+      },
       affiliate:
         fresh.kind === 'AFFILIATE'
           ? {
@@ -1290,6 +1297,39 @@ export class PartnersService {
             }
           : null,
     };
+  }
+
+  // "Become a partner": the affiliate program stays invite-only, so an
+  // application is an email to the team's inbox (replies reach the
+  // applicant). One per workspace; a second one sends nothing.
+  async apply(
+    organization: { id: string; name: string },
+    user: { id: string; email: string },
+    body: PartnerApplicationDto
+  ) {
+    await this.assertEnabled();
+    const partner = await this.ensurePartner(organization.id, user.id);
+    if (partner.kind === 'AFFILIATE') {
+      return { applied: true };
+    }
+    const support = await this._emails.supportEmail();
+    if (!support) {
+      console.error('support_email_not_set', { template: 'partnerApplication' });
+      throw new HttpException('Applications can’t be sent right now', 503);
+    }
+    await this._emails.sendTemplate(
+      { email: support, language: null },
+      'partnerApplication',
+      {
+        workspace: organization.name,
+        email: user.email,
+        code: partner.code,
+        audience: body.audience.trim(),
+        note: body.note?.trim() || '',
+      },
+      { replyTo: user.email, dedupeKey: `partner_apply_${organization.id}` }
+    );
+    return { applied: true };
   }
 
   private maskedDetails(encrypted: string) {

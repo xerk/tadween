@@ -6,24 +6,33 @@
 // (initials only) beside the rewards earned, then how it works. Shown in the sidebar
 // (/invite) and in Settings, while the `affiliate` switch is on. Rules and
 // data: docs/tadween/partners.md. Styles: app/tadween/referral.scss.
+// While payments are off (/user/self → paymentsEnabled) the page promises
+// only what works without a payment: friends skip the waitlist, the
+// affiliate offer invites to apply, and the ladder shows as coming soon (also
+// on a plan without AI credits, where credit rewards can't be used).
 import React, { FC, useState } from 'react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useToaster } from '@gitroom/react/toaster/toaster';
+import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import {
   Banner,
   Button,
   cx,
   EmptyState,
   Icon,
+  LinkButton,
   Pill,
   Skeleton,
   StatTile,
   TadweenScope,
 } from '@gitroom/frontend/components/tadween/ui';
-import { usePartnerMe } from '@gitroom/frontend/components/tadween/referral/partners.api';
+import {
+  PartnerMe,
+  usePartnerMe,
+} from '@gitroom/frontend/components/tadween/referral/partners.api';
 import { ReferralLinkCard } from '@gitroom/frontend/components/tadween/referral/referral.link.card';
 import {
   RewardLadder,
@@ -33,10 +42,11 @@ import { ReferralStatusList } from '@gitroom/frontend/components/tadween/referra
 import { formatUsd } from '@gitroom/frontend/components/tadween/billing/pricing';
 
 // "Who invited you?": a code, during the first days after sign-up
-const ClaimCode: FC<{ until: string; onClaimed: () => void }> = ({
-  until,
-  onClaimed,
-}) => {
+const ClaimCode: FC<{
+  until: string;
+  prelaunch: boolean;
+  onClaimed: () => void;
+}> = ({ until, prelaunch, onClaimed }) => {
   const t = useT();
   const fetch = useFetch();
   const toast = useToaster();
@@ -72,11 +82,17 @@ const ClaimCode: FC<{ until: string; onClaimed: () => void }> = ({
       <div className="min-w-0">
         <h3 className="tdw-ref-claim-title">{t('tdw_ref_claim_title', 'Who invited you?')}</h3>
         <p className="tdw-ref-claim-sub">
-          {t(
-            'tdw_ref_claim_sub',
-            'Add their code by {{date}}. You both get rewarded once you subscribe.',
-            { date: dayjs(until).format('D MMM') }
-          )}
+          {prelaunch
+            ? t(
+                'tdw_ref_claim_sub_prelaunch',
+                'Add their code by {{date}} so they get the credit for inviting you.',
+                { date: dayjs(until).format('D MMM') }
+              )
+            : t(
+                'tdw_ref_claim_sub',
+                'Add their code by {{date}}. You both get rewarded once you subscribe.',
+                { date: dayjs(until).format('D MMM') }
+              )}
         </p>
       </div>
       <div className="tdw-ref-claim-row">
@@ -100,6 +116,54 @@ const ClaimCode: FC<{ until: string; onClaimed: () => void }> = ({
         </p>
       ) : null}
     </form>
+  );
+};
+
+// The affiliate offer while payments are off: the numbers come from the
+// program's config (GET /partners/me → program), the CTA applies on /partners
+const PartnerOffer: FC<{ program: PartnerMe['program'] }> = ({ program }) => {
+  const t = useT();
+  const rates = program.tierRates.map((r) => r.rate);
+  const rate = Math.min(...rates);
+  const top = Math.max(...rates);
+  return (
+    <section className="tdw-ref-sec tdw-ref-offer" aria-labelledby="tdw-ref-offer-title">
+      <div className="tdw-ref-offer-head">
+        <span className="tdw-ref-offer-badge" aria-hidden="true">
+          <Icon name="award" size={20} />
+        </span>
+        <div className="min-w-0">
+          <h3 id="tdw-ref-offer-title">
+            {t(
+              'tdw_ref_offer_title',
+              'Earn {{rate}}% of what your referrals pay for {{months}} months',
+              { rate, months: program.commissionMonths }
+            )}
+          </h3>
+          <p className="tdw-ref-offer-sub">
+            {top > rate
+              ? t(
+                  'tdw_ref_offer_sub_tiers',
+                  'Creators and agencies can become Tadween partners. Your rate grows to {{top}}% as more of your referrals pay.',
+                  { top }
+                )
+              : t(
+                  'tdw_ref_offer_sub',
+                  'Creators and agencies can become Tadween partners.'
+                )}
+          </p>
+        </div>
+      </div>
+      <div className="tdw-ref-offer-foot">
+        <LinkButton href="/partners" variant="primary" iconEnd="arrow-right" className="tdw-ref-offer-cta">
+          {t('tdw_ref_offer_apply', 'Apply to become a partner')}
+        </LinkButton>
+        <span className="tdw-ref-offer-note">
+          <Icon name="clock" size={14} />
+          {t('tdw_ref_offer_note', 'Commissions start when paid plans launch.')}
+        </span>
+      </div>
+    </section>
   );
 };
 
@@ -133,7 +197,12 @@ const rewardText = (
 export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
   const t = useT();
   const ladder = useLadderLabels();
+  const user = useUser();
   const { data, error, isLoading, mutate } = usePartnerMe();
+  // payments off: no payment, so no credits, trial or commission yet
+  const prelaunch = !user?.paymentsEnabled;
+  // credit rewards can't be used yet (no payments, or a plan without AI)
+  const creditsLocked = prelaunch || user?.freePlan?.aiCredits === 0;
 
   if (isLoading) {
     return (
@@ -167,7 +236,16 @@ export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
         </Banner>
       ) : null}
 
-      <ReferralLinkCard code={data.code} friendCredits={data.friendCredits} trialDays={data.trialDays} />
+      <ReferralLinkCard
+        code={data.code}
+        friendCredits={data.friendCredits}
+        trialDays={data.trialDays}
+        prelaunch={prelaunch}
+      />
+
+      {prelaunch && data.kind === 'REFERRER' ? (
+        <PartnerOffer program={data.program} />
+      ) : null}
 
       {data.kind === 'AFFILIATE' ? (
         <Link href="/partners" className="tdw-ref-partner-link no-underline">
@@ -178,13 +256,19 @@ export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
       ) : null}
 
       {data.invited.canClaim ? (
-        <ClaimCode until={data.invited.claimUntil} onClaimed={() => mutate()} />
+        <ClaimCode
+          until={data.invited.claimUntil}
+          prelaunch={prelaunch}
+          onClaimed={() => mutate()}
+        />
       ) : data.invited.by ? (
         <div className="tdw-ref-invited">
           <Icon name="badge-check" size={18} />
           <span>
             {t('tdw_ref_invited_by', 'You joined with code {{code}}.', { code: data.invited.by })}{' '}
-            {data.invited.bonus.some((b) => b.status === 'PAID')
+            {prelaunch && !data.invited.bonus.length
+              ? null
+              : data.invited.bonus.some((b) => b.status === 'PAID')
               ? t('tdw_ref_invited_bonus_done', 'Your {{n}} bonus credits are in your balance.', {
                   n: data.invited.bonus.reduce((a, b) => a + b.credits, 0).toLocaleString(),
                 })
@@ -197,13 +281,30 @@ export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
         <section className="tdw-ref-sec">
           <header className="tdw-ref-sec-head">
             <h3>{t('tdw_ref_ladder_title', 'Your rewards ladder')}</h3>
-            {data.ambassador ? (
+            {creditsLocked ? (
+              <Pill icon="clock">{t('tdw_ref_coming_soon', 'Coming soon')}</Pill>
+            ) : data.ambassador ? (
               <Pill tone="brand" icon="award">
                 {t('tdw_ref_ambassador', 'Ambassador')}
               </Pill>
             ) : null}
           </header>
-          <RewardLadder steps={data.ladder} qualified={data.qualified} />
+          {creditsLocked ? (
+            <p className="tdw-ref-locked-note">
+              {prelaunch
+                ? t(
+                    'tdw_ref_ladder_soon',
+                    'Rewards start when paid plans launch. Friends who subscribe then count toward your ladder.'
+                  )
+                : t(
+                    'tdw_ref_ladder_paid_plan',
+                    'Rewards start once your workspace is on a paid plan.'
+                  )}
+            </p>
+          ) : null}
+          <div className={cx(creditsLocked && 'tdw-ref-locked')} aria-hidden={creditsLocked || undefined}>
+            <RewardLadder steps={data.ladder} qualified={data.qualified} />
+          </div>
         </section>
       ) : null}
 
@@ -271,18 +372,25 @@ export const InviteEarn: FC<{ embedded?: boolean }> = ({ embedded }) => {
           <li>
             <span className="tdw-ref-step-num">2</span>
             <span>
-              {t('tdw_ref_how_2', 'Your friend signs up and subscribes. They get {{n}} AI credits on their first payment.', {
-                n: data.friendCredits.toLocaleString(),
-              })}
+              {prelaunch
+                ? t('tdw_ref_how_2_prelaunch', 'Your friend joins with your link, skips the waitlist and gets started right away.')
+                : t('tdw_ref_how_2', 'Your friend signs up and subscribes. They get {{n}} AI credits on their first payment.', {
+                    n: data.friendCredits.toLocaleString(),
+                  })}
             </span>
           </li>
           <li>
             <span className="tdw-ref-step-num">3</span>
             <span>
-              {t(
-                'tdw_ref_how_3',
-                'They count on your ladder after their second payment (or 30 days into a yearly plan). Rewards are added automatically.'
-              )}
+              {prelaunch
+                ? t(
+                    'tdw_ref_how_3_prelaunch',
+                    'When paid plans launch, friends who subscribe count toward your rewards.'
+                  )
+                : t(
+                    'tdw_ref_how_3',
+                    'They count on your ladder after their second payment (or 30 days into a yearly plan). Rewards are added automatically.'
+                  )}
             </span>
           </li>
         </ol>

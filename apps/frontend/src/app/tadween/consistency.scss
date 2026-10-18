@@ -326,6 +326,30 @@ body {
     color: var(--tdw-primary);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tdw-primary) 35%, transparent);
   }
+  // Invite & earn (tadween/referral/invite.earn.button.tsx): a quiet pill
+  // beside Upgrade, the gift in Nile; the icon alone in the phone layout
+  .tdw-topbar-actions > .tdw-invite-pill {
+    min-width: 0;
+    height: 28px;
+    padding: 0 12px 0 10px;
+    border-radius: 9999px;
+    box-shadow: inset 0 0 0 1px var(--tdw-border);
+    color: var(--tdw-foreground);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    svg { width: 16px; height: 16px; color: var(--tdw-primary); }
+  }
+  .tdw-topbar-actions > .tdw-invite-pill:hover {
+    background: var(--tdw-primary-soft);
+    color: var(--tdw-foreground);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tdw-primary) 35%, transparent);
+  }
+  @media (max-width: 1025px) {
+    .tdw-topbar-actions > .tdw-invite-pill { width: 36px; height: 36px; padding: 0; justify-content: center; box-shadow: none; }
+    .tdw-topbar-actions > .tdw-invite-pill svg { width: 20px; height: 20px; }
+    .tdw-invite-label { display: none; }
+  }
   @media (max-width: 640px) {
     .tdw-topbar-actions > .tdw-upgrade-pill { width: 36px; padding: 0; justify-content: center; }
     .tdw-upgrade-label { display: none; }

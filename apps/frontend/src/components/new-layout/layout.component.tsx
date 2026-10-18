@@ -48,6 +48,7 @@ import { TopMenu } from '@gitroom/frontend/components/layout/top.menu';
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
 import { StreakComponent } from '@gitroom/frontend/components/layout/streak.component';
 import { UpgradeButton } from '@gitroom/frontend/components/tadween/billing/upgrade.link';
+import { InviteEarnButton } from '@gitroom/frontend/components/tadween/referral/invite.earn.button';
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
 import {
   FirstBillingComponent,
@@ -260,6 +261,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                             /^\/admin(\/|$)/.test(pathname) ? (
                               <Impersonate />
                             ) : null}
+                            <InviteEarnButton />
                             <UpgradeButton />
                             <StreakComponent />
                             <NotificationComponent />

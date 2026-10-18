@@ -5,6 +5,8 @@
 // The link points at the website when Branding has one (it keeps the code in
 // a cookie for 60 days), else at the app's sign-up page. Styles:
 // app/tadween/referral.scss. Documented in docs/tadween/partners.md.
+// While payments are off (`prelaunch`) nothing is promised that needs a
+// payment: the friend skips the waitlist instead of getting credits.
 import React, { FC, useEffect, useMemo, useState } from 'react';
 import copy from 'copy-to-clipboard';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
@@ -35,8 +37,10 @@ export const ReferralLinkCard: FC<{
   friendCredits: number;
   // affiliates: the longer trial their audience gets
   trialDays?: number | null;
+  // payments are off: no credits or trial to promise yet
+  prelaunch?: boolean;
   className?: string;
-}> = ({ code, friendCredits, trialDays, className }) => {
+}> = ({ code, friendCredits, trialDays, prelaunch, className }) => {
   const t = useT();
   const toast = useToaster();
   const link = useInviteLink(code);
@@ -45,7 +49,12 @@ export const ReferralLinkCard: FC<{
     setCanShare(typeof navigator !== 'undefined' && !!navigator.share);
   }, []);
 
-  const message = trialDays
+  const message = prelaunch
+    ? t(
+        'tdw_ref_share_text_prelaunch',
+        'I plan and schedule my social posts with Tadween. Join with my link to skip the waitlist:'
+      )
+    : trialDays
     ? t(
         'tdw_ref_share_text_trial',
         'I plan and schedule my social posts with Tadween. Start a {{days}}-day free trial with my link and get {{n}} AI credits when you subscribe:',
@@ -88,12 +97,19 @@ export const ReferralLinkCard: FC<{
         </span>
         <div className="min-w-0">
           <h3 id="tdw-ref-card-title" className="tdw-ref-card-title">
-            {t('tdw_ref_card_title', 'Give {{n}} AI credits, earn rewards', {
-              n: friendCredits.toLocaleString(),
-            })}
+            {prelaunch
+              ? t('tdw_ref_card_title_prelaunch', 'Invite friends to Tadween')
+              : t('tdw_ref_card_title', 'Give {{n}} AI credits, earn rewards', {
+                  n: friendCredits.toLocaleString(),
+                })}
           </h3>
           <p className="tdw-ref-card-sub">
-            {trialDays
+            {prelaunch
+              ? t(
+                  'tdw_ref_card_sub_prelaunch',
+                  'Friends who join with your link skip the waitlist and get started right away.'
+                )
+              : trialDays
               ? t(
                   'tdw_ref_card_sub_trial',
                   'Your audience gets a {{days}}-day trial and {{n}} AI credits on their first payment.',

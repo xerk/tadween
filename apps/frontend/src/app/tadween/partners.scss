@@ -115,6 +115,47 @@ $partners-phone: '(max-width: 640px)';
     color: var(--muted-foreground);
   }
 
+  // "Become a partner": one form card in the middle of the page
+  &.is-apply {
+    max-width: 640px;
+  }
+  .tdw-partners-apply {
+    gap: var(--space-5);
+  }
+  .tdw-partners-apply-head {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+    .tdw-partners-title {
+      font-size: 22px;
+      line-height: 28px;
+    }
+  }
+  .tdw-partners-apply-badge {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-lg);
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .tdw-partners-apply-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+  }
+  .tdw-partners-apply-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--muted-foreground);
+  }
+
   // Two cards side by side: the wide one first
   .tdw-partners-row {
     display: grid;
@@ -436,6 +477,7 @@ $partners-phone: '(max-width: 640px)';
   .tdw-ui.tdw-partners-page .tdw-partners-title { font-size: 24px; line-height: 30px; }
   .tdw-ui.tdw-partners-page .tdw-partners-card, .tdw-ui.tdw-partners-page .tdw-partners-tier { padding: var(--space-5) var(--space-4); }
   .tdw-ui.tdw-partners-page .tdw-partners-stats .pz-tile { padding: var(--space-4); }
+  .tdw-ui.tdw-partners-page .tdw-partners-apply-foot .pz-btn { width: 100%; justify-content: center; }
   .tdw-ui.tdw-partners-page .tdw-partners-stats .metric { font-size: 22px; line-height: 28px; }
   .tdw-ui.tdw-partners-page .tdw-partners-table .pz-table { min-width: 0; }
   .tdw-ui.tdw-partners-page .tdw-partners-pref-btn { justify-self: stretch; justify-content: center; }

@@ -139,6 +139,25 @@
     span { flex: 1; }
     &:hover { box-shadow: var(--shadow-sm); }
   }
+  // the affiliate offer while payments are off (invite.earn.tsx PartnerOffer)
+  .tdw-ref-offer { gap: var(--space-4); }
+  .tdw-ref-offer-head { display: flex; align-items: flex-start; gap: var(--space-4); }
+  .tdw-ref-offer-badge {
+    display: grid; place-items: center; flex: none;
+    width: 40px; height: 40px; border-radius: var(--radius-md);
+    background: var(--primary-soft); color: var(--primary);
+  }
+  .tdw-ref-offer-sub { margin: 4px 0 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+  .tdw-ref-offer-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-4); }
+  .tdw-ref-offer-note {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; line-height: 18px; color: var(--muted-foreground);
+    > .tdw-icon, > svg { flex: none; }
+  }
+  // the ladder while its rewards can't be used yet: shown, quieter
+  .tdw-ref-locked-note { margin: 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+  .tdw-ref-locked { opacity: 0.55; filter: grayscale(0.4); pointer-events: none; }
+
   .tdw-ref-invited {
     display: flex; align-items: flex-start; gap: var(--space-3); padding: 12px var(--space-5);
     border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm);
@@ -333,6 +352,7 @@
   .tdw-ui .tdw-ref-stats .pz-tile { padding: var(--space-3); }
   .tdw-ui .tdw-ref-stats .metric { font-size: 22px; }
   .tdw-ui .tdw-ref-claim-row { flex-basis: 100%; }
+  .tdw-ui .tdw-ref-offer-cta { width: 100%; justify-content: center; }
   // the table keeps workspace, status and joined; first paid is hidden
   .tdw-ui .tdw-ref-table .pz-table { min-width: 0; }
   .tdw-ui .tdw-ref-table .pz-table :is(th, td):nth-child(4) { display: none; }

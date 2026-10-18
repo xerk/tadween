@@ -96,7 +96,12 @@ export const GeneralSettings: FC = () => {
   const nextName = (name ?? workspace?.name ?? '').trim();
   const nameTooShort = name !== null && nextName.length < 3;
   const rename = useCallback(() => {
-    if (!workspace || nameTooShort || nextName === workspace.name) {
+    if (
+      !workspace ||
+      nameTooShort ||
+      nameStatus === 'saving' ||
+      nextName === workspace.name
+    ) {
       return;
     }
     saveName(async () => {
@@ -110,7 +115,7 @@ export const GeneralSettings: FC = () => {
       await mutateOrganizations();
       setName(null);
     });
-  }, [workspace, nameTooShort, nextName, saveName]);
+  }, [workspace, nameTooShort, nameStatus, nextName, saveName]);
 
   const changeShortlink = useCallback(
     (next: 'ASK' | 'YES' | 'NO') => {

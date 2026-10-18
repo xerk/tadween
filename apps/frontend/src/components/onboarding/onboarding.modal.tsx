@@ -295,7 +295,7 @@ export const OnboardingQuestions: FC<{
   const workspace = Array.isArray(organizations)
     ? organizations.find((org: { id: string }) => org.id === user?.orgId)
     : undefined;
-  const canRename = !!user?.role && user.role !== 'USER';
+  const canRename = user?.role === 'SUPERADMIN' || user?.role === 'ADMIN';
   // null until typed in, so the name shows as soon as it loads
   const [workspaceName, setWorkspaceName] = useState<string | null>(null);
   const nextName = (workspaceName ?? workspace?.name ?? '').trim();

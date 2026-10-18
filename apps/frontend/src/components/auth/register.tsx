@@ -202,10 +202,13 @@ export function RegisterAfter({
         />
       </div>
     ) : (
-      <AuthLoading
-        title={t('tdw_auth_loading_title', 'Setting up your account…')}
-        subtitle={t('tdw_auth_loading_subtitle', 'This takes a few seconds.')}
-      />
+      <div className="tdw-auth-form">
+        <AuthLoading
+          title={t('tdw_auth_loading_title', 'Setting up your account…')}
+          subtitle={t('tdw_auth_loading_subtitle', 'This takes a few seconds.')}
+        />
+        <AuthLegal />
+      </div>
     );
   }
   return (

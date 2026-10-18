@@ -267,6 +267,6 @@ export class OrganizationService {
   }
 
   updateName(orgId: string, name: string) {
-    return this._organizationRepository.updateName(orgId, name.trim());
+    return this._organizationRepository.updateName(orgId, name);
   }
 }

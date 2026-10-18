@@ -717,6 +717,13 @@
   "billing_ai_images_per_month": "صور بالذكاء الاصطناعي شهريًا",
   "billing_ai_videos_per_month": "فيديوهات بالذكاء الاصطناعي شهريًا",
   "billing_clipping_minutes_per_month": "دقيقة من تقطيع الفيديو بالذكاء الاصطناعي شهريًا",
+  "billing_cycle": "دورة الفوترة",
+  "billing_renews_on": "سيتم تجديد خطتك في",
+  "billing_trial_ends_on": "تنتهي الفترة التجريبية المجانية وسيتم تحصيل أول دفعة منك في",
+  "billing_ai_credits_reset_monthly": "يتم إعادة تعيين أرصدة الذكاء الاصطناعي كل شهر.",
+  "billing_ai_images": "صور الذكاء الاصطناعي",
+  "billing_ai_videos": "فيديوهات الذكاء الاصطناعي",
+  "billing_clipping_minutes": "دقائق القص",
   "billing_billing_address": "عنوان الفاتورة",
   "billing_payment": "الدفع",
   "billing_powered_by_stripe": "مدفوعات آمنة تتم معالجتها بواسطة",
@@ -2885,6 +2892,9 @@
   "access": "الوصول",
   "apps": "التطبيقات",
   "delete_account_confirm": "سيُحذف حسابك ومؤسساتك وقنواتك ومنشوراتك. لا يمكن التراجع عن ذلك، هل أنت متأكد؟",
+  "delete_account_confirm_subscription_members": "سيُحذف حسابك ومؤسساتك وقنواتك ومنشوراتك، وسيُلغى اشتراكك، وسيُزال أعضاء الفريق الآخرون من مؤسستك. لا يمكن التراجع عن ذلك، هل أنت متأكد؟",
+  "delete_account_confirm_subscription": "سيُحذف حسابك ومؤسساتك وقنواتك ومنشوراتك، وسيُلغى اشتراكك. لا يمكن التراجع عن ذلك، هل أنت متأكد؟",
+  "delete_account_confirm_members": "سيُحذف حسابك ومؤسساتك وقنواتك ومنشوراتك، وسيُزال أعضاء الفريق الآخرون من مؤسستك. لا يمكن التراجع عن ذلك، هل أنت متأكد؟",
   "yes_delete_my_account": "نعم، احذف حسابي",
   "could_not_delete_account": "تعذّر حذف حسابك",
   "deleting_your_account": "جارٍ حذف حسابك...",
@@ -2933,5 +2943,7 @@
   "tdw_post_comment": "انشر",
   "tdw_terminal": "الطرفية",
   "tdw_today_hello": "أهلًا.",
-  "tdw_today_hello_name": "أهلًا يا {{name}}."
+  "tdw_today_hello_name": "أهلًا يا {{name}}.",
+  "hubspot_installed": "تم تثبيت Tadween في HubSpot",
+  "hubspot_installed_description": "اربط هنا في Tadween القنوات التي تريد النشر عليها. بعد ذلك، افتح Agent Hub > Agent Builder في HubSpot، وأضف أداة، واختر Tadween MCP ضمن MCP Servers، ثم انقر على Connect and add."
 }

@@ -183,6 +183,7 @@ export class AdminConsoleRepository {
             { roleOther: { not: null } },
             { goalOther: { not: null } },
             { company: { not: null } },
+            { website: { not: null } },
           ],
         },
         orderBy: { createdAt: 'desc' },

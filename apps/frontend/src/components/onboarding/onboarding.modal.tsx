@@ -353,7 +353,7 @@ export const OnboardingQuestions: FC<{
       website: business ? website.trim() : '',
     };
     try {
-      await fetch('/user/onboarding-answers', {
+      const res = await fetch('/user/onboarding-answers', {
         method: 'POST',
         body: JSON.stringify({
           source: picked.source,
@@ -364,7 +364,9 @@ export const OnboardingQuestions: FC<{
           ),
         }),
       });
-      mutate({ answered: true }, { revalidate: false });
+      if (res.ok) {
+        mutate({ answered: true }, { revalidate: false });
+      }
     } catch (e) {
       // the answers are a nice-to-have: they never hold onboarding up
     }

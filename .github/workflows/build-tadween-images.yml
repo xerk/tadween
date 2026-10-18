@@ -20,18 +20,26 @@ jobs:
   app:
     runs-on: ubuntu-24.04-arm
     steps:
+      # Full history and tags, to find the Postiz release this build is on
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
+      # The app shows the Postiz release it is based on (the newest upstream
+      # v* tag merged into this commit, e.g. v2.25.1), not the image tag.
+      # Push upstream's release tags to this repo when syncing.
       - name: Build and push the app
         run: |
+          VERSION=$(git describe --tags --abbrev=0 --match 'v[0-9]*')
+          echo "Postiz version: $VERSION"
           docker buildx build --platform linux/arm64 \
             -f Dockerfile.dev \
-            --build-arg NEXT_PUBLIC_VERSION=${{ inputs.tag }} \
+            --build-arg NEXT_PUBLIC_VERSION=$VERSION \
             --provenance=false --sbom=false \
             -t ghcr.io/${{ github.repository_owner }}/tadween-app:${{ inputs.tag }} \
             -t ghcr.io/${{ github.repository_owner }}/tadween-app:latest \

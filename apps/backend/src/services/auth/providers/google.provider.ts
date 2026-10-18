@@ -50,9 +50,15 @@ export class GoogleProvider extends AuthProviderAbstract {
   }
 
   async getToken(code: string, redirectUri?: string) {
-    const client = makeClient(redirectUri || defaultRedirect());
+    // Tadween: the mobile app's native Google sign-in sends a server auth code
+    // with redirect_uri "native"; Google only accepts those exchanged with an
+    // empty redirect_uri
+    const native = redirectUri === 'native';
+    const client = makeClient(native ? '' : redirectUri || defaultRedirect());
     try {
-      const { tokens } = await client.getToken(code);
+      const { tokens } = native
+        ? await client.getToken({ code, redirect_uri: '' })
+        : await client.getToken(code);
       return tokens.access_token!;
     } catch (err: any) {
       // The code is single use and short lived (callback reloaded or too slow)

@@ -76,6 +76,13 @@ const SAMPLES: Sample[] = [
     email: 'mona@nilestudio.co',
     feedback: 'We only post on LinkedIn for now. Will come back when we hire a social media manager.',
   }),
+  sample('partnerApplication', 'partnerApplication', {
+    workspace: 'Nile Studio',
+    email: 'mona@nilestudio.co',
+    code: 'K7M2QX9P',
+    audience: 'linkedin.com/in/mona · 12k followers',
+    note: 'I teach social media for small businesses in Cairo.',
+  }),
   sample('notification', 'notification', {
     title: 'Streak Ended',
     html: "<p>Your streak has ended! You didn't post anything in the last 24 hours. Schedule a post now to start a new streak!</p>",

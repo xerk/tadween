@@ -104,6 +104,18 @@ const en = {
     feedback: 'Their feedback',
     noFeedback: 'No feedback given.',
   },
+  partnerApplication: {
+    subject: (workspace: string) => `Partner application: ${workspace}`,
+    preheader: 'A workspace applied to become a Tadween partner.',
+    title: 'A new partner application',
+    body: (workspace: string, email: string) =>
+      `${workspace} (${email}) applied to the partners program.`,
+    code: 'Referral code',
+    audience: 'Audience',
+    note: 'Their note',
+    noNote: 'No note.',
+    next: 'To approve, add them in Admin → Growth → Partners with this email. Reply to this email to answer them.',
+  },
   notification: {
     button: 'Open Tadween',
     // Emails whose English title and HTML come from workflows that can't
@@ -403,6 +415,18 @@ const ar: EmailStrings = {
       `ألغت ${workspace} (${email}) اشتراكها.`,
     feedback: 'ملاحظاتهم',
     noFeedback: 'لم يتركوا ملاحظات.',
+  },
+  partnerApplication: {
+    subject: (workspace: string) => `طلب شراكة: ${workspace}`,
+    preheader: 'تقدّمت مساحة عمل للانضمام إلى شركاء تدوين.',
+    title: 'طلب شراكة جديد',
+    body: (workspace: string, email: string) =>
+      `تقدّمت ${workspace} (${email}) للانضمام إلى برنامج الشركاء.`,
+    code: 'كود الدعوة',
+    audience: 'الجمهور',
+    note: 'ملاحظتهم',
+    noNote: 'لا توجد ملاحظة.',
+    next: 'للموافقة، أضفهم من الإدارة ← النمو ← الشركاء بهذا البريد. ردّ على هذه الرسالة لتراسلهم.',
   },
   notification: {
     button: 'افتح تدوين',

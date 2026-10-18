@@ -9,6 +9,7 @@ import {
   Max,
   MaxLength,
   Min,
+  MinLength,
 } from 'class-validator';
 import { AdminListQueryDto } from '@gitroom/nestjs-libraries/dtos/tadween/admin.list.dto';
 
@@ -17,6 +18,20 @@ export class ClaimReferralDto {
   @IsString()
   @Matches(/^[A-Za-z0-9_-]{3,32}$/)
   code: string;
+}
+
+// "Become a partner": where the creator's audience is, and an optional note
+// for the team
+export class PartnerApplicationDto {
+  @IsString()
+  @MinLength(2)
+  @MaxLength(300)
+  audience: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  note?: string;
 }
 
 // An affiliate's payout preference and details (details are encrypted at rest

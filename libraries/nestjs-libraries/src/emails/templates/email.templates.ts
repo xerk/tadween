@@ -248,6 +248,31 @@ const templates = {
     category: 'internal',
   }),
 
+  partnerApplication: (
+    t: EmailStrings,
+    f: Format,
+    d: { workspace: string; email: string; code: string; audience: string; note?: string }
+  ): EmailContent => ({
+    subject: t.partnerApplication.subject(d.workspace),
+    preheader: t.partnerApplication.preheader,
+    title: t.partnerApplication.title,
+    blocks: [
+      { p: t.partnerApplication.body(esc(d.workspace), esc(d.email)) },
+      {
+        rows: [
+          [t.partnerApplication.code, esc(d.code)],
+          [t.partnerApplication.audience, esc(d.audience)],
+        ],
+      },
+      {
+        quote: d.note?.trim() ? esc(d.note.trim()) : t.partnerApplication.noNote,
+        label: t.partnerApplication.note,
+      },
+      { note: t.partnerApplication.next },
+    ],
+    category: 'internal',
+  }),
+
   // Older callers that send their own title and HTML (streak, agencies)
   notification: (
     t: EmailStrings,

@@ -132,7 +132,19 @@ export interface PartnerMe {
     claimUntil: string;
     bonus: { credits: number; status: PartnerRewardStatus; appliedAt: string | null }[];
   };
+  // the affiliate offer ("Become a partner"), from the program's config
+  program: {
+    tierRates: PartnerTierRate[];
+    commissionMonths: number;
+    holdDays: number;
+  };
   affiliate: PartnerAffiliate | null;
+}
+
+export interface PartnerApplication {
+  // a link or handle where the creator's audience is
+  audience: string;
+  note?: string;
 }
 
 export interface PartnerPayoutSettings {
@@ -208,6 +220,21 @@ export const useSavePartnerPayout = () => {
   return useCallback(async (body: PartnerPayoutSettings) => {
     const res = await fetch('/partners/payout', {
       method: 'PUT',
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      throw new PartnersError(await readError(res), res.status);
+    }
+  }, []);
+};
+
+// POST /partners/apply ("Become a partner"): resolves, or throws with the
+// server's message
+export const useApplyPartner = () => {
+  const fetch = useFetch();
+  return useCallback(async (body: PartnerApplication) => {
+    const res = await fetch('/partners/apply', {
+      method: 'POST',
       body: JSON.stringify(body),
     });
     if (!res.ok) {

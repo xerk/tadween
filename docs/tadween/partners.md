@@ -9,6 +9,7 @@ Rewards are paid only out of money customers already paid. Commission is held fo
 
 Everything sits behind the **`affiliate`** instance feature switch (Admin → Features → Growth → "Invite & earn and partners"), which is off by default.
 - **Off:** nothing shows, and sign-ups are not attributed.
+- **On while payments are off** (`/user/self` → `paymentsEnabled` false): "Invite & earn" still shows in the sidebar, the top bar and Settings (in the Workspace group). The page promises only what works without a payment: friends who join with the link skip the waitlist; the affiliate offer (rates and months from `PARTNERS`) links to "Become a partner" with "Commissions start when paid plans launch."; the ladder shows as "Coming soon" (also on a plan with 0 AI credits).
 - **Switched off after launch:** the program is hidden and no new referrals are attributed. Referrals that already exist keep earning until a super admin rejects them in Admin → Referrals.
 
 ## The rules (owner-approved 2026-10-12)
@@ -71,6 +72,7 @@ Credits go through the existing AI credits ledger: an `AiCreditPurchase` row wit
 |---|---|---|
 | `GET /partners/me` | any member | Code, ladder, rewards, invited workspaces (initials only), how this workspace was invited and, for affiliates, stats and payout settings with masked details. 404 when the switch is off. |
 | `POST /partners/claim {code}` | any member | "Who invited you?" (7 days). |
+| `POST /partners/apply {audience, note?}` | any member | "Become a partner": emails the application to the team's inbox (`TADWEEN_SUPPORT_EMAIL`, else Branding's support email), reply-to the applicant. Once per workspace. The admin approves by adding the affiliate in Admin → Growth → Partners. |
 | `GET /partners/invited` | any member | The longer trial of a workspace an affiliate brought (billing shows "Start 14-day trial"). |
 | `PUT /partners/payout` | the affiliate's own login | Payout preference and details. |
 | `GET/POST /admin/console/partners`, `PUT /admin/console/partners/:id`, `POST …/:id/apply`, `POST …/rewards/:id/applied` | super admin | Partners list, add affiliate by email, edit (status, kind, rate, months, ambassador), grant what's due now, mark manual rewards applied. |
@@ -184,7 +186,7 @@ The button opens `PayoutSettingsDrawer`, a kit `Drawer` (inline end side; left i
 ## Phase 2 (not built)
 
 - Applying ladder steps 10 and 25 automatically (a coupon or a price change through the payment provider interface).
-- An open affiliate application form, the leaderboard and contests, launch bonuses, and the creator-kit content.
+- An admin queue for affiliate applications (today they arrive by email), the leaderboard and contests, launch bonuses, and the creator-kit content.
 - A cash payout provider (Wise API or Payoneer), and a signed W-8BEN upload instead of the acknowledgement.
 - Clawing back credits when a qualified friend is refunded; today only commission is clawed back.
 - Converting non-USD Stripe balances: a non-USD customer's free month or balance stays AVAILABLE for the admin to apply.

@@ -29,6 +29,22 @@ which sign-in providers are configured as booleans in the public `GET /instance/
    Without these two, the YouTube client (`YOUTUBE_CLIENT_ID` / `YOUTUBE_CLIENT_SECRET`) is used,
    as in Postiz. If you reuse the YouTube client, it already has the redirect URI above.
 
+## Mobile app (native sign-in)
+
+The mobile app signs in with Google's native SDK and sends the Google **ID token** to
+`/auth/oauth/GOOGLE/exists` with `redirect_uri=native`, so the user sees one account prompt. The
+backend verifies the token (signature, issuer, expiry, `email_verified`) with `verifyIdToken`.
+Its audience must be the sign-in client id (`GOOGLE_LOGIN_CLIENT_ID`, or `YOUTUBE_CLIENT_ID` as the
+fallback) or one of the ids in `GOOGLE_LOGIN_NATIVE_AUDIENCES`:
+
+```env
+GOOGLE_LOGIN_NATIVE_AUDIENCES="123-ios.apps.googleusercontent.com"
+```
+
+Android ID tokens requested with the web client as server client id carry the web client id, so
+they need no extra entry. iOS ID tokens carry the iOS client id, so add it here. Older app builds
+that send a server auth code instead of an ID token still work: the code is exchanged as before.
+
 ## How it behaves
 
 - A Google account signs in by its Google user id (`User.providerName = GOOGLE`, `providerId`).

@@ -289,9 +289,8 @@ export class UsersRepository {
     });
   }
 
-  // Only fills what is empty: the name when the user has none (Settings
-  // requires one, so an empty name was never saved) and the photo when the
-  // user has none. Never replaces a name or photo the user set.
+  // Only for an account whose profile was never saved: Settings requires a
+  // name, so an empty name means the user never set (or removed) anything
   async fillProfile(
     userId: string,
     profile: { name?: string; pictureId?: string }
@@ -300,12 +299,12 @@ export class UsersRepository {
       where: { id: userId },
       select: { name: true, pictureId: true },
     });
-    if (!user) {
+    if (!user || user.name) {
       return;
     }
 
     const data = {
-      ...(!user.name && profile.name ? { name: profile.name } : {}),
+      ...(profile.name ? { name: profile.name } : {}),
       ...(!user.pictureId && profile.pictureId
         ? { pictureId: profile.pictureId }
         : {}),

@@ -202,26 +202,23 @@ export class AuthService {
     }
   }
 
-  // Takes the name and photo the sign-in provider shares, each only when the
-  // account has none (new, or created before providers shared them), so an
-  // account with a name still gets its first photo. The photo is copied into
-  // the user's own workspace media (once: only while the user has no photo)
-  // so it doesn't depend on the provider URL. Runs in the background (a slow
-  // photo host must not hold the sign-in) and never throws.
+  // Takes the name and photo the sign-in provider shares, for an account whose
+  // profile was never saved (new, or created before providers shared them).
+  // The photo is copied into the user's own workspace media so it doesn't
+  // depend on the provider URL. Runs in the background (a slow photo host
+  // must not hold the sign-in) and never throws.
   private async fillProfile(
     user: { id: string; name?: string | null; pictureId?: string | null },
     providerUser: { name?: string; picture?: string },
     organizationId?: string
   ) {
     try {
-      const needsName = !user.name && !!providerUser.name;
-      const needsPicture = !user.pictureId && !!providerUser.picture;
-      if (!needsName && !needsPicture) {
+      if (user.name) {
         return;
       }
 
       let pictureId: string | undefined;
-      if (needsPicture) {
+      if (!user.pictureId && providerUser.picture) {
         // never a team the user was invited to
         const orgId =
           organizationId ||
@@ -235,9 +232,9 @@ export class AuthService {
         }
       }
 
-      if (needsName || pictureId) {
+      if (providerUser.name || pictureId) {
         await this._userService.fillProfile(user.id, {
-          name: needsName ? providerUser.name : undefined,
+          name: providerUser.name,
           pictureId,
         });
       }

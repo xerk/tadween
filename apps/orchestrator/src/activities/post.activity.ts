@@ -23,7 +23,7 @@ import {
   organizationId,
   postId as postIdSearchParam,
 } from '@gitroom/nestjs-libraries/temporal/temporal.search.attribute';
-import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
 import {
   setHeartbeatDetails,
   withHeartbeat,
@@ -104,7 +104,7 @@ export class PostActivity {
     private _refreshIntegrationService: RefreshIntegrationService,
     private _webhookService: WebhooksService,
     private _temporalService: TemporalService,
-    private _subscriptionService: SubscriptionService
+    private _access: AccessService
   ) {}
 
   @ActivityMethod()
@@ -154,13 +154,9 @@ export class PostActivity {
 
   @ActivityMethod()
   async getPost(orgId: string, postId: string) {
-    if (process.env.STRIPE_SECRET_KEY) {
-      const subscription = await this._subscriptionService.getSubscription(
-        orgId
-      );
-      if (!subscription) {
-        return false;
-      }
+    // Tadween: free-plan and early-access workspaces publish without a plan
+    if (!(await this._access.canPublish(orgId))) {
+      return false;
     }
     const post = await this._postService.getPostById(postId, orgId);
     if (post.deletedAt) {
@@ -172,13 +168,8 @@ export class PostActivity {
 
   @ActivityMethod()
   async getPostsList(orgId: string, postId: string) {
-    if (process.env.STRIPE_SECRET_KEY) {
-      const subscription = await this._subscriptionService.getSubscription(
-        orgId
-      );
-      if (!subscription) {
-        return [];
-      }
+    if (!(await this._access.canPublish(orgId))) {
+      return [];
     }
 
     const getPosts = await this._postService.getPostsRecursively(
@@ -362,14 +353,8 @@ export class PostActivity {
     // the ones on their own HTTP client (x, youtube, bluesky) are still
     // narrowed down to the step they hung on.
     setHeartbeatDetails('subscription lookup');
-    if (process.env.STRIPE_SECRET_KEY) {
-      const subscription = await this._subscriptionService.getSubscription(
-        integration.organizationId
-      );
-
-      if (!subscription) {
-        throw new Error('No active subscription found for this organization.');
-      }
+    if (!(await this._access.canPublish(integration.organizationId))) {
+      throw new Error('No active subscription found for this organization.');
     }
 
     const getIntegration = this._integrationManager.getSocialIntegration(

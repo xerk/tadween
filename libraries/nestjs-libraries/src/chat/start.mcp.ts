@@ -59,6 +59,8 @@ export const startMcp = async (app: INestApplication) => {
     if (token.startsWith('pos_')) {
       const authorization = await oauthService.getOrgByOAuthToken(token);
       if (!authorization) return null;
+      // Tadween: nothing for a waitlisted workspace yet
+      if (authorization.organization.waitlistedAt) return null;
       return authorization.organization;
     }
     return organizationService.getOrgByApiKey(token);

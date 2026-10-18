@@ -4,13 +4,15 @@ import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/s
 import { PaymentPlatform } from '@gitroom/nestjs-libraries/services/payment/payment.provider.interface';
 import { BillingSubscribeDto } from '@gitroom/nestjs-libraries/dtos/billing/billing.subscribe.dto';
 import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
 
 @Injectable()
 export class PaymentService {
   constructor(
     private _paymentProviderManager: PaymentProviderManager,
     private _subscriptionService: SubscriptionService,
-    private _plans: PlansService
+    private _plans: PlansService,
+    private _access: AccessService
   ) {}
 
   async webhook(
@@ -42,10 +44,13 @@ export class PaymentService {
   // connect channels before the plan is chosen. Nothing to do with billing
   // off or without a plan that has a trial. Never fails the sign-up.
   async startSignupTrial(organizationId: string, userId: string) {
-    if (!process.env.STRIPE_PUBLISHABLE_KEY || !process.env.IS_GENERAL) {
+    if (!process.env.IS_GENERAL) {
       return;
     }
     try {
+      if (!(await this._access.paymentsEnabled())) {
+        return;
+      }
       const billing = await this._plans.getSignupTrialTier();
       if (!billing) {
         return;

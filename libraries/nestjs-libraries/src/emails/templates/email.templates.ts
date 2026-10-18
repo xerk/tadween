@@ -308,6 +308,38 @@ const templates = {
     category: 'transactional',
   }),
 
+  // Sent instead of the welcome when the free plan is full
+  waitlisted: (
+    t: EmailStrings,
+    f: Format,
+    d: { name?: string; position: number }
+  ): EmailContent => ({
+    subject: t.waitlisted.subject,
+    preheader: t.waitlisted.preheader(f.num(d.position)),
+    title: t.waitlisted.title(esc(d.name || '')),
+    blocks: [
+      { p: t.waitlisted.body },
+      { note: t.waitlisted.position(f.num(d.position)) },
+      { p: t.waitlisted.next },
+    ],
+    button: { label: t.waitlisted.button, url: f.url('/launches') },
+    category: 'transactional',
+  }),
+
+  // A waitlisted workspace was let in: the welcome it didn't get at sign-up
+  waitlistAdmitted: (
+    t: EmailStrings,
+    f: Format,
+    d: { name?: string }
+  ): EmailContent => ({
+    subject: t.waitlistAdmitted.subject,
+    preheader: t.waitlistAdmitted.preheader,
+    title: t.waitlistAdmitted.title(esc(d.name || '')),
+    blocks: [{ p: t.waitlistAdmitted.body }, { list: t.welcome.steps }],
+    button: { label: t.waitlistAdmitted.button, url: f.url('/launches') },
+    category: 'transactional',
+  }),
+
   trialEnding: (
     t: EmailStrings,
     f: Format,

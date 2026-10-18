@@ -23,6 +23,9 @@ model Organization {
   /// Tadween: when the workspace first subscribed at a founder price (null =
   /// never). Kept after cancelling, so the founder cap counts the first N.
   founderSince        DateTime?
+  /// Tadween: set when the workspace signed up while the free plan was full
+  /// (null = has access). Cleared when an admin lets it in.
+  waitlistedAt        DateTime?
   shortlink           ShortLinkPreference  @default(ASK)
   autoPost            AutoPost[]
   Comments            Comments[]
@@ -55,6 +58,7 @@ model Organization {
   @@index([paymentId])
   @@index([deletedAt])
   @@index([founderSince])
+  @@index([waitlistedAt])
 }
 
 model Tags {

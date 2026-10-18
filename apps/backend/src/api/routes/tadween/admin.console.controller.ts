@@ -23,6 +23,7 @@ import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/
 import { AdminConsoleService } from '@gitroom/nestjs-libraries/database/prisma/tadween/admin-console.service';
 import { ProviderCredentialsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-credentials.service';
 import {
+  AccessSettingsDto,
   AdminOrgTierDto,
   AdminUserActivationDto,
   BrandingSettingsDto,
@@ -50,6 +51,8 @@ import {
   AdminUpdatePartnerDto,
 } from '@gitroom/nestjs-libraries/dtos/partners/partners.dto';
 import { AdminListQueryDto } from '@gitroom/nestjs-libraries/dtos/tadween/admin.list.dto';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
+import { paging } from '@gitroom/nestjs-libraries/database/prisma/tadween/admin-console.service';
 
 
 // Tadween super-admin console. Every route is behind AuthMiddleware (listed in
@@ -64,7 +67,8 @@ export class AdminConsoleController {
     private _plans: PlansService,
     private _console: AdminConsoleService,
     private _credentials: ProviderCredentialsService,
-    private _partners: PartnersService
+    private _partners: PartnersService,
+    private _access: AccessService
   ) {}
 
   // While impersonating, `user` is the impersonated account; the admin is the
@@ -219,6 +223,33 @@ export class AdminConsoleController {
   @Delete('/plans/:id')
   deletePlan(@Param('id') id: string) {
     return this._plans.remove(id);
+  }
+
+  // ── Free launch: payments switch, free plan, cap and waitlist ─────────────
+  @Get('/access')
+  access() {
+    return this._access.adminState();
+  }
+
+  // Saving a higher cap (or none) lets the oldest waiting workspaces in
+  @Put('/access')
+  setAccess(
+    @GetUserFromRequest() user: User,
+    @Req() req: Request,
+    @Body() body: AccessSettingsDto
+  ) {
+    return this._access.saveSettings(body, this.adminId(req, user));
+  }
+
+  @Get('/access/waitlist')
+  waitlist(@Query() query: AdminListQueryDto) {
+    const { page, pageSize } = paging(query);
+    return this._access.listWaitlist(page, pageSize);
+  }
+
+  @Post('/access/waitlist/:id/admit')
+  admit(@Param('id') id: string) {
+    return this._access.admit(id);
   }
 
   // ── Users and workspaces ───────────────────────────────────────────────────

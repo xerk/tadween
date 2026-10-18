@@ -28,6 +28,7 @@ import {
   imageCreditAction,
 } from '@gitroom/nestjs-libraries/openai/ai.config';
 import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
 import {
   AuthorizationActions,
   Sections,
@@ -40,8 +41,16 @@ export class BillingController {
     private _subscriptionService: SubscriptionService,
     private _notificationService: NotificationService,
     private _usersService: UsersService,
-    private _paymentService: PaymentService
+    private _paymentService: PaymentService,
+    private _access: AccessService
   ) {}
+
+  // Tadween: nothing is sold while payments are off in /admin
+  private async assertPaymentsEnabled() {
+    if (!(await this._access.paymentsEnabled())) {
+      throw new HttpException('Payments are not available yet.', 400);
+    }
+  }
 
   // Billing routes are the web platform; the org's own provider (or the web
   // default when it has none) handles the action.
@@ -106,6 +115,7 @@ export class BillingController {
     @Body() body: BillingSubscribeDto,
     @Req() req: Request
   ) {
+    await this.assertPaymentsEnabled();
     if (await this.assertNoOtherSubscribedAccount(user)) {
       return { blocked: true };
     }
@@ -128,6 +138,7 @@ export class BillingController {
     @Body() body: BillingSubscribeDto,
     @Req() req: Request
   ) {
+    await this.assertPaymentsEnabled();
     if (await this.assertNoOtherSubscribedAccount(user)) {
       return { blocked: true };
     }
@@ -169,6 +180,7 @@ export class BillingController {
     @Body() body: BillingSubscribeDto,
     @Req() req: Request
   ) {
+    await this.assertPaymentsEnabled();
     if (await this.assertNoOtherSubscribedAccount(user)) {
       return { blocked: true };
     }
@@ -226,6 +238,7 @@ export class BillingController {
     @GetUserFromRequest() user: User,
     @Body() body: BillingAiCreditsDto
   ) {
+    await this.assertPaymentsEnabled();
     return (await this.provider(org)).embeddedAiCredits(
       org.id,
       user.id,

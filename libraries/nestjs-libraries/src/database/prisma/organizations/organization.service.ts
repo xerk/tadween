@@ -12,6 +12,7 @@ import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { Organization, ShortLinkPreference, User } from '@prisma/client';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
 import { AutopostService } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.service';
 
 @Injectable()
@@ -19,18 +20,22 @@ export class OrganizationService {
   constructor(
     private _organizationRepository: OrganizationRepository,
     private _notificationsService: NotificationService,
-    private _plans: PlansService
+    private _plans: PlansService,
+    private _access: AccessService
   ) {}
+  // `waitlisted`: the free plan is full, the workspace waits to be let in
   async createOrgAndUser(
     body: Omit<CreateOrgUserDto, 'providerToken'> & { providerId?: string },
     ip: string,
-    userAgent: string
+    userAgent: string,
+    waitlisted = false
   ) {
     return this._organizationRepository.createOrgAndUser(
       body,
       this._notificationsService.hasEmailProvider(),
       ip,
-      userAgent
+      userAgent,
+      waitlisted
     );
   }
 
@@ -44,14 +49,18 @@ export class OrganizationService {
 
   // A plan with a member count (Plan.teamMembers > 0) is full once that many
   // members besides the owner joined. Tiers without team members are left to
-  // the TEAM_MEMBERS policy, as before.
+  // the TEAM_MEMBERS policy, as before, except the free plan's owner-only
+  // seat, which is full.
   private async teamIsFull(orgId: string) {
-    const seats = await this._organizationRepository.getTeamSeats(orgId);
+    const [seats, access] = await Promise.all([
+      this._organizationRepository.getTeamSeats(orgId),
+      this._access.forOrganizationId(orgId),
+    ]);
     const values = (await this._plans.getPricing())[
-      seats.tier || (!process.env.STRIPE_PUBLISHABLE_KEY ? 'ULTIMATE' : 'FREE')
+      seats.tier || access?.tier || 'FREE'
     ];
     if (!values?.team_members) {
-      return false;
+      return !!access?.freePlan;
     }
     return seats.members >= teamSeats(values);
   }
@@ -162,7 +171,7 @@ export class OrganizationService {
     const tier =
       // @ts-ignore
       org?.subscription?.subscriptionTier ||
-      (!process.env.STRIPE_PUBLISHABLE_KEY ? 'ULTIMATE' : 'FREE');
+      (await this._access.forOrganization(org)).tier;
 
     if (!(await this._plans.getPricing())[tier].team_members) {
       throw new HttpException(

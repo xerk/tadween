@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import {
   AppAbility,
@@ -16,6 +22,12 @@ import {
   SubscriptionException,
 } from './permission.exception.class';
 
+// What a waitlisted workspace can still reach: its waitlist screen (the
+// account, language, devices for push), switching or joining another
+// workspace, logging out and deleting the account
+const WAITLIST_ALLOWED =
+  /\/user\/(self|language|logout|organizations|change-org|join-org|devices|delete-account)$/;
+
 @Injectable()
 export class PoliciesGuard implements CanActivate {
   constructor(
@@ -25,6 +37,23 @@ export class PoliciesGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request: Request = context.switchToHttp().getRequest();
+    // A waitlisted workspace is refused everything but its waitlist screen
+    // (with or without a policy on the route)
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const requestOrg: Organization | undefined = request.org;
+    if (
+      requestOrg?.waitlistedAt &&
+      // @ts-ignore
+      !isBillingExempt(request.user, request) &&
+      !WAITLIST_ALLOWED.test(request.path)
+    ) {
+      throw new HttpException(
+        'This workspace is on the waitlist.',
+        HttpStatus.FORBIDDEN
+      );
+    }
+
     if (
       request.path.indexOf('/auth') > -1 ||
       request.path.indexOf('/auth') > -1 ||
@@ -72,7 +101,12 @@ export class PoliciesGuard implements CanActivate {
 
     if (item) {
       throw new SubscriptionException({
-        section: item[1],
+        // the free plan has no AI: say so instead of "upgrade"
+        section:
+          item[1] === Sections.AI &&
+          (await this._authorizationService.isFreePlan(org.id))
+            ? Sections.FREE_PLAN_AI
+            : item[1],
         action: item[0],
       });
     }

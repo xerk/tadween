@@ -136,6 +136,22 @@ const en = {
     affiliate: (credits: string, days: string) =>
       `You joined with a creator’s invite: your trial is ${days} days, and we add ${credits} AI credits on your first payment.`,
   },
+  waitlisted: {
+    subject: 'You’re on the Tadween waitlist',
+    preheader: (position: string) => `You’re number ${position} in line.`,
+    title: (name: string) => (name ? `Thanks for signing up, ${name}` : 'Thanks for signing up'),
+    body: 'Tadween is free during early access, and the free spots are taken for now. Your workspace is saved and waiting.',
+    position: (position: string) => `You’re number ${position} in line.`,
+    next: 'We let people in from the waitlist in the order they signed up. When it’s your turn, we’ll email you and you can start right away.',
+    button: 'Check your place',
+  },
+  waitlistAdmitted: {
+    subject: 'You’re in: welcome to Tadween',
+    preheader: 'Your workspace is ready. Connect a channel and schedule your first post.',
+    title: (name: string) => (name ? `You’re in, ${name}` : 'You’re in'),
+    body: 'A spot opened up and your workspace is ready. Tadween helps you plan a week of posts in one sitting and publish them on time.',
+    button: 'Schedule your first post',
+  },
   trialEnding: {
     subject: 'Your trial ends in 3 days',
     preheader: (date: string) => `Your free trial ends on ${date}.`,
@@ -417,6 +433,22 @@ const ar: EmailStrings = {
       `انضممت بدعوة من صديق. عند أول دفعة لك نضيف ${credits} رصيد ذكاء اصطناعي إلى مساحة عملك.`,
     affiliate: (credits: string, days: string) =>
       `انضممت بدعوة من صانع محتوى: فترتك التجريبية ${days} يومًا، ونضيف ${credits} رصيد ذكاء اصطناعي عند أول دفعة.`,
+  },
+  waitlisted: {
+    subject: 'أنت على قائمة انتظار تدوين',
+    preheader: (position: string) => `ترتيبك ${position} في القائمة.`,
+    title: (name: string) => (name ? `شكرًا لتسجيلك يا ${name}` : 'شكرًا لتسجيلك'),
+    body: 'تدوين مجاني خلال فترة الوصول المبكر، والأماكن المجانية ممتلئة الآن. مساحة عملك محفوظة وتنتظر دورها.',
+    position: (position: string) => `ترتيبك ${position} في القائمة.`,
+    next: 'ندخل المسجلين من قائمة الانتظار بترتيب تسجيلهم. عندما يأتي دورك نرسل لك رسالة وتبدأ فورًا.',
+    button: 'اعرف ترتيبك',
+  },
+  waitlistAdmitted: {
+    subject: 'دورك جاء: أهلًا بك في تدوين',
+    preheader: 'مساحة عملك جاهزة. اربط قناة وجدول أول منشور لك.',
+    title: (name: string) => (name ? `دورك جاء يا ${name}` : 'دورك جاء'),
+    body: 'توفر مكان ومساحة عملك جاهزة الآن. يساعدك تدوين على تخطيط منشورات أسبوع كامل في جلسة واحدة ونشرها في موعدها.',
+    button: 'جدول أول منشور',
   },
   trialEnding: {
     subject: 'تنتهي فترتك التجريبية بعد 3 أيام',

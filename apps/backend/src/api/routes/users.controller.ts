@@ -38,6 +38,7 @@ import { UserAgent } from '@gitroom/nestjs-libraries/user/user.agent';
 import { TrackEnum } from '@gitroom/nestjs-libraries/user/track.enum';
 import { TrackService } from '@gitroom/nestjs-libraries/track/track.service';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
 import {
   AuthorizationActions,
   Sections,
@@ -52,7 +53,8 @@ export class UsersController {
     private _authService: AuthService,
     private _orgService: OrganizationService,
     private _userService: UsersService,
-    private _trackService: TrackService
+    private _trackService: TrackService,
+    private _access: AccessService
   ) {}
 
   @Get('/chatbase-token')
@@ -116,39 +118,57 @@ export class UsersController {
 
     const impersonate = req.cookies.impersonate || req.headers.impersonate;
     const billingExempt = isBillingExempt(user, req);
+    // Tadween: which limits apply (early access, free plan, a plan) and
+    // whether payments are on (AccessService)
+    const [access, paymentsEnabled] = await Promise.all([
+      this._access.forOrganization(organization as any),
+      this._access.paymentsEnabled(),
+    ]);
+    // no trial countdown on the free plan or early access
+    const trialApplies = await this._access.trialApplies(access);
     // @ts-ignore
     return {
       ...user,
       orgId: organization.id,
       // The real tier stays in `tier` (Billing shows it); the app is not gated
       billingExempt,
-      totalChannels: !process.env.STRIPE_PUBLISHABLE_KEY || billingExempt
-        ? 10000
-        : // @ts-ignore
-          organization?.subscription?.totalChannels || pricing.FREE.channel,
+      totalChannels:
+        billingExempt || access.mode === 'early'
+          ? 10000
+          : access.freePlan
+          ? access.freePlan.channels
+          : // @ts-ignore
+            organization?.subscription?.totalChannels || pricing.FREE.channel,
       tier:
         // @ts-ignore
-        organization?.subscription?.subscriptionTier ||
-        (!process.env.STRIPE_PUBLISHABLE_KEY ? 'ULTIMATE' : 'FREE'),
+        organization?.subscription?.subscriptionTier || access.tier,
       // @ts-ignore
       role: organization?.users[0]?.role,
       // @ts-ignore
       isLifetime: !!organization?.subscription?.isLifetime,
       admin: !!user.isSuperAdmin,
       impersonate: !!impersonate,
-      isTrailing: !process.env.STRIPE_PUBLISHABLE_KEY
-        ? false
-        : organization?.isTrailing,
+      isTrailing: trialApplies ? organization?.isTrailing : false,
       // Tadween: the payment provider's status (past_due = the last renewal
       // failed, not a trial) and the real trial end, for the app's banner
-      subscriptionStatus: !process.env.STRIPE_PUBLISHABLE_KEY
+      subscriptionStatus: !paymentsEnabled
         ? null
         : // @ts-ignore
           organization?.subscription?.status || null,
-      trialEndsAt: !process.env.STRIPE_PUBLISHABLE_KEY
+      trialEndsAt: !trialApplies
         ? null
         : // @ts-ignore
           organization?.subscription?.trialEndsAt || null,
+      // Tadween free launch (additive, also read by the mobile app)
+      paymentsEnabled,
+      earlyAccess: access.mode === 'early',
+      freePlan: access.freePlan,
+      // in-app AI: the server has a model and the plan includes AI
+      aiAvailable:
+        !!process.env.OPENAI_API_KEY &&
+        (billingExempt || !access.freePlan || access.freePlan.aiCredits !== 0),
+      waitlisted: access.waitlisted,
+      waitlistPosition: await this._access.waitlistPosition(organization),
       allowTrial: organization?.allowTrial,
       streakSince: organization?.streakSince || null,
       publicApi:

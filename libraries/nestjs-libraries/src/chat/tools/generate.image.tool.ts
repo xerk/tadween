@@ -1,3 +1,7 @@
+import {
+  FREE_PLAN_AI_MESSAGE,
+  isFreePlanAiRefusal,
+} from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 import { AgentToolInterface } from '@gitroom/nestjs-libraries/chat/agent.tool.interface';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
@@ -64,8 +68,9 @@ export class GenerateImageTool implements AgentToolInterface {
         } catch (err) {
           // SubscriptionException (402) carries { section, action } and its
           // message is just "Subscription Exception", so translate it
-          const message =
-            err instanceof HttpException && err.getStatus() === 402
+          const message = isFreePlanAiRefusal(err)
+            ? FREE_PLAN_AI_MESSAGE
+            : err instanceof HttpException && err.getStatus() === 402
               ? "The workspace has used its AI credits this month. They can buy more credits or upgrade in Billing."
               : err instanceof Error
               ? err.message

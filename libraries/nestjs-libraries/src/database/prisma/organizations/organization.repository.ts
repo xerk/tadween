@@ -1,5 +1,8 @@
 import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
-import { placeholderEmailDomain } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
+import {
+  placeholderEmailDomain,
+  stripeConfigured,
+} from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { Role, ShortLinkPreference, SubscriptionTier } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
@@ -59,6 +62,8 @@ export class OrganizationRepository {
       where: {
         apiKey: api,
         deletedAt: null,
+        // Tadween: a waitlisted workspace's key works once it is let in
+        waitlistedAt: null,
       },
       include: {
         subscription: {
@@ -478,7 +483,7 @@ export class OrganizationRepository {
       });
 
     if (
-      process.env.STRIPE_PUBLISHABLE_KEY &&
+      stripeConfigured() &&
       checkForSubscription?.subscription?.subscriptionTier ===
         SubscriptionTier.STANDARD
     ) {
@@ -509,7 +514,8 @@ export class OrganizationRepository {
     body: Omit<CreateOrgUserDto, 'providerToken'> & { providerId?: string },
     hasEmail: boolean,
     ip: string,
-    userAgent: string
+    userAgent: string,
+    waitlisted = false
   ) {
     return this._organization.model.organization.create({
       data: {
@@ -517,6 +523,7 @@ export class OrganizationRepository {
         apiKey: AuthService.fixedEncryption(makeSecureId(20)),
         allowTrial: true,
         isTrailing: true,
+        waitlistedAt: waitlisted ? new Date() : null,
         users: {
           create: {
             role: Role.SUPERADMIN,

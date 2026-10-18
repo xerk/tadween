@@ -3,8 +3,9 @@
 // "Invite & earn" in the top bar (new-layout/layout.component.tsx), to
 // /invite. Shown while the `affiliate` switch is on, payments on or off; not
 // for a waitlisted workspace (it never gets the top bar, and /partners/me is
-// closed to it). A quiet pill with the gift on desktop, the icon alone on
-// phones, like Upgrade beside it. Styles: app/tadween/consistency.scss.
+// closed to it). A quiet pill with the gift on desktop; in the phone layout
+// the gift alone stays in the compact bar (Upgrade moves to More there).
+// Styles: app/tadween/consistency.scss.
 import { FC } from 'react';
 import Link from 'next/link';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';

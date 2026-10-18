@@ -1686,12 +1686,13 @@ export const ApprovedAppsSettings: FC = () => {
                     ) : null}
                     {/* with the time, so re-registrations of one client
                         (three ChatGPT rows) can be told apart */}
-                    <span>
+                    <span className="tdw-set-li-wrap">
                       {t('tdw_apps_authorized_on', 'Authorized on {{date}}', {
                         date: formatDate(app.createdAt, {
                           dateStyle: 'medium',
                           timeStyle: 'short',
                         }),
+                        interpolation: { escapeValue: false },
                       })}
                     </span>
                   </>

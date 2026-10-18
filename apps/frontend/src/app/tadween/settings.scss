@@ -652,6 +652,9 @@ body {
     color: var(--tdw-muted-foreground);
     > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     > * + * { flex: none; }
+    // a value that must stay whole (Approved apps' date and time) wraps
+    // instead of being cut on phones
+    > .tdw-set-li-wrap { white-space: normal; }
   }
   .tdw-set-li-actions { flex: none; display: flex; align-items: center; gap: 2px; }
   .tdw-set-li-toggle { display: inline-flex; align-items: center; gap: 8px; margin-inline-end: 8px; }

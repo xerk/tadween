@@ -116,7 +116,8 @@ export class AccessRepository {
         organizationId,
         role: 'SUPERADMIN',
         disabled: false,
-        user: { deletedAt: null },
+        // an owner who hasn't activated yet gets the welcome on activation
+        user: { deletedAt: null, activated: true },
       },
       select: {
         user: {

@@ -1,4 +1,4 @@
-// Tadween: every word the emails say, in English and Arabic. The backend has
+// Tadween: every word the emails (and the app's push notifications) say, in English and Arabic. The backend has
 // no i18n setup (the app's i18next files are frontend-only), so the copy lives
 // in this typed dictionary next to the templates: `ar` must have every key of
 // `en` with the same arguments. Values passed in are already escaped.
@@ -71,6 +71,12 @@ const en = {
         ? `${network} disconnected ${channel}. Reconnect it to keep your scheduled posts going out on time.`
         : `${network} disconnected one of your channels. Reconnect it to keep your scheduled posts going out on time.`,
     button: 'Reconnect channel',
+  },
+  // Push notifications on the phone: a short title and one sentence
+  push: {
+    published: (network: string) => `Posted to ${network}`,
+    publishedBody: 'Your post is live. Tap to see it.',
+    other: 'Tadween',
   },
   digest: {
     subject: 'Your latest notifications',
@@ -350,6 +356,11 @@ const ar: EmailStrings = {
         ? `فصلت ${network} القناة ${channel}. أعد ربطها لتستمر منشوراتك المجدولة في الصدور في موعدها.`
         : `فصلت ${network} إحدى قنواتك. أعد ربطها لتستمر منشوراتك المجدولة في الصدور في موعدها.`,
     button: 'أعد ربط القناة',
+  },
+  push: {
+    published: (network: string) => `تم النشر على ${network}`,
+    publishedBody: 'منشورك ظاهر الآن. اضغط لتراه.',
+    other: 'تدوين',
   },
   digest: {
     subject: 'آخر إشعاراتك',

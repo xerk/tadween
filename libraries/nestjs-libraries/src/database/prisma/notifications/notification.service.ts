@@ -15,6 +15,14 @@ import { TypedSearchAttributes } from '@temporalio/common';
 import { organizationId } from '@gitroom/nestjs-libraries/temporal/temporal.search.attribute';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
+import {
+  PushMessage,
+  PushService,
+} from '@gitroom/nestjs-libraries/services/push.service';
+import {
+  EmailLanguage,
+  emailStrings,
+} from '@gitroom/nestjs-libraries/emails/templates/email.strings';
 
 export type NotificationType = 'success' | 'fail' | 'info';
 
@@ -85,7 +93,8 @@ export class NotificationService {
     private _emailService: EmailService,
     private _organizationRepository: OrganizationRepository,
     private _temporalService: TemporalService,
-    private _integrationManager: IntegrationManager
+    private _integrationManager: IntegrationManager,
+    private _pushService: PushService
   ) {}
 
   getMainPageCount(organizationId: string, userId: string) {
@@ -350,6 +359,26 @@ export class NotificationService {
     type: NotificationType = 'success'
   ) {
     await this._notificationRepository.createNotification(orgId, message);
+    await this.emailNotification(
+      orgId,
+      subject,
+      message,
+      sendEmail,
+      digest,
+      type
+    );
+    // Tadween: last, so a slow push never holds up the record or the email
+    await this.sendPush(orgId, subject, message, type);
+  }
+
+  private async emailNotification(
+    orgId: string,
+    subject: string,
+    message: string,
+    sendEmail: boolean,
+    digest: boolean,
+    type: NotificationType
+  ) {
     if (!sendEmail) {
       return;
     }
@@ -386,6 +415,109 @@ export class NotificationService {
     }
 
     await this.sendEmailsToOrg(orgId, subject, message, type);
+  }
+
+  // Tadween: the same notification on the members' phones, each in their
+  // language. Runs inside the post workflows' activity, so it never throws.
+  // The same preferences as the emails decide who gets one.
+  private async sendPush(
+    orgId: string,
+    subject: string,
+    message: string,
+    type: NotificationType
+  ) {
+    try {
+      if (!this._pushService.enabled()) {
+        return;
+      }
+      const devices = (
+        await this._notificationRepository.getOrganizationDevices(orgId)
+      ).filter(
+        ({ user }) =>
+          type === 'info' ||
+          (type === 'success' && user.sendSuccessEmails) ||
+          (type === 'fail' && user.sendFailureEmails)
+      );
+      const languages = new Map<string | null, EmailLanguage>();
+      const byLanguage = new Map<EmailLanguage, string[]>();
+      for (const device of devices) {
+        if (!languages.has(device.user.language)) {
+          languages.set(
+            device.user.language,
+            await this._emailService.languageFor(device.user.language)
+          );
+        }
+        const language = languages.get(device.user.language)!;
+        byLanguage.set(language, [
+          ...(byLanguage.get(language) || []),
+          device.token,
+        ]);
+      }
+
+      const gone: string[] = [];
+      for (const [language, tokens] of byLanguage) {
+        gone.push(
+          ...(await this._pushService.send(tokens, {
+            ...this.pushContent(subject, message, language),
+            data: { organizationId: orgId, route: '/notifications' },
+          }))
+        );
+      }
+      if (gone.length) {
+        await this._notificationRepository.deleteDevices(gone);
+      }
+    } catch (err) {
+      console.error('Push notification failed', err);
+    }
+  }
+
+  // The push says what the email says, in one line under a title
+  private pushContent(
+    subject: string,
+    message: string,
+    language: EmailLanguage
+  ): Pick<PushMessage, 'title' | 'body'> {
+    const t = emailStrings[language];
+    const email = this.notificationEmail(subject, message);
+    if (email.template === 'postFailed') {
+      const { network, channel, variant } = email.data;
+      if (variant === 'unconfirmed') {
+        return {
+          title: t.postFailed.unconfirmedTitle(network),
+          body: t.postFailed.unconfirmed(channel || network),
+        };
+      }
+      return {
+        title: t.postFailed.title(network),
+        body:
+          variant === 'disabled'
+            ? t.postFailed.disabled
+            : t.postFailed.body(network, channel),
+      };
+    }
+    if (email.template === 'channelReconnect') {
+      const { network, channel } = email.data;
+      return {
+        title: t.channelReconnect.title(network),
+        body: t.channelReconnect.body(network, channel),
+      };
+    }
+
+    const { kind, provider } = this.parseNotification(message);
+    if (kind === 'published' && provider) {
+      return {
+        title: t.push.published(
+          this._integrationManager
+            .getSocialIntegration(provider)
+            .name.replace(/\s*\n\s*/g, ' ')
+        ),
+        body: t.push.publishedBody,
+      };
+    }
+    return {
+      title: this.postPreview(subject) || t.push.other,
+      body: this.postPreview(message),
+    };
   }
 
   async sendEmailsToOrg(

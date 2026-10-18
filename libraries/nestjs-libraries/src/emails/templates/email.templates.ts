@@ -336,7 +336,11 @@ const templates = {
     preheader: t.waitlistAdmitted.preheader,
     title: t.waitlistAdmitted.title(esc(d.name || '')),
     blocks: [{ p: t.waitlistAdmitted.body }, { list: t.welcome.steps }],
-    button: { label: t.waitlistAdmitted.button, url: f.url('/launches') },
+    // straight into onboarding, which the waitlist skipped
+    button: {
+      label: t.waitlistAdmitted.button,
+      url: f.url('/launches?onboarding=true'),
+    },
     category: 'transactional',
   }),
 

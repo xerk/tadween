@@ -40,10 +40,33 @@ export class AccessRepository {
     });
   }
 
-  // Free workspaces that have access (the ones the cap counts)
+  // Free workspaces that have access through the normal sign-up (the ones
+  // the cap counts; null: created before freeAccessVia existed)
   countAdmitted(cutoff: Date) {
     return this._organization.model.organization.count({
-      where: { ...freeWorkspaces(cutoff), waitlistedAt: null },
+      where: {
+        AND: [
+          freeWorkspaces(cutoff),
+          { waitlistedAt: null },
+          {
+            OR: [{ freeAccessVia: null }, { freeAccessVia: 'signup' }],
+          },
+        ],
+      },
+    });
+  }
+
+  // Free workspaces that skipped the line (referral code or team invite):
+  // they have access but don't count toward the cap
+  countSkipped(cutoff: Date) {
+    return this._organization.model.organization.count({
+      where: {
+        AND: [
+          freeWorkspaces(cutoff),
+          { waitlistedAt: null },
+          { freeAccessVia: { in: ['referral', 'invite'] } },
+        ],
+      },
     });
   }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode, useCallback, useEffect } from 'react';
+import React, { ReactNode, useCallback, useEffect, useRef } from 'react';
 import { tadweenFont as jakartaSans } from '@gitroom/frontend/app/fonts';
 import {
   SidebarHeader,
@@ -20,7 +20,7 @@ import {
   useFetch,
 } from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { CheckPayment } from '@gitroom/frontend/components/layout/check.payment';
 import { ToolTip } from '@gitroom/frontend/components/layout/top.tip';
@@ -84,6 +84,24 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     refreshWhenOffline: false,
     refreshWhenHidden: false,
   });
+
+  // Tadween free launch: a workspace let in from the waitlist while the app
+  // is open goes straight into onboarding, which the waitlist skipped
+  const router = useRouter();
+  const wasWaitlisted = useRef(false);
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    if (user.waitlisted) {
+      wasWaitlisted.current = true;
+      return;
+    }
+    if (wasWaitlisted.current) {
+      wasWaitlisted.current = false;
+      router.replace('/launches?onboarding=true');
+    }
+  }, [user?.waitlisted]);
 
   useEffect(() => {
     setSentryUser(

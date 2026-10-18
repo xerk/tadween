@@ -288,6 +288,11 @@ export const DEFAULT_FOUNDER_CAP = 300;
 // on when the admin also switched them on (AccessService.paymentsEnabled).
 export const stripeConfigured = () => !!process.env.STRIPE_PUBLISHABLE_KEY;
 
+// How a new workspace got in: the normal free sign-up (counted toward the
+// cap), or one that skipped the line (a partner's referral code, or the
+// personal workspace of an invited teammate)
+export type FreeAccessVia = 'signup' | 'referral' | 'invite';
+
 export interface FreePlanLimits {
   channels: number;
   // Seats including the owner (1 = no team members)

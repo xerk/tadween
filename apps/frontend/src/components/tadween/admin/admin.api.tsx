@@ -325,7 +325,8 @@ export interface AdminAccess {
   settings: AdminAccessSettings;
   stripeConfigured: boolean;
   paymentsEnabled: boolean;
-  counts: { used: number; cap: number | null; waitlisted: number };
+  // `skipped`: referral codes and invited teammates, outside the cap
+  counts: { used: number; cap: number | null; skipped: number; waitlisted: number };
 }
 
 export interface AdminWaitlisted {

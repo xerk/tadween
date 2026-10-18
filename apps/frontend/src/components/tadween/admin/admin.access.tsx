@@ -108,8 +108,14 @@ export const AdminAccessPage = () => {
           hint={
             counts?.cap === null
               ? 'No cap'
-              : 'Created after the early-access cutoff, without a plan'
+              : 'Normal sign-ups after the early-access cutoff, without a plan'
           }
+        />
+        <StatTile
+          loading={isLoading}
+          label="Skipped the line"
+          value={counts ? num(counts.skipped) : '—'}
+          hint="Referral codes and invited teammates, outside the cap"
         />
         <StatTile
           loading={isLoading}

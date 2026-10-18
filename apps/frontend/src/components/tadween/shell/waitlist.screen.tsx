@@ -1,7 +1,8 @@
 'use client';
 
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { useSWRConfig } from 'swr';
 import { useTranslation } from 'react-i18next';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
@@ -28,6 +29,18 @@ export const WaitlistScreen: FC<{ position: number | null }> = ({
   const t = useT();
   const { i18n } = useTranslation();
   const ar = i18n.resolvedLanguage === 'ar';
+  // Look again every minute and when the tab comes back: once an admin lets
+  // the workspace in, the app (and onboarding) opens by itself
+  const { mutate } = useSWRConfig();
+  useEffect(() => {
+    const check = () => mutate('/user/self');
+    const timer = setInterval(check, 60_000);
+    window.addEventListener('focus', check);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', check);
+    };
+  }, [mutate]);
   return (
     <TadweenScope className={cx('tdw-fb', 'tdw-wl', ar && 'is-ar')}>
       <header className="tdw-fb-head">

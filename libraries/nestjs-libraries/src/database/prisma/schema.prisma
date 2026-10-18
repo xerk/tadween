@@ -26,6 +26,10 @@ model Organization {
   /// Tadween: set when the workspace signed up while the free plan was full
   /// (null = has access). Cleared when an admin lets it in.
   waitlistedAt        DateTime?
+  /// Tadween: how a workspace created at sign-up got its access: 'signup'
+  /// (counts toward the free plan's cap), 'referral' or 'invite' (skipped the
+  /// line, not counted). Null for workspaces from before this field.
+  freeAccessVia       String?
   shortlink           ShortLinkPreference  @default(ASK)
   autoPost            AutoPost[]
   Comments            Comments[]

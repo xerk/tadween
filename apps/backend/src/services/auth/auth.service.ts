@@ -15,6 +15,7 @@ import { PartnersService } from '@gitroom/nestjs-libraries/database/prisma/partn
 import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
+import { FreeAccessVia } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 
 @Injectable()
 export class AuthService {
@@ -85,7 +86,7 @@ export class AuthService {
           body,
           ip,
           userAgent,
-          await this.waitlistNewWorkspace(
+          await this.freeSignup(
             body.ref,
             !!addToOrg && typeof addToOrg !== 'boolean'
           )
@@ -169,14 +170,21 @@ export class AuthService {
     return { addedOrg, jwt: await this.jwt(user) };
   }
 
-  // Tadween: a new workspace waits on the waitlist when the free plan is
-  // full, unless the person joins with a team invite (their own workspace
-  // is not waitlisted) or a partner's referral code. Never throws.
-  private async waitlistNewWorkspace(ref: string | undefined, invited: boolean) {
-    if (invited || (await this._partners.isActiveCode(ref))) {
-      return false;
+  // Tadween: how a new workspace gets in. A team invite (the teammate's own
+  // workspace) or a partner's referral code skips the line and doesn't
+  // count toward the free plan's cap; a normal sign-up counts and waits on
+  // the waitlist when the free plan is full. Never throws.
+  private async freeSignup(
+    ref: string | undefined,
+    invited: boolean
+  ): Promise<{ waitlisted: boolean; via: FreeAccessVia }> {
+    if (invited) {
+      return { waitlisted: false, via: 'invite' };
     }
-    return this._access.shouldWaitlist();
+    if (await this._partners.isActiveCode(ref)) {
+      return { waitlisted: false, via: 'referral' };
+    }
+    return { waitlisted: await this._access.shouldWaitlist(), via: 'signup' };
   }
 
   // A new workspace starts its free trial without a card at sign-up (the
@@ -361,7 +369,7 @@ export class AuthService {
       },
       ip,
       userAgent,
-      await this.waitlistNewWorkspace(body.ref, hasInvite)
+      await this.freeSignup(body.ref, hasInvite)
     );
 
     // never fails the sign-up

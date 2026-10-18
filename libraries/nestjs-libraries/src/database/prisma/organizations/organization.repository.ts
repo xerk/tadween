@@ -1,5 +1,6 @@
 import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import {
+  FreeAccessVia,
   placeholderEmailDomain,
   stripeConfigured,
 } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
@@ -515,7 +516,7 @@ export class OrganizationRepository {
     hasEmail: boolean,
     ip: string,
     userAgent: string,
-    waitlisted = false
+    signup?: { waitlisted: boolean; via: FreeAccessVia }
   ) {
     return this._organization.model.organization.create({
       data: {
@@ -523,7 +524,8 @@ export class OrganizationRepository {
         apiKey: AuthService.fixedEncryption(makeSecureId(20)),
         allowTrial: true,
         isTrailing: true,
-        waitlistedAt: waitlisted ? new Date() : null,
+        waitlistedAt: signup?.waitlisted ? new Date() : null,
+        freeAccessVia: signup?.via ?? null,
         users: {
           create: {
             role: Role.SUPERADMIN,

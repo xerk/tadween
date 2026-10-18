@@ -196,13 +196,15 @@ export class AccessService implements OnModuleInit {
 
   async counts() {
     const access = await this._settings.getAccess();
-    const [used, waitlisted] = await Promise.all([
-      access.cutoff
-        ? this._repository.countAdmitted(new Date(access.cutoff))
-        : Promise.resolve(0),
+    const cutoff = access.cutoff ? new Date(access.cutoff) : null;
+    const [used, skipped, waitlisted] = await Promise.all([
+      cutoff ? this._repository.countAdmitted(cutoff) : Promise.resolve(0),
+      cutoff ? this._repository.countSkipped(cutoff) : Promise.resolve(0),
       this._repository.countWaitlisted(),
     ]);
-    return { used, cap: access.cap, waitlisted };
+    // `skipped`: free workspaces that came in with a referral code or a team
+    // invite, outside the cap
+    return { used, cap: access.cap, skipped, waitlisted };
   }
 
   async listWaitlist(page: number, pageSize: number) {

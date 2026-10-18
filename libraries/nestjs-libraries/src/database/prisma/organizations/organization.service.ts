@@ -13,6 +13,7 @@ import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { Organization, ShortLinkPreference, User } from '@prisma/client';
 import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
+import { FreeAccessVia } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { AutopostService } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.service';
 
 @Injectable()
@@ -23,19 +24,20 @@ export class OrganizationService {
     private _plans: PlansService,
     private _access: AccessService
   ) {}
-  // `waitlisted`: the free plan is full, the workspace waits to be let in
+  // `signup`: whether the free plan is full (the workspace waits to be let
+  // in) and how it got in (AuthService.freeSignup)
   async createOrgAndUser(
     body: Omit<CreateOrgUserDto, 'providerToken'> & { providerId?: string },
     ip: string,
     userAgent: string,
-    waitlisted = false
+    signup?: { waitlisted: boolean; via: FreeAccessVia }
   ) {
     return this._organizationRepository.createOrgAndUser(
       body,
       this._notificationsService.hasEmailProvider(),
       ip,
       userAgent,
-      waitlisted
+      signup
     );
   }
 

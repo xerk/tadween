@@ -16,6 +16,7 @@ import { AddOrEditWebhook as AddOrEditAutopost } from '@gitroom/frontend/compone
 import { SaveSetModal } from '@gitroom/frontend/components/sets/sets';
 import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.modal';
 import {
+  Input,
   Pill,
   Select,
   Skeleton,
@@ -65,9 +66,12 @@ export const GeneralSettings: FC = () => {
   const user = useUser();
   const fetch = useFetch();
   const isOn = useFeatures();
-  const { data: organizations } = useOrganizations();
+  const { data: organizations, mutate: mutateOrganizations } =
+    useOrganizations();
   const { data: shortlink, isLoading, mutate } = useShortlinkPreference();
   const [status, save] = useSaveState();
+  const [nameStatus, saveName] = useSaveState();
+  const [name, setName] = useState<string | null>(null);
   const [value, setValue] = useState<'ASK' | 'YES' | 'NO'>('ASK');
   useEffect(() => {
     if (shortlink?.shortlink) {
@@ -85,6 +89,28 @@ export const GeneralSettings: FC = () => {
       : user?.role === 'ADMIN'
       ? t('tdw_role_admin', 'Admin')
       : t('tdw_role_member', 'Member');
+
+  // Tadween: owners and admins rename the workspace here (sign-up names it
+  // after the person); saved when the field loses focus or on Enter
+  const canRename = user?.role === 'SUPERADMIN' || user?.role === 'ADMIN';
+  const nextName = (name ?? workspace?.name ?? '').trim();
+  const nameTooShort = name !== null && nextName.length < 3;
+  const rename = useCallback(() => {
+    if (!workspace || nameTooShort || nextName === workspace.name) {
+      return;
+    }
+    saveName(async () => {
+      const response = await fetch('/settings/name', {
+        method: 'PUT',
+        body: JSON.stringify({ name: nextName }),
+      });
+      if (!response.ok) {
+        return false;
+      }
+      await mutateOrganizations();
+      setName(null);
+    });
+  }, [workspace, nameTooShort, nextName, saveName]);
 
   const changeShortlink = useCallback(
     (next: 'ASK' | 'YES' | 'NO') => {
@@ -114,11 +140,34 @@ export const GeneralSettings: FC = () => {
             'tdw_general_name_desc',
             'Switch workspaces from the top of the sidebar.'
           )}
+          status={canRename ? <SaveState status={nameStatus} /> : undefined}
         >
-          {workspace ? (
-            <span className="tdw-set-value">{workspace.name}</span>
-          ) : (
+          {!workspace ? (
             <Skeleton width={120} />
+          ) : canRename ? (
+            <form
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                rename();
+              }}
+            >
+              <Input
+                aria-label={t('tdw_ob_workspace_name', 'Workspace name')}
+                maxLength={128}
+                autoComplete="organization"
+                value={name ?? workspace.name}
+                error={
+                  nameTooShort
+                    ? t('tdw_ob_workspace_name_short', 'Use at least 3 characters.')
+                    : undefined
+                }
+                onChange={(e) => setName(e.target.value)}
+                onBlur={rename}
+              />
+            </form>
+          ) : (
+            <span className="tdw-set-value">{workspace.name}</span>
           )}
         </SettingsRow>
         <SettingsRow

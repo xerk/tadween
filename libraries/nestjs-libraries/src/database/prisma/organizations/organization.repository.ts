@@ -512,7 +512,10 @@ export class OrganizationRepository {
   }
 
   async createOrgAndUser(
-    body: Omit<CreateOrgUserDto, 'providerToken'> & { providerId?: string },
+    body: Omit<CreateOrgUserDto, 'providerToken' | 'company'> & {
+      company: string;
+      providerId?: string;
+    },
     hasEmail: boolean,
     ip: string,
     userAgent: string,
@@ -723,6 +726,20 @@ export class OrganizationRepository {
       },
       data: {
         shortlink,
+      },
+    });
+  }
+
+  updateName(orgId: string, name: string) {
+    return this._organization.model.organization.update({
+      where: {
+        id: orgId,
+      },
+      data: {
+        name,
+      },
+      select: {
+        id: true,
       },
     });
   }

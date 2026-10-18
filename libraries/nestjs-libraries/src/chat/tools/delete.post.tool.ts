@@ -12,6 +12,11 @@ export class DeletePostTool implements AgentToolInterface {
   name = 'deletePostTool';
   optionalOnSelfHosted = true;
 
+  // the ChatGPT directory keeps the reviewed tool list, which has no delete
+  directory() {
+    return {};
+  }
+
   run() {
     return createTool({
       id: 'deletePostTool',

@@ -2,10 +2,18 @@
 
 // Tadween: Postiz's onboarding modal (Connect Channels → Connect Agents →
 // Watch Tutorial), same steps, fields and copy, in the design system's
-// components and tokens. Full screen (onboarding.tsx), a full-screen sheet on
+// components and tokens. Tadween asks "About you" first, once per user
+// (OnboardingQuestions below). Full screen (onboarding.tsx), a full-screen sheet on
 // phones, mirrored in Arabic. The tutorial is the video from Branding; the
 // step is left out when there is none.
-import React, { FC, Fragment, useCallback, useMemo, useState } from 'react';
+import React, {
+  FC,
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import useSWR from 'swr';
 import { orderBy } from 'lodash';
@@ -33,6 +41,8 @@ import {
   Button,
   cx,
   IconButton,
+  Input,
+  Spinner,
   TadweenScope,
 } from '@gitroom/frontend/components/tadween/ui';
 
@@ -89,19 +99,60 @@ interface OnboardingModalProps {
   onClose: () => void;
 }
 
+type OnboardingStepKey = 'about' | 'channels' | 'agents';
+
+// Skip saves nothing, but connecting a channel reloads the modal through the
+// network's sign-in: don't ask again in this tab
+const ABOUT_SKIPPED = 'tdw-onboarding-about-skipped';
+const aboutSkipped = () => {
+  try {
+    return sessionStorage.getItem(ABOUT_SKIPPED) === '1';
+  } catch (e) {
+    return false;
+  }
+};
+const skipAbout = () => {
+  try {
+    sessionStorage.setItem(ABOUT_SKIPPED, '1');
+  } catch (e) {
+    // private mode: they may be asked once more
+  }
+};
+
 export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<OnboardingStepKey>('channels');
   const modals = useModals();
   const t = useT();
   const { i18n } = useTranslation();
+  const { data: answers, error: answersError } = useOnboardingAnswered();
+  // Decided once, so saving the answers doesn't renumber the steps
+  const [askAbout, setAskAbout] = useState<boolean>();
+
+  useEffect(() => {
+    if (askAbout !== undefined || (!answers && !answersError)) {
+      return;
+    }
+    const ask = !!answers && !answers.answered && !aboutSkipped();
+    setAskAbout(ask);
+    if (ask) {
+      setStep('about');
+    }
+  }, [answers, answersError, askAbout]);
 
   const steps = useMemo(
     () => [
-      t('connect_channels', 'Connect Channels'),
-      t('connect_agents', 'Connect Agents'),
+      ...(askAbout
+        ? [{ key: 'about' as const, label: t('tdw_about_you', 'About you') }]
+        : []),
+      {
+        key: 'channels' as const,
+        label: t('connect_channels', 'Connect Channels'),
+      },
+      { key: 'agents' as const, label: t('connect_agents', 'Connect Agents') },
     ],
-    [t]
+    [t, askAbout]
   );
+  const current = steps.findIndex((s) => s.key === step) + 1;
 
   return (
     <TadweenScope
@@ -117,40 +168,304 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
         />
         <div className="tdw-obm-body">
           {/* Step indicators */}
-          <ol className="tdw-obm-steps">
-            {steps.map((label, index) => (
-              <Fragment key={label}>
-                {index > 0 && (
-                  <li className="tdw-obm-line" aria-hidden="true" />
-                )}
-                <li
-                  className={cx(
-                    'tdw-obm-step',
-                    step === index + 1 && 'is-current',
-                    step > index + 1 && 'is-done'
-                  )}
-                  aria-current={step === index + 1 ? 'step' : undefined}
-                >
-                  <span className="tdw-obm-num">{index + 1}</span>
-                  <span className="tdw-obm-label">{label}</span>
-                </li>
-              </Fragment>
-            ))}
-          </ol>
+          {askAbout === undefined ? (
+            <div className="tdw-obm-content items-center justify-center">
+              <Spinner label={t('loading', 'Loading')} />
+            </div>
+          ) : (
+            <>
+              <ol className="tdw-obm-steps">
+                {steps.map(({ key, label }, index) => (
+                  <Fragment key={key}>
+                    {index > 0 && (
+                      <li className="tdw-obm-line" aria-hidden="true" />
+                    )}
+                    <li
+                      className={cx(
+                        'tdw-obm-step',
+                        current === index + 1 && 'is-current',
+                        current > index + 1 && 'is-done'
+                      )}
+                      aria-current={current === index + 1 ? 'step' : undefined}
+                    >
+                      <span className="tdw-obm-num">{index + 1}</span>
+                      <span className="tdw-obm-label">{label}</span>
+                    </li>
+                  </Fragment>
+                ))}
+              </ol>
 
-          {/* Step content */}
-          {step === 1 && (
-            <OnboardingStep1
-              onNext={() => setStep(2)}
-              onSkip={() => setStep(2)}
-            />
-          )}
-          {step === 2 && (
-            <OnboardingStep2 onBack={() => setStep(1)} onNext={onClose} />
+              {/* Step content */}
+              {step === 'about' && (
+                <OnboardingQuestions
+                  onDone={() => setStep('channels')}
+                  onSkip={() => {
+                    skipAbout();
+                    setStep('channels');
+                  }}
+                />
+              )}
+              {step === 'channels' && (
+                <OnboardingStep1
+                  onNext={() => setStep('agents')}
+                  onSkip={() => setStep('agents')}
+                />
+              )}
+              {step === 'agents' && (
+                <OnboardingStep2
+                  onBack={() => setStep('channels')}
+                  onNext={onClose}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
     </TadweenScope>
+  );
+};
+
+// Tadween: whether this user answered the "About you" questions
+export const useOnboardingAnswered = () => {
+  const fetch = useFetch();
+  const load = useCallback(async (path: string) => {
+    const res = await fetch(path);
+    if (!res.ok) {
+      throw new Error(`${res.status}`);
+    }
+    return (await res.json()) as { answered: boolean };
+  }, []);
+  return useSWR('/user/onboarding-answers', load, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  });
+};
+
+// The values the server accepts (OnboardingAnswersDto)
+const ONBOARDING_QUESTIONS = {
+  source: [
+    'tiktok',
+    'instagram',
+    'youtube',
+    'linkedin',
+    'x',
+    'facebook',
+    'google',
+    'ai_assistant',
+    'friend',
+    'other',
+  ],
+  role: [
+    'creator',
+    'freelancer',
+    'agency',
+    'small_business',
+    'company_team',
+    'other',
+  ],
+  goal: [
+    'grow_audience',
+    'save_time',
+    'manage_clients',
+    'grow_business',
+    'other',
+  ],
+} as const;
+
+type OnboardingQuestion = keyof typeof ONBOARDING_QUESTIONS;
+const BUSINESS_ROLES: string[] = ['agency', 'company_team'];
+
+// Tadween: "About you", three tap-to-pick questions on one screen. Continue
+// saves them once; Skip saves nothing. Exported for any other screen that
+// asks them (it only needs a TadweenScope around it).
+export const OnboardingQuestions: FC<{
+  onDone: () => void;
+  onSkip: () => void;
+}> = ({ onDone, onSkip }) => {
+  const fetch = useFetch();
+  const t = useT();
+  const arrows = useArrows();
+  const { mutate } = useOnboardingAnswered();
+  const [picked, setPicked] = useState<
+    Partial<Record<OnboardingQuestion, string>>
+  >({});
+  const [other, setOther] = useState<Record<OnboardingQuestion, string>>({
+    source: '',
+    role: '',
+    goal: '',
+  });
+  const [company, setCompany] = useState('');
+  const [website, setWebsite] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const labels: Record<OnboardingQuestion, Record<string, string>> = {
+    source: {
+      tiktok: t('tdw_ob_source_tiktok', 'TikTok'),
+      instagram: t('tdw_ob_source_instagram', 'Instagram'),
+      youtube: t('tdw_ob_source_youtube', 'YouTube'),
+      linkedin: t('tdw_ob_source_linkedin', 'LinkedIn'),
+      x: t('tdw_ob_source_x', 'X'),
+      facebook: t('tdw_ob_source_facebook', 'Facebook'),
+      google: t('tdw_ob_source_google', 'Google search'),
+      ai_assistant: t('tdw_ob_source_ai', 'AI assistant (ChatGPT, Claude…)'),
+      friend: t('tdw_ob_source_friend', 'A friend or colleague'),
+      other: t('tdw_ob_other', 'Other'),
+    },
+    role: {
+      creator: t('tdw_ob_role_creator', 'Creator'),
+      freelancer: t('tdw_ob_role_freelancer', 'Freelancer'),
+      agency: t('tdw_ob_role_agency', 'Agency'),
+      small_business: t('tdw_ob_role_small_business', 'Small business'),
+      company_team: t(
+        'tdw_ob_role_company_team',
+        'Marketing team at a company'
+      ),
+      other: t('tdw_ob_other', 'Other'),
+    },
+    goal: {
+      grow_audience: t('tdw_ob_goal_grow_audience', 'Grow an audience'),
+      save_time: t('tdw_ob_goal_save_time', 'Save time'),
+      manage_clients: t('tdw_ob_goal_manage_clients', 'Manage clients'),
+      grow_business: t('tdw_ob_goal_grow_business', 'Grow a business'),
+      other: t('tdw_ob_other', 'Other'),
+    },
+  };
+
+  const questions: Record<OnboardingQuestion, string> = {
+    source: t('tdw_ob_source_question', 'How did you hear about us?'),
+    role: t('tdw_ob_role_question', 'What describes you best?'),
+    goal: t('tdw_ob_goal_question', 'What is your main goal?'),
+  };
+
+  const complete = !!(picked.source && picked.role && picked.goal);
+  const business = BUSINESS_ROLES.includes(picked.role || '');
+  // a free-text answer only goes with "other"
+  const otherText = (question: OnboardingQuestion) =>
+    picked[question] === 'other' ? other[question].trim() : '';
+
+  const save = async () => {
+    setSaving(true);
+    const extra = {
+      sourceOther: otherText('source'),
+      roleOther: otherText('role'),
+      goalOther: otherText('goal'),
+      company: business ? company.trim() : '',
+      website: business ? website.trim() : '',
+    };
+    try {
+      const res = await fetch('/user/onboarding-answers', {
+        method: 'POST',
+        body: JSON.stringify({
+          source: picked.source,
+          role: picked.role,
+          goal: picked.goal,
+          ...Object.fromEntries(
+            Object.entries(extra).filter(([, value]) => value)
+          ),
+        }),
+      });
+      if (res.ok) {
+        mutate({ answered: true }, { revalidate: false });
+      }
+    } catch (e) {
+      // the answers are a nice-to-have: they never hold onboarding up
+    }
+    onDone();
+  };
+
+  return (
+    <div className="tdw-obm-content">
+      <StepTitle
+        title={t('tdw_ob_about_title', 'Tell us about you')}
+        description={t(
+          'tdw_ob_about_description',
+          'Three quick questions so we can fit the app to how you work'
+        )}
+      />
+
+      <div className="tdw-obm-about">
+        {(Object.keys(ONBOARDING_QUESTIONS) as OnboardingQuestion[]).map(
+          (question) => (
+            <div
+              key={question}
+              className="tdw-obm-section"
+              role="group"
+              aria-labelledby={`tdw-ob-${question}`}
+            >
+              <div id={`tdw-ob-${question}`} className="tdw-obm-label-row">
+                {questions[question]}
+              </div>
+              <div className="pz-ob-chips is-start">
+                {ONBOARDING_QUESTIONS[question].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className="pz-ob-agent"
+                    aria-pressed={picked[question] === value}
+                    onClick={() =>
+                      setPicked((p) => ({ ...p, [question]: value }))
+                    }
+                  >
+                    {labels[question][value]}
+                  </button>
+                ))}
+              </div>
+              {picked[question] === 'other' && (
+                <Input
+                  aria-label={questions[question]}
+                  placeholder={t(
+                    'tdw_ob_other_placeholder',
+                    'Tell us more (optional)'
+                  )}
+                  maxLength={120}
+                  value={other[question]}
+                  onChange={(e) =>
+                    setOther((o) => ({ ...o, [question]: e.target.value }))
+                  }
+                />
+              )}
+              {question === 'role' && business && (
+                <div className="tdw-obm-about-pair">
+                  <Input
+                    label={t('tdw_ob_company', 'Company name (optional)')}
+                    maxLength={120}
+                    autoComplete="organization"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                  />
+                  <Input
+                    label={t('tdw_ob_website', 'Website (optional)')}
+                    maxLength={120}
+                    inputMode="url"
+                    autoComplete="url"
+                    dir="ltr"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          )
+        )}
+      </div>
+
+      {/* Action buttons */}
+      <div className="tdw-obm-actions">
+        <Button variant="ghost" size="lg" onClick={onSkip} disabled={saving}>
+          {t('tdw_ob_skip', 'Skip')}
+        </Button>
+        <Button
+          variant="primary"
+          size="lg"
+          iconEnd={arrows.next}
+          disabled={!complete}
+          loading={saving}
+          onClick={save}
+        >
+          {t('continue', 'Continue')}
+        </Button>
+      </div>
+    </div>
   );
 };
 

@@ -89,6 +89,12 @@ export class AdminConsoleController {
     return this._console.overview();
   }
 
+  // "About you" onboarding answers: counts and the latest free-text ones
+  @Get('/onboarding')
+  onboarding() {
+    return this._console.onboarding();
+  }
+
   // ── Settings: registration, features, branding ─────────────────────────────
   @Get('/settings')
   async getSettings() {

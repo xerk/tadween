@@ -119,6 +119,38 @@ export interface AdminPlan {
   position: number;
 }
 
+export interface AdminOnboardingAnswers {
+  source: string;
+  sourceOther: string | null;
+  role: string;
+  roleOther: string | null;
+  goal: string;
+  goalOther: string | null;
+  company: string | null;
+  website: string | null;
+  createdAt: string;
+}
+
+// GET /admin/console/onboarding: users per answer, and the latest ones with
+// free text or a company
+export interface AdminOnboarding {
+  answered: number;
+  sources: { value: string; count: number }[];
+  roles: { value: string; count: number }[];
+  goals: { value: string; count: number }[];
+  recent: {
+    id: string;
+    sourceOther: string | null;
+    roleOther: string | null;
+    goalOther: string | null;
+    company: string | null;
+    website: string | null;
+    role: string;
+    createdAt: string;
+    user: { id: string; email: string; name: string | null };
+  }[];
+}
+
 export interface AdminUser {
   id: string;
   email: string;
@@ -129,6 +161,8 @@ export interface AdminUser {
   isSuperAdmin: boolean;
   createdAt: string;
   lastOnline: string;
+  // "About you" answers; null when skipped or never asked
+  onboarding: AdminOnboardingAnswers | null;
   organizations: {
     id: string; // UserOrganization id — what impersonation takes
     role: 'USER' | 'ADMIN' | 'SUPERADMIN';
@@ -287,6 +321,9 @@ const swrOptions = {
 
 export const useAdminOverview = () =>
   useSWR<AdminOverview>('/admin/console/overview', useLoader<AdminOverview>(), swrOptions);
+
+export const useAdminOnboarding = () =>
+  useSWR<AdminOnboarding>('/admin/console/onboarding', useLoader<AdminOnboarding>(), swrOptions);
 
 export const useAdminSettings = () =>
   useSWR<AdminSettings>('/admin/console/settings', useLoader<AdminSettings>(), swrOptions);
@@ -619,4 +656,48 @@ export const TIER_LABEL: Record<string, string> = {
   PRO: 'Pro',
   TEAM: 'Team',
   ULTIMATE: 'Ultimate',
+};
+
+// "About you" onboarding answers (OnboardingAnswersDto values)
+export const ONBOARDING_LABEL: Record<
+  'source' | 'role' | 'goal',
+  Record<string, string>
+> = {
+  source: {
+    tiktok: 'TikTok',
+    instagram: 'Instagram',
+    youtube: 'YouTube',
+    linkedin: 'LinkedIn',
+    x: 'X',
+    facebook: 'Facebook',
+    google: 'Google search',
+    ai_assistant: 'AI assistant',
+    friend: 'Friend or colleague',
+    other: 'Other',
+  },
+  role: {
+    creator: 'Creator',
+    freelancer: 'Freelancer',
+    agency: 'Agency',
+    small_business: 'Small business',
+    company_team: 'Company team',
+    other: 'Other',
+  },
+  goal: {
+    grow_audience: 'Grow an audience',
+    save_time: 'Save time',
+    manage_clients: 'Manage clients',
+    grow_business: 'Grow a business',
+    other: 'Other',
+  },
+};
+
+// An answer with its "other" text, e.g. "Other: a podcast"
+export const onboardingAnswer = (
+  question: 'source' | 'role' | 'goal',
+  value: string,
+  other?: string | null
+) => {
+  const label = ONBOARDING_LABEL[question][value] || value;
+  return other ? `${label}: ${other}` : label;
 };

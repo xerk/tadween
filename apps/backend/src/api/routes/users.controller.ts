@@ -27,6 +27,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
 import { UserLanguageDto } from '@gitroom/nestjs-libraries/dtos/users/user.language.dto';
+import { OnboardingAnswersDto } from '@gitroom/nestjs-libraries/dtos/users/onboarding.answers.dto';
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
 import {
   DeviceDto,
@@ -301,6 +302,25 @@ export class UsersController {
     // a super admin browsing as someone keeps that person's language
     if (!(req.cookies.impersonate || req.headers.impersonate)) {
       await this._userService.setLanguage(user.id, body.language);
+    }
+    return { ok: true };
+  }
+
+  // Tadween: the "About you" onboarding questions, asked once
+  @Get('/onboarding-answers')
+  async getOnboardingAnswers(@GetUserFromRequest() user: User) {
+    return { answered: await this._userService.onboardingAnswered(user.id) };
+  }
+
+  @Post('/onboarding-answers')
+  async saveOnboardingAnswers(
+    @GetUserFromRequest() user: User,
+    @Body() body: OnboardingAnswersDto,
+    @Req() req: Request
+  ) {
+    // a super admin browsing as someone doesn't answer for them
+    if (!(req.cookies.impersonate || req.headers.impersonate)) {
+      await this._userService.saveOnboardingAnswers(user.id, body);
     }
     return { ok: true };
   }

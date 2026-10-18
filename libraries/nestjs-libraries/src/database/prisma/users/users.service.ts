@@ -4,6 +4,7 @@ import { Provider, Role } from '@prisma/client';
 import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
 import { DeviceDto } from '@gitroom/nestjs-libraries/dtos/users/device.dto';
+import { OnboardingAnswersDto } from '@gitroom/nestjs-libraries/dtos/users/onboarding.answers.dto';
 import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.repository';
 import { IntegrationRepository } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.repository';
 import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/notification.service';
@@ -185,5 +186,27 @@ export class UsersService {
 
   setLanguage(userId: string, language: string) {
     return this._usersRepository.setLanguage(userId, language);
+  }
+
+  // A free-text answer is only kept next to "other", and the company only for
+  // agencies and company teams
+  saveOnboardingAnswers(userId: string, body: OnboardingAnswersDto) {
+    const text = (value: string | undefined, keep: boolean) =>
+      keep && value ? value : null;
+    const business = body.role === 'agency' || body.role === 'company_team';
+    return this._usersRepository.saveOnboardingAnswers(userId, {
+      source: body.source,
+      sourceOther: text(body.sourceOther, body.source === 'other'),
+      role: body.role,
+      roleOther: text(body.roleOther, body.role === 'other'),
+      goal: body.goal,
+      goalOther: text(body.goalOther, body.goal === 'other'),
+      company: text(body.company, business),
+      website: text(body.website, business),
+    });
+  }
+
+  async onboardingAnswered(userId: string) {
+    return !!(await this._usersRepository.getOnboardingAnsweredAt(userId));
   }
 }

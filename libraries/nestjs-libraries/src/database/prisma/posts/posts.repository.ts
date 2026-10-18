@@ -579,8 +579,6 @@ export class PostsRepository {
     });
   }
 
-  // the post is live but stays in ERROR (a follow-up mutation failed): keep
-  // the platform id / URL so the user can reach it instead of re-publishing
   updateReleaseId(
     id: string,
     orgId: string,
@@ -600,6 +598,8 @@ export class PostsRepository {
     });
   }
 
+  // the post is live but stays in ERROR (a follow-up mutation failed): keep
+  // the platform id / URL so the user can reach it instead of re-publishing
   updateResolvedRelease(
     id: string,
     orgId: string,

@@ -314,8 +314,9 @@ export class PostActivity {
       // id / URL on the post, then fail it as BadBody like any other error.
       if (err instanceof PublishedWithError) {
         try {
-          await this._postService.setReleaseDetails(
+          await this._postService.updateResolvedRelease(
             err.postDbId,
+            integration.organizationId,
             err.releaseId,
             err.releaseURL
           );

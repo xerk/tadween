@@ -12,5 +12,8 @@ export interface AgentToolInterface {
   // schemas: a tool with `directory` is served there as the tools it returns
   // ({} leaves it out), every other tool as it is
   directory?(): Record<string, ToolReturn>;
+  // a self-hosted instance without it can still connect through the cloud
+  // relay, calling it there asks to update the instance
+  optionalOnSelfHosted?: boolean;
   run(): ToolReturn;
 }

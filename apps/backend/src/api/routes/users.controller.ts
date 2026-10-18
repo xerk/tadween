@@ -391,6 +391,11 @@ export class UsersController {
     response.status(200).send();
   }
 
+  @Get('/delete-account-info')
+  getDeleteAccountInfo(@GetUserFromRequest() user: User) {
+    return this._userService.getDeleteAccountInfo(user.id);
+  }
+
   @Post('/delete-account')
   async deleteAccount(
     @GetUserFromRequest() user: User,
@@ -484,16 +489,19 @@ export class UsersController {
     body: { tt: TrackEnum; fbclid: string; additional: Record<string, any> }
   ) {
     const uniqueId = req?.cookies?.track || makeId(10);
-    const fbclid = req?.cookies?.fbclid || body.fbclid;
-    await this._trackService.track(
-      uniqueId,
-      ip,
-      userAgent,
-      body.tt,
-      body.additional,
-      fbclid,
-      user
-    );
+    const fbc = req?.cookies?._fbc || req?.cookies?.fbclid || body.fbclid;
+    this._trackService
+      .track(
+        uniqueId,
+        ip,
+        userAgent,
+        body.tt,
+        body.additional,
+        fbc,
+        user,
+        req?.cookies?._fbp
+      )
+      .catch((err) => {});
     if (!req.cookies.track) {
       res.cookie('track', uniqueId, {
         domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),

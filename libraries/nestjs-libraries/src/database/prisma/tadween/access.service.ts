@@ -66,13 +66,6 @@ export class AccessService implements OnModuleInit {
     return stripeConfigured() && (await this._settings.getAccess()).payments;
   }
 
-  // Whether any plan limit applies on this server
-  async limitsEnforced() {
-    return (
-      stripeConfigured() || (await this._settings.getAccess()).freePlan.enabled
-    );
-  }
-
   async forOrganization(org: AccessOrganization): Promise<OrganizationAccess> {
     const access = await this._settings.getAccess();
     const waitlisted = !!org.waitlistedAt;
@@ -254,18 +247,20 @@ export class AccessService implements OnModuleInit {
     };
   }
 
-  // Lets in as many of the oldest waiting workspaces as the cap has room for
+  // Lets in as many of the oldest waiting workspaces as the cap has room
+  // for; everyone once sign-ups no longer wait (free plan off, payments on,
+  // no cap or no cutoff)
   private async fillOpenSpots() {
     const access = await this._settings.getAccess();
-    if (!access.freePlan.enabled || !access.cutoff) {
-      return;
-    }
     const waiting = await this._repository.countWaitlisted();
     if (!waiting) {
       return;
     }
     const room =
-      access.cap === null
+      !access.freePlan.enabled ||
+      access.cap === null ||
+      !access.cutoff ||
+      (await this.paymentsEnabled())
         ? waiting
         : access.cap -
           (await this._repository.countAdmitted(new Date(access.cutoff)));

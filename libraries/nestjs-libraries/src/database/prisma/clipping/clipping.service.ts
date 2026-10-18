@@ -26,6 +26,7 @@ import { timer } from '@gitroom/helpers/utils/timer';
 import dayjs from 'dayjs';
 import {
   AuthorizationActions,
+  isFreePlanAiRefusal,
   Sections,
   SubscriptionException,
 } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
@@ -163,7 +164,10 @@ export class ClippingService {
       }
     } catch (err) {
       // the free plan (without AI): nothing to spend
-      return 0;
+      if (isFreePlanAiRefusal(err)) {
+        return 0;
+      }
+      throw err;
     }
 
     // loaded here and not taken from the caller: the MCP organization comes

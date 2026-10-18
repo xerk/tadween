@@ -128,6 +128,8 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     return (
       <ContextWrapper user={user}>
         <MantineWrapper>
+          {/* a super admin impersonating it can still leave */}
+          {user.admin && user.impersonate ? <Impersonate /> : null}
           <WaitlistScreen position={user.waitlistPosition} />
         </MantineWrapper>
       </ContextWrapper>

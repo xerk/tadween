@@ -293,8 +293,8 @@ export class AccessSettingsDto {
   cap: number | null;
 
   // Early-access cutoff: workspaces created before it keep full access
-  // (absent: keep the current one)
-  @IsOptional()
+  // (absent: keep the current one; it can't be cleared)
+  @ValidateIf((o) => o.cutoff !== undefined)
   @IsISO8601()
   cutoff?: string;
 }

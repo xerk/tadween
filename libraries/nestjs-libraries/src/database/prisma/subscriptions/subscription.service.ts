@@ -63,6 +63,12 @@ export class SubscriptionService {
     if (!org.isTrailing) {
       return false;
     }
+    // Tadween: the free plan and early access are never a trial, whatever
+    // the stored flag says (AccessService.trialApplies)
+    const access = await this._access.forOrganizationId(org.id);
+    if (!access || !(await this._access.trialApplies(access))) {
+      return false;
+    }
     const status =
       org.subscription?.status !== undefined
         ? org.subscription.status

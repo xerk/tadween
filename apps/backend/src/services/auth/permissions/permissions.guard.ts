@@ -24,9 +24,10 @@ import {
 
 // What a waitlisted workspace can still reach: its waitlist screen (the
 // account, language, devices for push), switching or joining another
-// workspace, logging out and deleting the account
+// workspace, logging out, deleting the account, and a super admin ending an
+// impersonation
 const WAITLIST_ALLOWED =
-  /\/user\/(self|language|logout|organizations|change-org|join-org|devices|delete-account)$/;
+  /\/user\/(self|language|logout|organizations|change-org|join-org|devices|delete-account|impersonate)$/;
 
 @Injectable()
 export class PoliciesGuard implements CanActivate {

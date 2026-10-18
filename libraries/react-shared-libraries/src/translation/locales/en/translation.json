@@ -2942,5 +2942,6 @@
   "tdw_free_limit_ai": "AI isn’t included in the free plan. You can still connect your own AI assistant through MCP in Settings.",
   "tdw_free_limit_title": "Free plan limit",
   "tdw_limit_title": "Plan limit reached",
-  "tdw_admin_access": "Free plan & payments"
+  "tdw_admin_access": "Free plan & payments",
+  "tdw_free_limit_team_count": "The free plan includes {{count}} members, the owner included."
 }

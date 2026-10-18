@@ -130,7 +130,9 @@ export const PaywallModal: FC = () => {
       reason?.section === 'channel' && free
         ? t('tdw_free_limit_channels', 'The free plan includes {{count}} channels. Disconnect one to connect another.', { count: free.channels })
         : reason?.section === 'team_members' && free
-        ? t('tdw_free_limit_team', 'The free plan is for one person, so team members can’t be invited yet.')
+        ? free.members > 1
+          ? t('tdw_free_limit_team_count', 'The free plan includes {{count}} members, the owner included.', { count: free.members })
+          : t('tdw_free_limit_team', 'The free plan is for one person, so team members can’t be invited yet.')
         : reason?.section === 'free_plan_ai' ||
           ((reason?.section === 'ai' || reason?.section === 'ai_credits') && free)
         ? t('tdw_free_limit_ai', 'AI isn’t included in the free plan. You can still connect your own AI assistant through MCP in Settings.')

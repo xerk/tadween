@@ -3001,5 +3001,16 @@
   "tdw_partners_apply_note": "Anything else we should know? (optional)",
   "tdw_partners_apply_send": "Send application",
   "tdw_partners_apply_sent": "Application sent",
-  "tdw_partners_apply_sent_body": "Thanks! We review every application and reply by email to {{email}}."
+  "tdw_partners_apply_sent_body": "Thanks! We review every application and reply by email to {{email}}.",
+  "tdw_auth_register_failed_title": "We couldn’t create your account",
+  "tdw_auth_activate_sent_to": "We sent an activation link to",
+  "tdw_auth_activate_open_link": "Open it to finish creating your account.",
+  "tdw_auth_activate_subtitle_unknown": "Open the activation link we emailed you to finish creating your account.",
+  "tdw_auth_activate_resend_hint_known": "Check your spam folder, or send a new link.",
+  "tdw_auth_activate_resend_hint": "Enter the address you signed up with and we’ll send a new link.",
+  "tdw_auth_activate_wrong_email": "Wrong address?",
+  "tdw_auth_activate_different_email": "Use a different email",
+  "tdw_ob_workspace_name": "Workspace name",
+  "tdw_ob_workspace_name_hint": "Your posts, channels and team live here. You can change it later in settings.",
+  "tdw_ob_workspace_name_short": "Use at least 3 characters."
 }

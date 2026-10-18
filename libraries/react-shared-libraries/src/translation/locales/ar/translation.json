@@ -3018,5 +3018,16 @@
   "tdw_partners_apply_note": "هل هناك ما تودّ إخبارنا به؟ (اختياري)",
   "tdw_partners_apply_send": "إرسال الطلب",
   "tdw_partners_apply_sent": "تم إرسال طلبك",
-  "tdw_partners_apply_sent_body": "شكرًا! نراجع كل طلب ونردّ بالبريد على {{email}}."
+  "tdw_partners_apply_sent_body": "شكرًا! نراجع كل طلب ونردّ بالبريد على {{email}}.",
+  "tdw_auth_register_failed_title": "تعذّر إنشاء حسابك",
+  "tdw_auth_activate_sent_to": "أرسلنا رابط التفعيل إلى",
+  "tdw_auth_activate_open_link": "افتحه لإكمال إنشاء حسابك.",
+  "tdw_auth_activate_subtitle_unknown": "افتح رابط التفعيل الذي أرسلناه إلى بريدك لإكمال إنشاء حسابك.",
+  "tdw_auth_activate_resend_hint_known": "تحقق من مجلد الرسائل غير المرغوب فيها، أو أرسل رابطًا جديدًا.",
+  "tdw_auth_activate_resend_hint": "أدخل البريد الذي سجّلت به وسنرسل لك رابطًا جديدًا.",
+  "tdw_auth_activate_wrong_email": "البريد غير صحيح؟",
+  "tdw_auth_activate_different_email": "استخدم بريدًا آخر",
+  "tdw_ob_workspace_name": "اسم مساحة العمل",
+  "tdw_ob_workspace_name_hint": "هنا منشوراتك وقنواتك وفريقك. يمكنك تغييره لاحقًا من الإعدادات.",
+  "tdw_ob_workspace_name_short": "استخدم 3 أحرف على الأقل."
 }

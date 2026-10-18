@@ -37,6 +37,7 @@ import {
 } from '@gitroom/frontend/components/public-api/public.component';
 import { McpClientIcon } from '@gitroom/frontend/components/public-api/mcp.client.icons';
 import { useBrandLinks } from '@gitroom/frontend/components/tadween/instance/instance.settings';
+import { useOrganizations } from '@gitroom/frontend/components/tadween/shell/sidebar';
 import {
   Button,
   cx,
@@ -277,7 +278,9 @@ const BUSINESS_ROLES: string[] = ['agency', 'company_team'];
 
 // Tadween: "About you", three tap-to-pick questions on one screen. Continue
 // saves them once; Skip saves nothing. Exported for any other screen that
-// asks them (it only needs a TadweenScope around it).
+// asks them (it only needs a TadweenScope around it). Sign-up no longer asks
+// for a workspace name, so an owner or admin can rename the workspace here
+// (prefilled with the name it got at sign-up); Skip keeps that name.
 export const OnboardingQuestions: FC<{
   onDone: () => void;
   onSkip: () => void;
@@ -286,6 +289,17 @@ export const OnboardingQuestions: FC<{
   const t = useT();
   const arrows = useArrows();
   const { mutate } = useOnboardingAnswered();
+  const user = useUser();
+  const { data: organizations, mutate: mutateOrganizations } =
+    useOrganizations();
+  const workspace = Array.isArray(organizations)
+    ? organizations.find((org: { id: string }) => org.id === user?.orgId)
+    : undefined;
+  const canRename = user?.role === 'SUPERADMIN' || user?.role === 'ADMIN';
+  // null until typed in, so the name shows as soon as it loads
+  const [workspaceName, setWorkspaceName] = useState<string | null>(null);
+  const nextName = (workspaceName ?? workspace?.name ?? '').trim();
+  const nameTooShort = workspaceName !== null && nextName.length < 3;
   const [picked, setPicked] = useState<
     Partial<Record<OnboardingQuestion, string>>
   >({});
@@ -345,6 +359,19 @@ export const OnboardingQuestions: FC<{
 
   const save = async () => {
     setSaving(true);
+    if (canRename && workspace && nextName !== workspace.name) {
+      try {
+        const res = await fetch('/settings/name', {
+          method: 'PUT',
+          body: JSON.stringify({ name: nextName }),
+        });
+        if (res.ok) {
+          mutateOrganizations();
+        }
+      } catch (e) {
+        // the name can still be changed in settings
+      }
+    }
     const extra = {
       sourceOther: otherText('source'),
       roleOther: otherText('role'),
@@ -384,6 +411,24 @@ export const OnboardingQuestions: FC<{
       />
 
       <div className="tdw-obm-about">
+        {canRename && workspace && (
+          <Input
+            label={t('tdw_ob_workspace_name', 'Workspace name')}
+            hint={t(
+              'tdw_ob_workspace_name_hint',
+              'Your posts, channels and team live here. You can change it later in settings.'
+            )}
+            error={
+              nameTooShort
+                ? t('tdw_ob_workspace_name_short', 'Use at least 3 characters.')
+                : undefined
+            }
+            maxLength={128}
+            autoComplete="organization"
+            value={workspaceName ?? workspace.name ?? ''}
+            onChange={(e) => setWorkspaceName(e.target.value)}
+          />
+        )}
         {(Object.keys(ONBOARDING_QUESTIONS) as OnboardingQuestion[]).map(
           (question) => (
             <div
@@ -458,7 +503,7 @@ export const OnboardingQuestions: FC<{
           variant="primary"
           size="lg"
           iconEnd={arrows.next}
-          disabled={!complete}
+          disabled={!complete || nameTooShort}
           loading={saving}
           onClick={save}
         >

@@ -83,7 +83,7 @@ export class AuthService {
         }
 
         const create = await this._organizationService.createOrgAndUser(
-          body,
+          { ...body, company: this.workspaceName(body.company, body.email) },
           ip,
           userAgent,
           await this.freeSignup(
@@ -211,6 +211,23 @@ export class AuthService {
         error: err instanceof Error ? err.message : String(err),
       });
     }
+  }
+
+  // Tadween: sign-up asks only for the account, so the first workspace takes
+  // the name the client sent (older clients still ask for it), else the
+  // person's name from the sign-in provider, else the email's local part
+  // ("sara.ali@…" → "Sara.ali"; the whole address when that is under 3
+  // characters). It can be renamed in onboarding or settings.
+  private workspaceName(
+    company: string | undefined,
+    email: string,
+    name?: string
+  ) {
+    const local = email.split('@')[0];
+    const fallback = name?.trim() || (local.length >= 3 ? local : email);
+    return (
+      company || fallback.charAt(0).toUpperCase() + fallback.slice(1)
+    ).slice(0, 128);
   }
 
   // Tadween: the app language at sign-up (the i18next cookie), for emails
@@ -360,7 +377,11 @@ export class AuthService {
 
     const create = await this._organizationService.createOrgAndUser(
       {
-        company: body.company,
+        company: this.workspaceName(
+          body.company,
+          providerUser.email,
+          providerUser.name
+        ),
         email: providerUser.email,
         password: '',
         provider,

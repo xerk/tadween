@@ -27,7 +27,10 @@ export class OrganizationService {
   // `signup`: whether the free plan is full (the workspace waits to be let
   // in) and how it got in (AuthService.freeSignup)
   async createOrgAndUser(
-    body: Omit<CreateOrgUserDto, 'providerToken'> & { providerId?: string },
+    body: Omit<CreateOrgUserDto, 'providerToken' | 'company'> & {
+      company: string;
+      providerId?: string;
+    },
     ip: string,
     userAgent: string,
     signup?: { waitlisted: boolean; via: FreeAccessVia }
@@ -261,5 +264,9 @@ export class OrganizationService {
       orgId,
       shortlink
     );
+  }
+
+  updateName(orgId: string, name: string) {
+    return this._organizationRepository.updateName(orgId, name);
   }
 }

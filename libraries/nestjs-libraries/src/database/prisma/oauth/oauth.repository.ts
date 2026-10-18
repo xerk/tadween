@@ -271,10 +271,24 @@ export class OAuthRepository {
         revokedAt: null,
         accessToken: { not: null },
       },
-      include: {
+      // no tokens, codes or client secret: the list goes to the browser.
+      // redirectUrl only feeds OAuthService.getApprovedApps, which turns it
+      // into a known client and drops it.
+      select: {
+        id: true,
+        createdAt: true,
         oauthApp: {
-          include: {
-            picture: true,
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            redirectUrl: true,
+            picture: {
+              select: {
+                id: true,
+                path: true,
+              },
+            },
           },
         },
       },

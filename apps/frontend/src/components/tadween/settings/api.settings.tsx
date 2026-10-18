@@ -36,6 +36,7 @@ import {
   Skeleton,
   TadweenScope,
 } from '@gitroom/frontend/components/tadween/ui';
+import { useFormatDate } from '@gitroom/frontend/components/tadween/media/media.items';
 import {
   SettingsListRow,
   SettingsRow,
@@ -1586,8 +1587,27 @@ const useApprovedApps = () => {
   });
 };
 
+// An app's mark: the picture it uploaded, else the logo of the known client
+// it is (the backend matches dynamic clients by their callback), else its
+// first letter
+const ApprovedAppMark: FC<{ app: any }> = ({ app }) => {
+  const oauthApp = app.oauthApp || {};
+  if (oauthApp.picture?.path) {
+    return <img src={oauthApp.picture.path} alt="" />;
+  }
+  if (oauthApp.client) {
+    return <McpClientIcon client={oauthApp.client} size={20} />;
+  }
+  return (
+    <span className="tdw-set-li-initial">
+      {(oauthApp.name || '?').trim().charAt(0).toUpperCase() || '?'}
+    </span>
+  );
+};
+
 export const ApprovedAppsSettings: FC = () => {
   const t = useT();
+  const formatDate = useFormatDate();
   const fetch = useFetch();
   const toaster = useToaster();
   const { data, isLoading, mutate } = useApprovedApps();
@@ -1653,15 +1673,27 @@ export const ApprovedAppsSettings: FC = () => {
               <SettingsListRow
                 key={app.id}
                 icon="shield-check"
-                title={app.oauthApp?.name || t('tdw_apps_unnamed', 'Unnamed app')}
+                mark={<ApprovedAppMark app={app} />}
+                title={
+                  <bdi>
+                    {app.oauthApp?.name || t('tdw_apps_unnamed', 'Unnamed app')}
+                  </bdi>
+                }
                 meta={
                   <>
                     {app.oauthApp?.description ? (
                       <span>{app.oauthApp.description}</span>
                     ) : null}
-                    <span>
-                      {t('authorized_on', 'Authorized on')}{' '}
-                      {new Date(app.createdAt).toLocaleDateString()}
+                    {/* with the time, so re-registrations of one client
+                        (three ChatGPT rows) can be told apart */}
+                    <span className="tdw-set-li-wrap">
+                      {t('tdw_apps_authorized_on', 'Authorized on {{date}}', {
+                        date: formatDate(app.createdAt, {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        }),
+                        interpolation: { escapeValue: false },
+                      })}
                     </span>
                   </>
                 }

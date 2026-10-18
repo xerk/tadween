@@ -5,6 +5,7 @@ import { UpdateOAuthAppDto } from '@gitroom/nestjs-libraries/dtos/oauth/update-o
 import { RegisterClientDto } from '@gitroom/nestjs-libraries/dtos/oauth/register-client.dto';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
+import { mcpClientFromRequest } from '@gitroom/helpers/utils/mcp.client.match';
 import { extractBearerToken } from '@gitroom/nestjs-libraries/chat/oauth-types';
 import { createHash } from 'crypto';
 import { OAuthApp } from '@prisma/client';
@@ -872,8 +873,21 @@ export class OAuthService {
     };
   }
 
+  // Dynamic clients register without a picture, so each app also gets the
+  // known client it is (Claude, ChatGPT…) for its logo. The redirect it is
+  // matched from stays on the server.
   async getApprovedApps(userId: string) {
-    return this._oauthRepository.getApprovedApps(userId);
+    const authorizations = await this._oauthRepository.getApprovedApps(userId);
+    return authorizations.map(({ oauthApp, ...authorization }) => {
+      const { redirectUrl, ...app } = oauthApp;
+      return {
+        ...authorization,
+        oauthApp: {
+          ...app,
+          client: mcpClientFromRequest(app.name, redirectUrl)?.client || null,
+        },
+      };
+    });
   }
 
   async revokeApp(userId: string, authId: string) {

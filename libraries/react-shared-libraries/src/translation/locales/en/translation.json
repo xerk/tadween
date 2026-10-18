@@ -2976,5 +2976,6 @@
   "tdw_admin_heard_via": "Heard via",
   "tdw_admin_user_type": "User type",
   "tdw_admin_goal": "Goal",
-  "tdw_admin_company": "Company"
+  "tdw_admin_company": "Company",
+  "tdw_apps_authorized_on": "Authorized on {{date}}"
 }

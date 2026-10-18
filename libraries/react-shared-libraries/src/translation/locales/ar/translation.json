@@ -2993,5 +2993,6 @@
   "tdw_admin_heard_via": "عرف عنّا من",
   "tdw_admin_user_type": "نوع المستخدم",
   "tdw_admin_goal": "الهدف",
-  "tdw_admin_company": "الشركة"
+  "tdw_admin_company": "الشركة",
+  "tdw_apps_authorized_on": "اعتُمد في {{date}}"
 }

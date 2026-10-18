@@ -34,8 +34,23 @@ export const UserContext = createContext<
       streakSince: string | null;
       // Super admin acting as themselves: no paywall or plan gates
       billingExempt?: boolean;
-    })
+    } & TadweenAccess)
 >(undefined);
+
+// Tadween free launch (GET /user/self, additive)
+export interface TadweenAccess {
+  // Stripe keys set and payments switched on in /admin
+  paymentsEnabled?: boolean;
+  // created before the free plan started: full access, no plan needed
+  earlyAccess?: boolean;
+  // the free plan's limits while it applies to this workspace
+  freePlan?: { channels: number; members: number; aiCredits: number } | null;
+  // in-app AI (copilot, agent, generators) can be used
+  aiAvailable?: boolean;
+  waitlisted?: boolean;
+  // 1 = next in line
+  waitlistPosition?: number | null;
+}
 export const ContextWrapper: FC<{
   user: User & {
     orgId: string;
@@ -45,7 +60,7 @@ export const ContextWrapper: FC<{
     totalChannels: number;
     billingExempt?: boolean;
     impersonate?: boolean;
-  };
+  } & TadweenAccess;
   children: ReactNode;
 }> = ({ user, children }) => {
   // Tadween: plan limits set in /admin overlay the static pricing map

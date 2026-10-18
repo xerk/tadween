@@ -11,6 +11,7 @@ import PlausibleProvider from 'next-plausible';
 import clsx from 'clsx';
 import { VariableContextComponent } from '@gitroom/react/helpers/variable.context';
 import { isGenericOauth } from '@gitroom/helpers/utils/is.generic.oauth';
+import { paymentsEnabledServerSide } from '@gitroom/helpers/utils/payments.enabled.server.side';
 import { Fragment } from 'react';
 import { PHProvider } from '@gitroom/react/helpers/posthog';
 import UtmSaver from '@gitroom/helpers/utils/utm.saver';
@@ -38,6 +39,8 @@ const datafastDomain = () => {
 };
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
+  // Tadween: Stripe keys and the payments switch in /admin
+  const billingEnabled = await paymentsEnabledServerSide();
   const cookieStore = await cookies();
   // no cookie yet (first visit): proxy.ts detected the language from the country / browser
   const language =
@@ -81,7 +84,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           stripeClient={process.env.STRIPE_PUBLISHABLE_KEY!}
           isChatBase={!!process.env.CHATBASE_TOKEN}
           crispWebsiteId={process.env.CRISP_WEBSITE_ID || ''}
-          billingEnabled={!!process.env.STRIPE_PUBLISHABLE_KEY}
+          billingEnabled={billingEnabled}
           discordUrl={process.env.NEXT_PUBLIC_DISCORD_SUPPORT!}
           frontEndUrl={process.env.FRONTEND_URL!}
           isGeneral={!!process.env.IS_GENERAL}
@@ -92,10 +95,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           cloudflareUrl={process.env.CLOUDFLARE_BUCKET_URL || ''}
           mainUrl={process.env.MAIN_URL || ''}
           mcpUrl={process.env.MCP_URL}
-          dub={
-            !!process.env.STRIPE_PUBLISHABLE_KEY &&
-            !!process.env.NEXT_PUBLIC_DUB_REFER_DOMAIN
-          }
+          dub={billingEnabled && !!process.env.NEXT_PUBLIC_DUB_REFER_DOMAIN}
           dubReferDomain={process.env.NEXT_PUBLIC_DUB_REFER_DOMAIN || ''}
           mcpOfficialConnectors={process.env.MCP_OFFICIAL_CONNECTORS === 'true'}
           chromeExtensionUrl={process.env.CHROME_EXTENSION_URL || ''}

@@ -63,6 +63,7 @@ export const ADMIN_NAV: NavGroup[] = [
     items: [
       { href: '/admin/channels', key: 'tdw_admin_channels', label: 'Channels', icon: 'plug' },
       { href: '/admin/plans', key: 'tdw_admin_plans', label: 'Plans', icon: 'credit-card' },
+      { href: '/admin/access', key: 'tdw_admin_access', label: 'Free plan & payments', icon: 'users' },
       { href: '/admin/features', key: 'tdw_admin_features', label: 'Features', icon: 'zap' },
     ],
   },

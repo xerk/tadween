@@ -177,7 +177,7 @@ const languageName = (code: string) => {
 };
 
 /* English ⇄ العربية, applied at once like Settings → Preferences → Language */
-const LanguageSwitch: FC = () => {
+export const LanguageSwitch: FC = () => {
   const { i18n } = useTranslation();
   const current = i18n.resolvedLanguage || fallbackLng;
   const [, setCookie] = useCookie(cookieName, current);

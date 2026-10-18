@@ -140,7 +140,7 @@ export const SettingsPopup: FC<{
         keywords: [t('tdw_invite_people', 'Invite people')],
       });
     }
-    if (user?.tier.current !== 'FREE' && isOn('signatures')) {
+    if ((user?.tier.current !== 'FREE' || !!user?.freePlan) && isOn('signatures')) {
       arr.push({
         tab: 'signatures',
         group: 'workspace',
@@ -152,7 +152,7 @@ export const SettingsPopup: FC<{
         ),
       });
     }
-    if (user?.tier.current !== 'FREE' && isOn('sets')) {
+    if ((user?.tier.current !== 'FREE' || !!user?.freePlan) && isOn('sets')) {
       arr.push({
         tab: 'sets',
         group: 'workspace',

@@ -2928,5 +2928,19 @@
   "tdw_today_hello": "Hello.",
   "tdw_today_hello_name": "Hello, {{name}}.",
   "hubspot_installed": "Tadween is installed in HubSpot",
-  "hubspot_installed_description": "Connect the channels you want to post to here in Tadween. Then, in HubSpot, open Agent Hub > Agent Builder, add a tool, pick Tadween MCP under MCP Servers and click Connect and add."
+  "hubspot_installed_description": "Connect the channels you want to post to here in Tadween. Then, in HubSpot, open Agent Hub > Agent Builder, add a tool, pick Tadween MCP under MCP Servers and click Connect and add.",
+  "tdw_waitlist_title": "You’re on the waitlist",
+  "tdw_waitlist_lead": "Tadween is free during early access, and the free spots are taken for now. Your workspace is saved and waiting.",
+  "tdw_waitlist_position": "Your place in line",
+  "tdw_waitlist_step_order": "We let people in in the order they signed up.",
+  "tdw_waitlist_step_email": "When it’s your turn, we email you and you can start right away.",
+  "tdw_ai_free_plan_title": "AI isn't included in the free plan",
+  "tdw_ai_free_plan_description": "You can still write and schedule posts yourself, or connect your own AI assistant to Tadween through MCP in Settings.",
+  "tdw_paywall_free_plan_ai": "Get AI with a plan",
+  "tdw_free_limit_channels": "The free plan includes {{count}} channels. Disconnect one to connect another.",
+  "tdw_free_limit_team": "The free plan is for one person, so team members can’t be invited yet.",
+  "tdw_free_limit_ai": "AI isn’t included in the free plan. You can still connect your own AI assistant through MCP in Settings.",
+  "tdw_free_limit_title": "Free plan limit",
+  "tdw_limit_title": "Plan limit reached",
+  "tdw_admin_access": "Free plan & payments"
 }

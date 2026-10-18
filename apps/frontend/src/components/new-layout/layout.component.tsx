@@ -55,6 +55,7 @@ import {
 } from '@gitroom/frontend/components/billing/first.billing.component';
 import { Onboarding } from '@gitroom/frontend/components/onboarding/onboarding';
 import { BootScreen } from '@gitroom/frontend/components/tadween/shell/boot.screen';
+import { WaitlistScreen } from '@gitroom/frontend/components/tadween/shell/waitlist.screen';
 import { TrialTracker } from '@gitroom/frontend/components/layout/gtm.component';
 import { setSentryUser } from '@gitroom/react/sentry/initialize.sentry.client';
 import { useFeatureRouteGuard } from '@gitroom/frontend/components/tadween/instance/instance.settings';
@@ -91,17 +92,21 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   // As Postiz: a workspace without a plan sees the first billing screen in
-  // place of the app; super admins never
+  // place of the app; super admins never, and neither does a workspace on
+  // the free plan (Tadween: /user/self → freePlan)
   const needsPlan =
     !!user &&
     user.tier === 'FREE' &&
+    !user.freePlan &&
     isGeneral &&
     billingEnabled &&
     !user.billingExempt;
   // ...and so does a new workspace right after sign-up while its free trial
   // runs without a card (until it pays or picks "Maybe later")
   const firstBilling = useFirstBilling(
-    billingEnabled && !user?.billingExempt ? user : undefined,
+    billingEnabled && !user?.billingExempt && !user?.freePlan
+      ? user
+      : undefined,
     needsPlan
   );
 
@@ -114,6 +119,18 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             : 'app'
         }
       />
+    );
+  }
+
+  // Tadween free launch: a waitlisted workspace sees its place in line in
+  // place of the app (the backend refuses everything else)
+  if (user.waitlisted && !user.billingExempt) {
+    return (
+      <ContextWrapper user={user}>
+        <MantineWrapper>
+          <WaitlistScreen position={user.waitlistPosition} />
+        </MantineWrapper>
+      </ContextWrapper>
     );
   }
 

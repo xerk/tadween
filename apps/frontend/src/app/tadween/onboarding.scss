@@ -117,6 +117,31 @@ $phone: '(max-width: 1025px)';
   }
 }
 
+// ── Waitlist screen (components/tadween/shell/waitlist.screen.tsx) ─────────
+// The first billing screen's frame (.tdw-fb head) with one centred card: the
+// workspace's place in line and what happens next.
+.tdw-ui {
+  .tdw-wl-body { flex: 1; display: flex; align-items: center; justify-content: center; padding: var(--space-10, 40px) var(--space-6); box-sizing: border-box; }
+  .tdw-wl-card { display: grid; justify-items: center; gap: var(--space-4); width: 100%; max-width: 520px; padding: var(--space-10, 40px) var(--space-8); border-radius: var(--radius-xl); background: var(--card); box-shadow: 0 0 0 1px var(--border), var(--shadow-sm); text-align: center; box-sizing: border-box; }
+  .tdw-wl-mark { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
+  .tdw-wl-title { margin: 0; font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.02em; text-wrap: balance; }
+  .tdw-wl-lead { margin: 0; font-size: 16px; line-height: 24px; color: var(--muted-foreground); text-wrap: pretty; }
+  .tdw-wl-position { display: grid; gap: 2px; justify-items: center; margin-top: var(--space-2); padding: var(--space-4) var(--space-8); border-radius: var(--radius-lg); background: var(--muted); }
+  .tdw-wl-position-label { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--muted-foreground); }
+  .tdw-wl-position-value { font-size: 40px; line-height: 48px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .tdw-wl-steps { display: grid; gap: var(--space-2); margin: var(--space-2) 0 0; padding: 0; list-style: none; font-size: 14px; line-height: 20px; text-align: start; }
+  .tdw-wl-steps li { display: flex; align-items: flex-start; gap: 8px; }
+  .tdw-wl-steps .pz-icon { flex: none; margin-top: 2px; color: var(--success); }
+  &.is-ar .tdw-wl-title { letter-spacing: 0; line-height: 44px; }
+  &.is-ar .tdw-wl-lead { line-height: 28px; }
+
+  @media #{$phone} {
+    .tdw-wl-body { align-items: flex-start; padding: var(--space-6) var(--space-4); }
+    .tdw-wl-card { padding: var(--space-8) var(--space-5); }
+    .tdw-wl-title { font-size: 24px; line-height: 32px; }
+  }
+}
+
 // ── Onboarding modal (components/onboarding/onboarding.modal.tsx) ─────────────
 // Postiz's full-screen onboarding modal (Connect Channels → Connect Agents →
 // Watch Tutorial) in the kit: a rounded card over the page; on phones a

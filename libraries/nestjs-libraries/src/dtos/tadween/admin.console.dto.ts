@@ -252,6 +252,53 @@ export class FounderWindowDto {
   endsAt?: string | null;
 }
 
+// ── Free launch: payments switch, free plan, cap (AccessService) ────────────
+export class FreePlanDto {
+  @IsBoolean()
+  enabled: boolean;
+
+  @IsInt()
+  @Min(0)
+  @Max(1000)
+  channels: number;
+
+  // Seats including the owner (1 = no team members)
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  members: number;
+
+  // Monthly AI credits (0 = no in-app AI)
+  @IsInt()
+  @Min(0)
+  @Max(1000000)
+  aiCredits: number;
+}
+
+export class AccessSettingsDto {
+  // Checkout, trials, the paywall and upgrade buttons (needs Stripe keys too)
+  @IsBoolean()
+  payments: boolean;
+
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => FreePlanDto)
+  freePlan: FreePlanDto;
+
+  // Free workspaces with access before new ones wait (null: no cap)
+  @ValidateIf((o) => o.cap !== null)
+  @IsInt()
+  @Min(0)
+  @Max(10000000)
+  cap: number | null;
+
+  // Early-access cutoff: workspaces created before it keep full access
+  // (absent: keep the current one; it can't be cleared)
+  @ValidateIf((o) => o.cutoff !== undefined)
+  @IsISO8601()
+  cutoff?: string;
+}
+
 export class YearlyDiscountDto {
   // Percent off 12 monthly payments for yearly billing
   @IsInt()

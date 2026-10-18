@@ -7,6 +7,7 @@ import { Organization } from '@prisma/client';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
 import {
   AiCreditAction,
   aiCreditCost,
@@ -29,7 +30,8 @@ export class SubscriptionService {
     private readonly _subscriptionRepository: SubscriptionRepository,
     private readonly _integrationService: IntegrationService,
     private readonly _organizationService: OrganizationService,
-    private readonly _plans: PlansService
+    private readonly _plans: PlansService,
+    private readonly _access: AccessService
   ) {}
 
   getSubscriptionByOrganizationId(organizationId: string) {
@@ -59,6 +61,12 @@ export class SubscriptionService {
     subscription?: { status?: string | null } | null;
   }): Promise<boolean> {
     if (!org.isTrailing) {
+      return false;
+    }
+    // Tadween: the free plan and early access are never a trial, whatever
+    // the stored flag says (AccessService.trialApplies)
+    const access = await this._access.forOrganizationId(org.id);
+    if (!access || !(await this._access.trialApplies(access))) {
       return false;
     }
     const status =
@@ -527,10 +535,9 @@ export class SubscriptionService {
     const from = subscription
       ? this.billingPeriodStart(subscription.createdAt)
       : dayjs().startOf('month');
+    // FREE: the free plan's AI credits while it is on, else none
     const limit =
-      tier === 'FREE'
-        ? 0
-        : (await this._plans.getPricing())[tier]?.image_generation_count || 0;
+      (await this._plans.getPricing())[tier]?.image_generation_count || 0;
     return { from, limit };
   }
 
@@ -570,15 +577,34 @@ export class SubscriptionService {
     );
   }
 
-  // Refuses (402) when the workspace can't pay for the action. Installs without
-  // billing and super admins acting as themselves are never refused; their
-  // usage is still recorded by chargeAiCredits.
+  // Whether AI use is metered for the workspace (refused when it can't pay).
+  // Workspaces with early access and super admins acting as themselves are
+  // not; their usage is still recorded by chargeAiCredits. A free-plan
+  // workspace without AI credits is refused outright (402, free_plan_ai).
+  async meterAi(organizationId: string, exempt = false) {
+    if (exempt) {
+      return false;
+    }
+    const access = await this._access.forOrganizationId(organizationId);
+    if (!access || access.mode === 'early') {
+      return false;
+    }
+    if (access.mode === 'free' && !access.freePlan?.aiCredits) {
+      throw new SubscriptionException({
+        action: AuthorizationActions.Create,
+        section: Sections.FREE_PLAN_AI,
+      });
+    }
+    return true;
+  }
+
+  // Refuses (402) when the workspace can't pay for the action (meterAi)
   async assertAiCredits(
     organizationId: string,
     action: AiCreditAction,
     exempt = false
   ) {
-    if (exempt || !process.env.STRIPE_PUBLISHABLE_KEY) {
+    if (!(await this.meterAi(organizationId, exempt))) {
       return true;
     }
 
@@ -638,7 +664,7 @@ export class SubscriptionService {
     const charge = await this.chargeAiCredits(
       organizationId,
       action,
-      !exempt && !!process.env.STRIPE_PUBLISHABLE_KEY
+      await this.meterAi(organizationId, exempt)
     );
 
     try {

@@ -28,6 +28,7 @@ import {
   EmailTemplate,
   EmailTemplateData,
 } from '@gitroom/nestjs-libraries/emails/templates/email.templates';
+import { stripeConfigured } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_nothing');
 
@@ -472,7 +473,7 @@ export class StripeService extends PaymentProviderAbstract {
   async syncCustomerEmailsAfterSwitch(
     accounts: { id: string; email: string }[]
   ) {
-    if (!process.env.STRIPE_PUBLISHABLE_KEY) {
+    if (!stripeConfigured()) {
       return;
     }
     const emailByCustomer = new Map<string, string>();
@@ -698,7 +699,7 @@ export class StripeService extends PaymentProviderAbstract {
   }
 
   async cancelAllSubscriptions(organizationId: string) {
-    if (!process.env.STRIPE_PUBLISHABLE_KEY) {
+    if (!stripeConfigured()) {
       return;
     }
     // getOrgById must not filter deletedAt, this can run for an organization

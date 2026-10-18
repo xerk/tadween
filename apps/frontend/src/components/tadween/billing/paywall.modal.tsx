@@ -13,6 +13,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useCloseAllModals } from '@gitroom/frontend/components/layout/new-modal';
+import { useVariables } from '@gitroom/react/helpers/variable.context';
 import {
   PublicPlan,
   useTadweenPricing,
@@ -41,6 +42,7 @@ const ROW: Record<string, string> = {
   team_members: 'team',
   ai: 'ai_images',
   ai_credits: 'ai_images',
+  free_plan_ai: 'ai_images',
   webhooks: 'webhooks',
   posts_per_month: 'posts',
 };
@@ -64,6 +66,7 @@ export const PaywallModal: FC = () => {
   const t = useT();
   const user = useUser();
   const router = useRouter();
+  const { billingEnabled } = useVariables();
   const closeAllModals = useCloseAllModals();
   const text = usePlanFeatureText();
   const { plans, planFor } = useTadweenPricing();
@@ -111,11 +114,51 @@ export const PaywallModal: FC = () => {
       ? t('tdw_paywall_ai', 'Get more AI images')
       : reason?.section === 'ai_credits'
       ? t('tdw_paywall_ai_credits', 'You’ve used your AI credits this month')
+      : reason?.section === 'free_plan_ai'
+      ? t('tdw_paywall_free_plan_ai', 'Get AI with a plan')
       : reason?.section === 'webhooks'
       ? t('tdw_paywall_webhooks', 'Add more webhooks')
       : t('tdw_paywall_generic', 'Upgrade your plan');
 
   const close = () => setReason(null);
+
+  // Tadween free launch: with payments off there is nothing to buy, so the
+  // dialog only says which limit of the plan was reached
+  if (!billingEnabled) {
+    const free = user?.freePlan;
+    const limit =
+      reason?.section === 'channel' && free
+        ? t('tdw_free_limit_channels', 'The free plan includes {{count}} channels. Disconnect one to connect another.', { count: free.channels })
+        : reason?.section === 'team_members' && free
+        ? free.members > 1
+          ? t('tdw_free_limit_team_count', 'The free plan includes {{count}} members, the owner included.', { count: free.members })
+          : t('tdw_free_limit_team', 'The free plan is for one person, so team members can’t be invited yet.')
+        : reason?.section === 'free_plan_ai' ||
+          ((reason?.section === 'ai' || reason?.section === 'ai_credits') && free)
+        ? t('tdw_free_limit_ai', 'AI isn’t included in the free plan. You can still connect your own AI assistant through MCP in Settings.')
+        : reason?.message ||
+          t('tdw_paywall_top_plan', 'You have reached the limit of your plan.');
+    return (
+      <Dialog
+        open={!!reason}
+        onClose={close}
+        title={
+          free
+            ? t('tdw_free_limit_title', 'Free plan limit')
+            : t('tdw_limit_title', 'Plan limit reached')
+        }
+        description={limit}
+        footer={
+          <>
+            <span className="flex-1" />
+            <Button variant="primary" onClick={close}>
+              {t('tdw_close', 'Close')}
+            </Button>
+          </>
+        }
+      />
+    );
+  }
   // Out of AI credits: a top-up pack is the other way out
   const credits = reason?.section === 'ai_credits';
   return (

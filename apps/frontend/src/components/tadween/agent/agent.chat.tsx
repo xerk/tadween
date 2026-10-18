@@ -319,18 +319,34 @@ const AgentChatRuntime: FC = () => {
 const AiNotConfigured: FC = () => {
   const t = useT();
   const user = useUser();
+  // Tadween: the server has AI, the workspace's free plan doesn't
+  const freePlan = user?.aiAvailable === false && !!user?.freePlan;
+  const offPlaceholder = freePlan
+    ? t('tdw_ai_free_plan_title', "AI isn't included in the free plan")
+    : t('tdw_ag_off_placeholder', "The agent can't reply until AI is configured");
   return (
     <div className="tdw-ag-chat">
       <div className="tdw-ag-off">
         <TadweenEmptyState
           icon="plug"
-          title={t('tdw_ai_not_configured', "AI isn't configured")}
-          body={t(
-            'tdw_ai_not_configured_description',
-            'The agent needs an AI provider on this server. Ask your administrator to set it up.'
-          )}
+          title={
+            freePlan
+              ? t('tdw_ai_free_plan_title', "AI isn't included in the free plan")
+              : t('tdw_ai_not_configured', "AI isn't configured")
+          }
+          body={
+            freePlan
+              ? t(
+                  'tdw_ai_free_plan_description',
+                  'You can still write and schedule posts yourself, or connect your own AI assistant to Tadween through MCP in Settings.'
+                )
+              : t(
+                  'tdw_ai_not_configured_description',
+                  'The agent needs an AI provider on this server. Ask your administrator to set it up.'
+                )
+          }
           action={
-            (user as { admin?: boolean } | undefined)?.admin ? (
+            !freePlan && (user as { admin?: boolean } | undefined)?.admin ? (
               <ol className="tdw-ag-steps">
                 <li>
                   <span className="tdw-ag-step-n">1</span>
@@ -357,8 +373,8 @@ const AiNotConfigured: FC = () => {
           <textarea
             disabled
             rows={1}
-            aria-label={t('tdw_ag_off_placeholder', "The agent can't reply until AI is configured")}
-            placeholder={t('tdw_ag_off_placeholder', "The agent can't reply until AI is configured")}
+            aria-label={offPlaceholder}
+            placeholder={offPlaceholder}
           />
           <div className="tdw-ag-composer-bar">
             <span className="flex-1" />

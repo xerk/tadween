@@ -357,6 +357,21 @@ export class PartnersService {
     }
   }
 
+  // Whether a sign-up's `ref` is an active partner's code (it skips the free
+  // plan's waitlist). Never throws.
+  async isActiveCode(rawCode?: string | null) {
+    try {
+      const code = normalizeCode(rawCode);
+      if (!code || !(await this.enabled())) {
+        return false;
+      }
+      const partner = await this._repository.getPartnerByCode(code);
+      return partner?.status === 'ACTIVE';
+    } catch (e) {
+      return false;
+    }
+  }
+
   // "Who invited you?": a code typed in the first days after sign-up
   async claim(
     organization: { id: string; createdAt: Date },

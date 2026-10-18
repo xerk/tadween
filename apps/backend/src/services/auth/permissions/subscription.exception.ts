@@ -4,7 +4,12 @@ import {
   ExceptionFilter,
   HttpException,
 } from '@nestjs/common';
-import { AuthorizationActions, Sections, SubscriptionException } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
+import {
+  AuthorizationActions,
+  FREE_PLAN_AI_MESSAGE,
+  Sections,
+  SubscriptionException,
+} from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 
 @Catch(SubscriptionException)
 export class SubscriptionExceptionFilter implements ExceptionFilter {
@@ -56,6 +61,8 @@ const getErrorMessage = (error: {
       return 'Your subscription does not include more team members. Please upgrade your subscription to invite more people.';
     case Sections.AI:
       return 'Your subscription does not include AI features. Please upgrade your subscription to use them.';
+    case Sections.FREE_PLAN_AI:
+      return `${FREE_PLAN_AI_MESSAGE}.`;
     case Sections.AI_CREDITS:
       return "You've used your AI credits this month. Buy more credits or upgrade your plan to keep using AI.";
     case Sections.IMPORT_FROM_CHANNELS:

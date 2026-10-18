@@ -5,6 +5,7 @@ import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/o
 import { OAuthService } from '@gitroom/nestjs-libraries/database/prisma/oauth/oauth.service';
 import { HttpForbiddenException } from '@gitroom/nestjs-libraries/services/exception.filter';
 import { setSentryUserContext } from '@gitroom/nestjs-libraries/sentry/initialize.sentry';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
 
 @Injectable()
 export class PublicAuthMiddleware implements NestMiddleware {
@@ -12,7 +13,8 @@ export class PublicAuthMiddleware implements NestMiddleware {
 
   constructor(
     private _organizationService: OrganizationService,
-    private _oauthService: OAuthService
+    private _oauthService: OAuthService,
+    private _access: AccessService
   ) {}
 
   private setOrg(req: Request, org: Organization) {
@@ -58,7 +60,17 @@ export class PublicAuthMiddleware implements NestMiddleware {
         }
       }
 
-      if (!!process.env.STRIPE_SECRET_KEY && !org.subscription) {
+      // API keys of waitlisted workspaces are not found at all; an OAuth
+      // token can still point at one
+      const access = await this._access.forOrganizationId(org.id);
+      if (access?.waitlisted) {
+        res
+          .status(HttpStatus.FORBIDDEN)
+          .json({ msg: 'This workspace is on the waitlist' });
+        return;
+      }
+      // a workspace on the free plan or with early access has the API too
+      if (!access || access.mode === 'none') {
         res
           .status(HttpStatus.UNAUTHORIZED)
           .json({ msg: 'No subscription found' });

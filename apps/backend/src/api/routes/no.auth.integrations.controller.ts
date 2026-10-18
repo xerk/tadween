@@ -28,6 +28,7 @@ import {
   PROVIDER_NOT_AVAILABLE,
   ProviderSettingsService,
 } from '@gitroom/nestjs-libraries/database/prisma/tadween/provider-settings.service';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
 
 @ApiTags('Integrations')
 @Controller('/integrations')
@@ -37,7 +38,8 @@ export class NoAuthIntegrationsController {
     private _integrationService: IntegrationService,
     private _refreshIntegrationService: RefreshIntegrationService,
     private _organizationService: OrganizationService,
-    private _providerSettings: ProviderSettingsService
+    private _providerSettings: ProviderSettingsService,
+    private _access: AccessService
   ) {}
 
   @Get('/')
@@ -83,6 +85,11 @@ export class NoAuthIntegrationsController {
     }
 
     const org = await this._organizationService.getOrgById(organization);
+    // Tadween: no channels for a waitlisted workspace yet
+    const access = await this._access.forOrganizationId(organization);
+    if (!access || access.waitlisted) {
+      throw new HttpException('This workspace is on the waitlist.', 403);
+    }
 
     if (!integrationProvider.customFields) {
       await ioRedis.del(`login:${body.state}`);
@@ -227,8 +234,8 @@ export class NoAuthIntegrationsController {
     }
 
     if (
-      process.env.STRIPE_PUBLISHABLE_KEY &&
       org.isTrailing &&
+      (await this._access.trialApplies(access)) &&
       (await this._integrationService.checkPreviousConnections(
         org.id,
         String(id)
@@ -382,6 +389,9 @@ export class NoAuthIntegrationsController {
     }
 
     const org = await this._organizationService.getOrgById(organization);
+    if ((await this._access.forOrganizationId(org.id))?.waitlisted !== false) {
+      throw new HttpException('This workspace is on the waitlist.', 403);
+    }
 
     return this._integrationService.saveProviderPage(org.id, id, body);
   }

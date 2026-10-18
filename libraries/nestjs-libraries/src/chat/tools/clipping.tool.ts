@@ -1,3 +1,7 @@
+import {
+  FREE_PLAN_AI_MESSAGE,
+  isFreePlanAiRefusal,
+} from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 import { AgentToolInterface } from '@gitroom/nestjs-libraries/chat/agent.tool.interface';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
@@ -93,8 +97,9 @@ export class ClippingTool implements AgentToolInterface {
           // message is just "Subscription Exception", so translate it
           // only what was written for the user goes to the model: a database or
           // provider error carries paths, queries and urls
-          const message =
-            err instanceof HttpException && err.getStatus() === 402
+          const message = isFreePlanAiRefusal(err)
+            ? FREE_PLAN_AI_MESSAGE
+            : err instanceof HttpException && err.getStatus() === 402
               ? 'No clipping minutes are left on this account for this month'
               : err instanceof HttpException
               ? err.message

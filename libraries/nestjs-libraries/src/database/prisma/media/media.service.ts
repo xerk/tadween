@@ -697,6 +697,9 @@ export class MediaService {
   }
 
   private async validateVideoRequest(org: Organization, body: VideoDto) {
+    // Tadween: the free plan has no AI: refused with that reason (402)
+    await this._subscriptionService.meterAi(org.id);
+
     const totalCredits = await this._subscriptionService.checkCredits(
       org,
       'ai_videos'

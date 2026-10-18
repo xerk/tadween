@@ -348,6 +348,43 @@ export const useAdminPlans = () =>
     swrOptions
   );
 
+// ── Free launch: payments switch, free plan, cap and waitlist ───────────────
+export interface AdminAccessSettings {
+  payments: boolean;
+  freePlan: { enabled: boolean; channels: number; members: number; aiCredits: number };
+  // null: no cap
+  cap: number | null;
+  // workspaces created before it keep full access (early access)
+  cutoff: string | null;
+}
+
+export interface AdminAccess {
+  settings: AdminAccessSettings;
+  stripeConfigured: boolean;
+  paymentsEnabled: boolean;
+  // `skipped`: referral codes and invited teammates, outside the cap
+  counts: { used: number; cap: number | null; skipped: number; waitlisted: number };
+}
+
+export interface AdminWaitlisted {
+  id: string;
+  name: string;
+  createdAt: string;
+  waitlistedAt: string;
+  position: number;
+  owner: { id: string; email: string; name: string | null } | null;
+}
+
+export const useAdminAccess = () =>
+  useSWR<AdminAccess>('/admin/console/access', useLoader<AdminAccess>(), swrOptions);
+
+export const useAdminWaitlist = (query: string) =>
+  useSWR<AdminListPage<AdminWaitlisted>>(
+    `/admin/console/access/waitlist?${query}`,
+    useLoader<AdminListPage<AdminWaitlisted>>(),
+    { ...swrOptions, keepPreviousData: true }
+  );
+
 // `query` is tableQueryString(...) from the DataTable.
 export const useAdminUsers = (query: string) =>
   useSWR<AdminUsersPage>(

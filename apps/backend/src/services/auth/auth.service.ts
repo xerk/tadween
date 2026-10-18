@@ -14,6 +14,8 @@ import { PlatformSettingsService } from '@gitroom/nestjs-libraries/database/pris
 import { PartnersService } from '@gitroom/nestjs-libraries/database/prisma/partners/partners.service';
 import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
+import { FreeAccessVia } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 
 @Injectable()
 export class AuthService {
@@ -25,7 +27,8 @@ export class AuthService {
     private _platformSettings: PlatformSettingsService,
     private _partners: PartnersService,
     private _paymentService: PaymentService,
-    private _mediaService: MediaService
+    private _mediaService: MediaService,
+    private _access: AccessService
   ) {}
 
   // Tadween: the mode comes from the super-admin console, falling back to
@@ -82,7 +85,11 @@ export class AuthService {
         const create = await this._organizationService.createOrgAndUser(
           body,
           ip,
-          userAgent
+          userAgent,
+          await this.freeSignup(
+            body.ref,
+            !!addToOrg && typeof addToOrg !== 'boolean'
+          )
         );
         // never fails the sign-up
         await this._partners.attributeSignup(
@@ -161,6 +168,23 @@ export class AuthService {
           )
         : false;
     return { addedOrg, jwt: await this.jwt(user) };
+  }
+
+  // Tadween: how a new workspace gets in. A team invite (the teammate's own
+  // workspace) or a partner's referral code skips the line and doesn't
+  // count toward the free plan's cap; a normal sign-up counts and waits on
+  // the waitlist when the free plan is full. Never throws.
+  private async freeSignup(
+    ref: string | undefined,
+    invited: boolean
+  ): Promise<{ waitlisted: boolean; via: FreeAccessVia }> {
+    if (invited) {
+      return { waitlisted: false, via: 'invite' };
+    }
+    if (await this._partners.isActiveCode(ref)) {
+      return { waitlisted: false, via: 'referral' };
+    }
+    return { waitlisted: await this._access.shouldWaitlist(), via: 'signup' };
   }
 
   // A new workspace starts its free trial without a card at sign-up (the
@@ -247,7 +271,8 @@ export class AuthService {
   }
 
   // After activation, or right after a provider sign-up. A workspace that
-  // joined with an invite hears about its bonus. Never throws.
+  // joined with an invite hears about its bonus; a waitlisted one hears its
+  // place in line instead (the welcome comes with "You're in"). Never throws.
   private async sendWelcome(
     user: { id: string; email: string; name?: string | null; language?: string | null },
     organizationId?: string
@@ -256,6 +281,18 @@ export class AuthService {
       const orgId =
         organizationId ||
         (await this._organizationService.getOrgsByUserId(user.id))[0]?.id;
+      const position = orgId
+        ? await this._access.waitlistPositionOf(orgId)
+        : null;
+      if (position) {
+        await this._emailService.sendTemplate(
+          { email: user.email, language: user.language },
+          'waitlisted',
+          { name: user.name || '', position },
+          { dedupeKey: `waitlisted_${user.id}` }
+        );
+        return;
+      }
       const referral = orgId ? await this._partners.welcomeOffer(orgId) : null;
       await this._emailService.sendTemplate(
         { email: user.email, language: user.language },
@@ -331,7 +368,8 @@ export class AuthService {
         datafast_visitor_id: body.datafast_visitor_id,
       },
       ip,
-      userAgent
+      userAgent,
+      await this.freeSignup(body.ref, hasInvite)
     );
 
     // never fails the sign-up

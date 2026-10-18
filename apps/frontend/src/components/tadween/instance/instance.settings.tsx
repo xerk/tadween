@@ -15,6 +15,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useInvitedTrial } from '@gitroom/frontend/components/tadween/referral/partners.api';
+import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import {
   pricing as staticPricing,
   PricingInterface,
@@ -101,6 +102,8 @@ export interface InstanceSettings {
   login?: Record<string, boolean>;
   // The founder offer (PlansService.getFounderOffer)
   founder?: FounderOffer;
+  // payments on: Stripe keys and the /admin switch (absent on older backends)
+  billing?: { enabled: boolean };
 }
 
 export interface FounderOffer {
@@ -180,7 +183,9 @@ export const AiRuntimeFailedContext = createContext(false);
 export const useAiAvailable = (): boolean | undefined => {
   const { data, error } = useInstanceSettings();
   const runtimeFailed = useContext(AiRuntimeFailedContext);
-  if (error || runtimeFailed) {
+  // Tadween: the workspace's plan has no AI (the free plan)
+  const user = useUser();
+  if (error || runtimeFailed || user?.aiAvailable === false) {
     return false;
   }
   if (!data) {

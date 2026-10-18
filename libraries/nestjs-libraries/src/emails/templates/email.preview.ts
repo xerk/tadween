@@ -86,6 +86,8 @@ const SAMPLES: Sample[] = [
     name: 'Mona',
     referral: { kind: 'AFFILIATE', credits: 500, trialDays: 14 },
   }),
+  sample('waitlisted', 'waitlisted', { name: 'Mona', position: 12 }),
+  sample('waitlistAdmitted', 'waitlistAdmitted', { name: 'Mona' }),
   sample('trialEnding', 'trialEnding', { trialEnd: in3days, plan: 'Creator', hasCard: false }),
   sample('trialEnding-card', 'trialEnding', { trialEnd: in3days, plan: 'Creator', hasCard: true }),
   sample('trialEnded', 'trialEnded', {}),

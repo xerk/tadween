@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode, useCallback, useEffect } from 'react';
+import React, { ReactNode, useCallback, useEffect, useRef } from 'react';
 import { tadweenFont as jakartaSans } from '@gitroom/frontend/app/fonts';
 import {
   SidebarHeader,
@@ -20,7 +20,7 @@ import {
   useFetch,
 } from '@gitroom/helpers/utils/custom.fetch';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { CheckPayment } from '@gitroom/frontend/components/layout/check.payment';
 import { ToolTip } from '@gitroom/frontend/components/layout/top.tip';
@@ -55,6 +55,7 @@ import {
 } from '@gitroom/frontend/components/billing/first.billing.component';
 import { Onboarding } from '@gitroom/frontend/components/onboarding/onboarding';
 import { BootScreen } from '@gitroom/frontend/components/tadween/shell/boot.screen';
+import { WaitlistScreen } from '@gitroom/frontend/components/tadween/shell/waitlist.screen';
 import { TrialTracker } from '@gitroom/frontend/components/layout/gtm.component';
 import { setSentryUser } from '@gitroom/react/sentry/initialize.sentry.client';
 import { useFeatureRouteGuard } from '@gitroom/frontend/components/tadween/instance/instance.settings';
@@ -84,6 +85,24 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     refreshWhenHidden: false,
   });
 
+  // Tadween free launch: a workspace let in from the waitlist while the app
+  // is open goes straight into onboarding, which the waitlist skipped
+  const router = useRouter();
+  const wasWaitlisted = useRef(false);
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    if (user.waitlisted) {
+      wasWaitlisted.current = true;
+      return;
+    }
+    if (wasWaitlisted.current) {
+      wasWaitlisted.current = false;
+      router.replace('/launches?onboarding=true');
+    }
+  }, [user?.waitlisted]);
+
   useEffect(() => {
     setSentryUser(
       user ? { id: user.id, email: user.email, orgId: user.orgId } : null
@@ -91,17 +110,21 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   // As Postiz: a workspace without a plan sees the first billing screen in
-  // place of the app; super admins never
+  // place of the app; super admins never, and neither does a workspace on
+  // the free plan (Tadween: /user/self → freePlan)
   const needsPlan =
     !!user &&
     user.tier === 'FREE' &&
+    !user.freePlan &&
     isGeneral &&
     billingEnabled &&
     !user.billingExempt;
   // ...and so does a new workspace right after sign-up while its free trial
   // runs without a card (until it pays or picks "Maybe later")
   const firstBilling = useFirstBilling(
-    billingEnabled && !user?.billingExempt ? user : undefined,
+    billingEnabled && !user?.billingExempt && !user?.freePlan
+      ? user
+      : undefined,
     needsPlan
   );
 
@@ -114,6 +137,20 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             : 'app'
         }
       />
+    );
+  }
+
+  // Tadween free launch: a waitlisted workspace sees its place in line in
+  // place of the app (the backend refuses everything else)
+  if (user.waitlisted && !user.billingExempt) {
+    return (
+      <ContextWrapper user={user}>
+        <MantineWrapper>
+          {/* a super admin impersonating it can still leave */}
+          {user.admin && user.impersonate ? <Impersonate /> : null}
+          <WaitlistScreen position={user.waitlistPosition} />
+        </MantineWrapper>
+      </ContextWrapper>
     );
   }
 

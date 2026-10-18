@@ -278,6 +278,45 @@ export const credentialStatus = (identifier: string) => {
 export const DEFAULT_YEARLY_DISCOUNT_PERCENT = 17;
 export const DEFAULT_FOUNDER_CAP = 300;
 
+// ── Free launch (payments switch, free plan, waitlist) ────────────────────────
+// Payments stay off until a super admin switches them on in /admin, even when
+// Stripe keys are set. The free plan applies to workspaces without a plan
+// created after the early-access cutoff (stamped the first time the instance
+// boots with this setting); older workspaces keep full access. Once `cap` free
+// workspaces exist, new sign-ups wait on the waitlist (null = no cap).
+// Whether this server can talk to Stripe at all (keys set). Payments are only
+// on when the admin also switched them on (AccessService.paymentsEnabled).
+export const stripeConfigured = () => !!process.env.STRIPE_PUBLISHABLE_KEY;
+
+// How a new workspace got in: the normal free sign-up (counted toward the
+// cap), or one that skipped the line (a partner's referral code, or the
+// personal workspace of an invited teammate)
+export type FreeAccessVia = 'signup' | 'referral' | 'invite';
+
+export interface FreePlanLimits {
+  channels: number;
+  // Seats including the owner (1 = no team members)
+  members: number;
+  // Monthly AI credits (0 = no in-app AI)
+  aiCredits: number;
+}
+
+export interface AccessSettings {
+  payments: boolean;
+  freePlan: FreePlanLimits & { enabled: boolean };
+  cap: number | null;
+  // ISO date: workspaces created before it have early access (null = unknown,
+  // every workspace keeps full access)
+  cutoff: string | null;
+}
+
+export const DEFAULT_ACCESS: AccessSettings = {
+  payments: false,
+  freePlan: { enabled: true, channels: 2, members: 1, aiCredits: 0 },
+  cap: 100,
+  cutoff: null,
+};
+
 export interface DefaultPlan {
   key: string;
   name: string;

@@ -2,9 +2,9 @@
 // ReferralLinkCard, RewardLadder, ReferralStatusList and the page around
 // them. Scoped to `.tdw-ui` so the kit's token aliases
 // (--primary, --card…) apply; light and dark come from the tokens, RTL from
-// logical properties. Invite & earn is one narrow column (centred on
-// /invite, start-aligned in the Settings pane) and lays the pieces inside
-// "Details" out with container queries (`tdw-ref`).
+// logical properties. Invite & earn is one column at most 640px wide
+// (centred on /invite, start-aligned in the Settings pane); its phone layout
+// is a container query (`tdw-ref`), so it also applies in narrow panes.
 // docs/tadween/partners.md documents each piece.
 
 .tdw-ref-shell {
@@ -20,10 +20,10 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
-  gap: var(--space-5);
+  gap: var(--space-6);
   width: 100%;
   min-width: 0;
-  max-width: 560px;
+  max-width: 640px;
   margin-inline: auto;
 
   &.is-embedded { margin-inline: 0; }
@@ -111,15 +111,6 @@
     &.is-native::before { display: none; }
   }
 
-  // ── Page pieces ───────────────────────────────────────────────────────────
-  .tdw-ref-sec {
-    display: grid; align-content: start; gap: var(--space-5); padding: var(--space-6);
-    border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm);
-    min-width: 0;
-  }
-  .tdw-ref-sec h3, .tdw-ref-sec-head h3 { margin: 0; font-size: 16px; line-height: 22px; font-weight: 600; color: var(--foreground); }
-  .tdw-ref-sec-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3); }
-
   // ── Invite & earn (invite.earn.tsx) ──────────────────────────────────────
   // the invite card: title, one line, the link with Copy, the share icons
   .tdw-ref-invite {
@@ -147,8 +138,23 @@
     &:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
   }
 
-  // "3 friends joined · 2 rewards"
-  .tdw-ref-stat-line { margin: 0; padding-inline: var(--space-1); font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+  // a section: small muted heading (with an aside on the end side) over a card
+  .tdw-ref-block { display: grid; gap: var(--space-3); min-width: 0; }
+  .tdw-ref-block-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3); padding-inline: var(--space-1); }
+  .tdw-ref-heading { margin: 0; font-size: 13px; line-height: 18px; font-weight: 600; color: var(--muted-foreground); }
+  .tdw-ref-heading-count { font-size: 13px; line-height: 18px; color: var(--muted-foreground); }
+  .tdw-ref-panel {
+    display: grid; gap: var(--space-5); padding: var(--space-5) var(--space-6);
+    border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm);
+    min-width: 0;
+  }
+  // "No one has joined yet": a quiet line, no card
+  .tdw-ref-empty {
+    display: flex; align-items: center; gap: var(--space-2); margin: 0; padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg); border: 1px dashed var(--border);
+    font-size: 14px; line-height: 20px; color: var(--muted-foreground);
+    > .pz-icon { flex: none; }
+  }
 
   // the partner program as one slim row
   .tdw-ref-row {
@@ -164,7 +170,7 @@
   .tdw-ref-row-note { font-size: 12px; line-height: 16px; font-weight: 400; color: var(--muted-foreground); }
   .tdw-ref-row-cta { flex: none; }
 
-  // "Have an invite code?"
+  // "Have an invite code?", "Show all"
   .tdw-ref-text-btn {
     justify-self: start; padding: 0; border: 0; background: none; cursor: pointer;
     font: inherit; font-size: 13px; line-height: 18px; color: var(--muted-foreground);
@@ -173,7 +179,7 @@
     &:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
   }
 
-  // "Details": the ladder, workspaces, rewards and how it works, collapsed
+  // "How it works", collapsed at the bottom
   .tdw-ref-details {
     > summary {
       display: inline-flex; align-items: center; gap: 6px; width: fit-content;
@@ -186,17 +192,12 @@
     &[open] .tdw-ref-details-chev { transform: rotate(180deg); }
   }
   .tdw-ref-details-chev { transition: transform var(--duration-fast, 120ms) ease; }
-  .tdw-ref-details-body { display: grid; gap: var(--space-5); margin-top: var(--space-4); }
 
-  // the ladder while its rewards can't be used yet: shown, quieter
-  .tdw-ref-locked-note { margin: 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
-  .tdw-ref-locked { opacity: 0.55; filter: grayscale(0.4); pointer-events: none; }
-
+  // "You joined with code X."
   .tdw-ref-invited {
-    display: flex; align-items: flex-start; gap: var(--space-3); padding: 12px var(--space-5);
-    border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm);
-    font-size: 14px; line-height: 20px; color: var(--foreground);
-    > .tdw-icon, > svg { color: var(--success); flex: none; margin-top: 1px; }
+    display: flex; align-items: flex-start; gap: var(--space-2); margin: 0;
+    font-size: 13px; line-height: 18px; color: var(--muted-foreground);
+    > .pz-icon { color: var(--success); flex: none; margin-top: 1px; }
   }
 
   // "Who invited you?", once opened
@@ -209,40 +210,40 @@
     &:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent); }
     &[aria-invalid='true'] { border-color: var(--destructive); }
   }
-  .tdw-ref-claim-error { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--destructive); }
+  .tdw-ref-claim-error { margin: 0; font-size: 13px; color: var(--destructive); }
 
-  // ── RewardLadder: a progress track ────────────────────────────────────────
+  // ── RewardLadder: progress bar, then a compact track ──────────────────────
   // Each step draws the line to the next one (`.tdw-ladder-seg`), filled by
   // --seg (0…1), so the track works the same horizontally, vertically and in RTL.
-  .tdw-ladder { display: grid; gap: var(--space-6); }
-  .tdw-ladder-summary { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2) var(--space-4); }
-  .tdw-ladder-count { display: inline-flex; align-items: baseline; gap: 8px; }
-  .tdw-ladder-count .metric { font-size: 32px; line-height: 38px; color: var(--foreground); }
-  .tdw-ladder-count-label { font-size: 14px; color: var(--muted-foreground); }
-  .tdw-ladder-next { font-size: 14px; font-weight: 600; color: var(--primary); }
+  .tdw-ladder { display: grid; gap: var(--space-5); }
+  .tdw-ladder-progress { display: grid; gap: var(--space-2); }
+  .tdw-ladder-progress-label { font-size: 14px; line-height: 20px; font-weight: 550; color: var(--foreground); }
+  .tdw-ladder-progress .pz-progress { height: 6px; border-radius: 3px; }
 
   .tdw-ladder-steps {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    // one equal column per step, however many the program has
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
     margin: 0; padding: 0; list-style: none;
   }
   .tdw-ladder-step {
-    --dot: 36px;
+    --dot: 28px;
     position: relative;
     display: grid;
     justify-items: center;
     align-content: start;
-    gap: var(--space-3);
-    padding-inline: var(--space-2);
+    gap: var(--space-2);
+    padding-inline: 4px;
     text-align: center;
     min-width: 0;
   }
   .tdw-ladder-seg {
     position: absolute;
-    top: calc(var(--dot) / 2 - 2px);
-    inset-inline-start: calc(50% + var(--dot) / 2 + 6px);
-    width: calc(100% - var(--dot) - 12px);
-    height: 4px;
+    top: calc(var(--dot) / 2 - 1.5px);
+    inset-inline-start: calc(50% + var(--dot) / 2 + 4px);
+    width: calc(100% - var(--dot) - 8px);
+    height: 3px;
     border-radius: 2px;
     background: var(--muted);
     overflow: hidden;
@@ -260,10 +261,10 @@
   }
   .tdw-ladder-step.is-credits:not(.is-reached) .tdw-ladder-dot { color: var(--smart); }
   .tdw-ladder-step-text { display: grid; gap: 2px; min-width: 0; justify-items: center; }
-  .tdw-ladder-friends { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.02em; color: var(--muted-foreground); }
-  .tdw-ladder-reward { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--foreground); overflow-wrap: anywhere; max-width: 22ch; }
+  .tdw-ladder-friends { font-size: 12px; line-height: 16px; font-weight: 600; color: var(--muted-foreground); }
+  .tdw-ladder-reward { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--foreground); overflow-wrap: anywhere; }
   .tdw-ladder-state {
-    display: inline-flex; align-items: center; gap: 4px; margin-top: 4px;
+    display: inline-flex; align-items: center; gap: 4px; margin-top: 2px;
     font-size: 12px; line-height: 16px; font-weight: 600; color: var(--success);
     &.is-next { color: var(--primary); }
   }
@@ -272,28 +273,36 @@
   }
   .tdw-ladder-step.is-next .tdw-ladder-dot {
     background: var(--primary-soft); color: var(--primary);
-    box-shadow: 0 0 0 2px var(--primary), 0 0 0 6px color-mix(in srgb, var(--primary) 14%, transparent);
+    box-shadow: 0 0 0 2px var(--primary), 0 0 0 5px color-mix(in srgb, var(--primary) 14%, transparent);
   }
   .tdw-ladder-step:not(.is-reached):not(.is-next) .tdw-ladder-reward { color: var(--muted-foreground); }
 
-  // ── ReferralStatusList: a table ───────────────────────────────────────────
-  .tdw-ref-table .pz-table-wrap { box-shadow: none; border-radius: 0; background: transparent; }
-  .tdw-ref-table .pz-table { min-width: 560px; }
-  // the card already pads the table: cells line up with the card's title
-  .tdw-ref-table .pz-table :is(th, td):first-child { padding-inline-start: 0; }
-  .tdw-ref-table .pz-table :is(th, td):last-child { padding-inline-end: 0; }
-  .tdw-ref-who { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+  // ── ReferralStatusList: a compact list ────────────────────────────────────
+  .tdw-ref-people { display: grid; gap: var(--space-3); }
+  .tdw-ref-list { display: grid; margin: 0; padding: 0; list-style: none; }
+  .tdw-ref-item {
+    display: flex; align-items: center; gap: var(--space-3); padding: 10px 0;
+    border-top: 1px solid var(--border);
+    &:first-child { border-top: 0; padding-top: 0; }
+    &:last-child { padding-bottom: 0; }
+  }
   .tdw-ref-avatar {
     display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%;
     background: var(--primary-soft); color: var(--primary); font-size: 12px; font-weight: 600;
   }
-  .tdw-ref-who-text { display: grid; min-width: 0; }
-  .tdw-ref-who-hint { font-size: 14px; line-height: 20px; color: var(--foreground); }
+  .tdw-ref-item-text { display: grid; flex: 1; min-width: 0; }
+  .tdw-ref-item-title { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--foreground); }
+  .tdw-ref-item-sub { font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
 
-  // Rewards earned
+  // Rewards earned, under the list
+  .tdw-ref-earned { display: grid; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--border); }
+  .tdw-ref-earned-summary {
+    margin: 0; font-size: 13px; line-height: 18px; font-weight: 600; color: var(--muted-foreground);
+    &.is-empty { padding-top: var(--space-4); border-top: 1px solid var(--border); font-weight: 400; }
+  }
   .tdw-ref-rewards { display: grid; margin: 0; padding: 0; list-style: none; }
   .tdw-ref-reward {
-    display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); padding: 12px 0;
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); padding: 10px 0;
     border-top: 1px solid var(--border);
     &:first-child { border-top: 0; padding-top: 0; }
     &:last-child { padding-bottom: 0; }
@@ -306,15 +315,12 @@
   }
   .tdw-ref-reward-text { flex: 1 1 140px; min-width: 0; font-size: 14px; font-weight: 500; color: var(--foreground); }
 
-  // How it works: a quiet row, no card; the rules as a footnote
-  .tdw-ref-how {
-    display: grid; gap: var(--space-4); padding-top: var(--space-2);
-    h3 { margin: 0; font-size: 16px; line-height: 22px; font-weight: 600; color: var(--foreground); }
-  }
-  .tdw-ref-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); margin: 0; padding: 0; list-style: none; }
+  // How it works: the steps, the rules as a footnote
+  .tdw-ref-how { display: grid; gap: var(--space-4); margin-top: var(--space-4); }
+  .tdw-ref-steps { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
   .tdw-ref-steps li { display: flex; align-items: flex-start; gap: var(--space-3); font-size: 14px; line-height: 20px; color: var(--foreground); }
   .tdw-ref-step-num {
-    display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%;
+    display: grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 50%;
     background: var(--card); box-shadow: 0 0 0 1px var(--border); color: var(--muted-foreground);
     font: 600 12px/1 var(--font-mono, ui-monospace, monospace);
   }
@@ -329,29 +335,7 @@
   }
 }
 
-// ── Narrower containers (Invite & earn's column, the partner dashboard) ────
-// the ladder turns vertical: dot on the start side, the line runs down
-@container tdw-ref (max-width: 760px) {
-  .tdw-ui .tdw-ladder-steps { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
-  .tdw-ui .tdw-ladder-step {
-    grid-template-columns: var(--dot) minmax(0, 1fr);
-    justify-items: start; align-items: start; text-align: start; padding-inline: 0;
-  }
-  .tdw-ui .tdw-ladder-step-text { justify-items: start; padding-top: 1px; }
-  .tdw-ui .tdw-ladder-reward { max-width: none; }
-  .tdw-ui .tdw-ladder-seg {
-    // from under this dot to just above the next one (the list gap included)
-    top: calc(var(--dot) + 4px);
-    bottom: calc(4px - var(--space-4));
-    inset-inline-start: calc(var(--dot) / 2 - 2px);
-    width: 4px;
-    height: auto;
-    > span { width: 100%; height: calc(var(--seg, 0) * 100%); transition-property: height; }
-  }
-  .tdw-ui .tdw-ref-steps { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
-}
-
-// ── Phones ──────────────────────────────────────────────────────────────────
+// ── Narrow containers ───────────────────────────────────────────────────────
 // ReferralLinkCard on a phone, on the partner dashboard (`tdw-partners`)
 @container tdw-partners (max-width: 600px) {
   .tdw-ui .tdw-ref-card { padding: var(--space-5) var(--space-4); }
@@ -364,20 +348,32 @@
   .tdw-ui .tdw-ref-share-btn { flex: 1 1 0; justify-content: center; }
 }
 
-// Invite & earn's "Details" (the column is at most 560px wide)
-@container tdw-ref (max-width: 600px) {
-  .tdw-ui .tdw-ref-sec { padding: var(--space-5) var(--space-4); }
-  // the table keeps workspace, status and joined; first paid is hidden
-  .tdw-ui .tdw-ref-table .pz-table { min-width: 0; }
-  .tdw-ui .tdw-ref-table .pz-table :is(th, td):nth-child(4) { display: none; }
-  .tdw-ui .tdw-ref-table .pz-table :is(th, td):nth-child(3) { padding-inline-end: 0; }
-  .tdw-ui .tdw-ref-table .tdw-ref-avatar { display: none; }
-}
-
-// the invite card on a phone
-@container tdw-ref (max-width: 440px) {
+// Invite & earn on a phone: cards padded 20/16px; the ladder turns into a
+// vertical list, dot on the start side, the line running down
+@container tdw-ref (max-width: 480px) {
   .tdw-ui .tdw-ref-invite { padding: var(--space-5) var(--space-4); }
   .tdw-ui .tdw-ref-invite-title { font-size: 18px; line-height: 26px; }
+  .tdw-ui .tdw-ref-panel { padding: var(--space-4); }
+
+  .tdw-ui .tdw-ladder-steps { grid-auto-flow: row; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
+  .tdw-ui .tdw-ladder-step {
+    grid-template-columns: var(--dot) minmax(0, 1fr);
+    justify-items: start; align-items: center; text-align: start; padding-inline: 0;
+  }
+  // friends, reward and state on one line, wrapping under each other
+  .tdw-ui .tdw-ladder-step-text {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-2);
+  }
+  .tdw-ui .tdw-ladder-state { margin-top: 0; }
+  .tdw-ui .tdw-ladder-seg {
+    // from under this dot to just above the next one (the list gap included)
+    top: calc(var(--dot) + 3px);
+    bottom: calc(3px - var(--space-3));
+    inset-inline-start: calc(var(--dot) / 2 - 1.5px);
+    width: 3px;
+    height: auto;
+    > span { width: 100%; height: calc(var(--seg, 0) * 100%); transition-property: height; }
+  }
 }
 
 @media (max-width: 720px) {

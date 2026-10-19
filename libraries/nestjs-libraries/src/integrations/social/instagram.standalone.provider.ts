@@ -7,6 +7,7 @@ import {
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
 import dayjs from 'dayjs';
 import {
+  NotEnoughScopes,
   SocialAbstract,
   ValidityMedia,
 } from '@gitroom/nestjs-libraries/integrations/social.abstract';
@@ -164,6 +165,17 @@ export class InstagramStandaloneProvider
           `&access_token=${getAccessToken.access_token}`
       )
     ).json();
+
+    // Instagram answers an account it won't serve yet (no app role while the
+    // permissions only have standard access) with an error here, so pass its
+    // reason on instead of the generic "Invalid API key"
+    if (!access_token) {
+      throw new NotEnoughScopes(
+        `Instagram refused to connect this account: ${
+          all?.error?.message || getAccessToken?.error_message || 'unknown error'
+        }`
+      );
+    }
 
     this.checkScopes(this.scopes, getAccessToken.permissions);
 

@@ -2,9 +2,9 @@
 // ReferralLinkCard, RewardLadder, ReferralStatusList and the page around
 // them. Scoped to `.tdw-ui` so the kit's token aliases
 // (--primary, --card…) apply; light and dark come from the tokens, RTL from
-// logical properties. The page uses the full width of the content area and
-// lays itself out with container queries (`tdw-ref`), so the same layout
-// works on /invite and inside the narrower Settings pane.
+// logical properties. Invite & earn is one narrow column (centred on
+// /invite, start-aligned in the Settings pane) and lays the pieces inside
+// "Details" out with container queries (`tdw-ref`).
 // docs/tadween/partners.md documents each piece.
 
 .tdw-ref-shell {
@@ -12,21 +12,24 @@
   display: flex;
   width: 100%;
   min-width: 0;
-  padding: 24px 28px calc(var(--tdw-dock-space, 0px) + 40px);
+  padding: 40px 28px calc(var(--tdw-dock-space, 0px) + 40px);
 }
 
 .tdw-ui.tdw-ref-page {
   container: tdw-ref / inline-size;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-6);
+  align-content: start;
+  gap: var(--space-5);
   width: 100%;
   min-width: 0;
-  // very wide screens: keep line lengths readable
-  max-width: 1600px;
+  max-width: 560px;
   margin-inline: auto;
 
-  &.is-embedded { max-width: none; margin-inline: 0; }
+  &.is-embedded { margin-inline: 0; }
+
+  // arrows that point "forward" mirror in Arabic
+  html[dir='rtl'] & .tdw-flip { transform: scaleX(-1); }
 }
 
 // The pieces also render on /partners (partners.page.tsx), so they are scoped
@@ -117,43 +120,74 @@
   .tdw-ref-sec h3, .tdw-ref-sec-head h3 { margin: 0; font-size: 16px; line-height: 22px; font-weight: 600; color: var(--foreground); }
   .tdw-ref-sec-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3); }
 
-  // the numbers: three tiles in a row
-  .tdw-ref-stats {
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6);
-    > .pz-tile { align-content: start; }
+  // ── Invite & earn (invite.earn.tsx) ──────────────────────────────────────
+  // the invite card: title, one line, the link with Copy, the share icons
+  .tdw-ref-invite {
+    display: grid; gap: var(--space-5); padding: var(--space-6);
+    border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sm);
+    min-width: 0;
+  }
+  .tdw-ref-invite-title { margin: 0; font-size: 20px; line-height: 28px; font-weight: 650; letter-spacing: -0.01em; color: var(--foreground); }
+  html[dir='rtl'] & .tdw-ref-invite-title { letter-spacing: 0; }
+  .tdw-ref-invite-sub { margin: 6px 0 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+  // Copy keeps its width while it says "Copied"
+  .tdw-ref-copy { flex: none; min-width: 104px; justify-content: center; }
+  // share icons on the start side, the code chip on the end side
+  .tdw-ref-invite-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  // the code chip, quieter here than on the partner dashboard's card
+  .tdw-ref-invite .tdw-ref-code { height: 40px; border-style: solid; border-color: var(--border); background: var(--card); }
+  .tdw-ref-icons { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .tdw-ref-icon-btn {
+    display: grid; place-items: center; width: 40px; height: 40px; padding: 0;
+    border: 1px solid var(--border); border-radius: var(--radius-full);
+    background: var(--card); color: var(--muted-foreground) !important; text-decoration: none !important;
+    cursor: pointer;
+    transition: background-color var(--duration-fast, 120ms) ease, color var(--duration-fast, 120ms) ease;
+    &:hover { background: var(--accent); color: var(--foreground) !important; }
+    &:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
   }
 
-  .tdw-ref-split {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-    gap: var(--space-6);
-    align-items: start;
-    &.is-single { grid-template-columns: minmax(0, 1fr); }
+  // "3 friends joined · 2 rewards"
+  .tdw-ref-stat-line { margin: 0; padding-inline: var(--space-1); font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+
+  // the partner program as one slim row
+  .tdw-ref-row {
+    display: flex; align-items: center; gap: var(--space-3); padding: 12px var(--space-4);
+    border-radius: var(--radius-lg); background: var(--card); box-shadow: 0 0 0 1px var(--border);
+    min-width: 0;
+  }
+  .tdw-ref-row-icon {
+    display: grid; place-items: center; flex: none; width: 32px; height: 32px;
+    border-radius: var(--radius-md); background: var(--primary-soft); color: var(--primary);
+  }
+  .tdw-ref-row-text { display: grid; flex: 1; min-width: 0; font-size: 14px; line-height: 20px; font-weight: 550; color: var(--foreground); }
+  .tdw-ref-row-note { font-size: 12px; line-height: 16px; font-weight: 400; color: var(--muted-foreground); }
+  .tdw-ref-row-cta { flex: none; }
+
+  // "Have an invite code?"
+  .tdw-ref-text-btn {
+    justify-self: start; padding: 0; border: 0; background: none; cursor: pointer;
+    font: inherit; font-size: 13px; line-height: 18px; color: var(--muted-foreground);
+    text-decoration: underline; text-underline-offset: 3px;
+    &:hover { color: var(--foreground); }
+    &:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
   }
 
-  .tdw-ref-partner-link {
-    display: flex; align-items: center; gap: var(--space-3); padding: 14px var(--space-5);
-    border-radius: var(--radius-lg); background: var(--primary-soft); color: var(--foreground) !important;
-    font-size: 14px; font-weight: 500;
-    > svg, > .tdw-icon { color: var(--primary); }
-    span { flex: 1; }
-    &:hover { box-shadow: var(--shadow-sm); }
+  // "Details": the ladder, workspaces, rewards and how it works, collapsed
+  .tdw-ref-details {
+    > summary {
+      display: inline-flex; align-items: center; gap: 6px; width: fit-content;
+      list-style: none; cursor: pointer;
+      font-size: 13px; line-height: 18px; font-weight: 550; color: var(--muted-foreground);
+      &::-webkit-details-marker { display: none; }
+      &:hover { color: var(--foreground); }
+      &:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+    }
+    &[open] .tdw-ref-details-chev { transform: rotate(180deg); }
   }
-  // the affiliate offer while payments are off (invite.earn.tsx PartnerOffer)
-  .tdw-ref-offer { gap: var(--space-4); }
-  .tdw-ref-offer-head { display: flex; align-items: flex-start; gap: var(--space-4); }
-  .tdw-ref-offer-badge {
-    display: grid; place-items: center; flex: none;
-    width: 40px; height: 40px; border-radius: var(--radius-md);
-    background: var(--primary-soft); color: var(--primary);
-  }
-  .tdw-ref-offer-sub { margin: 4px 0 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
-  .tdw-ref-offer-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-4); }
-  .tdw-ref-offer-note {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: 13px; line-height: 18px; color: var(--muted-foreground);
-    > .tdw-icon, > svg { flex: none; }
-  }
+  .tdw-ref-details-chev { transition: transform var(--duration-fast, 120ms) ease; }
+  .tdw-ref-details-body { display: grid; gap: var(--space-5); margin-top: var(--space-4); }
+
   // the ladder while its rewards can't be used yet: shown, quieter
   .tdw-ref-locked-note { margin: 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
   .tdw-ref-locked { opacity: 0.55; filter: grayscale(0.4); pointer-events: none; }
@@ -165,16 +199,10 @@
     > .tdw-icon, > svg { color: var(--success); flex: none; margin-top: 1px; }
   }
 
-  // "Who invited you?"
-  .tdw-ref-claim {
-    display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-5);
-    padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg);
-    background: var(--card); box-shadow: 0 0 0 1px var(--border);
-  }
-  .tdw-ref-claim > div:first-child { flex: 1 1 260px; }
-  .tdw-ref-claim-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--foreground); }
-  .tdw-ref-claim-sub { margin: 2px 0 0; font-size: 13px; color: var(--muted-foreground); }
-  .tdw-ref-claim-row { display: flex; gap: var(--space-2); flex: 1 1 300px; min-width: 0; }
+  // "Who invited you?", once opened
+  .tdw-ref-claim { display: grid; gap: var(--space-2); }
+  .tdw-ref-claim-sub { margin: 0; font-size: 13px; line-height: 18px; color: var(--muted-foreground); }
+  .tdw-ref-claim-row { display: flex; gap: var(--space-2); min-width: 0; }
   .tdw-ref-claim-input {
     flex: 1; min-width: 0; height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-md);
     background: var(--background); color: var(--foreground); font: 600 14px/1 var(--font-mono, ui-monospace, monospace); letter-spacing: 0.06em;
@@ -301,11 +329,7 @@
   }
 }
 
-// ── Narrower containers (laptops, the Settings pane) ────────────────────────
-@container tdw-ref (max-width: 1080px) {
-  .tdw-ui .tdw-ref-split { grid-template-columns: minmax(0, 1fr); }
-}
-
+// ── Narrower containers (Invite & earn's column, the partner dashboard) ────
 // the ladder turns vertical: dot on the start side, the line runs down
 @container tdw-ref (max-width: 760px) {
   .tdw-ui .tdw-ladder-steps { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
@@ -328,9 +352,8 @@
 }
 
 // ── Phones ──────────────────────────────────────────────────────────────────
-// ReferralLinkCard on a phone, on both pages that show it (Invite & earn's
-// `tdw-ref` container and the partner dashboard's `tdw-partners`)
-@mixin ref-card-phone {
+// ReferralLinkCard on a phone, on the partner dashboard (`tdw-partners`)
+@container tdw-partners (max-width: 600px) {
   .tdw-ui .tdw-ref-card { padding: var(--space-5) var(--space-4); }
   .tdw-ui .tdw-ref-card-title { font-size: 18px; line-height: 24px; }
   .tdw-ui .tdw-ref-link-row { flex-direction: column; }
@@ -341,23 +364,20 @@
   .tdw-ui .tdw-ref-share-btn { flex: 1 1 0; justify-content: center; }
 }
 
-@container tdw-partners (max-width: 600px) {
-  @include ref-card-phone;
-}
-
+// Invite & earn's "Details" (the column is at most 560px wide)
 @container tdw-ref (max-width: 600px) {
-  @include ref-card-phone;
   .tdw-ui .tdw-ref-sec { padding: var(--space-5) var(--space-4); }
-  .tdw-ui .tdw-ref-stats { gap: var(--space-2); }
-  .tdw-ui .tdw-ref-stats .pz-tile { padding: var(--space-3); }
-  .tdw-ui .tdw-ref-stats .metric { font-size: 22px; }
-  .tdw-ui .tdw-ref-claim-row { flex-basis: 100%; }
-  .tdw-ui .tdw-ref-offer-cta { width: 100%; justify-content: center; }
   // the table keeps workspace, status and joined; first paid is hidden
   .tdw-ui .tdw-ref-table .pz-table { min-width: 0; }
   .tdw-ui .tdw-ref-table .pz-table :is(th, td):nth-child(4) { display: none; }
   .tdw-ui .tdw-ref-table .pz-table :is(th, td):nth-child(3) { padding-inline-end: 0; }
   .tdw-ui .tdw-ref-table .tdw-ref-avatar { display: none; }
+}
+
+// the invite card on a phone
+@container tdw-ref (max-width: 440px) {
+  .tdw-ui .tdw-ref-invite { padding: var(--space-5) var(--space-4); }
+  .tdw-ui .tdw-ref-invite-title { font-size: 18px; line-height: 26px; }
 }
 
 @media (max-width: 720px) {

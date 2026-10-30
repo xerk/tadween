@@ -494,7 +494,7 @@ export const legalEn: LegalCopy = {
         title: '1. Delete it yourself',
         body: [
           'In the Tadween app for Android or iPhone:',
-          { list: ['Sign in and open Settings.', 'Tap Delete my account.', 'Confirm. Your account is deleted right away and you are signed out.'] },
+          { list: ['Sign in and open Settings.', 'Tap Delete account.', 'Confirm with Delete my account. Your account is deleted right away and you are signed out.'] },
           'On the web:',
           { list: ['Sign in at studio.tadween.app and open Settings.', 'In the Danger zone section, choose Delete account.', 'Confirm. Your account is deleted right away and you are signed out.'] },
           'Deleting your account also cancels the subscriptions of the workspaces you own. It does not by itself refund any payment; if you may be eligible for a refund under our {refund}, request it before you delete your account.',

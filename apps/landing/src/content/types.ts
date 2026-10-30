@@ -37,6 +37,7 @@ export type LegalLinkKey =
   | 'privacy'
   | 'refund'
   | 'contact'
+  | 'deleteAccount'
   | 'youtubeTerms'
   | 'googlePrivacy'
   | 'googleUserData'
@@ -61,6 +62,8 @@ export interface LegalCopy {
   privacy: LegalDoc;
   refund: LegalDoc;
   contact: LegalDoc;
+  /** /delete-account: how to delete an account (Google Play needs a public URL for this). */
+  deleteAccount: LegalDoc;
 }
 
 export interface Faq {

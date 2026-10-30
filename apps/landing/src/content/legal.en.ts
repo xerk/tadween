@@ -26,6 +26,7 @@ export const legalEn: LegalCopy = {
     privacy: 'Privacy Policy',
     refund: 'Refund and Cancellation Policy',
     contact: 'Contact page',
+    deleteAccount: 'Delete your account',
     youtubeTerms: 'YouTube Terms of Service',
     googlePrivacy: 'Google Privacy Policy',
     googleUserData: 'Google API Services User Data Policy',
@@ -479,6 +480,46 @@ export const legalEn: LegalCopy = {
         id: 'policies',
         title: 'Policies',
         body: ['Read our {terms}, {privacy} and {refund}.'],
+      },
+    ],
+  },
+  deleteAccount: {
+    metaTitle: 'Delete your account | Tadween',
+    metaDescription: 'How to delete your Tadween account and its data, what is removed and what we keep.',
+    title: 'Delete your Tadween account',
+    sub: 'You can delete your account yourself, in the app or on the web, or ask us to do it for you.',
+    sections: [
+      {
+        id: 'in-the-app',
+        title: '1. Delete it yourself',
+        body: [
+          'In the Tadween app for Android or iPhone:',
+          { list: ['Sign in and open Settings.', 'Tap Delete my account.', 'Confirm. Your account is deleted right away and you are signed out.'] },
+          'On the web:',
+          { list: ['Sign in at studio.tadween.app and open Settings.', 'In the Danger zone section, choose Delete account.', 'Confirm. Your account is deleted right away and you are signed out.'] },
+          'Deleting your account also cancels the subscriptions of the workspaces you own. It does not by itself refund any payment; if you may be eligible for a refund under our {refund}, request it before you delete your account.',
+        ],
+      },
+      {
+        id: 'by-email',
+        title: '2. Ask us to delete it',
+        body: ['If you can no longer sign in, email us at {email} from the address on your account and ask us to delete it. We will confirm by email once it is done.'],
+      },
+      {
+        id: 'what-is-deleted',
+        title: '3. What is deleted',
+        body: [
+          'When your account is deleted:',
+          { list: ['your workspaces, connected channels and posts are removed and can no longer be accessed;', 'the access tokens of your connected channels are destroyed;', 'your user record is de-identified.'] },
+        ],
+      },
+      {
+        id: 'what-we-keep',
+        title: '4. What we keep',
+        body: [
+          'Some content may remain in our database and backups for a limited time. To have it permanently erased, email us at {email} and we will erase it.',
+          'We keep billing records for as long as tax and accounting laws require, and logs for a limited period for security and troubleshooting. Read the {privacy} for the details.',
+        ],
       },
     ],
   },

@@ -10,6 +10,7 @@ import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
 import { DeviceDto } from '@gitroom/nestjs-libraries/dtos/users/device.dto';
 import { OnboardingAnswersDto } from '@gitroom/nestjs-libraries/dtos/users/onboarding.answers.dto';
+import { TimezoneDto } from '@gitroom/nestjs-libraries/dtos/users/timezone.dto';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 
 @Injectable()
@@ -401,5 +402,19 @@ export class UsersRepository {
         select: { createdAt: true },
       })
     )?.createdAt;
+  }
+
+  async updateTimezone(userId: string, body: TimezoneDto) {
+    await this._user.model.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        timezoneName: body.timezoneName || null,
+      },
+      select: {
+        id: true,
+      },
+    });
   }
 }

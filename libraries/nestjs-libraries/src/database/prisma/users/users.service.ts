@@ -5,6 +5,7 @@ import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
 import { DeviceDto } from '@gitroom/nestjs-libraries/dtos/users/device.dto';
 import { OnboardingAnswersDto } from '@gitroom/nestjs-libraries/dtos/users/onboarding.answers.dto';
+import { TimezoneDto } from '@gitroom/nestjs-libraries/dtos/users/timezone.dto';
 import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.repository';
 import { IntegrationRepository } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.repository';
 import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/notification.service';
@@ -208,5 +209,9 @@ export class UsersService {
 
   async onboardingAnswered(userId: string) {
     return !!(await this._usersRepository.getOnboardingAnsweredAt(userId));
+  }
+
+  updateTimezone(userId: string, body: TimezoneDto) {
+    return this._usersRepository.updateTimezone(userId, body);
   }
 }

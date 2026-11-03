@@ -150,9 +150,16 @@ export class OrganizationService {
     }
     const timeLimit = dayjs().add(2, 'day').format('YYYY-MM-DD HH:mm:ss');
     const id = makeId(5);
+    // only the invite fields, the body can carry undeclared properties
     const url =
       process.env.FRONTEND_URL +
-      `/?org=${AuthService.signJWT({ ...body, orgId: org.id, timeLimit, id })}`;
+      `/?org=${AuthService.signJWT({
+        email: body.email,
+        role: body.role,
+        orgId: org.id,
+        timeLimit,
+        id,
+      })}`;
     // Tadween: tell the app whether an email went out (none without an email
     // provider), so it can hand over the link instead
     const emailSent =

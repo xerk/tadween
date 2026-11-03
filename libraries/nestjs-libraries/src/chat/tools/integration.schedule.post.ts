@@ -48,6 +48,37 @@ const attachmentUrl = z
     message: validUrlExtension.defaultMessage({} as any),
   });
 
+// Attachments are either a plain URL string or { path, alt?, thumbnail?,
+// thumbnailTimestamp? }, the same per-media fields as the public API.
+const attachment = z.union([
+  attachmentUrl,
+  z.object({
+    path: attachmentUrl,
+    alt: z.string().optional(),
+    thumbnail: attachmentUrl.optional(),
+    thumbnailTimestamp: z.number().int().min(0).optional(),
+  }),
+]);
+
+const toMedia = (
+  a:
+    | string
+    | {
+        path: string;
+        alt?: string;
+        thumbnail?: string;
+        thumbnailTimestamp?: number;
+      }
+) =>
+  typeof a === 'string'
+    ? { path: a }
+    : {
+        path: a.path,
+        alt: a.alt,
+        thumbnail: a.thumbnail,
+        thumbnailTimestamp: a.thumbnailTimestamp,
+      };
+
 @Injectable()
 export class IntegrationSchedulePostTool implements AgentToolInterface {
   constructor(
@@ -304,8 +335,10 @@ If validation fails, the result contains output.errors describing what to fix; t
                         "The content of the post, HTML, Each line must be wrapped in <p> here is the possible tags: h1, h2, h3, u, strong, li, ul, p (you can't have u and strong together), img (<img src=\"...\">) only when the integration rules say pictures go inside the content, and span only for a mention in the exact format given by a mention tool from the integrationSchema tools"
                       ),
                     attachments: z
-                      .array(attachmentUrl)
-                      .describe('The image of the post (URLS)'),
+                      .array(attachment)
+                      .describe(
+                        'The media of the post: either an uploaded media URL string, or { path, alt?, thumbnail?, thumbnailTimestamp? } where path is the uploaded media URL, alt is its alt text, thumbnail is the path of an uploaded jpeg/png (returned by uploadFromUrlTool) used as the video thumbnail / cover, and thumbnailTimestamp is the video frame to use as the cover, in milliseconds'
+                      ),
                   })
                 )
                 .describe(

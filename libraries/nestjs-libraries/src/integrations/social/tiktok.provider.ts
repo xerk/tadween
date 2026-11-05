@@ -22,6 +22,7 @@ import { createReadStream } from 'fs';
 import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { Integration } from '@prisma/client';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
+import { Tool } from '@gitroom/nestjs-libraries/integrations/tool.decorator';
 
 @Rules(
   [
@@ -436,6 +437,39 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
 
     return {
       maxDurationSeconds: max_video_post_duration_sec,
+    };
+  }
+
+  // What TikTok lets this creator do right now: the account the post goes to
+  // and the privacy levels / interactions the app is allowed to use. Until the
+  // app passes TikTok's audit this only offers SELF_ONLY, so the composer must
+  // not offer anything else.
+  @Tool({
+    description:
+      'Load the TikTok creator info: the account name, the privacy levels this app may use and which interactions (comments, duet, stitch) are turned off in the creator settings',
+    dataSchema: [],
+  })
+  async creatorInfo(accessToken: string) {
+    const { data } = await (
+      await this.fetch(
+        'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      )
+    ).json();
+
+    return {
+      nickname: data?.creator_nickname || '',
+      username: data?.creator_username || '',
+      privacyLevelOptions: (data?.privacy_level_options || []) as string[],
+      commentDisabled: !!data?.comment_disabled,
+      duetDisabled: !!data?.duet_disabled,
+      stitchDisabled: !!data?.stitch_disabled,
     };
   }
 

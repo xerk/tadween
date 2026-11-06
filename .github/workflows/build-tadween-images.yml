@@ -67,6 +67,7 @@ jobs:
             --build-arg NEXT_PUBLIC_LEGAL_STATE="Wyoming" \
             --build-arg NEXT_PUBLIC_LEGAL_ADDRESS="30 N Gould St Ste R, Sheridan, WY 82801, United States" \
             --build-arg NEXT_PUBLIC_SUPPORT_EMAIL="support@xerk.io" \
+            --build-arg NEXT_PUBLIC_LEGAL_PHONE="+1 945 395 2211" \
             --build-arg NEXT_PUBLIC_LEGAL_GOVERNING_LAW="Wyoming" \
             --build-arg NEXT_PUBLIC_LEGAL_VENUE="Sheridan County, Wyoming" \
             --build-arg NEXT_PUBLIC_REFUND_DAYS="14" \

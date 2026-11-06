@@ -62,6 +62,9 @@ export const LEGAL: Record<LegalValueKey, string> = {
   analytics: env(process.env.NEXT_PUBLIC_LEGAL_ANALYTICS),
 };
 
+/** Business phone shown in the footer next to the address and support email; left out when unset. */
+export const LEGAL_PHONE = env(process.env.NEXT_PUBLIC_LEGAL_PHONE);
+
 /** NEXT_PUBLIC_REFUND_DAYS=0 switches the Refund Policy to "no refunds except where the law
     requires"; any other value (or none, shown as a placeholder) keeps the refund window on
     the first payment. */

@@ -629,7 +629,17 @@ body {
     border-radius: 10px;
     background: var(--tdw-primary-soft);
     color: var(--tdw-primary);
+    // a client logo or picture (Approved apps): neutral tile like the
+    // Connect gallery, a picture fills it, a letter sits muted in the middle
+    &.is-mark {
+      overflow: hidden;
+      background: var(--tdw-muted);
+      box-shadow: inset 0 0 0 1px var(--tdw-border);
+      color: var(--tdw-foreground);
+      img { width: 100%; height: 100%; object-fit: cover; }
+    }
   }
+  .tdw-set-li-initial { font-size: 15px; font-weight: 600; color: var(--tdw-muted-foreground); }
   .tdw-set-li-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
   .tdw-set-li-title { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; line-height: 20px; font-weight: 500; }
   .tdw-set-li-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -642,6 +652,9 @@ body {
     color: var(--tdw-muted-foreground);
     > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     > * + * { flex: none; }
+    // a value that must stay whole (Approved apps' date and time) wraps
+    // instead of being cut on phones
+    > .tdw-set-li-wrap { white-space: normal; }
   }
   .tdw-set-li-actions { flex: none; display: flex; align-items: center; gap: 2px; }
   .tdw-set-li-toggle { display: inline-flex; align-items: center; gap: 8px; margin-inline-end: 8px; }

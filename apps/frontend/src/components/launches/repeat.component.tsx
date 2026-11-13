@@ -4,6 +4,7 @@ import { FC, useMemo, useState } from 'react';
 import { Select } from '@gitroom/react/form/select';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useClickOutside } from '@mantine/hooks';
+import { usePopupEscape } from '@gitroom/frontend/components/tadween/ui/overlays';
 import { isUSCitizen } from '@gitroom/frontend/components/launches/helpers/isuscitizen.utils';
 import clsx from 'clsx';
 import { RepeatIcon, DropdownArrowIcon } from '@gitroom/frontend/components/ui/icons';
@@ -65,6 +66,7 @@ export const RepeatComponent: FC<{
     }
     setIsOpen(false);
   });
+  usePopupEscape(isOpen, () => setIsOpen(false), ref);
 
   const everyLabel = useMemo(() => {
     if (!repeat) {

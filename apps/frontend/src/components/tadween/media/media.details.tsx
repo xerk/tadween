@@ -11,6 +11,7 @@ import {
   Icon,
   IconButton,
   Skeleton,
+  useOverlayOpen,
   usePresence,
 } from '@gitroom/frontend/components/tadween/ui';
 import {
@@ -408,6 +409,7 @@ export const MediaLightbox: FC<{
   const t = useT();
   const open = index !== null && !!items[index];
   const { mounted, state } = usePresence(open, 220);
+  useOverlayOpen(open);
   const [zoom, setZoom] = useState(false);
   const last = useRef<LibraryMedia | undefined>(undefined);
   if (open) last.current = items[index!];

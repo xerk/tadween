@@ -37,6 +37,7 @@ export class TiktokBusinessProvider
   implements SocialProvider
 {
   identifier = 'tiktok-business';
+  directory = true;
   name = 'TikTok';
   isBetweenSteps = false;
   convertToJPEG = true;
@@ -90,6 +91,22 @@ export class TiktokBusinessProvider
     if ((firstItems?.length ?? 0) > 35) {
       return 'You can select up to 35 pictures';
     }
+
+    // TikTok fails the whole photo post when a single image is oversized, and
+    // the status only says `picture_size_check_failed` without naming it.
+    if (firstItems?.every((p) => (p?.path?.indexOf?.('mp4') ?? -1) === -1)) {
+      const dimensions = await Promise.all(
+        firstItems?.map((p) => this.getImageDimensions(p?.path)) ?? []
+      );
+      const tooBig = dimensions.findIndex(
+        (p) => Math.min(p?.width ?? 0, p?.height ?? 0) > 1080
+      );
+      if (tooBig > -1) {
+        return `Image ${tooBig + 1} is ${dimensions[tooBig]?.width}x${
+          dimensions[tooBig]?.height
+        }, TikTok allows a maximum of 1080px on the shorter side`;
+      }
+    }
     return true;
   }
 
@@ -106,6 +123,8 @@ export class TiktokBusinessProvider
       body.indexOf('access_token_invalid') > -1 ||
       body.indexOf('Access token is incorrect') > -1 ||
       body.indexOf('Access token has expired') > -1 ||
+      // code 40000 wording seen on /business/video/publish/
+      body.indexOf('The access token is invalid') > -1 ||
       body.indexOf('auth_removed') > -1
     ) {
       return {
@@ -221,7 +240,7 @@ export class TiktokBusinessProvider
       return {
         type: 'bad-body' as const,
         value:
-          'Video must be at least 360p, Picture must not exceed 1080x1920',
+          'Media size not supported by TikTok: images up to 1080px on the shorter side, videos at least 360px on both sides',
       };
     }
 
@@ -366,6 +385,18 @@ export class TiktokBusinessProvider
     codeVerifier: string;
     refresh?: string;
   }) {
+    // A redirect without an auth_code (consent declined or TikTok-side error)
+    // otherwise reaches the token endpoint and fails as 40002 "Please provide
+    // the auth_code", which hides the real cause in the logs.
+    if (!params.code) {
+      throw new BadBody(
+        'tiktok-business',
+        JSON.stringify({ reason: 'no auth_code in the redirect' }),
+        Buffer.from('{}'),
+        'TikTok did not return an authorization code, the authorization was not completed'
+      );
+    }
+
     const response = await (
       await fetch(`${this.baseUrl}/tt_user/oauth2/token/`, {
         method: 'POST',
@@ -474,9 +505,11 @@ export class TiktokBusinessProvider
     const { status, reason } = post?.data || {};
 
     if (status === 'SEND_TO_USER_INBOX') {
+      // the id stays 'missing' until the user publishes the draft - the
+      // share id rides in the URL fragment so resolveReleaseId can ask later
       return {
         status: 'completed',
-        releaseURL: 'https://www.tiktok.com/messages?lang=en',
+        releaseURL: `https://www.tiktok.com/messages?lang=en#${pendingData.publishId}`,
         postId: 'missing',
       };
     }
@@ -491,7 +524,7 @@ export class TiktokBusinessProvider
         status: 'completed',
         releaseURL: !publicPostId
           ? `https://www.tiktok.com/@${integration.profile}`
-          : `https://www.tiktok.com/@${integration.profile}/video/${publicPostId}`,
+          : this.postUrl(integration, pendingData.publishId, publicPostId),
         postId: !publicPostId ? pendingData.publishId : publicPostId,
       };
     }
@@ -802,6 +835,18 @@ export class TiktokBusinessProvider
           'Genre to filter the tracks by (for example POP, ROCK, ELECTRONIC), leave empty for all genres',
       },
     ],
+    directory: {
+      name: 'searchTikTokMusic',
+      title: 'Search TikTok Music',
+      output: {
+        id: 'string',
+        title: 'string',
+        artist: 'string',
+        image: 'string',
+        duration: 'number',
+        previewUrl: 'string',
+      },
+    },
   })
   async musicSearch(
     accessToken: string,
@@ -865,6 +910,15 @@ export class TiktokBusinessProvider
         description: 'Search query for the location',
       },
     ],
+    directory: {
+      name: 'searchTikTokLocations',
+      title: 'Search TikTok Locations',
+      output: {
+        id: 'string',
+        name: 'string',
+        address: 'string',
+      },
+    },
   })
   async locationSearch(accessToken: string, data: { q: string }, id: string) {
     if (!data?.q) {
@@ -929,6 +983,14 @@ export class TiktokBusinessProvider
     this.throwIfTokenError(videoListData);
 
     return videoListData?.data?.videos;
+  }
+
+  // photo posts (p_pub_... / p_inbox_...) live under /photo/, TikTok rejects
+  // /video/ for them
+  private postUrl(integration: Integration, publishId: string, postId: string) {
+    return `https://www.tiktok.com/@${integration.profile}/${
+      publishId.indexOf('p_') === 0 ? 'photo' : 'video'
+    }/${postId}`;
   }
 
   // post_ids holds int64 ids that exceed Number.MAX_SAFE_INTEGER, so the id
@@ -1112,17 +1174,37 @@ export class TiktokBusinessProvider
   async resolveReleaseId(
     accessToken: string,
     releaseId: string,
-    integration: Integration
+    integration: Integration,
+    settings: any,
+    releaseURL: string
   ) {
-    if (releaseId.indexOf('_pub_') === -1) {
+    // a draft sent to the inbox (UPLOAD) is stored as 'missing' with its
+    // share id in the URL fragment
+    const draft = releaseId === 'missing';
+    const publishId = draft ? releaseURL?.split('#')[1] || '' : releaseId;
+    if (
+      publishId.indexOf('_pub_') === -1 &&
+      publishId.indexOf('_inbox_') === -1
+    ) {
       return undefined;
+    }
+
+    // privacy_level only applies to photo posts here (and not to a draft, the
+    // user picks it in the app), and TikTok only gives a post id to posts
+    // published for public viewership
+    if (
+      !draft &&
+      publishId.indexOf('p_pub_') === 0 &&
+      ['SELF_ONLY', 'MUTUAL_FOLLOW_FRIENDS'].includes(settings?.privacy_level)
+    ) {
+      return { unavailable: true as const };
     }
 
     const body = await (
       await this.fetch(
         `${this.baseUrl}/business/publish/status/?business_id=${encodeURIComponent(
           integration.internalId
-        )}&publish_id=${encodeURIComponent(releaseId)}`,
+        )}&publish_id=${encodeURIComponent(publishId)}`,
         {
           method: 'GET',
           headers: {
@@ -1136,13 +1218,25 @@ export class TiktokBusinessProvider
 
     const publicPostId = this.publicPostId(body);
     if (!publicPostId) {
-      return undefined;
+      // a draft with no public post (not published yet, or published as
+      // non-public) keeps opening the inbox instead of asking to retry
+      return draft ? undefined : { pending: true as const };
     }
 
     return {
       postId: publicPostId,
-      releaseURL: `https://www.tiktok.com/@${integration.profile}/video/${publicPostId}`,
+      releaseURL: this.postUrl(integration, publishId, publicPostId),
     };
+  }
+
+  // a post connected by hand: /video/<id> also reaches photo posts, TikTok
+  // redirects it to /photo/<id>
+  async releaseUrl(
+    accessToken: string,
+    releaseId: string,
+    integration: Integration
+  ) {
+    return `https://www.tiktok.com/@${integration.profile}/video/${releaseId}`;
   }
 
   async postAnalytics(

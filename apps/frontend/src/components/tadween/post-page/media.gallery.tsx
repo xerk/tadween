@@ -6,7 +6,13 @@ import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { cx, Icon, useEscape, usePresence } from '@gitroom/frontend/components/tadween/ui';
+import {
+  cx,
+  Icon,
+  useEscape,
+  useOverlayOpen,
+  usePresence,
+} from '@gitroom/frontend/components/tadween/ui';
 import type { PublicPostMedia } from '@gitroom/frontend/components/tadween/post-page/post.page';
 
 // Same rule as VideoOrImage: Tadween uploads videos as mp4.
@@ -21,6 +27,7 @@ const Lightbox: FC<{
   const t = useT();
   const open = index !== null;
   const { mounted, state } = usePresence(open, 220);
+  useOverlayOpen(open);
   const [shown, setShown] = useState(index ?? 0);
   const closeRef = useRef<HTMLButtonElement>(null);
   const many = media.length > 1;

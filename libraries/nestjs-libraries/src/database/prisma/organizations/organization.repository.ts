@@ -1,5 +1,9 @@
 import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
-import { placeholderEmailDomain } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
+import {
+  FreeAccessVia,
+  placeholderEmailDomain,
+  stripeConfigured,
+} from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { Role, ShortLinkPreference, SubscriptionTier } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
@@ -59,6 +63,8 @@ export class OrganizationRepository {
       where: {
         apiKey: api,
         deletedAt: null,
+        // Tadween: a waitlisted workspace's key works once it is let in
+        waitlistedAt: null,
       },
       include: {
         subscription: {
@@ -450,6 +456,23 @@ export class OrganizationRepository {
       return false;
     }
 
+    // already a member: the create below would hit the unique
+    // (userId, organizationId) index and fail the login that carried the invite
+    const checkIfMemberExists =
+      await this._userOrg.model.userOrganization.findFirst({
+        where: {
+          userId,
+          organizationId: orgId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (checkIfMemberExists) {
+      return false;
+    }
+
     const checkForSubscription =
       await this._organization.model.organization.findFirst({
         where: {
@@ -461,7 +484,7 @@ export class OrganizationRepository {
       });
 
     if (
-      process.env.STRIPE_PUBLISHABLE_KEY &&
+      stripeConfigured() &&
       checkForSubscription?.subscription?.subscriptionTier ===
         SubscriptionTier.STANDARD
     ) {
@@ -489,10 +512,14 @@ export class OrganizationRepository {
   }
 
   async createOrgAndUser(
-    body: Omit<CreateOrgUserDto, 'providerToken'> & { providerId?: string },
+    body: Omit<CreateOrgUserDto, 'providerToken' | 'company'> & {
+      company: string;
+      providerId?: string;
+    },
     hasEmail: boolean,
     ip: string,
-    userAgent: string
+    userAgent: string,
+    signup?: { waitlisted: boolean; via: FreeAccessVia }
   ) {
     return this._organization.model.organization.create({
       data: {
@@ -500,6 +527,8 @@ export class OrganizationRepository {
         apiKey: AuthService.fixedEncryption(makeSecureId(20)),
         allowTrial: true,
         isTrailing: true,
+        waitlistedAt: signup?.waitlisted ? new Date() : null,
+        freeAccessVia: signup?.via ?? null,
         users: {
           create: {
             role: Role.SUPERADMIN,
@@ -559,29 +588,70 @@ export class OrganizationRepository {
   }
 
   async getLastPublishDate(organizationId: string) {
-    const org = await this._organization.model.organization.findUnique({
-      where: {
-        id: organizationId,
-      },
-      select: {
-        post: {
-          where: {
-            state: 'PUBLISHED',
-          },
-          orderBy: {
-            publishDate: 'desc',
-          },
-          take: 1,
-          select: {
-            publishDate: true,
+    // Still publishing, or about to: a post scheduled exactly a day after the
+    // previous one must not end the streak
+    const lookahead = Date.now() + 5 * 60 * 1000;
+    const [org, recurring] = await Promise.all([
+      this._organization.model.organization.findUnique({
+        where: {
+          id: organizationId,
+        },
+        select: {
+          post: {
+            where: {
+              deletedAt: null,
+              parentPostId: null,
+              intervalInDays: null,
+              OR: [
+                { state: 'PUBLISHED' },
+                { state: 'QUEUE', publishDate: { lte: new Date(lookahead) } },
+              ],
+            },
+            orderBy: {
+              publishDate: 'desc',
+            },
+            take: 1,
+            select: {
+              publishDate: true,
+            },
           },
         },
-      },
-    });
+      }),
+      // Recurring posts keep their first publishDate and are republished on
+      // the interval grid, count their latest occurrence instead
+      this._organization.model.organization.findUnique({
+        where: {
+          id: organizationId,
+        },
+        select: {
+          post: {
+            where: {
+              deletedAt: null,
+              parentPostId: null,
+              intervalInDays: { not: null },
+              state: { in: ['PUBLISHED', 'QUEUE'] },
+              publishDate: { lte: new Date(lookahead) },
+            },
+            select: {
+              publishDate: true,
+              intervalInDays: true,
+            },
+          },
+        },
+      }),
+    ]);
 
-    const publishDate = org?.post?.[0]?.publishDate;
+    const dates = [
+      ...(org?.post || []).map((p) => p.publishDate.getTime()),
+      ...(recurring?.post || []).map((p) => {
+        const first = p.publishDate.getTime();
+        const interval = p.intervalInDays * 24 * 60 * 60 * 1000;
+        return first + Math.floor((lookahead - first) / interval) * interval;
+      }),
+    ];
+
     // Never in the future, the streak workflow sleeps until a day after it
-    return publishDate ? Math.min(publishDate.getTime(), Date.now()) : null;
+    return dates.length ? Math.min(Math.max(...dates), Date.now()) : null;
   }
 
   async getTeam(orgId: string) {
@@ -597,6 +667,14 @@ export class OrganizationRepository {
               select: {
                 email: true,
                 id: true,
+                // Tadween: the team list shows the profile name and photo
+                name: true,
+                picture: {
+                  select: {
+                    id: true,
+                    path: true,
+                  },
+                },
                 sendSuccessEmails: true,
                 sendFailureEmails: true,
                 sendStreakEmails: true,
@@ -616,12 +694,17 @@ export class OrganizationRepository {
       select: {
         users: {
           select: {
+            // Tadween: billing emails go to owners and admins only
+            role: true,
+            disabled: true,
             user: {
               select: {
                 email: true,
                 id: true,
                 sendSuccessEmails: true,
                 sendFailureEmails: true,
+                language: true,
+                deletedAt: true,
               },
             },
           },
@@ -684,6 +767,20 @@ export class OrganizationRepository {
       },
       data: {
         shortlink,
+      },
+    });
+  }
+
+  updateName(orgId: string, name: string) {
+    return this._organization.model.organization.update({
+      where: {
+        id: orgId,
+      },
+      data: {
+        name,
+      },
+      select: {
+        id: true,
       },
     });
   }

@@ -66,12 +66,16 @@ import {
 } from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
 import { ComposerTopBar } from '@gitroom/frontend/components/tadween/composer-mobile/top.bar';
 import { ComposerMetaBar } from '@gitroom/frontend/components/tadween/composer-mobile/meta.bar';
-import { Icon } from '@gitroom/frontend/components/tadween/ui/primitives';
+import {
+  Button as TdwButton,
+  Icon,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui/primitives';
 import { useHasScroll } from '@gitroom/frontend/components/ui/is.scroll.hook';
 import { useShortlinkPreference } from '@gitroom/frontend/components/settings/shortlink-preference.component';
 import dayjs from 'dayjs';
-import { Button } from '@gitroom/react/form/button';
 import { useClickOutside } from '@mantine/hooks';
+import { usePopupEscape } from '@gitroom/frontend/components/tadween/ui/overlays';
 import { EditorChecks } from '@gitroom/frontend/components/tadween/editor/checks';
 import { TadweenChannelAvatar } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 import { TadweenIcon } from '@gitroom/frontend/components/tadween/editor/icons';
@@ -98,6 +102,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   const postNowRef = useClickOutside<HTMLDivElement>(() => {
     setShowPostNow(false);
   });
+  // Escape closes the menu, not the composer behind it
+  usePopupEscape(showPostNow, () => setShowPostNow(false), postNowRef);
   const { data: shortlinkPreferenceData } = useShortlinkPreference();
   // desktop layout choices, remembered on this device like the sidebar's
   const drawer = useModalDrawer();
@@ -233,10 +239,14 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
       !hasUnsavedPostChanges() ||
       (await deleteDialog(
         t(
-          'are_you_sure_you_want_to_close_this_modal_all_data_will_be_lost',
-          'Are you sure you want to close this modal? (all data will be lost)'
+          'tdw_close_unsaved_body',
+          "Your changes haven't been saved and will be lost."
         ),
-        t('yes_close_it', 'Yes, close it!')
+        t('tdw_discard', 'Discard'),
+        t('tdw_close_unsaved_title', 'Close without saving?'),
+        t('tdw_keep_editing', 'Keep editing'),
+        // closing drops the draft: the red action
+        true
       ))
     ) {
       if (customClose) {
@@ -288,47 +298,39 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           modal.openModal({
             title: t('what_do_you_want_to_do', 'What do you want to do?'),
             children: (
-              <div className="flex flex-col">
-                <div className="text-[20px] mb-[20px]">
+              <TadweenScope className="tdw-modal-form">
+                <p className="tdw-modal-lead">
                   {t(
                     'post_already_published_republish_warning',
                     'This post was already published. Republishing will publish it again to'
                   )}{' '}
                   {channels} {t('republish_at', 'at')}{' '}
                   {date.format('DD/MM/YYYY HH:mm')}.
-                  {isRecurring && (
-                    <div className="mt-[10px]">
-                      {t(
-                        'republish_recurring_note',
-                        'This is a recurring post: your changes apply to all future recurrences starting now.'
-                      )}
-                    </div>
-                  )}
+                </p>
+                {isRecurring && (
+                  <p className="tdw-modal-note">
+                    <Icon name="repeat" size={16} />
+                    {t(
+                      'republish_recurring_note',
+                      'This is a recurring post: your changes apply to all future recurrences starting now.'
+                    )}
+                  </p>
+                )}
+                <div className="tdw-modal-foot">
+                  <TdwButton onClick={() => resolve('update')}>
+                    {t(
+                      'just_update_post_details',
+                      'Just update the post details'
+                    )}
+                  </TdwButton>
+                  <TdwButton
+                    variant="primary"
+                    onClick={() => resolve('republish')}
+                  >
+                    {t('republish_the_post', 'Republish the post')}
+                  </TdwButton>
                 </div>
-                <div className="flex w-full gap-[10px]">
-                  <div className="flex-1 flex">
-                    <Button
-                      type="button"
-                      className="flex-1"
-                      onClick={() => resolve('update')}
-                    >
-                      {t(
-                        'just_update_post_details',
-                        'Just update the post details'
-                      )}
-                    </Button>
-                  </div>
-                  <div className="flex-1 flex">
-                    <Button
-                      type="button"
-                      className="flex-1"
-                      onClick={() => resolve('republish')}
-                    >
-                      {t('republish_the_post', 'Republish the post')}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              </TadweenScope>
             ),
           });
         });
@@ -379,12 +381,26 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
       }));
 
       if (!dummy) {
-        const checkAllValid = await (
-          await fetch('/posts/valid', {
-            method: 'POST',
-            body: JSON.stringify({ type, posts }),
-          })
-        ).json();
+        const validResponse = await fetch('/posts/valid', {
+          method: 'POST',
+          body: JSON.stringify({ type, posts }),
+        });
+
+        if (!validResponse.ok) {
+          if (validResponse.status !== 402) {
+            const { message } = await validResponse.json().catch(() => ({}));
+            toaster.show(
+              typeof message === 'string'
+                ? message
+                : t('post_save_failed', 'Could not save the post'),
+              'warning'
+            );
+          }
+          setLoading(false);
+          return;
+        }
+
+        const checkAllValid = await validResponse.json();
 
         const focus = (id: string, where: 'fix' | 'preview') => {
           integrationById(id)?.ref?.current?.[where]?.();
@@ -558,7 +574,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
         if (!addEditSets) {
           mutate();
           toaster.show(
-            !existingData.integration
+            type === 'draft'
+              ? t('tdw_draft_saved', 'Draft saved')
+              : !existingData.integration
               ? t('added_successfully', 'Added successfully')
               : t('updated_successfully', 'Updated successfully')
           );
@@ -1072,16 +1090,6 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               <div
                 ref={postNowRef}
                 className="tdw-split"
-                onKeyDown={(e) => {
-                  // Escape closes the menu, not the composer behind it
-                  if (e.key === 'Escape' && showPostNow) {
-                    e.stopPropagation();
-                    // Next hydrates the whole document, so React and the
-                    // modal's Escape hotkey listen on the same node
-                    e.nativeEvent.stopImmediatePropagation();
-                    setShowPostNow(false);
-                  }
-                }}
               >
                 <button
                   disabled={actionsDisabled}

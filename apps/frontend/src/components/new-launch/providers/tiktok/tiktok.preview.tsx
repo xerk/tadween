@@ -1,4 +1,5 @@
 import { useIntegration } from '@gitroom/frontend/components/launches/helpers/use.integration';
+import { TadweenAvatarImage } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useMediaDirectory } from '@gitroom/react/helpers/use.media.directory';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
@@ -81,10 +82,10 @@ export const TiktokPreview: FC<{
       </div>
       <div className="flex flex-col justify-end gap-[10px] ml-[18px]">
         <div className="relative">
-          <img
-            src={integration?.picture || '/no-picture.jpg'}
-            alt="social"
-            className="rounded-full z-[2] w-[29px] h-[29px]"
+          <TadweenAvatarImage
+            src={integration?.picture}
+            name={integration?.name}
+            className="rounded-full z-[2] w-[29px] h-[29px] flex-none"
           />
           <div className="absolute left-[50%] -translate-x-[50%] bottom-0 translate-y-[50%] z-[1]">
             <svg
@@ -171,10 +172,10 @@ export const TiktokPreview: FC<{
           }
         />
         <div>
-          <img
-            src={integration?.picture || '/no-picture.jpg'}
-            alt="social"
-            className="rounded-full relative z-[2] w-[29px] h-[29px]"
+          <TadweenAvatarImage
+            src={integration?.picture}
+            name={integration?.name}
+            className="rounded-full relative z-[2] w-[29px] h-[29px] flex-none"
           />
         </div>
       </div>

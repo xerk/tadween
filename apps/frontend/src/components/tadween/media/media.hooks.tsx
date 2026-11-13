@@ -133,14 +133,18 @@ export const useMediaPages = (query: MediaQuery, type?: 'image' | 'video') => {
     },
     [query, type]
   );
-  const load = useCallback(
-    async (key: string) =>
-      (await fetch(`/media?${key.split('?')[1]}`)).json() as Promise<{
-        pages: number;
-        results: LibraryMedia[];
-      }>,
-    []
-  );
+  const load = useCallback(async (key: string) => {
+    const res = await fetch(`/media?${key.split('?')[1]}`);
+    // a failed request is an error (the library shows Try again), never an
+    // empty library
+    if (!res.ok) {
+      throw new Error(`media ${res.status}`);
+    }
+    return (await res.json()) as {
+      pages: number;
+      results: LibraryMedia[];
+    };
+  }, []);
   const swr = useSWRInfinite(getKey, load, {
     ...swrOptions,
     revalidateFirstPage: false,

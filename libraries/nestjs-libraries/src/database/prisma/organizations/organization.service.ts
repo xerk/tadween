@@ -12,6 +12,8 @@ import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { Organization, ShortLinkPreference, User } from '@prisma/client';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
+import { FreeAccessVia } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { AutopostService } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.service';
 
 @Injectable()
@@ -19,18 +21,26 @@ export class OrganizationService {
   constructor(
     private _organizationRepository: OrganizationRepository,
     private _notificationsService: NotificationService,
-    private _plans: PlansService
+    private _plans: PlansService,
+    private _access: AccessService
   ) {}
+  // `signup`: whether the free plan is full (the workspace waits to be let
+  // in) and how it got in (AuthService.freeSignup)
   async createOrgAndUser(
-    body: Omit<CreateOrgUserDto, 'providerToken'> & { providerId?: string },
+    body: Omit<CreateOrgUserDto, 'providerToken' | 'company'> & {
+      company: string;
+      providerId?: string;
+    },
     ip: string,
-    userAgent: string
+    userAgent: string,
+    signup?: { waitlisted: boolean; via: FreeAccessVia }
   ) {
     return this._organizationRepository.createOrgAndUser(
       body,
       this._notificationsService.hasEmailProvider(),
       ip,
-      userAgent
+      userAgent,
+      signup
     );
   }
 
@@ -44,14 +54,18 @@ export class OrganizationService {
 
   // A plan with a member count (Plan.teamMembers > 0) is full once that many
   // members besides the owner joined. Tiers without team members are left to
-  // the TEAM_MEMBERS policy, as before.
+  // the TEAM_MEMBERS policy, as before, except the free plan's owner-only
+  // seat, which is full.
   private async teamIsFull(orgId: string) {
-    const seats = await this._organizationRepository.getTeamSeats(orgId);
+    const [seats, access] = await Promise.all([
+      this._organizationRepository.getTeamSeats(orgId),
+      this._access.forOrganizationId(orgId),
+    ]);
     const values = (await this._plans.getPricing())[
-      seats.tier || (!process.env.STRIPE_PUBLISHABLE_KEY ? 'ULTIMATE' : 'FREE')
+      seats.tier || access?.tier || 'FREE'
     ];
     if (!values?.team_members) {
-      return false;
+      return !!access?.freePlan;
     }
     return seats.members >= teamSeats(values);
   }
@@ -136,27 +150,40 @@ export class OrganizationService {
     }
     const timeLimit = dayjs().add(2, 'day').format('YYYY-MM-DD HH:mm:ss');
     const id = makeId(5);
+    // only the invite fields, the body can carry undeclared properties
     const url =
       process.env.FRONTEND_URL +
-      `/?org=${AuthService.signJWT({ ...body, orgId: org.id, timeLimit, id })}`;
-    if (body.sendEmail) {
-      const inviter = user.name
-        ? `${user.name} (${user.email})`
-        : user.email;
-      await this._notificationsService.sendEmail(
-        body.email,
-        `${user.name || user.email} invited you to join "${org.name}"`,
-        `${inviter} has invited you to join the "${org.name}" team.<br /><a href="${url}">Accept the invitation</a> to get started.<br />The link will expire in 2 days.`
+      `/?org=${AuthService.signJWT({
+        email: body.email,
+        role: body.role,
+        orgId: org.id,
+        timeLimit,
+        id,
+      })}`;
+    // Tadween: tell the app whether an email went out (none without an email
+    // provider), so it can hand over the link instead
+    const emailSent =
+      !!body.sendEmail && this._notificationsService.hasEmailProvider();
+    if (emailSent) {
+      // the invitee has no account yet: the email speaks the inviter's language
+      await this._notificationsService.sendTemplate(
+        { email: body.email, language: user.language },
+        'teamInvite',
+        {
+          inviter: user.name ? `${user.name} (${user.email})` : user.email,
+          workspace: org.name,
+          url,
+        }
       );
     }
-    return { url };
+    return { url, emailSent };
   }
 
   async addTeamMemberByEmail(org: Organization, body: AdminAddTeamMemberDto) {
     const tier =
       // @ts-ignore
       org?.subscription?.subscriptionTier ||
-      (!process.env.STRIPE_PUBLISHABLE_KEY ? 'ULTIMATE' : 'FREE');
+      (await this._access.forOrganization(org)).tier;
 
     if (!(await this._plans.getPricing())[tier].team_members) {
       throw new HttpException(
@@ -244,5 +271,9 @@ export class OrganizationService {
       orgId,
       shortlink
     );
+  }
+
+  updateName(orgId: string, name: string) {
+    return this._organizationRepository.updateName(orgId, name);
   }
 }

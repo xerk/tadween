@@ -14,12 +14,12 @@ export const en: Dict = {
   base: '',
   numberLocale: 'en-US',
   meta: {
-    title: 'Tadween — LinkedIn scheduling, written in two languages',
+    title: 'Tadween — Social media scheduling, written in two languages',
     description:
-      'Plan LinkedIn posts for your profile and pages, preview them as LinkedIn will show them and publish on time. In English and Arabic, with Instagram, Facebook, Threads and YouTube in the same calendar.',
+      'Plan posts for Facebook, Instagram, LinkedIn, Threads and YouTube, preview each one as its network will show it and publish on time. In English and Arabic, from one calendar.',
     pricingTitle: 'Pricing — Tadween',
     pricingDescription:
-      'Creator, Business and Agency plans for people, brands and agencies on LinkedIn. Founder prices for the first customers, seven days free, priced in US dollars.',
+      'Creator, Business and Agency plans for people, brands and agencies on social media. Founder prices for the first customers, seven days free, priced in US dollars.',
     ogLocale: 'en_US',
     features: {
       title: 'Features: calendar, board, composer and AI agent | Tadween',
@@ -29,7 +29,7 @@ export const en: Dict = {
     agent: {
       title: 'AI agent for social media scheduling | Tadween',
       description:
-        'Ask Tadween’s agent to write and schedule LinkedIn posts in English or Arabic, or connect Claude, ChatGPT and Cursor to your calendar.',
+        'Ask Tadween’s agent to write and schedule social posts in English or Arabic, or connect Claude, ChatGPT and Cursor to your calendar.',
     },
   },
   skip: 'Skip to content',
@@ -81,13 +81,13 @@ export const en: Dict = {
   },
   shotUrl: 'tadween',
   hero: {
-    eyebrow: 'Built for LinkedIn, fluent in Arabic',
-    title: 'Your LinkedIn week, written and scheduled.',
-    sub: 'Plan posts for your profile and company pages, see them the way LinkedIn will, and publish at the hour you choose. Then schedule Instagram, Facebook, Threads and YouTube from the same calendar.',
+    eyebrow: 'One calendar, fluent in Arabic',
+    title: 'Your social week, written and scheduled.',
+    sub: 'Plan posts for Facebook, Instagram, LinkedIn, Threads and YouTube, see each one the way its network will show it, and publish at the hour you choose. Profiles, pages and channels share one calendar.',
     primary: 'Start 7-day trial',
     secondary: 'See the product',
     fine: 'Seven days free · Cancel any time · Prices in US dollars',
-    nets: 'LinkedIn, Instagram, Facebook, Threads and YouTube, plus 25+ more',
+    nets: 'Facebook, Instagram, LinkedIn, Threads and YouTube, plus 25+ more',
   },
   product: {
     title: 'The calendar your week deserves',
@@ -120,7 +120,7 @@ export const en: Dict = {
       refusedPublished: 'Published posts stay put',
     },
   },
-  netstrip: { title: 'Five networks, one calendar, LinkedIn first', all: 'All channels' },
+  netstrip: { title: 'Five networks, one calendar', all: 'All channels' },
   arabic: {
     title: 'Arabic, done properly',
     sub: 'Write in Arabic and the editor and the previews turn right to left on their own. The whole interface speaks Arabic too, in Tajawal, the same face as this page.',
@@ -141,7 +141,7 @@ export const en: Dict = {
   steps: {
     title: 'From idea to published in three steps',
     items: [
-      { title: 'Connect', body: 'Link your LinkedIn profile and every page you manage, then Instagram, Facebook, Threads or YouTube. Each one connects through its own sign-in.' },
+      { title: 'Connect', body: 'Link your Facebook, Instagram, LinkedIn, Threads and YouTube accounts, with every page you manage. Each one connects through its own sign-in.' },
       { title: 'Write', body: 'Draft in English or Arabic, add images or a carousel, and check each preview.' },
       { title: 'Schedule', body: 'Pick a time or the next free slot. Tadween publishes and posts your first comment.' },
     ],
@@ -149,8 +149,8 @@ export const en: Dict = {
   homeFaq: {
     title: 'Questions',
     items: [
-      { title: 'What is Tadween?', content: 'A social media scheduler built for LinkedIn first and for Arabic writers. You write, preview and schedule posts for your profile and company pages, and for Instagram, Facebook, Threads and YouTube, from one calendar.' },
-      { title: 'Which networks can I post to?', content: 'Tadween is built around LinkedIn profiles and pages, Instagram, Facebook, Threads and YouTube. It also publishes to X, TikTok, Pinterest, Bluesky, Mastodon, Reddit, Telegram, Discord, Slack, Google Business Profile, Medium, WordPress and more.' },
+      { title: 'What is Tadween?', content: 'A social media scheduler built for people who write in Arabic and English. You write, preview and schedule posts for Facebook, Instagram, LinkedIn, Threads and YouTube, for profiles and pages alike, from one calendar.' },
+      { title: 'Which networks can I post to?', content: 'Tadween is built around five networks: Facebook, Instagram, LinkedIn (profiles and pages), Threads and YouTube. It also publishes to X, TikTok, Pinterest, Bluesky, Mastodon, Reddit, Telegram, Discord, Slack, Google Business Profile, Medium, WordPress and more.' },
       { title: 'Does it really handle Arabic?', content: 'Yes. The editor and previews turn right to left for Arabic text, the interface is in Arabic, and posts keep their punctuation and numbers where Arabic readers expect them.' },
       { title: 'Can an AI agent schedule for me?', content: 'Yes. Use the agent inside Tadween, or connect Claude, ChatGPT, Cursor or any MCP client. It can write, schedule, list posts and add media. It can’t delete posts.' },
       { title: 'Can my team and clients work in it?', content: 'Invite teammates, keep each client’s channels under their own customer, and send preview links so people can comment before a post goes out.' },
@@ -159,7 +159,7 @@ export const en: Dict = {
   },
   featuresIndex: {
     title: 'Everything in Tadween',
-    sub: 'A calm scheduler for LinkedIn and every other channel, in English and Arabic, for one person or a whole agency.',
+    sub: 'A calm scheduler for every channel you post to, in English and Arabic, for one person or a whole agency.',
     agentNav: { label: 'AI agent', blurb: 'Write and schedule by chat, or from Claude and ChatGPT' },
   },
   featurePage: {
@@ -219,7 +219,7 @@ export const en: Dict = {
         { title: 'Copy the address', body: 'The same address for every client and every workspace.' },
         { title: 'Add it to your tool', body: 'As a custom connector, or a remote MCP server over HTTP.' },
         { title: 'Sign in to Tadween', body: 'Your tool opens Tadween; approve it for your workspace.' },
-        { title: 'Ask', body: '“What’s scheduled on LinkedIn this week?” is a good first question.' },
+        { title: 'Ask', body: '“What’s scheduled this week?” is a good first question.' },
       ],
       clientsTitle: 'Step by step, for your tool',
       clientsSub: 'The same tools in each. Settings, API & MCP in Tadween shows these for your workspace too.',
@@ -354,7 +354,7 @@ export const en: Dict = {
   },
   cta: {
     title: 'Plan next week in ten minutes.',
-    body: 'Seven days free. Bring your LinkedIn profile and pages.',
+    body: 'Seven days free. Bring your profiles and pages.',
     primary: 'Start 7-day trial',
     secondary: 'Sign in',
   },
@@ -384,7 +384,7 @@ export const en: Dict = {
       openInvite: 'Open Invite & earn',
       stepsTitle: 'How it works',
       steps: [
-        { title: 'Share your link or code', body: 'Find both in the app under Invite & earn. Send them to colleagues, clients or anyone who posts on LinkedIn.' },
+        { title: 'Share your link or code', body: 'Find both in the app under Invite & earn. Send them to colleagues, clients or anyone who posts on social media.' },
         { title: 'Your friend signs up and pays', body: 'They sign up through your link or enter your code. Their first payment earns them 300 AI credits.' },
         { title: 'You climb the ladder', body: 'Each paying friend counts once their second payment goes through, or 30 days after the first on a yearly plan. Then the reward for that rung lands in your workspace.' },
       ],
@@ -419,7 +419,7 @@ export const en: Dict = {
   aiClients: aiClientsEn,
   legal: legalEn,
   footer: {
-    tagline: 'LinkedIn scheduling for people and brands in Egypt and the region.',
+    tagline: 'Social media scheduling for people and brands in Egypt and the region.',
     channelsTitle: 'Channels',
     columns: [
       {

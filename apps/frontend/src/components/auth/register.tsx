@@ -3,11 +3,10 @@
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { useFireEvents } from '@gitroom/helpers/utils/use.fire.events';
 import { useTrack } from '@gitroom/react/helpers/use.track';
 import { TrackEnum } from '@gitroom/nestjs-libraries/user/track.enum';
@@ -18,17 +17,20 @@ import {
   AuthField,
   AuthHeading,
   AuthLegal,
+  AuthLoading,
+  AuthNotice,
   AuthSubmit,
   AuthSwitch,
 } from '@gitroom/frontend/components/tadween/auth/auth.parts';
+import { SIGNUP_EMAIL_KEY } from '@gitroom/frontend/components/auth/activate';
 type Inputs = {
   email: string;
   password: string;
-  company: string;
   providerToken: string;
   provider: string;
 };
 export function Register() {
+  const t = useT();
   const getQuery = useSearchParams();
   const fetch = useFetch();
   const [provider] = useState(getQuery?.get('provider')?.toUpperCase());
@@ -60,9 +62,10 @@ export function Register() {
   }
   if (!show) {
     return (
-      <div className="tdw-auth-spinner">
-        <LoadingComponent />
-      </div>
+      <AuthLoading
+        title={t('tdw_auth_loading_title', 'Setting up your account…')}
+        subtitle={t('tdw_auth_loading_subtitle', 'This takes a few seconds.')}
+      />
     );
   }
   return (
@@ -123,6 +126,7 @@ export function RegisterAfter({
     },
   });
   const fetchData = useFetch();
+  const [providerError, setProviderError] = useState('');
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
     setLoading(true);
     await fetchData('/auth/register', {
@@ -139,11 +143,18 @@ export function RegisterAfter({
           fireEvents('register');
           return track(TrackEnum.CompleteRegistration).then(() => {
             if (response.headers.get('activate') === 'true') {
+              try {
+                sessionStorage.setItem(SIGNUP_EMAIL_KEY, data.email);
+              } catch (e) {
+                // the page then asks for the address
+              }
               router.push('/auth/activate');
             } else {
               router.push('/auth/login');
             }
           });
+        } else if (isAfterProvider) {
+          setProviderError(await response.text());
         } else {
           form.setError('email', {
             message: await response.text(),
@@ -151,60 +162,79 @@ export function RegisterAfter({
         }
       })
       .catch((e) => {
-        form.setError('email', {
-          message:
-            'General error: ' +
-            e.toString() +
-            '. Please check your browser console.',
-        });
+        const message =
+          'General error: ' +
+          e.toString() +
+          '. Please check your browser console.';
+        if (isAfterProvider) {
+          setProviderError(message);
+          return;
+        }
+        form.setError('email', { message });
       });
   };
+  // Tadween: sign-up asks only for the account. After Google, Apple and the
+  // other providers there is nothing left to fill in, so the account is
+  // created right away (once, even when React runs the effect twice) and the
+  // workspace takes the person's name, renamed later in onboarding.
+  const started = useRef(false);
+  useEffect(() => {
+    if (!isAfterProvider || started.current) {
+      return;
+    }
+    started.current = true;
+    onSubmit({ providerToken: token, provider } as Inputs);
+  }, [isAfterProvider]);
+  if (isAfterProvider) {
+    return providerError ? (
+      <div>
+        <AuthHeading
+          title={t(
+            'tdw_auth_register_failed_title',
+            'We couldn’t create your account'
+          )}
+        />
+        <AuthNotice tone="warning">{providerError}</AuthNotice>
+        <AuthSwitch
+          prompt={t('tdw_auth_have_account', 'Already have an account?')}
+          href="/auth/login"
+          action={t('sign_in_1', 'Sign in')}
+        />
+      </div>
+    ) : (
+      <div className="tdw-auth-form">
+        <AuthLoading
+          title={t('tdw_auth_loading_title', 'Setting up your account…')}
+          subtitle={t('tdw_auth_loading_subtitle', 'This takes a few seconds.')}
+        />
+        <AuthLegal />
+      </div>
+    );
+  }
   return (
     <FormProvider {...form}>
       <form noValidate onSubmit={form.handleSubmit(onSubmit)}>
         <AuthHeading
-          title={
-            isAfterProvider
-              ? t('tdw_auth_register_finish_title', 'One last step')
-              : t('tdw_auth_register_title', 'Create your account')
-          }
-          subtitle={
-            isAfterProvider
-              ? t(
-                  'tdw_auth_register_finish_subtitle',
-                  'Name your workspace and you are in.'
-                )
-              : t(
-                  'tdw_auth_register_subtitle',
-                  'Plan, preview and schedule your LinkedIn posts in one place.'
-                )
-          }
-        />
-        {!isAfterProvider && <SocialProviders />}
-        <div className="tdw-auth-form">
-          {!isAfterProvider && (
-            <>
-              <AuthField
-                name="email"
-                type="email"
-                autoComplete="email"
-                label={t('label_email', 'Email')}
-                placeholder={t('tdw_auth_email_placeholder', 'you@company.com')}
-              />
-              <AuthField
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                label={t('label_password', 'Password')}
-              />
-            </>
+          title={t('tdw_auth_register_title', 'Create your account')}
+          subtitle={t(
+            'tdw_auth_register_subtitle',
+            'Plan, preview and schedule your social posts in one place.'
           )}
+        />
+        <SocialProviders />
+        <div className="tdw-auth-form">
           <AuthField
-            name="company"
-            type="text"
-            autoComplete="organization"
-            label={t('tdw_auth_workspace', 'Workspace name')}
-            placeholder={t('tdw_auth_workspace_placeholder', 'Your company or your name')}
+            name="email"
+            type="email"
+            autoComplete="email"
+            label={t('label_email', 'Email')}
+            placeholder={t('tdw_auth_email_placeholder', 'you@company.com')}
+          />
+          <AuthField
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            label={t('label_password', 'Password')}
           />
           <AuthLegal />
           <AuthSubmit loading={loading}>

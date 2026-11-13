@@ -16,6 +16,8 @@ import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/me
 import { MediaRepository } from '@gitroom/nestjs-libraries/database/prisma/media/media.repository';
 import { NotificationsRepository } from '@gitroom/nestjs-libraries/database/prisma/notifications/notifications.repository';
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
+import { PushService } from '@gitroom/nestjs-libraries/services/push.service';
+import { EncryptionService } from '@gitroom/nestjs-libraries/services/encryption.service';
 import { StripeService } from '@gitroom/nestjs-libraries/services/stripe.service';
 import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
 import { PaymentProviderManager } from '@gitroom/nestjs-libraries/services/payment/payment.provider.manager';
@@ -95,6 +97,8 @@ import { TADWEEN_DATABASE_PROVIDERS } from '@gitroom/nestjs-libraries/database/p
     ClippingRepository,
     FalService,
     EmailService,
+    PushService,
+    EncryptionService,
     TrackService,
     ShortLinkService,
     SetsService,

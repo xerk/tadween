@@ -1,12 +1,28 @@
 import { Injectable } from '@nestjs/common';
 import { NotificationsRepository } from '@gitroom/nestjs-libraries/database/prisma/notifications/notifications.repository';
-import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
+import {
+  EmailRecipient,
+  EmailService,
+  TemplateEmailOptions,
+} from '@gitroom/nestjs-libraries/services/email.service';
+import {
+  EmailTemplate,
+  EmailTemplateData,
+} from '@gitroom/nestjs-libraries/emails/templates/email.templates';
 import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.repository';
 import { TemporalService } from 'nestjs-temporal-core';
 import { TypedSearchAttributes } from '@temporalio/common';
 import { organizationId } from '@gitroom/nestjs-libraries/temporal/temporal.search.attribute';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
+import {
+  PushMessage,
+  PushService,
+} from '@gitroom/nestjs-libraries/services/push.service';
+import {
+  EmailLanguage,
+  emailStrings,
+} from '@gitroom/nestjs-libraries/emails/templates/email.strings';
 
 export type NotificationType = 'success' | 'fail' | 'info';
 
@@ -77,7 +93,8 @@ export class NotificationService {
     private _emailService: EmailService,
     private _organizationRepository: OrganizationRepository,
     private _temporalService: TemporalService,
-    private _integrationManager: IntegrationManager
+    private _integrationManager: IntegrationManager,
+    private _pushService: PushService
   ) {}
 
   getMainPageCount(organizationId: string, userId: string) {
@@ -342,6 +359,26 @@ export class NotificationService {
     type: NotificationType = 'success'
   ) {
     await this._notificationRepository.createNotification(orgId, message);
+    await this.emailNotification(
+      orgId,
+      subject,
+      message,
+      sendEmail,
+      digest,
+      type
+    );
+    // Tadween: last, so a slow push never holds up the record or the email
+    await this.sendPush(orgId, subject, message, type);
+  }
+
+  private async emailNotification(
+    orgId: string,
+    subject: string,
+    message: string,
+    sendEmail: boolean,
+    digest: boolean,
+    type: NotificationType
+  ) {
     if (!sendEmail) {
       return;
     }
@@ -380,6 +417,109 @@ export class NotificationService {
     await this.sendEmailsToOrg(orgId, subject, message, type);
   }
 
+  // Tadween: the same notification on the members' phones, each in their
+  // language. Runs inside the post workflows' activity, so it never throws.
+  // The same preferences as the emails decide who gets one.
+  private async sendPush(
+    orgId: string,
+    subject: string,
+    message: string,
+    type: NotificationType
+  ) {
+    try {
+      if (!this._pushService.enabled()) {
+        return;
+      }
+      const devices = (
+        await this._notificationRepository.getOrganizationDevices(orgId)
+      ).filter(
+        ({ user }) =>
+          type === 'info' ||
+          (type === 'success' && user.sendSuccessEmails) ||
+          (type === 'fail' && user.sendFailureEmails)
+      );
+      const languages = new Map<string | null, EmailLanguage>();
+      const byLanguage = new Map<EmailLanguage, string[]>();
+      for (const device of devices) {
+        if (!languages.has(device.user.language)) {
+          languages.set(
+            device.user.language,
+            await this._emailService.languageFor(device.user.language)
+          );
+        }
+        const language = languages.get(device.user.language)!;
+        byLanguage.set(language, [
+          ...(byLanguage.get(language) || []),
+          device.token,
+        ]);
+      }
+
+      const gone: string[] = [];
+      for (const [language, tokens] of byLanguage) {
+        gone.push(
+          ...(await this._pushService.send(tokens, {
+            ...this.pushContent(subject, message, language),
+            data: { organizationId: orgId, route: '/notifications' },
+          }))
+        );
+      }
+      if (gone.length) {
+        await this._notificationRepository.deleteDevices(gone);
+      }
+    } catch (err) {
+      console.error('Push notification failed', err);
+    }
+  }
+
+  // The push says what the email says, in one line under a title
+  private pushContent(
+    subject: string,
+    message: string,
+    language: EmailLanguage
+  ): Pick<PushMessage, 'title' | 'body'> {
+    const t = emailStrings[language];
+    const email = this.notificationEmail(subject, message);
+    if (email.template === 'postFailed') {
+      const { network, channel, variant } = email.data;
+      if (variant === 'unconfirmed') {
+        return {
+          title: t.postFailed.unconfirmedTitle(network),
+          body: t.postFailed.unconfirmed(channel || network),
+        };
+      }
+      return {
+        title: t.postFailed.title(network),
+        body:
+          variant === 'disabled'
+            ? t.postFailed.disabled
+            : t.postFailed.body(network, channel),
+      };
+    }
+    if (email.template === 'channelReconnect') {
+      const { network, channel } = email.data;
+      return {
+        title: t.channelReconnect.title(network),
+        body: t.channelReconnect.body(network, channel),
+      };
+    }
+
+    const { kind, provider } = this.parseNotification(message);
+    if (kind === 'published' && provider) {
+      return {
+        title: t.push.published(
+          this._integrationManager
+            .getSocialIntegration(provider)
+            .name.replace(/\s*\n\s*/g, ' ')
+        ),
+        body: t.push.publishedBody,
+      };
+    }
+    return {
+      title: this.postPreview(subject) || t.push.other,
+      body: this.postPreview(message),
+    };
+  }
+
   async sendEmailsToOrg(
     orgId: string,
     subject: string,
@@ -387,6 +527,7 @@ export class NotificationService {
     type?: NotificationType
   ) {
     const userOrg = await this._organizationRepository.getAllUsersOrgs(orgId);
+    const email = this.notificationEmail(subject, message);
     for (const user of userOrg?.users || []) {
       // 'info' type is always sent regardless of preferences
       if (type !== 'info') {
@@ -398,12 +539,122 @@ export class NotificationService {
           continue;
         }
       }
-      await this.sendEmail(user.user.email, subject, message);
+      await this._emailService.sendTemplate(
+        { email: user.user.email, language: user.user.language },
+        email.template,
+        email.data
+      );
     }
+  }
+
+  // Tadween: the email for a notification sentence, from what it is about
+  // (the same reading the in-app list does). The channel's name is in the
+  // workflows' subject ("… for <channel>"); unknown sentences keep their text.
+  private notificationEmail(
+    subject: string,
+    message: string
+  ):
+    | { template: 'postFailed'; data: EmailTemplateData<'postFailed'> }
+    | { template: 'channelReconnect'; data: EmailTemplateData<'channelReconnect'> }
+    | { template: 'notification'; data: EmailTemplateData<'notification'> } {
+    const { kind, provider, channelName, reason } =
+      this.parseNotification(message);
+    const network = provider
+      ? this._integrationManager
+          .getSocialIntegration(provider)
+          .name.replace(/\s*\n\s*/g, ' ')
+      : '';
+    const channel = channelName || subject.match(/ for (.+)$/)?.[1] || '';
+
+    if (network && (kind === 'failed' || kind === 'unconfirmed' || kind === 'channel_disabled')) {
+      return {
+        template: 'postFailed',
+        data: {
+          network,
+          channel,
+          reason,
+          variant:
+            kind === 'channel_disabled'
+              ? 'disabled'
+              : kind === 'unconfirmed'
+              ? 'unconfirmed'
+              : 'failed',
+        },
+      };
+    }
+    if (network && kind === 'refresh_needed') {
+      return { template: 'channelReconnect', data: { network, channel } };
+    }
+    return { template: 'notification', data: { title: subject, html: message } };
   }
 
   async sendEmail(to: string, subject: string, html: string, replyTo?: string) {
     await this._emailService.sendEmail(to, subject, html, 'top', replyTo);
+  }
+
+  // Tadween: a branded email in the recipient's language
+  sendTemplate<T extends EmailTemplate>(
+    to: EmailRecipient,
+    template: T,
+    data: EmailTemplateData<T>,
+    options?: TemplateEmailOptions
+  ) {
+    return this._emailService.sendTemplate(to, template, data, options);
+  }
+
+  // Tadween: internal messages for the team, to TADWEEN_SUPPORT_EMAIL (else
+  // the support email from Admin → Branding), in the instance's language
+  async sendSupportTemplate<T extends EmailTemplate>(
+    template: T,
+    data: EmailTemplateData<T>,
+    replyTo?: string
+  ) {
+    const support = await this._emailService.supportEmail();
+    if (!support) {
+      console.error('support_email_not_set', { template });
+      return;
+    }
+    await this._emailService.sendTemplate(
+      { email: support, language: null },
+      template,
+      data,
+      { replyTo }
+    );
+  }
+
+  // Tadween: billing and lifecycle emails go to the workspace's owners and
+  // admins. Reached from payment webhooks: logs, never throws.
+  async sendTemplateToManagers<T extends EmailTemplate>(
+    orgId: string,
+    template: T,
+    data: EmailTemplateData<T>,
+    dedupeKey?: string
+  ) {
+    try {
+      const org = await this._organizationRepository.getAllUsersOrgs(orgId);
+      const managers = (org?.users || []).filter(
+        (u) =>
+          (u.role === 'SUPERADMIN' || u.role === 'ADMIN') &&
+          !u.disabled &&
+          !u.user.deletedAt
+      );
+      for (const manager of managers) {
+        await this._emailService.sendTemplate(
+          { email: manager.user.email, language: manager.user.language },
+          template,
+          data,
+          {
+            dedupeKey: dedupeKey ? `${dedupeKey}_${manager.user.id}` : undefined,
+          }
+        );
+      }
+    } catch (err) {
+      console.error('lifecycle_email_not_sent', {
+        organization_id: orgId,
+        template,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   hasEmailProvider() {

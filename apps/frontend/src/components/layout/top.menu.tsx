@@ -91,7 +91,7 @@ export const useMenuItem = () => {
       path: '/launches',
     },
     {
-      name: 'Agent',
+      name: t('tdw_agent', 'Agent'),
       description: t('tdw_agent_desc', 'Ask the agent to draft, schedule and manage posts for you.'),
       icon: (
         <svg
@@ -107,6 +107,8 @@ export const useMenuItem = () => {
           />
         </svg>
       ),
+      // pages hidden by a feature switch are also closed to direct links:
+      // FEATURE_ROUTES in tadween/instance/instance.settings.tsx
       path: '/agents',
       hide: !isOn('agent'),
     },
@@ -318,16 +320,21 @@ export const useMenuItem = () => {
       pageTitle: false,
     },
     {
-      // Tadween partners program (tadween/referral), behind its switch
+      // Tadween partners program (tadween/referral), behind its switch. It
+      // shows while payments are off too: invites skip the waitlist then.
       name: t('tdw_invite_earn', 'Invite & earn'),
-      description: t(
-        'tdw_invite_earn_desc',
-        'Invite friends: they get AI credits, you climb the rewards ladder.'
-      ),
+      description: user?.paymentsEnabled
+        ? t(
+            'tdw_invite_earn_desc',
+            'Invite friends: they get AI credits, you climb the rewards ladder.'
+          )
+        : t(
+            'tdw_invite_earn_desc_prelaunch',
+            'Invite friends: they skip the waitlist and get started right away.'
+          ),
       icon: <Icon name="gift" size={20} />,
       path: '/invite',
       hide: !isOn('affiliate'),
-      requireBilling: true,
     },
     {
       name: t('admin', 'Admin'),

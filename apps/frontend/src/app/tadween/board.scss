@@ -174,7 +174,10 @@ $tdw-board-phone: '(max-width: 768px)';
 .tdw-board-col {
   --tone: var(--tdw-muted-foreground);
   position: relative;
-  flex: 1 0 264px;
+  // columns share the width and shrink to 180px before the lanes scroll, so
+  // all four fit next to the side panel at 1440
+  flex: 1 1 264px;
+  min-width: 180px;
   max-width: 420px;
   display: flex;
   flex-direction: column;

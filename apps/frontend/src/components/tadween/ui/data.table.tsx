@@ -41,6 +41,8 @@ export interface DataColumn<R> extends TableColumn<R> {
   defaultHidden?: boolean;
   // Value written to the CSV; columns without one are not exported.
   csv?: (row: R) => string | number | boolean | null | undefined;
+  // Exported even while hidden from the table
+  exportAlways?: boolean;
 }
 
 export interface DataFilter<R = unknown> {
@@ -379,7 +381,7 @@ export function DataTable<R>({
   const [exporting, setExporting] = useState(false);
   // Server mode exports only with exportAll (the whole query, not one page).
   const exportable =
-    server && !exportAll ? [] : columns.filter((c) => c.csv && !hidden.includes(c.key));
+    server && !exportAll ? [] : columns.filter((c) => c.csv && (c.exportAlways || !hidden.includes(c.key)));
   const runExport = async () => {
     setExporting(true);
     try {

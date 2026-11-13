@@ -48,6 +48,7 @@ import {
   usePublishedPosts,
   useReconnectChannel,
 } from './analytics.hooks';
+import { useAddProvider } from '@gitroom/frontend/components/launches/add.provider.component';
 
 // Tadween analytics: pick "All channels" or one channel, a date range, and see
 // the network's own numbers (when its API has them) next to what the workspace
@@ -162,6 +163,8 @@ const PostRow: FC<{
 
 export const TadweenAnalytics: FC = () => {
   const t = useT();
+  // no channels yet: the empty state opens Add channel
+  const addChannel = useAddProvider();
   const fmt = useFormatters();
   const rangesFor = useAnalyticsRanges();
   const reconnect = useReconnectChannel();
@@ -346,9 +349,9 @@ export const TadweenAnalytics: FC = () => {
             'Connect a channel and publish from Tadween, and your numbers will show here.'
           )}
           action={
-            <LinkButton href="/launches" variant="primary" icon="plus">
-              {t('go_to_the_calendar_to_add_channels', 'Go to the calendar to add channels')}
-            </LinkButton>
+            <Button variant="primary" icon="plus" onClick={() => addChannel()}>
+              {t('add_channel', 'Add Channel')}
+            </Button>
           }
         />
       </TadweenScope>

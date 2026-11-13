@@ -21,6 +21,7 @@ import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 
 export class ThreadsProvider extends SocialAbstract implements SocialProvider {
   identifier = 'threads';
+  directory = true;
   name = 'Threads';
   isBetweenSteps = false;
   scopes = [
@@ -62,6 +63,13 @@ export class ThreadsProvider extends SocialAbstract implements SocialProvider {
         type: 'bad-body',
         value:
           'User restricted',
+      };
+    }
+    if (body.includes('4279047')) {
+      return {
+        type: 'bad-body',
+        value:
+          'Threads rejected the link in this post as an invalid link attachment, please check the link and try again',
       };
     }
     if (body.includes('The media could not be fetched from this URI')) {

@@ -1,11 +1,12 @@
 'use client';
 
-// RewardLadder: the referrer's milestones by paying friends (1, 3, 5, 10, 25)
-// as a progress track. Nodes sit on one line (a vertical one in narrow
+// RewardLadder: the referrer's milestones by paying friends (1, 3, 5, 10, 25,
+// from GET /partners/me → ladder). On top, a slim bar to the next reward
+// ("2 of 3 paying friends · Next: 1 free month"); below it the steps as a
+// compact track. Nodes sit on one line (a vertical list in narrow
 // containers); the line fills up to the friends who count, reached steps get
-// a check, and the next step is ringed with how many friends are left.
-// Styles: app/tadween/referral.scss.
-import React, { CSSProperties, FC } from 'react';
+// a check, and the next step is ringed. Styles: app/tadween/referral.scss.
+import React, { CSSProperties, FC, useId } from 'react';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { cx, Icon } from '@gitroom/frontend/components/tadween/ui';
 
@@ -30,10 +31,10 @@ export const useLadderLabels = () => {
       case 'credits':
         return s.step >= 5
           ? t('tdw_ref_reward_credits_badge', '+{{n}} AI credits and the Ambassador badge', {
-              n: (s.credits || 0).toLocaleString(),
+              n: (s.credits || 0).toLocaleString('en-US'),
             })
           : t('tdw_ref_reward_credits', '{{n}} AI credits', {
-              n: (s.credits || 0).toLocaleString(),
+              n: (s.credits || 0).toLocaleString('en-US'),
             });
       case 'free_month':
         return t('tdw_ref_reward_free_month', '1 free month');
@@ -66,37 +67,36 @@ export const RewardLadder: FC<{
 }> = ({ steps, qualified, className }) => {
   const t = useT();
   const label = useLadderLabels();
-  const last = steps[steps.length - 1]?.step || 1;
   const next = steps.find((s) => !s.reached);
+  // the bar runs from 0 to the next step's friends (full at the top)
+  const target = next?.step || steps[steps.length - 1]?.step || 1;
+  const done = next ? qualified : target;
+  const labelId = useId();
 
   return (
     <div className={cx('tdw-ladder', className)}>
-      <div className="tdw-ladder-summary">
-        <span className="tdw-ladder-count">
-          <span className="metric">{qualified.toLocaleString()}</span>
-          <span className="tdw-ladder-count-label">
-            {qualified === 1
-              ? t('tdw_ref_paying_friend', 'paying friend')
-              : t('tdw_ref_paying_friends', 'paying friends')}
-          </span>
-        </span>
-        <span className="tdw-ladder-next">
+      <div className="tdw-ladder-progress">
+        <span id={labelId} className="tdw-ladder-progress-label">
           {next
-            ? t('tdw_ref_next_step', '{{n}} more to {{reward}}', {
-                n: next.step - qualified,
+            ? t('tdw_ref_progress', '{{n}} of {{target}} paying friends · Next: {{reward}}', {
+                n: qualified.toLocaleString('en-US'),
+                target: target.toLocaleString('en-US'),
                 reward: label(next),
               })
             : t('tdw_ref_ladder_done', 'You reached the top of the ladder. Thank you!')}
         </span>
+        <span
+          className="pz-progress"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={target}
+          aria-valuenow={done}
+          aria-label={t('tdw_ref_ladder_progress', 'Rewards ladder progress')}
+          aria-describedby={labelId}
+        >
+          <span style={{ width: `${Math.min(100, (done / target) * 100)}%` }} />
+        </span>
       </div>
-      <span
-        className="sr-only"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={last}
-        aria-valuenow={qualified}
-        aria-label={t('tdw_ref_ladder_progress', 'Rewards ladder progress')}
-      />
       <ol className="tdw-ladder-steps">
         {steps.map((s, i) => {
           const isNext = next?.step === s.step;
@@ -117,7 +117,7 @@ export const RewardLadder: FC<{
                 </span>
               ) : null}
               <span className="tdw-ladder-dot" aria-hidden="true">
-                <Icon name={s.reached ? 'check' : ICON[s.reward]} size={16} />
+                <Icon name={s.reached ? 'check' : ICON[s.reward]} size={14} />
               </span>
               <span className="tdw-ladder-step-text">
                 <span className="tdw-ladder-friends">

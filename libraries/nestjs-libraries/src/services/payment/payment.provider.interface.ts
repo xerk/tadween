@@ -5,6 +5,25 @@ import { AdminApplyCouponDto } from '@gitroom/nestjs-libraries/dtos/billing/admi
 
 export type PaymentPlatform = 'web' | 'mobile';
 
+// One row of the billing history, in a provider neutral shape
+export interface PaymentInvoice {
+  id: string;
+  number: string | null;
+  // pricing key and MONTHLY / YEARLY the invoice was for, when the provider knows it
+  tier: string | null;
+  period: string | null;
+  description: string | null;
+  // minor units (cents)
+  amount: number;
+  currency: string;
+  // unix seconds
+  created: number;
+  periodEnd: number;
+  status: 'paid' | 'pending' | 'failed' | 'void';
+  downloadUrl: string | null;
+  viewUrl: string | null;
+}
+
 // Every billing use-case goes through this contract. Webhooks and `platform`
 // are mandatory; everything else has a default that says "not supported on
 // this platform" so a provider only implements what its platform offers
@@ -81,6 +100,17 @@ export abstract class PaymentProviderAbstract {
     return this.notSupported();
   }
 
+  // A workspace on the card-less trial chose its plan and saved a card in
+  // the embedded checkout: apply both to the running trial (same trial end).
+  // Answers { check } to wait for, { failed: true } when the card is refused
+  // or { ended: true } when the trial ended meanwhile.
+  async applyTrialPlan(
+    organizationId: string,
+    sessionId: string
+  ): Promise<{ check?: string; failed?: boolean; ended?: boolean }> {
+    return this.notSupported();
+  }
+
   // Store the provider's status, trial end and price on the subscription row
   // (for rows written before the provider reported them). No-op by default.
   async refreshSubscriptionState(organizationId: string): Promise<void> {
@@ -116,6 +146,18 @@ export abstract class PaymentProviderAbstract {
   // Self-service portal (payment method / invoices)
   async portalLink(organizationId: string): Promise<{ url: string }> {
     return this.notSupported();
+  }
+
+  // Billing history (invoices) of the organization
+  async getInvoices(organizationId: string): Promise<PaymentInvoice[]> {
+    return this.notSupported();
+  }
+
+  // Unix seconds of the next charge (the trial end while trialing), null when unknown
+  async getRenewalDate(
+    organizationId: string
+  ): Promise<{ renewsAt: number | null; trialing: boolean }> {
+    return { renewsAt: null, trialing: false };
   }
 
   // Post-checkout poll: is this subscription id active for the org

@@ -14,6 +14,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { streamUploadOptions } from '@gitroom/nestjs-libraries/upload/multer.stream.engine';
+import { omit } from 'lodash';
 import { ApiTags } from '@nestjs/swagger';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { GetIncludeDeletedFromRequest } from '@gitroom/nestjs-libraries/user/include.deleted.from.request';
@@ -34,6 +35,7 @@ import {
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
 import { VideoFunctionDto } from '@gitroom/nestjs-libraries/dtos/videos/video.function.dto';
 import { UploadDto } from '@gitroom/nestjs-libraries/dtos/media/upload.dto';
+import { GetMediaDto } from '@gitroom/nestjs-libraries/dtos/media/get.media.dto';
 import { ClippingDto } from '@gitroom/nestjs-libraries/dtos/clipping/clipping.dto';
 import { ClippingService } from '@gitroom/nestjs-libraries/database/prisma/clipping/clipping.service';
 import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/notification.service';
@@ -54,6 +56,8 @@ import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { GetOrgActivityDto } from '@gitroom/nestjs-libraries/dtos/analytics/get.org.activity.dto';
+import { ResetCreditsDto } from '@gitroom/nestjs-libraries/dtos/billing/reset.credits.dto';
+import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import dayjs from 'dayjs';
 import {
   PROVIDER_NOT_AVAILABLE,
@@ -74,18 +78,28 @@ export class PublicIntegrationsController {
     private _adminStatsService: AdminStatsService,
     private _organizationService: OrganizationService,
     private _clippingService: ClippingService,
-    private _providerSettings: ProviderSettingsService
+    private _providerSettings: ProviderSettingsService,
+    private _subscriptionService: SubscriptionService
   ) {}
 
   @Post('/upload')
   @UseInterceptors(FileInterceptor('file', streamUploadOptions()))
   async uploadSimple(
     @GetOrgFromRequest() org: Organization,
-    @UploadedFile('file') file: Express.Multer.File
+    @UploadedFile('file') file: Express.Multer.File,
+    @Body('adjust') adjust: string = 'false'
   ) {
     Sentry.metrics.count('public_api-request', 1);
     if (!file) {
       throw new HttpException({ msg: 'No file provided' }, 400);
+    }
+
+    if (adjust === 'true') {
+      return this._mediaService.saveUploadedFile(
+        org.id,
+        file.filename,
+        file.path
+      );
     }
 
     return this._mediaService.saveFile(org.id, file.filename, file.path);
@@ -98,7 +112,11 @@ export class PublicIntegrationsController {
   ) {
     Sentry.metrics.count('public_api-request', 1);
     try {
-      return await this._mediaService.uploadFromUrl(org.id, body.url);
+      return await this._mediaService.uploadFromUrl(
+        org.id,
+        body.url,
+        body.adjust
+      );
     } catch (err) {
       // Validation failures keep this route's { msg } error shape
       if (err instanceof BadRequestException) {
@@ -138,7 +156,14 @@ export class PublicIntegrationsController {
   ) {
     Sentry.metrics.count('public_api-request', 1);
     const body = await this._postsService.mapTypeToPost(
-      rawBody,
+      {
+        ...rawBody,
+        // a date per channel is a dashboard feature, the public API keeps one
+        // date for the whole request
+        posts: Array.isArray(rawBody?.posts)
+          ? rawBody.posts.map((post: any) => omit(post, 'date'))
+          : rawBody?.posts,
+      },
       org.id,
       rawBody?.type === 'draft' || true
     );
@@ -233,6 +258,39 @@ export class PublicIntegrationsController {
   async getActiveIntegrations(@GetOrgFromRequest() org: Organization) {
     Sentry.metrics.count('public_api-request', 1);
     return { connected: true };
+  }
+
+  @Get('/media')
+  async getMedia(
+    @GetOrgFromRequest() org: Organization,
+    @Query() query: GetMediaDto
+  ) {
+    Sentry.metrics.count('public_api-request', 1);
+    // only page and search, the library's own filters stay dashboard-only
+    const { pages, results } = await this._mediaService.getMedia(org.id, {
+      page: query.page,
+      search: query.search,
+    });
+
+    return {
+      pages,
+      results: results.map((p) => ({
+        id: p.id,
+        name: p.name,
+        originalName: p.originalName,
+        path: p.path,
+        createdAt: p.createdAt,
+      })),
+    };
+  }
+
+  @Get('/media/:id/status')
+  async getMediaStatus(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string
+  ) {
+    Sentry.metrics.count('public_api-request', 1);
+    return this._mediaService.getMediaUploadStatus(org.id, id);
   }
 
   // `user` is only known for OAuth app tokens; an API key belongs to the
@@ -338,7 +396,18 @@ export class PublicIntegrationsController {
         await integrationProvider.generateAuthUrl();
 
       if (refresh) {
-        await ioRedis.set(`refresh:${state}`, refresh, 'EX', 3600);
+        // The callback matches the channel by its provider account id, while
+        // API callers only know the integration id.
+        const existing = await this._integrationService.getIntegrationById(
+          org.id,
+          refresh
+        );
+        await ioRedis.set(
+          `refresh:${state}`,
+          existing?.internalId || refresh,
+          'EX',
+          3600
+        );
       }
 
       await ioRedis.set(`organization:${state}`, org.id, 'EX', 3600);
@@ -423,6 +492,25 @@ export class PublicIntegrationsController {
       to: to.endOf('day').toDate(),
       includeDeleted,
     });
+  }
+
+  @Post('/credits/reset')
+  @UseGuards(SuperAdminGuard)
+  async resetCredits(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: ResetCreditsDto
+  ) {
+    Sentry.metrics.count('public_api-request', 1);
+    const reset = await this._subscriptionService.resetCredits(
+      org.id,
+      body.type
+    );
+
+    if (!reset) {
+      throw new HttpException({ msg: 'No subscription found' }, 404);
+    }
+
+    return reset;
   }
 
   @Get('/notifications')
@@ -587,7 +675,13 @@ export class PublicIntegrationsController {
     @Body('releaseId') releaseId: string
   ) {
     Sentry.metrics.count('public_api-request', 1);
-    return this._postsService.updateReleaseId(org.id, id, releaseId);
+    // the batch only links the posts in the dashboard
+    const { batchId, ...post } = await this._postsService.updateReleaseId(
+      org.id,
+      id,
+      releaseId
+    );
+    return post;
   }
 
   @Get('/analytics/:integration')

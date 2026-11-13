@@ -1,3 +1,7 @@
+import {
+  FREE_PLAN_AI_MESSAGE,
+  isFreePlanAiRefusal,
+} from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 import { AgentToolInterface } from '@gitroom/nestjs-libraries/chat/agent.tool.interface';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
@@ -21,6 +25,12 @@ export class GenerateVideoTool implements AgentToolInterface {
     private _videoManager: VideoManager
   ) {}
   name = 'generateVideoTool';
+
+  // its customParams change with the video type (a key / value list), so the
+  // ChatGPT directory does not list it
+  directory() {
+    return {};
+  }
 
   run() {
     return createTool({
@@ -82,8 +92,9 @@ export class GenerateVideoTool implements AgentToolInterface {
         } catch (err) {
           // SubscriptionException (402) carries { section, action } and its
           // message is just "Subscription Exception", so translate it
-          const message =
-            err instanceof HttpException && err.getStatus() === 402
+          const message = isFreePlanAiRefusal(err)
+            ? FREE_PLAN_AI_MESSAGE
+            : err instanceof HttpException && err.getStatus() === 402
               ? 'No AI video credits are available on this account.'
               : err instanceof Error
               ? err.message

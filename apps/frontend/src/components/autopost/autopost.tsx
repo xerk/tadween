@@ -309,7 +309,7 @@ export const AddOrEditWebhook: FC<{
   return (
     <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(callBack)}>
-        <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px] border border-customColor6 pt-0">
+        <div className="tdw-modal-form">
           <div>
             <Input
               label="Title"
@@ -370,7 +370,7 @@ export const AddOrEditWebhook: FC<{
                 <AiTextarea
                   disableBranding={true}
                   className={clsx(
-                    '!min-h-40 !max-h-80 p-2 overflow-x-hidden scrollbar scrollbar-thumb-[#612AD5] bg-customColor2 outline-none mb-[16px] border-fifth border rounded-[4px]'
+                    'tdw-modal-textarea !min-h-40 !max-h-80 p-2 overflow-x-hidden outline-none mb-[16px]'
                   )}
                   value={content}
                   onChange={(e) => {
@@ -421,11 +421,23 @@ export const AddOrEditWebhook: FC<{
                 isMain={true}
               />
             )}
-            <div className="flex gap-[10px]">
+            {/* Tadween: the test (it checks the feed) first, Save last */}
+            <div className="tdw-modal-foot mt-[24px]">
+              <Button
+                type="button"
+                secondary={valid === url && (syncLast || !!lastUrl)}
+                onClick={sendTest}
+                disabled={
+                  !form.formState.isValid ||
+                  (allIntegrations.value === 'specific' &&
+                    !integrations?.length)
+                }
+              >
+                {t('send_test', 'Send Test')}
+              </Button>
               {valid === url && (syncLast || !!lastUrl) && (
                 <Button
                   type="submit"
-                  className="mt-[24px]"
                   disabled={
                     valid !== url ||
                     !form.formState.isValid ||
@@ -436,18 +448,6 @@ export const AddOrEditWebhook: FC<{
                   {t('save', 'Save')}
                 </Button>
               )}
-              <Button
-                type="button"
-                className="mt-[24px]"
-                onClick={sendTest}
-                disabled={
-                  !form.formState.isValid ||
-                  (allIntegrations.value === 'specific' &&
-                    !integrations?.length)
-                }
-              >
-                {t('send_test', 'Send Test')}
-              </Button>
             </div>
           </div>
         </div>

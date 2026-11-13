@@ -1,7 +1,8 @@
-import { ChangeEvent, FC, KeyboardEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, CSSProperties, FC, KeyboardEvent, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import clsx from 'clsx';
 import { useClickOutside } from '@mantine/hooks';
+import { usePopupEscape } from '@gitroom/frontend/components/tadween/ui/overlays';
 import { isUSCitizen } from './isuscitizen.utils';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
@@ -357,6 +358,58 @@ export const DatePicker: FC<{
   const ref = useClickOutside<HTMLDivElement>(() => {
     setOpen(false);
   });
+  usePopupEscape(open, () => setOpen(false), ref);
+  const popover = useRef<HTMLDivElement>(null);
+  const [place, setPlace] = useState<CSSProperties>();
+
+  // The popover opens above the trigger from its start edge. It stays inside
+  // the window and whatever clips it (the composer's panel): shifted sideways
+  // when it would cross an edge, and scrolling when it is taller than the room
+  // above the trigger. Measured from offsets, which leave out its own
+  // translate and the scale of its opening animation.
+  useLayoutEffect(() => {
+    const el = popover.current;
+    const anchor = ref.current;
+    if (!open || !el || !anchor) {
+      setPlace(undefined);
+      return;
+    }
+    const fit = () => {
+      const box = { left: 8, top: 8, right: window.innerWidth - 8 };
+      for (let p = el.parentElement; p; p = p.parentElement) {
+        const { overflowX, overflowY } = getComputedStyle(p);
+        const r = p.getBoundingClientRect();
+        if (overflowX !== 'visible') {
+          box.left = Math.max(box.left, r.left + 8);
+          box.right = Math.min(box.right, r.right - 8);
+        }
+        if (overflowY !== 'visible') {
+          box.top = Math.max(box.top, r.top + 8);
+        }
+      }
+      const a = anchor.getBoundingClientRect();
+      const left = a.left + el.offsetLeft;
+      const right = left + el.offsetWidth;
+      const shift =
+        left < box.left
+          ? box.left - left
+          : right > box.right
+          ? Math.max(box.left - left, box.right - right)
+          : 0;
+      setPlace({
+        translate: shift ? `${Math.round(shift)}px 0` : undefined,
+        maxWidth: Math.round(box.right - box.left),
+        maxHeight: Math.max(
+          200,
+          Math.round(a.top + el.offsetTop + el.offsetHeight - box.top)
+        ),
+        overflowY: 'auto',
+      });
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [open]);
 
   return (
     <div
@@ -383,8 +436,12 @@ export const DatePicker: FC<{
           role="dialog"
           aria-label={t('pick_date_and_time', 'Pick date and time')}
           onClick={(e) => e.stopPropagation()}
+          // from the time field: the first Escape reverts what was typed,
+          // the next closes the picker (usePopupEscape leaves fields alone)
           onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
-          className="tdw-dp absolute bottom-[100%] mb-[12px] start-[50%] -translate-x-[50%] rtl:translate-x-[50%] mobile:start-0 mobile:translate-x-0 z-[300]"
+          ref={popover}
+          style={place}
+          className="tdw-dp absolute bottom-[100%] mb-[12px] start-0 z-[300]"
         >
           <DatePickerPanel
             date={date}

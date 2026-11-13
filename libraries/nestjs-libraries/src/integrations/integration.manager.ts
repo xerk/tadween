@@ -160,11 +160,60 @@ export class IntegrationManager {
     return socialIntegrationList.reduce(
       (all, current) => ({
         ...all,
-        [current.identifier]:
+        [current.identifier]: (
           Reflect.getMetadata('custom:tool', current.constructor.prototype) ||
-          [],
+          []
+        ).map(({ directory, ...tool }: { directory?: unknown }) => tool),
       }),
       {}
+    );
+  }
+
+  // The provider tools served as their own tools on the ChatGPT directory
+  // endpoint (@Tool `directory`)
+  getAllDirectoryTools(): {
+    [key: string]: {
+      description: string;
+      dataSchema: Array<{ key: string; description: string; enum?: string[] }>;
+      methodName: string;
+      directory: {
+        name: string;
+        title: string;
+        output: Record<string, 'string' | 'number'>;
+      };
+    }[];
+  } {
+    return socialIntegrationList.reduce(
+      (all, current) => ({
+        ...all,
+        [current.identifier]: (
+          Reflect.getMetadata('custom:tool', current.constructor.prototype) ||
+          []
+        ).filter((tool: { directory?: unknown }) => tool.directory),
+      }),
+      {}
+    );
+  }
+
+  // POST /integrations/function runs a provider method by name with the
+  // channel's token as its first argument, so only @Tool methods and the ones
+  // marked @DashboardFunction may be run that way.
+  isDashboardCallable(provider: SocialProvider, methodName: string) {
+    if (typeof (provider as any)[methodName] !== 'function') {
+      return false;
+    }
+
+    const isTool = this.getAllTools()[provider.identifier]?.some(
+      (p) => p.methodName === methodName
+    );
+
+    return (
+      isTool ||
+      !!Reflect.getMetadata(
+        'custom:dashboard_function',
+        provider.constructor.prototype,
+        methodName
+      )
     );
   }
 

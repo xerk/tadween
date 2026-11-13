@@ -13,7 +13,10 @@ import {
 } from '@gitroom/frontend/components/tadween/ui';
 import { AdminPage } from './admin.shell';
 import {
+  date,
+  ONBOARDING_LABEL,
   TIER_LABEL,
+  useAdminOnboarding,
   useAdminOverview,
   useAdminPlans,
   useAdminSettings,
@@ -25,6 +28,116 @@ const MODE_LABEL = {
   open: 'Open to everyone',
   invite: 'Invite only',
   closed: 'Closed',
+};
+
+type OnboardingQuestion = 'source' | 'role' | 'goal';
+
+// "About you" onboarding answers: users per answer, and the latest free text
+const OnboardingBreakdown = () => {
+  const { data, error, isLoading } = useAdminOnboarding();
+  const total = data?.answered || 0;
+  const share = (count: number) =>
+    total ? `${Math.round((count / total) * 100)}%` : '—';
+
+  const breakdown = (
+    question: OnboardingQuestion,
+    title: string,
+    rows: { value: string; count: number }[] = []
+  ) => (
+    <Section
+      title={title}
+      description={`Onboarding answers from ${n(total)} users`}
+    >
+      <Table
+        dense
+        loading={isLoading}
+        rowKey={(r) => r.value}
+        rows={[...rows].sort((a, b) => b.count - a.count)}
+        empty="No answers yet"
+        columns={[
+          {
+            key: 'value',
+            label: 'Answer',
+            render: (r) => ONBOARDING_LABEL[question][r.value] || r.value,
+          },
+          {
+            key: 'count',
+            label: 'Users',
+            align: 'right',
+            render: (r) => <span className="time">{n(r.count)}</span>,
+          },
+          {
+            key: 'share',
+            label: 'Share',
+            align: 'right',
+            render: (r) => <span className="time pz-muted">{share(r.count)}</span>,
+          },
+        ]}
+      />
+    </Section>
+  );
+
+  return (
+    <>
+      {error ? (
+        <Banner tone="error" title="Couldn’t load the onboarding answers.">
+          {error.message}
+        </Banner>
+      ) : null}
+      <div className="grid grid-cols-3 gap-[16px] mobile:grid-cols-1">
+        {breakdown('source', 'Heard via', data?.sources)}
+        {breakdown('role', 'User type', data?.roles)}
+        {breakdown('goal', 'Goal', data?.goals)}
+      </div>
+      <Section
+        title="Latest written answers"
+        description="The newest “Other” answers and company names."
+      >
+        <Table
+          dense
+          loading={isLoading}
+          rowKey={(r) => r.id}
+          rows={data?.recent || []}
+          empty="No written answers yet"
+          columns={[
+            {
+              key: 'user',
+              label: 'User',
+              render: (r) => (
+                <a href={`/admin/users?open=${r.user.id}`} className="grid no-underline text-inherit">
+                  <span className="pz-set-label">{r.user.name || r.user.email}</span>
+                  <span className="caption pz-muted">{r.user.email}</span>
+                </a>
+              ),
+            },
+            {
+              key: 'answer',
+              label: 'Answer',
+              render: (r) => (
+                <span className="caption grid">
+                  {r.sourceOther ? <span>Heard via: {r.sourceOther}</span> : null}
+                  {r.roleOther ? <span>User type: {r.roleOther}</span> : null}
+                  {r.goalOther ? <span>Goal: {r.goalOther}</span> : null}
+                  {r.company || r.website ? (
+                    <span>
+                      {ONBOARDING_LABEL.role[r.role] || r.role}:{' '}
+                      {[r.company, r.website].filter(Boolean).join(' · ')}
+                    </span>
+                  ) : null}
+                </span>
+              ),
+            },
+            {
+              key: 'createdAt',
+              label: 'Answered',
+              align: 'right',
+              render: (r) => <span className="time">{date(r.createdAt)}</span>,
+            },
+          ]}
+        />
+      </Section>
+    </>
+  );
 };
 
 export const AdminOverviewPage = () => {
@@ -161,6 +274,8 @@ export const AdminOverviewPage = () => {
           />
         </Section>
       </div>
+
+      <OnboardingBreakdown />
 
       <Section title="Tools" description="The built-in admin screens.">
         <Row

@@ -1,6 +1,15 @@
 'use client';
 
-import { createContext, FC, ReactNode, useContext } from 'react';
+import {
+  createContext,
+  FC,
+  ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+} from 'react';
+import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
+import { useTranslationSettings } from '@gitroom/react/translation/get.transation.service.client';
 import { User } from '@prisma/client';
 import {
   pricing,
@@ -25,8 +34,23 @@ export const UserContext = createContext<
       streakSince: string | null;
       // Super admin acting as themselves: no paywall or plan gates
       billingExempt?: boolean;
-    })
+    } & TadweenAccess)
 >(undefined);
+
+// Tadween free launch (GET /user/self, additive)
+export interface TadweenAccess {
+  // Stripe keys set and payments switched on in /admin
+  paymentsEnabled?: boolean;
+  // created before the free plan started: full access, no plan needed
+  earlyAccess?: boolean;
+  // the free plan's limits while it applies to this workspace
+  freePlan?: { channels: number; members: number; aiCredits: number } | null;
+  // in-app AI (copilot, agent, generators) can be used
+  aiAvailable?: boolean;
+  waitlisted?: boolean;
+  // 1 = next in line
+  waitlistPosition?: number | null;
+}
 export const ContextWrapper: FC<{
   user: User & {
     orgId: string;
@@ -35,11 +59,37 @@ export const ContextWrapper: FC<{
     publicApi: string;
     totalChannels: number;
     billingExempt?: boolean;
-  };
+    impersonate?: boolean;
+  } & TadweenAccess;
   children: ReactNode;
 }> = ({ user, children }) => {
   // Tadween: plan limits set in /admin overlay the static pricing map
   const { pricing: plans } = useTadweenPricing();
+  // Tadween: the app language is kept on the user, so emails speak it
+  const fetch = useFetch();
+  const settings = useTranslationSettings();
+  const savedLanguage = useRef(user?.language);
+  useEffect(() => {
+    // (impersonating: the backend leaves the customer's language alone too)
+    if (!user?.id || user.impersonate) {
+      return;
+    }
+    const save = (language?: string) => {
+      if (!language || language === savedLanguage.current) {
+        return;
+      }
+      savedLanguage.current = language;
+      fetch('/user/language', {
+        method: 'POST',
+        body: JSON.stringify({ language }),
+      }).catch(() => {});
+    };
+    save(settings.resolvedLanguage);
+    settings.on('languageChanged', save);
+    return () => {
+      settings.off('languageChanged', save);
+    };
+  }, [user?.id]);
   // A super admin on a workspace without a plan gets the top tier's gates
   // (the real tier still drives /billing, which reads the subscription)
   const tier =

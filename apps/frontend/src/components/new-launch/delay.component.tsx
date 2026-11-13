@@ -7,6 +7,7 @@ import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useClickOutside } from '@mantine/hooks';
+import { usePopupEscape } from '@gitroom/frontend/components/tadween/ui/overlays';
 
 const delayOptions = [
   { value: 1, label: '1m' },
@@ -51,6 +52,7 @@ export const DelayComponent: FC<{
     }
     setIsOpen(false);
   });
+  usePopupEscape(isOpen, () => setIsOpen(false), ref);
 
   const setDelay = useCallback(
     (index: number) => (minutes: number) => {

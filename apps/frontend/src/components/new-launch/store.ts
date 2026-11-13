@@ -39,6 +39,8 @@ interface StoreState {
   inlineImages: boolean;
   loaded: boolean;
   date: dayjs.Dayjs;
+  // the other channels of an existing post, each with its own date
+  channelDates: Record<string, dayjs.Dayjs>;
   postComment: PostComment;
   dummy: boolean;
   repeater?: number;
@@ -122,6 +124,7 @@ interface StoreState {
   setTab: (tab: 0 | 1) => void;
   setHide: (hide: boolean) => void;
   setDate: (date: dayjs.Dayjs) => void;
+  setChannelDate: (integrationId: string, date: dayjs.Dayjs) => void;
   setRepeater: (repeater: number) => void;
   setTags: (tags: { label: string; value: string }[]) => void;
   setIsCreateSet: (isCreateSet: boolean) => void;
@@ -158,6 +161,7 @@ const initialState = {
   comments: true,
   activateExitButton: true,
   date: newDayjs(),
+  channelDates: {} as Record<string, dayjs.Dayjs>,
   postComment: PostComment.ALL,
   tags: [] as { label: string; value: string }[],
   totalChars: 0,
@@ -595,6 +599,13 @@ export const useLaunchStore = create<StoreState>()((set) => ({
   setDate: (date: dayjs.Dayjs) =>
     set((state) => ({
       date,
+    })),
+  setChannelDate: (integrationId: string, date: dayjs.Dayjs) =>
+    set((state) => ({
+      channelDates: {
+        ...state.channelDates,
+        [integrationId]: date,
+      },
     })),
   setRepeater: (repeater: number) =>
     set((state) => ({

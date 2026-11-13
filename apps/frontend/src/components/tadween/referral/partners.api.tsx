@@ -132,7 +132,19 @@ export interface PartnerMe {
     claimUntil: string;
     bonus: { credits: number; status: PartnerRewardStatus; appliedAt: string | null }[];
   };
+  // the affiliate offer ("Become a partner"), from the program's config
+  program: {
+    tierRates: PartnerTierRate[];
+    commissionMonths: number;
+    holdDays: number;
+  };
   affiliate: PartnerAffiliate | null;
+}
+
+export interface PartnerApplication {
+  // a link or handle where the creator's audience is
+  audience: string;
+  note?: string;
 }
 
 export interface PartnerPayoutSettings {
@@ -164,7 +176,8 @@ const readError = async (res: Response) => {
   }
 };
 
-export const usePartnerMe = () => {
+// `enabled` false (the program is switched off): nothing is asked
+export const usePartnerMe = (enabled = true) => {
   const fetch = useFetch();
   const load = useCallback(async (path: string): Promise<PartnerMe> => {
     const res = await fetch(path);
@@ -173,7 +186,7 @@ export const usePartnerMe = () => {
     }
     return res.json();
   }, []);
-  return useSWR<PartnerMe, PartnersError>('/partners/me', load, {
+  return useSWR<PartnerMe, PartnersError>(enabled ? '/partners/me' : null, load, {
     revalidateOnFocus: false,
     shouldRetryOnError: false,
   });
@@ -196,7 +209,7 @@ export const useInvitedTrial = (enabled: boolean) => {
 };
 
 // Cash goes out by hand around the 15th (docs/tadween/partners.md, runbook):
-// the next one, for the affiliate's dashboard and Admin → Payouts
+// the next one, for Admin → Payouts
 const PAYOUT_DAY = 15;
 export const nextPayoutDate = (now = dayjs()) =>
   now.date() <= PAYOUT_DAY ? now.date(PAYOUT_DAY) : now.add(1, 'month').date(PAYOUT_DAY);
@@ -207,6 +220,21 @@ export const useSavePartnerPayout = () => {
   return useCallback(async (body: PartnerPayoutSettings) => {
     const res = await fetch('/partners/payout', {
       method: 'PUT',
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      throw new PartnersError(await readError(res), res.status);
+    }
+  }, []);
+};
+
+// POST /partners/apply ("Become a partner"): resolves, or throws with the
+// server's message
+export const useApplyPartner = () => {
+  const fetch = useFetch();
+  return useCallback(async (body: PartnerApplication) => {
+    const res = await fetch('/partners/apply', {
+      method: 'POST',
       body: JSON.stringify(body),
     });
     if (!res.ok) {

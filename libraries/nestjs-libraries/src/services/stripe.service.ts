@@ -15,6 +15,7 @@ import { TrackService } from '@gitroom/nestjs-libraries/track/track.service';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { TrackEnum } from '@gitroom/nestjs-libraries/user/track.enum';
 import {
+  PaymentInvoice,
   PaymentPlatform,
   PaymentProvider,
   PaymentProviderAbstract,
@@ -22,6 +23,12 @@ import {
 
 import { STRIPE_PROVIDER } from '@gitroom/nestjs-libraries/services/payment/payment.providers';
 import { PartnersService } from '@gitroom/nestjs-libraries/database/prisma/partners/partners.service';
+import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/notification.service';
+import {
+  EmailTemplate,
+  EmailTemplateData,
+} from '@gitroom/nestjs-libraries/emails/templates/email.templates';
+import { stripeConfigured } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_nothing');
 
@@ -35,7 +42,8 @@ export class StripeService extends PaymentProviderAbstract {
     private _userService: UsersService,
     private _trackService: TrackService,
     private _plans: PlansService,
-    private _partners: PartnersService
+    private _partners: PartnersService,
+    private _notifications: NotificationService
   ) {
     super();
   }
@@ -91,9 +99,14 @@ export class StripeService extends PaymentProviderAbstract {
         return this.updateSubscription(event);
       case 'customer.subscription.deleted':
         return this.deleteSubscription(event);
+      case 'customer.subscription.trial_will_end':
+        return this.trialWillEnd(event);
       case 'checkout.session.completed':
       case 'checkout.session.async_payment_succeeded':
-        return this.aiCreditsPaid(event);
+        return event.data.object.mode === 'setup' &&
+          event.data.object.metadata?.type === 'trial_plan'
+          ? this.trialPlanCompleted(event)
+          : this.aiCreditsPaid(event);
       default:
         return { ok: true };
     }
@@ -140,28 +153,46 @@ export class StripeService extends PaymentProviderAbstract {
       return event.data.object.status === 'trialing';
     }
 
+    if (
+      await this.authorizeCard(
+        event.data.object.customer as string,
+        latestMethod.id
+      )
+    ) {
+      return true;
+    }
+
+    console.error('Cant charge');
+    try {
+      await stripe.paymentMethods.detach(latestMethod.id);
+      await stripe.subscriptions.cancel(event.data.object.id as string);
+    } catch (err) {
+      /*dont do anything*/
+    }
+    return false;
+  }
+
+  // Whether the card can be charged: a $1 hold placed off-session and
+  // released at once. A bank that asks for 3-D Secure on every payment counts
+  // as valid (the customer just passed it in Checkout). Never throws.
+  private async authorizeCard(customer: string, paymentMethod: string) {
     try {
       const paymentIntent = await stripe.paymentIntents.create({
         amount: 100,
         currency: 'usd',
-        payment_method: latestMethod.id,
-        customer: event.data.object.customer as string,
+        payment_method: paymentMethod,
+        customer,
         off_session: true,
         capture_method: 'manual', // Authorize without capturing
         confirm: true, // Confirm the PaymentIntent
       });
 
-      // The bank asks for 3-D Secure on every payment: the hold can't be
-      // placed off-session, but the customer just passed 3-D Secure in Checkout
       if (paymentIntent.status === 'requires_action') {
         await stripe.paymentIntents.cancel(paymentIntent.id).catch(() => {});
         return true;
       }
 
       if (paymentIntent.status !== 'requires_capture') {
-        console.error('Cant charge');
-        await stripe.paymentMethods.detach(latestMethod.id);
-        await stripe.subscriptions.cancel(event.data.object.id as string);
         return false;
       }
 
@@ -176,12 +207,6 @@ export class StripeService extends PaymentProviderAbstract {
           await stripe.paymentIntents.cancel(intent.id).catch(() => {});
         }
         return true;
-      }
-      try {
-        await stripe.paymentMethods.detach(latestMethod.id);
-        await stripe.subscriptions.cancel(event.data.object.id as string);
-      } catch (err) {
-        /*dont do anything*/
       }
       return false;
     }
@@ -246,6 +271,18 @@ export class StripeService extends PaymentProviderAbstract {
       event.data.object.cancel_at
     );
     await this.saveProviderState(event.data.object);
+
+    if (event.data.object.status === 'trialing') {
+      this.trackSubscription(
+        event.data.object.metadata,
+        event.data.object.id,
+        TrackEnum.StartTrial,
+        {
+          value: period === 'YEARLY' ? plan.year_price : plan.month_price,
+        }
+      ).catch((err) => {});
+    }
+
     return saved;
   }
   async updateSubscription(event: Stripe.CustomerSubscriptionUpdatedEvent) {
@@ -296,6 +333,16 @@ export class StripeService extends PaymentProviderAbstract {
         customer,
         STRIPE_PROVIDER
       );
+      // ended at the end of its trial (no card, or cancelled during it)
+      const { trial_end, ended_at } = event.data.object;
+      if (trial_end && ended_at && Math.abs(ended_at - trial_end) < 3600) {
+        await this.billingEmail(
+          customer,
+          'trialEnded',
+          {},
+          `trial_ended_${event.data.object.id}`
+        );
+      }
       return;
     }
 
@@ -400,6 +447,15 @@ export class StripeService extends PaymentProviderAbstract {
         return { ok: true };
       }
       await this.saveProviderState(subscription);
+      const invoice = event.data.object;
+      if (event.type === 'invoice.payment_failed' && invoice.amount_due > 0) {
+        await this.billingEmail(
+          invoice.customer,
+          'paymentFailed',
+          { amountCents: invoice.amount_due, currency: invoice.currency },
+          `payment_failed_${invoice.id}_${invoice.attempt_count}`
+        );
+      }
     } catch (err) {
       console.error('stripe_invoice_status_not_saved', {
         stripe_event_type: event.type,
@@ -417,7 +473,7 @@ export class StripeService extends PaymentProviderAbstract {
   async syncCustomerEmailsAfterSwitch(
     accounts: { id: string; email: string }[]
   ) {
-    if (!process.env.STRIPE_PUBLISHABLE_KEY) {
+    if (!stripeConfigured()) {
       return;
     }
     const emailByCustomer = new Map<string, string>();
@@ -643,7 +699,7 @@ export class StripeService extends PaymentProviderAbstract {
   }
 
   async cancelAllSubscriptions(organizationId: string) {
-    if (!process.env.STRIPE_PUBLISHABLE_KEY) {
+    if (!stripeConfigured()) {
       return;
     }
     // getOrgById must not filter deletedAt, this can run for an organization
@@ -773,11 +829,14 @@ export class StripeService extends PaymentProviderAbstract {
     const trialDays = allowTrial
       ? await this.trialDaysFor(customer, body.billing)
       : 0;
-    // Stripe Embedded Checkout, mounted inside the billing page. The app waits
-    // for the webhook (GET /billing/check/:uniqueId) before showing success.
+    // Checkout Elements (custom UI mode), as Postiz: Stripe's Payment Element
+    // and the app's own confirm button. Card, Link and wallets confirm in the
+    // page and the app waits for the webhook (GET /billing/check/:uniqueId);
+    // a payment method that needs its own page comes back to return_url,
+    // where CheckPayment does the same wait.
     const { client_secret } = await stripe.checkout.sessions.create({
-      ui_mode: 'embedded',
-      redirect_on_completion: 'never',
+      ui_mode: 'custom',
+      return_url: process.env['FRONTEND_URL'] + `/today?check=${uniqueId}`,
       customer,
       mode: 'subscription',
       // Local currency at checkout (also needs Adaptive Pricing on in the
@@ -877,6 +936,62 @@ export class StripeService extends PaymentProviderAbstract {
     return this.createBillingPortalLink(customer);
   }
 
+  async getRenewalDate(organizationId: string) {
+    const customer = await this.getCustomerByOrganizationId(organizationId);
+    const [sub] = await this.getLiveSubscriptions(customer);
+    const trialing = sub?.status === 'trialing';
+    return {
+      renewsAt:
+        (trialing ? sub.trial_end : sub?.items.data[0]?.current_period_end) ||
+        null,
+      trialing,
+    };
+  }
+
+  async getInvoices(organizationId: string): Promise<PaymentInvoice[]> {
+    const customer = await this.getCustomerByOrganizationId(organizationId);
+    if (!customer || !customer.startsWith('cus_')) {
+      return [];
+    }
+
+    const invoices = await stripe.invoices.list({
+      customer,
+      limit: 100,
+    });
+
+    return invoices.data
+      .filter((invoice) => invoice.status !== 'draft')
+      .map((invoice) => {
+        // snapshot of the subscription metadata ({ billing, period }) when the invoice was finalized
+        const metadata = invoice.parent?.subscription_details?.metadata;
+        return {
+          id: invoice.id,
+          number: invoice.number,
+          tier: metadata?.billing || null,
+          period: metadata?.period || null,
+          description: invoice.lines.data[0]?.description || null,
+          amount: invoice.total,
+          currency: invoice.currency,
+          created: invoice.created,
+          periodEnd: Math.max(
+            invoice.period_end,
+            ...invoice.lines.data.map((line) => line.period.end)
+          ),
+          // an open invoice that was already attempted is a failed charge waiting for a retry
+          status:
+            invoice.status === 'paid'
+              ? 'paid'
+              : invoice.status === 'void'
+              ? 'void'
+              : invoice.status === 'uncollectible' || invoice.attempted
+              ? 'failed'
+              : 'pending',
+          downloadUrl: invoice.invoice_pdf || null,
+          viewUrl: invoice.hosted_invoice_url || null,
+        };
+      });
+  }
+
   async finishTrial(organization: Organization) {
     const customer = this.stripeCustomerId(organization);
     if (!customer) {
@@ -886,11 +1001,66 @@ export class StripeService extends PaymentProviderAbstract {
       await stripe.subscriptions.list({
         customer,
       })
-    ).data.filter((f) => f.status === 'trialing');
+    ).data;
 
-    return stripe.subscriptions.update(list[0].id, {
+    const trialing = list.find((f) => f.status === 'trialing');
+    if (!trialing) {
+      const subscription = await stripe.subscriptions.retrieve(list[0].id, {
+        expand: ['latest_invoice'],
+      });
+      const invoice = subscription.latest_invoice as Stripe.Invoice | null;
+      if (invoice?.status === 'open' && invoice.id) {
+        await stripe.invoices.pay(invoice.id).catch(() => {});
+      }
+      return this.getRequiredActionFromSubscription(list[0].id);
+    }
+
+    await stripe.subscriptions.update(trialing.id, {
       trial_end: 'now',
     });
+
+    return this.getRequiredActionFromSubscription(trialing.id);
+  }
+
+  private async getRequiredActionFromSubscription(subscriptionId: string) {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ['latest_invoice'],
+    });
+
+    const latestInvoice = subscription.latest_invoice as Stripe.Invoice | null;
+    const invoice = latestInvoice?.id
+      ? await stripe.invoices.retrieve(latestInvoice.id, {
+          expand: ['payments.data.payment.payment_intent'],
+        })
+      : null;
+    const paymentIntent = invoice?.payments?.data
+      .map((p) => p.payment.payment_intent)
+      .find((p): p is Stripe.PaymentIntent => typeof p === 'object' && !!p);
+
+    if (
+      invoice?.status === 'open' &&
+      paymentIntent &&
+      (paymentIntent.status === 'requires_action' ||
+        paymentIntent.status === 'requires_confirmation')
+    ) {
+      return {
+        requiresAction: true,
+        // Returning the client_secret to the paying customer's browser is Stripe's
+        // intended flow: https://docs.stripe.com/api/payment_intents/object#payment_intent_object-client_secret
+        clientSecret: paymentIntent.client_secret,
+      };
+    }
+
+    // The update itself succeeds on a declined card, the subscription just
+    // moves to past_due, so the failure is only visible here
+    if (
+      invoice?.status === 'open' &&
+      paymentIntent?.status === 'requires_payment_method'
+    ) {
+      throw new Error('The subscription payment failed');
+    }
+
+    return { requiresAction: false };
   }
 
   async checkDiscount(organization: Organization) {
@@ -1109,17 +1279,164 @@ export class StripeService extends PaymentProviderAbstract {
     if (!subscription || subscription.status !== 'trialing') {
       return null;
     }
-    const methods = await stripe.paymentMethods.list({
-      customer: subscription.customer as string,
-      limit: 1,
-    });
     return {
       trialEnd: subscription.trial_end
         ? new Date(subscription.trial_end * 1000)
         : null,
-      hasPaymentMethod:
-        !!subscription.default_payment_method || methods.data.length > 0,
+      hasPaymentMethod: await this.hasPaymentMethod(subscription),
     };
+  }
+
+  // Whether Stripe can charge this subscription when its trial ends: a
+  // default payment method on it or on the customer (a card only attached,
+  // e.g. from an unfinished plan choice, counts as missing for the trial)
+  private async hasPaymentMethod(subscription: Stripe.Subscription) {
+    if (subscription.default_payment_method) {
+      return true;
+    }
+    const customer = await stripe.customers.retrieve(
+      subscription.customer as string
+    );
+    if (customer.deleted) {
+      return false;
+    }
+    return !!(customer as Stripe.Customer).invoice_settings
+      ?.default_payment_method;
+  }
+
+  // Choosing a plan during the card-less trial: Checkout in setup mode saves
+  // the card (Payment Element with Link, our confirm button); applyTrialPlan
+  // then puts the card and the plan on the running trial
+  private async createTrialPlanCheckout(
+    uniqueId: string,
+    customer: string,
+    trial: Stripe.Subscription,
+    body: BillingSubscribeDto
+  ) {
+    const { client_secret } = await stripe.checkout.sessions.create({
+      ui_mode: 'custom',
+      mode: 'setup',
+      currency: 'usd',
+      customer,
+      // no payment method that leaves the page: applyTrialPlan runs from it
+      payment_method_types: ['card', 'link'],
+      return_url: process.env['FRONTEND_URL'] + `/today?check=${uniqueId}`,
+      metadata: {
+        service: 'gitroom',
+        type: 'trial_plan',
+        subscription: trial.id,
+        billing: body.billing,
+        period: body.period,
+        uniqueId,
+      },
+    });
+
+    return {
+      client_secret,
+      check: uniqueId,
+      trialEnd: trial.trial_end ? new Date(trial.trial_end * 1000) : null,
+    };
+  }
+
+  async applyTrialPlan(organizationId: string, sessionId: string) {
+    const org = await this._organizationService.getOrgById(organizationId);
+    const customer = this.stripeCustomerId(org);
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['setup_intent'],
+    });
+    const meta = session.metadata || {};
+    if (
+      !customer ||
+      session.customer !== customer ||
+      session.mode !== 'setup' ||
+      meta.type !== 'trial_plan' ||
+      session.status !== 'complete'
+    ) {
+      throw new BadRequestException('This checkout is not for this workspace');
+    }
+
+    const setupIntent = session.setup_intent as Stripe.SetupIntent | null;
+    const paymentMethod =
+      typeof setupIntent?.payment_method === 'string'
+        ? setupIntent.payment_method
+        : setupIntent?.payment_method?.id;
+    if (!paymentMethod) {
+      throw new BadRequestException('No payment method was saved');
+    }
+
+    const trial = await stripe.subscriptions.retrieve(meta.subscription);
+    // Already applied (the app and the webhook both get here)
+    if (trial.metadata?.uniqueId === meta.uniqueId) {
+      return { check: meta.uniqueId };
+    }
+    // The trial ended meanwhile: nothing to keep, the card isn't left behind
+    if (trial.customer !== customer || trial.status !== 'trialing') {
+      await stripe.paymentMethods.detach(paymentMethod).catch(() => {});
+      return { ended: true };
+    }
+
+    // As a checkout with a trial: a card that can't be charged is refused
+    // now, not when the trial ends
+    if (!(await this.authorizeCard(customer, paymentMethod))) {
+      await stripe.paymentMethods.detach(paymentMethod).catch(() => {});
+      return { failed: true };
+    }
+
+    const price = await this.findOrCreatePrice({
+      billing: meta.billing,
+      period: meta.period,
+    } as BillingSubscribeDto);
+    // Same subscription, same trial end: no second trial and no early charge.
+    // The updated webhook stores the plan (uniqueId answers /billing/check).
+    // The subscription first: its card alone keeps the trial from cancelling.
+    await stripe.subscriptions.update(trial.id, {
+      items: [{ id: trial.items.data[0].id, price: price.id }],
+      default_payment_method: paymentMethod,
+      proration_behavior: 'none',
+      trial_end: trial.trial_end!,
+      // a cancel toggled during the trial doesn't outlive choosing a plan
+      cancel_at_period_end: false,
+      metadata: {
+        ...trial.metadata,
+        billing: meta.billing,
+        period: meta.period,
+        uniqueId: meta.uniqueId,
+      },
+    });
+    await stripe.customers
+      .update(customer, {
+        invoice_settings: { default_payment_method: paymentMethod },
+      })
+      .catch(() => {});
+
+    return { check: meta.uniqueId };
+  }
+
+  // Webhook backstop for the plan chosen during the trial: the app applies
+  // it right after Stripe confirms, but a closed tab must not lose the card.
+  // Must not throw.
+  async trialPlanCompleted(
+    event:
+      | Stripe.CheckoutSessionCompletedEvent
+      | Stripe.CheckoutSessionAsyncPaymentSucceededEvent
+  ) {
+    try {
+      const session = event.data.object;
+      const org = await this._organizationService.getOrgByCustomerId(
+        session.customer as string
+      );
+      if (!org) {
+        return { ok: true };
+      }
+      await this.applyTrialPlan(org.id, session.id);
+    } catch (err) {
+      console.error('trial_plan_not_applied', {
+        stripe_event_id: event.id,
+        stripe_session_id: event.data.object.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return { ok: true };
   }
 
   // AI credits top-up: a one-time payment in Embedded Checkout. The pack and
@@ -1215,7 +1532,19 @@ export class StripeService extends PaymentProviderAbstract {
     const id = makeId(10);
     const org = await this._organizationService.getOrgById(organizationId);
     const customer = await this.createOrGetCustomer(org!);
-    if ((await this.getLiveSubscriptions(customer)).length) {
+    const live = await this.getLiveSubscriptions(customer);
+    if (live.length) {
+      // The free trial without a card (started at sign-up or with "Maybe
+      // later"): choosing a plan saves a card for it instead of a new
+      // subscription, so the trial keeps its end date
+      const [trial] = live;
+      if (
+        live.length === 1 &&
+        trial.status === 'trialing' &&
+        !(await this.hasPaymentMethod(trial))
+      ) {
+        return this.createTrialPlanCheckout(id, customer, trial, body);
+      }
       return { blocked: true };
     }
     const findPrice = await this.findOrCreatePrice(body);
@@ -1293,6 +1622,13 @@ export class StripeService extends PaymentProviderAbstract {
         ],
       });
 
+      const action = await this.getRequiredActionFromSubscription(
+        currentUserSubscription.data[0].id
+      );
+      if (action.requiresAction) {
+        return { id, ...action };
+      }
+
       return { id };
     } catch (err) {
       const { url } = await this.createBillingPortalLink(customer);
@@ -1303,6 +1639,10 @@ export class StripeService extends PaymentProviderAbstract {
   }
 
   async paymentSucceeded(event: Stripe.InvoicePaymentSucceededEvent) {
+    // only feeds the Facebook pixel, it runs in the background so it can
+    // never fail or slow down the webhook
+    this.trackConversion(event.data.object).catch((err) => {});
+
     // get subscription from payment
     const subscriptionId =
       event.data.object.parent?.subscription_details?.subscription;
@@ -1312,14 +1652,6 @@ export class StripeService extends PaymentProviderAbstract {
     const subscription = await stripe.subscriptions.retrieve(
       typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id
     );
-
-    const { userId, ud } = subscription.metadata;
-    const user = await this._userService.getUserById(userId);
-    if (user && user.ip && user.agent) {
-      this._trackService.track(ud, user.ip, user.agent, TrackEnum.Purchase, {
-        value: event.data.object.amount_paid / 100,
-      });
-    }
 
     // A trial's $0 invoice is not a payment: founder spots and partner
     // rewards start at the first invoice that took money
@@ -1339,9 +1671,104 @@ export class StripeService extends PaymentProviderAbstract {
         );
       }
       await this.recordPartnerInvoice(event.data.object, subscription, customer);
+      await this.receiptEmail(event.data.object, subscription, customer);
     }
 
     return { ok: true };
+  }
+
+  // Tadween: the receipt, or "your plan has started" for the first payment
+  // of a subscription (at checkout or when its trial converts)
+  private async receiptEmail(
+    invoice: Stripe.Invoice,
+    subscription: Stripe.Subscription,
+    customer: string
+  ) {
+    // a subscription invoice's period is the one just ended: the trial's
+    // conversion invoice closes the trial (period_end = trial_end)
+    const started =
+      invoice.billing_reason === 'subscription_create' ||
+      (invoice.billing_reason === 'subscription_cycle' &&
+        !!subscription.trial_end &&
+        Math.abs(invoice.period_end - subscription.trial_end) < 86400);
+    await this.billingEmail(
+      customer,
+      'paymentReceipt',
+      {
+        amountCents: invoice.amount_paid,
+        currency: invoice.currency,
+        plan: await this.planName(subscription.metadata?.billing),
+        paidAt: new Date(
+          (invoice.status_transitions?.paid_at || invoice.created) * 1000
+        ),
+        started,
+      },
+      `receipt_${invoice.id}`
+    );
+  }
+
+  // Tadween: Stripe tells us 3 days before any trial ends, with or without a
+  // card (the card-less trial is a Stripe subscription too). Never throws.
+  async trialWillEnd(event: Stripe.CustomerSubscriptionTrialWillEndEvent) {
+    try {
+      const subscription = event.data.object;
+      if (!subscription.trial_end || subscription.status !== 'trialing') {
+        return { ok: true };
+      }
+      await this.billingEmail(
+        subscription.customer,
+        'trialEnding',
+        {
+          trialEnd: new Date(subscription.trial_end * 1000),
+          plan: await this.planName(subscription.metadata?.billing),
+          hasCard: await this.hasPaymentMethod(subscription),
+        },
+        `trial_ending_${subscription.id}_${subscription.trial_end}`
+      );
+    } catch (err) {
+      console.error('stripe_trial_will_end_failed', {
+        stripe_event_id: event.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return { ok: true };
+  }
+
+  private async planName(tier?: string) {
+    try {
+      return (tier && (await this._plans.getActivePlan(tier))?.name) || '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  // Tadween: a billing email to the workspace's owners and admins, in their
+  // language. Reached from webhooks: logs, never throws.
+  private async billingEmail<T extends EmailTemplate>(
+    customer: string | Stripe.Customer | Stripe.DeletedCustomer | null,
+    template: T,
+    data: EmailTemplateData<T>,
+    dedupeKey: string
+  ) {
+    try {
+      const id = typeof customer === 'string' ? customer : customer?.id;
+      const org = id
+        ? await this._organizationService.getOrgByCustomerId(id)
+        : null;
+      if (org) {
+        await this._notifications.sendTemplateToManagers(
+          org.id,
+          template,
+          data,
+          dedupeKey
+        );
+      }
+    } catch (err) {
+      console.error('stripe_billing_email_failed', {
+        template,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   // Partners program: a paid invoice of a referred workspace, in USD cents
@@ -1539,6 +1966,103 @@ export class StripeService extends PaymentProviderAbstract {
     return methods.data
       .map((m) => m.card?.fingerprint)
       .filter((f): f is string => !!f);
+  }
+
+  // The first charge of a subscription is the conversion: a trial that turned
+  // into a paid plan, or a plan paid upfront. The $0 invoice that starts a
+  // trial and the renewals are not tracked.
+  private async trackConversion(invoice: Stripe.Invoice) {
+    try {
+      // webhook payloads follow the API version of the endpoint: parent is the
+      // 2025-03-31+ shape, subscription the older one
+      const subscriptionId =
+        invoice.parent?.subscription_details?.subscription ||
+        (invoice as any).subscription;
+      if (!subscriptionId || invoice.amount_paid <= 0) {
+        return;
+      }
+
+      // invoices of other services sharing the Stripe account stop here
+      const subscription = await stripe.subscriptions.retrieve(
+        typeof subscriptionId === 'string' ? subscriptionId : subscriptionId.id
+      );
+      if (
+        subscription.metadata?.service !== 'gitroom' ||
+        !subscription.metadata?.userId
+      ) {
+        return;
+      }
+
+      const paidInvoices = await stripe.invoices.list({
+        subscription: subscription.id,
+        status: 'paid',
+        limit: 100,
+      });
+      const paidBefore = paidInvoices.data.some(
+        (f) =>
+          f.id !== invoice.id &&
+          f.amount_paid > 0 &&
+          (f.created < invoice.created ||
+            (f.created === invoice.created && f.id < invoice.id))
+      );
+      if (paidBefore) {
+        return;
+      }
+
+      await this.trackSubscription(
+        subscription.metadata,
+        invoice.id,
+        TrackEnum.Purchase,
+        {
+          value: invoice.amount_paid / 100,
+          currency: invoice.currency,
+        }
+      );
+    } catch (err) {
+      console.error(
+        'stripe_pixel_conversion_failed',
+        { stripe_invoice_id: invoice.id },
+        err
+      );
+    }
+  }
+
+  // Facebook pixel event for the user who checked out the subscription.
+  // Never throws, tracking must not affect billing.
+  private async trackSubscription(
+    metadata: Stripe.Metadata,
+    eventId: string,
+    tt: TrackEnum,
+    additional: Record<string, any>
+  ) {
+    try {
+      const { userId, fbc, fbp } = metadata || {};
+      if (!userId) {
+        return;
+      }
+
+      const user = await this._userService.getUserById(userId);
+      if (!user) {
+        return;
+      }
+
+      await this._trackService.track(
+        eventId,
+        user.ip,
+        user.agent,
+        tt,
+        additional,
+        fbc,
+        user,
+        fbp
+      );
+    } catch (err) {
+      console.error(
+        'stripe_pixel_event_failed',
+        { stripe_object_id: eventId, event: TrackEnum[tt] },
+        err
+      );
+    }
   }
 
   async getCharges(organizationId: string) {

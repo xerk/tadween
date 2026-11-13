@@ -37,6 +37,7 @@ export type LegalLinkKey =
   | 'privacy'
   | 'refund'
   | 'contact'
+  | 'deleteAccount'
   | 'youtubeTerms'
   | 'googlePrivacy'
   | 'googleUserData'
@@ -61,6 +62,8 @@ export interface LegalCopy {
   privacy: LegalDoc;
   refund: LegalDoc;
   contact: LegalDoc;
+  /** /delete-account: how to delete an account (Google Play needs a public URL for this). */
+  deleteAccount: LegalDoc;
 }
 
 export interface Faq {
@@ -190,7 +193,7 @@ export interface AiClientCopy {
   alsoTry: string[];
   /** The comparison table: `head` names the columns, the first being the row labels. */
   compare: { title: string; sub: string; head: string[]; rows: string[][]; note: string };
-  /** Four example requests, LinkedIn first; `nets` are channel slugs for the icons. */
+  /** Four example requests across the focus networks; `nets` are channel slugs for the icons. */
   prompts: { tag: string; nets: string[]; title: string; text: string; lang: Lang }[];
   /** This client beside its siblings. `href` is 'self', 'agent' (the AI agent page) or another
       client's slug. */

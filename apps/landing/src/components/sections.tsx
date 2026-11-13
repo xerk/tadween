@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ChatDemo, Dict, Faq } from '@/content/types';
 import { AI_CLIENTS, WORKS_WITH } from '@/lib/aiClients';
-import { CHANNELS, networkBySlug } from '@/lib/channels';
+import { CHANNELS, FOCUS_NETS, networkBySlug } from '@/lib/channels';
 import { LEGAL, SIGN_IN_URL, SIGN_UP_URL } from '@/lib/config';
 import { FEATURE_MENU, featureRefIcon, featureRefPath, type FeatureRef } from '@/lib/features';
 import { PATHS, channelPath, clientPath, localePath } from '@/lib/routes';
@@ -75,7 +75,7 @@ export function TrialButtons({ t, primary, secondaryHref, secondary }: { t: Dict
 }
 
 /** Tadween's focus networks, for the hero's row of marks and the calendar demo's filters. */
-const HERO_NETS = ['linkedin', 'instagram', 'facebook', 'threads', 'youtube'];
+const HERO_NETS = FOCUS_NETS;
 
 export function Hero({ t }: { t: Dict }) {
   const rtl = t.dir === 'rtl';

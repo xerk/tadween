@@ -23,13 +23,17 @@ import { DNDProvider } from '@gitroom/frontend/components/launches/helpers/dnd.p
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useIntegrationList } from '@gitroom/frontend/components/launches/helpers/use.integration.list';
-import { Onboarding } from '@gitroom/frontend/components/onboarding/onboarding';
 import { ChannelsAfterPayment } from '@gitroom/frontend/components/layout/check.payment';
+import { HubspotInstalled } from '@gitroom/frontend/components/launches/hubspot.installed';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
-import { Input } from '@gitroom/react/form/input';
-import { Button } from '@gitroom/react/form/button';
+import {
+  Button as TdwButton,
+  Input as TdwInput,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
 import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
 import { CalendarWorkspace } from '@gitroom/frontend/components/tadween/workspace/workspace';
+import { useSWRConfig } from 'swr';
 
 export const SVGLine = () => {
   return (
@@ -140,18 +144,31 @@ const EditGroupNameModal: FC<{
     close();
   }, [groupName, id]);
   return (
-    <div>
-      <Input
-        name="name"
-        disableForm={true}
-        label={t('group_name', 'Name')}
-        value={groupName}
-        onChange={(e) => setGroupName(e.target.value)}
-      />
-      <Button onClick={save} className="mt-[16px]">
-        {t('save', 'Save')}
-      </Button>
-    </div>
+    <TadweenScope>
+      <form
+        className="tdw-modal-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save();
+        }}
+      >
+        <TdwInput
+          name="name"
+          autoFocus
+          label={t('group_name', 'Name')}
+          value={groupName}
+          onChange={(e) => setGroupName(e.target.value)}
+        />
+        <div className="tdw-modal-foot">
+          <TdwButton variant="ghost" onClick={close}>
+            {t('cancel', 'Cancel')}
+          </TdwButton>
+          <TdwButton type="submit" variant="primary">
+            {t('save', 'Save')}
+          </TdwButton>
+        </div>
+      </form>
+    </TadweenScope>
   );
 };
 
@@ -523,11 +540,17 @@ export const LaunchesComponent = () => {
       ['desc', 'asc']
     );
   }, [sortedIntegrations]);
+  // Tadween: the side panel's Up next and drafts lists drop or show the
+  // posts of a channel that was just disabled, enabled or deleted
+  const { mutate: mutateKeys } = useSWRConfig();
   const update = useCallback(async (shouldReload: boolean) => {
     if (shouldReload) {
       setReload(true);
     }
     await mutate();
+    mutateKeys(
+      (key) => typeof key === 'string' && key.startsWith('tdw-ws-')
+    );
     if (shouldReload) {
       setReload(false);
     }
@@ -620,8 +643,10 @@ export const LaunchesComponent = () => {
   // @ts-ignore
   return (
     <DNDProvider>
-      <Onboarding />
+      {/* Tadween: Postiz's <Onboarding /> (?onboarding=true) is mounted by
+          LayoutComponent, so it opens on Today too */}
       <ChannelsAfterPayment integrations={integrations} />
+      <HubspotInstalled />
       <CalendarWeekProvider integrations={sortedIntegrations}>
         {/* Tadween: the channel column became chips + an "All channels"
             sheet; the list below is the column's content, unchanged. */}

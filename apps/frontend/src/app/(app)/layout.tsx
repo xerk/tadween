@@ -11,6 +11,7 @@ import PlausibleProvider from 'next-plausible';
 import clsx from 'clsx';
 import { VariableContextComponent } from '@gitroom/react/helpers/variable.context';
 import { isGenericOauth } from '@gitroom/helpers/utils/is.generic.oauth';
+import { paymentsEnabledServerSide } from '@gitroom/helpers/utils/payments.enabled.server.side';
 import { Fragment } from 'react';
 import { PHProvider } from '@gitroom/react/helpers/posthog';
 import UtmSaver from '@gitroom/helpers/utils/utm.saver';
@@ -38,6 +39,8 @@ const datafastDomain = () => {
 };
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
+  // Tadween: Stripe keys and the payments switch in /admin
+  const billingEnabled = await paymentsEnabledServerSide();
   const cookieStore = await cookies();
   // no cookie yet (first visit): proxy.ts detected the language from the country / browser
   const language =
@@ -48,6 +51,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // Postiz's (it used to send to the postiz.com Plausible site whenever Stripe
   // was on).
   const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN || '';
+  // Tadween: paint the saved theme on the first frame (the app used to start
+  // dark and switch to light once the shell mounted: a black flash)
+  const mode = cookieStore.get('mode')?.value === 'light' ? 'light' : 'dark';
   const Plausible = plausibleDomain ? PlausibleProvider : Fragment;
   return (
     <html>
@@ -66,7 +72,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <body
         // Extensions (e.g. ColorZilla's cz-shortcut-listen) add attributes before hydration.
         suppressHydrationWarning
-        className={clsx(jakartaSans.className, 'dark text-primary !bg-primary')}
+        className={clsx(jakartaSans.className, mode, 'text-primary !bg-primary')}
       >
         <VariableContextComponent
           storageProvider={
@@ -77,7 +83,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           plontoKey={process.env.NEXT_PUBLIC_POLOTNO!}
           stripeClient={process.env.STRIPE_PUBLISHABLE_KEY!}
           isChatBase={!!process.env.CHATBASE_TOKEN}
-          billingEnabled={!!process.env.STRIPE_PUBLISHABLE_KEY}
+          crispWebsiteId={process.env.CRISP_WEBSITE_ID || ''}
+          billingEnabled={billingEnabled}
           discordUrl={process.env.NEXT_PUBLIC_DISCORD_SUPPORT!}
           frontEndUrl={process.env.FRONTEND_URL!}
           isGeneral={!!process.env.IS_GENERAL}
@@ -88,10 +95,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           cloudflareUrl={process.env.CLOUDFLARE_BUCKET_URL || ''}
           mainUrl={process.env.MAIN_URL || ''}
           mcpUrl={process.env.MCP_URL}
-          dub={
-            !!process.env.STRIPE_PUBLISHABLE_KEY &&
-            !!process.env.NEXT_PUBLIC_DUB_REFER_DOMAIN
-          }
+          dub={billingEnabled && !!process.env.NEXT_PUBLIC_DUB_REFER_DOMAIN}
           dubReferDomain={process.env.NEXT_PUBLIC_DUB_REFER_DOMAIN || ''}
           mcpOfficialConnectors={process.env.MCP_OFFICIAL_CONNECTORS === 'true'}
           chromeExtensionUrl={process.env.CHROME_EXTENSION_URL || ''}

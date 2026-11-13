@@ -1,0 +1,273 @@
+// Tadween: the bodies of Postiz's own modals, dialogs and popups, drawn in the
+// app modal (components/layout/new-modal.tsx; its shell and the confirm are in
+// consistency.scss). Bodies that use the UI kit sit in a .tdw-ui scope, so the
+// kit's token names work there; the rest use the --tdw-* tokens. Loaded from
+// global.scss.
+
+body {
+  // ── A form in a modal: fields stacked, the actions at the end ─────────────
+  .tdw-modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    white-space: normal;
+  }
+  .tdw-modal-lead {
+    margin: 0;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--tdw-muted-foreground);
+  }
+  // Cancel (ghost) first, the main action last (the end side in RTL too)
+  .tdw-modal-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 4px;
+  }
+  .tdw-modal-foot > .is-start { margin-inline-end: auto; }
+
+  .tdw-modal-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--tdw-muted);
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--tdw-foreground);
+  }
+  .tdw-modal-note > .pz-icon { flex: none; margin-top: 1px; color: var(--tdw-muted-foreground); }
+  .tdw-danger-text,
+  .tdw-danger-text:hover { color: var(--tdw-destructive) !important; }
+  // a rich text box (signature, autopost content) framed as a field
+  .tdw-modal-textarea {
+    border: 1px solid var(--tdw-input);
+    border-radius: 10px;
+    background: var(--tdw-card);
+    overflow: hidden;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+  .tdw-modal-textarea:focus-within {
+    border-color: var(--tdw-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tdw-primary) 22%, transparent);
+  }
+  .tdw-modal-textarea > *,
+  .tdw-modal-textarea textarea { background: transparent !important; }
+
+  // ── Option rows: pick a set, copy debug data ──────────────────────────────
+  .tdw-pick-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 50dvh; overflow-y: auto; }
+  .tdw-pick {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--tdw-card);
+    box-shadow: var(--tdw-shadow-sm);
+    color: var(--tdw-foreground);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    transition: background-color 150ms ease, box-shadow 150ms ease, transform 100ms ease-out;
+  }
+  .tdw-pick:hover { background: var(--tdw-accent); box-shadow: var(--tdw-shadow-md); }
+  .tdw-pick:active { transform: scale(0.99); }
+  .tdw-pick:focus-visible { outline: 2px solid var(--tdw-ring); outline-offset: 2px; }
+  .tdw-pick-ico {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--tdw-primary-soft);
+    color: var(--tdw-primary);
+  }
+  .tdw-pick-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .tdw-pick-title { font-size: 14px; line-height: 20px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tdw-pick-desc { font-size: 13px; line-height: 18px; color: var(--tdw-muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tdw-pick-go { flex: none; color: var(--tdw-muted-foreground); }
+  html[dir='rtl'] & .tdw-pick-go.tdw-flip { transform: scaleX(-1); }
+
+  // ── Time slots (launches/time.table.tsx) ──────────────────────────────────
+  .tdw-slots-add { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 8px; }
+  .tdw-slots-list { display: grid; gap: 8px; }
+  .tdw-slots-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 40dvh; overflow-y: auto; }
+  .tdw-slots-count { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tdw-muted-foreground); }
+  html[dir='rtl'] & .tdw-slots-count { letter-spacing: 0; }
+  .tdw-slots-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 6px 0 14px;
+    border-radius: 12px;
+    background: var(--tdw-card);
+    box-shadow: var(--tdw-shadow-sm);
+  }
+  html[dir='rtl'] & .tdw-slots-row { padding: 0 14px 0 6px; }
+  .tdw-slots-row > .pz-icon { color: var(--tdw-primary); }
+  .tdw-slots-row .time { flex: 1; font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  // ── Statistics (launches/statistics.tsx) ──────────────────────────────────
+  .tdw-stat-card { border-radius: 14px; background: var(--tdw-card); box-shadow: var(--tdw-shadow-sm); }
+  .tdw-stat-dot.is-purple { background: var(--tdw-primary); }
+  .tdw-stat-dot.is-green { background: var(--tdw-success); }
+  .tdw-stat-dot.is-blue { background: #1d9bf0; }
+  .tdw-stat-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; line-height: 18px; border-radius: 12px; overflow: hidden; box-shadow: var(--tdw-shadow-sm); }
+  .tdw-stat-table th { padding: 8px 12px; text-align: start; font-weight: 500; color: var(--tdw-muted-foreground); background: var(--tdw-muted); }
+  .tdw-stat-table td { padding: 10px 12px; border-top: 1px solid var(--tdw-border); background: var(--tdw-card); word-break: break-all; }
+  .tdw-stat-table td.time { font-variant-numeric: tabular-nums; }
+
+  // ── Preferences (launches/settings.modal.tsx) ─────────────────────────────
+  .tdw-modal-settings { display: grid; gap: 8px; }
+  .tdw-modal-setting {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--tdw-card);
+    box-shadow: var(--tdw-shadow-sm);
+  }
+  .tdw-modal-setting-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .tdw-modal-setting-title { font-size: 14px; line-height: 20px; font-weight: 500; }
+  .tdw-modal-setting-desc { font-size: 13px; line-height: 18px; color: var(--tdw-muted-foreground); }
+
+  // ── Style chips (launches/ai.image.tsx) ───────────────────────────────────
+  .tdw-modal-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tdw-modal-chip {
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid var(--tdw-border);
+    border-radius: 9999px;
+    background: var(--tdw-card);
+    color: var(--tdw-foreground);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  }
+  .tdw-modal-chip:hover { background: var(--tdw-accent); }
+  .tdw-modal-chip[aria-pressed='true'] { border-color: var(--tdw-primary); background: var(--tdw-primary-soft); color: var(--tdw-primary); font-weight: 500; }
+  .tdw-modal-chip:focus-visible { outline: 2px solid var(--tdw-ring); outline-offset: 2px; }
+
+  // ── Connecting a channel (launches/continue.integration.tsx) ──────────────
+  .tdw-continue-state.is-success .pz-empty-icon { color: var(--tdw-success); }
+  .tdw-continue-state.is-error .pz-empty-icon { color: var(--tdw-destructive); }
+  .tdw-continue-state.is-busy .pz-empty-icon .pz-icon { animation: tdw-spin 0.9s linear infinite; }
+
+  // ── Channel menu (launches/menu/menu.tsx) ─────────────────────────────────
+  .tdw-chmenu-trigger {
+    display: flex;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+  .tdw-chmenu-trigger:focus-visible { outline: 2px solid var(--tdw-ring); outline-offset: 2px; }
+  .tdw-chmenu-scrim { display: none; }
+  // the popover of the workspace menus (.tdw-ws-menu), anchored by the menu
+  .tdw-chmenu {
+    z-index: 180;
+    min-width: 220px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 14px;
+    background: var(--tdw-popover);
+    box-shadow: var(--tdw-shadow-lg);
+    color: var(--tdw-foreground);
+    cursor: default;
+    animation: tdw-ws-pop 220ms var(--tdw-ease-spring) both;
+  }
+  .tdw-chmenu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 36px;
+    padding: 0 10px;
+    border-radius: 9px;
+    font-size: 14px;
+    line-height: 20px;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 150ms ease;
+  }
+  .tdw-chmenu-item:hover,
+  .tdw-chmenu-item:focus-visible { background: var(--tdw-accent); }
+  .tdw-chmenu-item:focus-visible { box-shadow: inset 0 0 0 2px var(--tdw-ring); }
+  .tdw-chmenu-item > div { font-size: inherit !important; }
+  // Postiz's icons, toned as the kit's: muted, the delete one red
+  .tdw-chmenu-item > div:first-child {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 18px;
+    color: var(--tdw-muted-foreground);
+  }
+  .tdw-chmenu-item > div:first-child svg { width: 16px; height: 16px; }
+  .tdw-chmenu-item svg:not([fill='none']),
+  .tdw-chmenu-item svg [fill]:not([fill='none']) { fill: currentColor; }
+  .tdw-chmenu-item.is-danger,
+  .tdw-chmenu-item.is-danger > div:first-child { color: var(--tdw-destructive); }
+
+  // Phones: the menu rises from the bottom edge as a sheet over a scrim
+  @media (max-width: 640px) {
+    .tdw-chmenu {
+      position: fixed;
+      inset: auto 0 0 0 !important;
+      z-index: var(--tdw-z-sheet);
+      max-height: 80dvh;
+      overflow-y: auto;
+      padding: 24px 8px calc(12px + env(safe-area-inset-bottom));
+      border-radius: 20px 20px 0 0;
+      box-shadow: var(--tdw-shadow-lg);
+      animation: tdw-sheet-up 420ms var(--tdw-ease-spring) both;
+    }
+    .tdw-chmenu-scrim {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: var(--tdw-z-sheet);
+      background: var(--tdw-scrim);
+      cursor: default;
+    }
+    .tdw-chmenu::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      inset-inline-start: 50%;
+      width: 36px;
+      height: 5px;
+      margin-inline-start: -18px;
+      border-radius: 3px;
+      background: var(--tdw-border);
+    }
+    .tdw-chmenu-item { min-height: 48px; font-size: 15px; }
+    // the phone dock steps aside for the sheet, as it does for modals (shell.scss)
+    &:has(.tdw-chmenu) .tdw-dock {
+      transform: translateY(calc(100% + 24px + env(safe-area-inset-bottom, 0px)));
+      opacity: 0;
+      pointer-events: none;
+    }
+    .tdw-slots-add { grid-template-columns: 1fr 1fr; }
+    .tdw-slots-add > .pz-btn { grid-column: 1 / -1; }
+    .tdw-modal-foot > .pz-btn,
+    .tdw-modal-foot > .tdw-button { flex: 1; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body .tdw-chmenu { animation: none !important; }
+  body .tdw-continue-state.is-busy .pz-empty-icon .pz-icon { animation-duration: 2.4s !important; }
+}

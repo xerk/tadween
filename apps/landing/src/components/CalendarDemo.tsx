@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import type { CalendarDemoCopy } from '@/content/types';
 import { Icon, cx } from './Icon';
 import { Segmented } from './Segmented';
+import { FOCUS_NETS } from '@/lib/channels';
 
 // The home page's calendar, as a small working demo instead of a screenshot: a focused week
 // with posts you can read (hover, tap or Enter), drag to another hour (mouse, touch or the
@@ -13,7 +14,7 @@ import { Segmented } from './Segmented';
 // server and the browser draw the same thing. The brands are the hero showcase's made-up
 // ones, and post bodies stay in their own language, like the showcase.
 
-type Net = 'linkedin' | 'instagram' | 'facebook' | 'threads' | 'youtube';
+type Net = (typeof FOCUS_NETS)[number];
 type Status = 'draft' | 'scheduled' | 'published';
 type View = 'week' | 'month' | 'board';
 
@@ -32,7 +33,7 @@ interface DemoPost {
   hour: number;
 }
 
-const DEMO_NETS: Net[] = ['linkedin', 'instagram', 'facebook', 'threads', 'youtube'];
+const DEMO_NETS: Net[] = [...FOCUS_NETS];
 const DAYS = 5;
 const FIRST_HOUR = 9;
 const HOURS = 6;

@@ -270,17 +270,22 @@ export const SettingsRow: FC<{
 // its quick actions sit on the end side.
 export const SettingsListRow: FC<{
   icon: IconName;
+  // a logo or picture shown in place of the icon, on a neutral tile
+  mark?: ReactNode;
   title: ReactNode;
   meta?: ReactNode;
   badges?: ReactNode;
   onOpen?: () => void;
   openLabel?: string;
   actions?: ReactNode;
-}> = ({ icon, title, meta, badges, onOpen, openLabel, actions }) => {
+}> = ({ icon, mark, title, meta, badges, onOpen, openLabel, actions }) => {
   const body = (
     <>
-      <span className="tdw-set-li-ico" aria-hidden="true">
-        <Icon name={icon} size={16} />
+      <span
+        className={mark ? 'tdw-set-li-ico is-mark' : 'tdw-set-li-ico'}
+        aria-hidden="true"
+      >
+        {mark || <Icon name={icon} size={16} />}
       </span>
       <span className="tdw-set-li-text">
         <span className="tdw-set-li-title">

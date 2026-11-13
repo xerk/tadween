@@ -876,6 +876,24 @@ export const MediaLibrary: FC<{
   );
 
   const emptyState = () => {
+    // offline or a server error: say so, and offer to try again
+    if (pages.error) {
+      return (
+        <EmptyState
+          icon="triangle-alert"
+          title={t('tdw_media_load_failed', 'Couldn’t load your media')}
+          body={t(
+            'tdw_media_load_failed_body',
+            'Check your connection, then try again. Nothing in your library was changed.'
+          )}
+          action={
+            <Button size="sm" icon="refresh-cw" onClick={() => pages.mutate()}>
+              {t('tdw_try_again', 'Try again')}
+            </Button>
+          }
+        />
+      );
+    }
     if (searching) {
       return (
         <EmptyState

@@ -62,7 +62,7 @@ const LINKS: { key: LinkKey; label: string; placeholder: string; hint: string }[
   { key: 'termsUrl', label: 'Terms of service', placeholder: 'https://example.com/terms', hint: 'Linked from sign-up.' },
   { key: 'privacyUrl', label: 'Privacy policy', placeholder: 'https://example.com/privacy', hint: 'Linked from sign-up.' },
   { key: 'docsUrl', label: 'Developer docs', placeholder: 'https://docs.example.com', hint: 'Base of the API, MCP and CLI docs (/public-api, /mcp, /cli).' },
-  { key: 'tutorialVideoUrl', label: 'Tutorial video', placeholder: 'https://www.youtube.com/embed/…', hint: 'An embeddable video URL, shown in onboarding and on the paywall ("See how it works").' },
+  { key: 'tutorialVideoUrl', label: 'Tutorial video', placeholder: 'https://www.youtube.com/embed/…', hint: 'An embeddable video URL, shown on the paywall ("See how it works").' },
 ];
 
 const isUrl = (value: string) => /^https?:\/\/[^\s]+$/i.test(value.trim());

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   Post,
@@ -25,13 +26,22 @@ import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions
 import { ApiTags } from '@nestjs/swagger';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
+import { UserLanguageDto } from '@gitroom/nestjs-libraries/dtos/users/user.language.dto';
+import { OnboardingAnswersDto } from '@gitroom/nestjs-libraries/dtos/users/onboarding.answers.dto';
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
+import {
+  DeviceDto,
+  DeviceTokenDto,
+} from '@gitroom/nestjs-libraries/dtos/users/device.dto';
+import { TimezoneDto } from '@gitroom/nestjs-libraries/dtos/users/timezone.dto';
 import { HttpForbiddenException } from '@gitroom/nestjs-libraries/services/exception.filter';
 import { RealIP } from 'nestjs-real-ip';
 import { UserAgent } from '@gitroom/nestjs-libraries/user/user.agent';
 import { TrackEnum } from '@gitroom/nestjs-libraries/user/track.enum';
 import { TrackService } from '@gitroom/nestjs-libraries/track/track.service';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
+import { applyTrackCookies } from '@gitroom/nestjs-libraries/track/track.cookies';
 import {
   AuthorizationActions,
   Sections,
@@ -46,7 +56,8 @@ export class UsersController {
     private _authService: AuthService,
     private _orgService: OrganizationService,
     private _userService: UsersService,
-    private _trackService: TrackService
+    private _trackService: TrackService,
+    private _access: AccessService
   ) {}
 
   @Get('/chatbase-token')
@@ -110,39 +121,57 @@ export class UsersController {
 
     const impersonate = req.cookies.impersonate || req.headers.impersonate;
     const billingExempt = isBillingExempt(user, req);
+    // Tadween: which limits apply (early access, free plan, a plan) and
+    // whether payments are on (AccessService)
+    const [access, paymentsEnabled] = await Promise.all([
+      this._access.forOrganization(organization as any),
+      this._access.paymentsEnabled(),
+    ]);
+    // no trial countdown on the free plan or early access
+    const trialApplies = await this._access.trialApplies(access);
     // @ts-ignore
     return {
       ...user,
       orgId: organization.id,
       // The real tier stays in `tier` (Billing shows it); the app is not gated
       billingExempt,
-      totalChannels: !process.env.STRIPE_PUBLISHABLE_KEY || billingExempt
-        ? 10000
-        : // @ts-ignore
-          organization?.subscription?.totalChannels || pricing.FREE.channel,
+      totalChannels:
+        billingExempt || access.mode === 'early'
+          ? 10000
+          : access.freePlan
+          ? access.freePlan.channels
+          : // @ts-ignore
+            organization?.subscription?.totalChannels || pricing.FREE.channel,
       tier:
         // @ts-ignore
-        organization?.subscription?.subscriptionTier ||
-        (!process.env.STRIPE_PUBLISHABLE_KEY ? 'ULTIMATE' : 'FREE'),
+        organization?.subscription?.subscriptionTier || access.tier,
       // @ts-ignore
       role: organization?.users[0]?.role,
       // @ts-ignore
       isLifetime: !!organization?.subscription?.isLifetime,
       admin: !!user.isSuperAdmin,
       impersonate: !!impersonate,
-      isTrailing: !process.env.STRIPE_PUBLISHABLE_KEY
-        ? false
-        : organization?.isTrailing,
+      isTrailing: trialApplies ? organization?.isTrailing : false,
       // Tadween: the payment provider's status (past_due = the last renewal
       // failed, not a trial) and the real trial end, for the app's banner
-      subscriptionStatus: !process.env.STRIPE_PUBLISHABLE_KEY
+      subscriptionStatus: !paymentsEnabled
         ? null
         : // @ts-ignore
           organization?.subscription?.status || null,
-      trialEndsAt: !process.env.STRIPE_PUBLISHABLE_KEY
+      trialEndsAt: !trialApplies
         ? null
         : // @ts-ignore
           organization?.subscription?.trialEndsAt || null,
+      // Tadween free launch (additive, also read by the mobile app)
+      paymentsEnabled,
+      earlyAccess: access.mode === 'early',
+      freePlan: access.freePlan,
+      // in-app AI: the server has a model and the plan includes AI
+      aiAvailable:
+        !!process.env.OPENAI_API_KEY &&
+        (billingExempt || !access.freePlan || access.freePlan.aiCredits !== 0),
+      waitlisted: access.waitlisted,
+      waitlistPosition: await this._access.waitlistPosition(organization),
       allowTrial: organization?.allowTrial,
       streakSince: organization?.streakSince || null,
       publicApi:
@@ -265,6 +294,71 @@ export class UsersController {
     return this._userService.updateEmailNotifications(user.id, body);
   }
 
+  // Tadween: the app language, so emails are sent in it
+  @Post('/language')
+  async setLanguage(
+    @GetUserFromRequest() user: User,
+    @Body() body: UserLanguageDto,
+    @Req() req: Request
+  ) {
+    // a super admin browsing as someone keeps that person's language
+    if (!(req.cookies.impersonate || req.headers.impersonate)) {
+      await this._userService.setLanguage(user.id, body.language);
+    }
+    return { ok: true };
+  }
+
+  // Tadween: the "About you" onboarding questions, asked once
+  @Get('/onboarding-answers')
+  async getOnboardingAnswers(@GetUserFromRequest() user: User) {
+    return { answered: await this._userService.onboardingAnswered(user.id) };
+  }
+
+  @Post('/onboarding-answers')
+  async saveOnboardingAnswers(
+    @GetUserFromRequest() user: User,
+    @Body() body: OnboardingAnswersDto,
+    @Req() req: Request
+  ) {
+    // a super admin browsing as someone doesn't answer for them
+    if (!(req.cookies.impersonate || req.headers.impersonate)) {
+      await this._userService.saveOnboardingAnswers(user.id, body);
+    }
+    return { ok: true };
+  }
+
+  // Tadween: the mobile app registers its push token after notifications are
+  // allowed, and forgets it on sign-out
+  @Post('/devices')
+  async saveDevice(
+    @GetUserFromRequest() user: User,
+    @Body() body: DeviceDto,
+    @Req() req: Request
+  ) {
+    // a super admin browsing as someone doesn't get their pushes
+    if (!(req.cookies.impersonate || req.headers.impersonate)) {
+      await this._userService.saveDevice(user.id, body);
+    }
+    return { ok: true };
+  }
+
+  @Delete('/devices')
+  async deleteDevice(
+    @GetUserFromRequest() user: User,
+    @Body() body: DeviceTokenDto
+  ) {
+    await this._userService.deleteDevice(user.id, body.token);
+    return { ok: true };
+  }
+
+  @Post('/timezone')
+  async updateTimezone(
+    @GetUserFromRequest() user: User,
+    @Body() body: TimezoneDto
+  ) {
+    return this._userService.updateTimezone(user.id, body);
+  }
+
   @Post('/api-key/rotate')
   @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
   async rotateApiKey(@GetOrgFromRequest() organization: Organization) {
@@ -313,9 +407,14 @@ export class UsersController {
 
   @Get('/organizations')
   async getOrgs(@GetUserFromRequest() user: User) {
-    return (await this._orgService.getOrgsByUserId(user.id)).filter(
-      (f) => !f.users[0].disabled
-    );
+    return (await this._orgService.getOrgsByUserId(user.id))
+      .filter((f) => !f.users[0].disabled)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        users: p.users,
+        subscription: p.subscription,
+      }));
   }
 
   @Post('/change-org')
@@ -340,6 +439,11 @@ export class UsersController {
     }
 
     response.status(200).send();
+  }
+
+  @Get('/delete-account-info')
+  getDeleteAccountInfo(@GetUserFromRequest() user: User) {
+    return this._userService.getDeleteAccountInfo(user.id);
   }
 
   @Post('/delete-account')
@@ -434,30 +538,19 @@ export class UsersController {
     @Body()
     body: { tt: TrackEnum; fbclid: string; additional: Record<string, any> }
   ) {
-    const uniqueId = req?.cookies?.track || makeId(10);
-    const fbclid = req?.cookies?.fbclid || body.fbclid;
-    await this._trackService.track(
-      uniqueId,
-      ip,
-      userAgent,
-      body.tt,
-      body.additional,
-      fbclid,
-      user
-    );
-    if (!req.cookies.track) {
-      res.cookie('track', uniqueId, {
-        domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-        ...(!process.env.NOT_SECURED
-          ? {
-              secure: true,
-              httpOnly: true,
-              sameSite: 'none',
-            }
-          : {}),
-        expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
-      });
-    }
+    const { uniqueId, fbc, fbp } = applyTrackCookies(req, res, body.fbclid);
+    this._trackService
+      .track(
+        uniqueId,
+        ip,
+        userAgent,
+        body.tt,
+        body.additional,
+        fbc,
+        user,
+        fbp
+      )
+      .catch((err) => {});
 
     res.status(200).json({
       track: uniqueId,

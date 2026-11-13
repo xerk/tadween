@@ -4,10 +4,18 @@
 // the public GET /instance/settings. While loading, or if the request fails,
 // everything behaves like stock Postiz: every feature on and the static
 // pricing map.
-import { createContext, useCallback, useContext, useMemo } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+} from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useInvitedTrial } from '@gitroom/frontend/components/tadween/referral/partners.api';
+import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import {
   pricing as staticPricing,
   PricingInterface,
@@ -94,6 +102,8 @@ export interface InstanceSettings {
   login?: Record<string, boolean>;
   // The founder offer (PlansService.getFounderOffer)
   founder?: FounderOffer;
+  // payments on: Stripe keys and the /admin switch (absent on older backends)
+  billing?: { enabled: boolean };
 }
 
 export interface FounderOffer {
@@ -133,6 +143,36 @@ export const useFeatures = () => {
   );
 };
 
+// The pages a feature switch hides from the sidebar (layout/top.menu.tsx;
+// keep the two lists in step).
+// Switched off, the page itself is closed too: an old link or bookmark goes
+// to Today instead of opening it.
+const FEATURE_ROUTES: [string, FeatureKey][] = [
+  ['/agents', 'agent'],
+  ['/analytics', 'analytics'],
+  ['/media', 'media'],
+  ['/plugs', 'plugs'],
+  ['/third-party', 'thirdParty'],
+];
+export const useFeatureRouteGuard = () => {
+  const { data } = useInstanceSettings();
+  const isOn = useFeatures();
+  const pathname = usePathname();
+  const router = useRouter();
+  useEffect(() => {
+    // only once the switches are known: never on a failed or slow load
+    if (!data?.features) {
+      return;
+    }
+    const route = FEATURE_ROUTES.find(
+      ([path]) => pathname === path || pathname?.startsWith(`${path}/`)
+    );
+    if (route && !isOn(route[1])) {
+      router.replace('/today');
+    }
+  }, [data, isOn, pathname, router]);
+};
+
 // true once the app's <CopilotKit> crashed and the app rendered without it
 // (AiProvider in ai.guard.tsx)
 export const AiRuntimeFailedContext = createContext(false);
@@ -143,7 +183,9 @@ export const AiRuntimeFailedContext = createContext(false);
 export const useAiAvailable = (): boolean | undefined => {
   const { data, error } = useInstanceSettings();
   const runtimeFailed = useContext(AiRuntimeFailedContext);
-  if (error || runtimeFailed) {
+  // Tadween: the workspace's plan has no AI (the free plan)
+  const user = useUser();
+  if (error || runtimeFailed || user?.aiAvailable === false) {
     return false;
   }
   if (!data) {

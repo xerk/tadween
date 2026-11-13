@@ -37,13 +37,19 @@ body {
     border-radius: 50%;
     object-fit: cover;
   }
-  // a picture that failed to load (TadweenAvatarImage)
-  .tdw-avatar-initials {
-    display: grid;
-    place-items: center;
+  // a picture that failed to load (TadweenAvatarImage). Size and shape are
+  // :where() (no specificity) so the call site's classes (w-[48px], a page's
+  // rounded square) win; without them it fills its box (.tdw-ch-avatar).
+  :where(.tdw-avatar-initials) {
     width: 100%;
     height: 100%;
     border-radius: 50%;
+  }
+  .tdw-avatar-initials {
+    display: grid;
+    place-items: center;
+    flex: none;
+    overflow: hidden;
     background: var(--tdw-primary-soft);
     color: var(--tdw-primary);
     font-size: 0.8em;
@@ -377,6 +383,11 @@ body {
   // ── Checks chip ──────────────────────────────────────────────────────────
   .tdw-checks-anchor { position: relative; display: flex; min-width: 0; }
   .tdw-checks-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  // a laptop-wide composer: "Ready for 5" would be cut to "Rea…"; the icon
+  // stays, the words move to the tooltip
+  @media (max-width: 1240px) {
+    .tdw-checks-label { display: none; }
+  }
   .tdw-checks {
     display: inline-flex;
     align-items: center;

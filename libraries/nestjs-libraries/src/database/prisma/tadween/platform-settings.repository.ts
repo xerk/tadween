@@ -15,6 +15,16 @@ export class PlatformSettingsRepository {
     });
   }
 
+  // Creates the row only when the key has none: an existing value stays
+  createIfMissing(key: string, value: Prisma.InputJsonValue, updatedBy: string) {
+    return this._settings.model.platformSetting.upsert({
+      where: { key },
+      create: { key, value, updatedBy },
+      update: {},
+      select: { key: true },
+    });
+  }
+
   set(key: string, value: Prisma.InputJsonValue, updatedBy: string) {
     return this._settings.model.platformSetting.upsert({
       where: { key },

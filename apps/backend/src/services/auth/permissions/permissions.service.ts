@@ -1,6 +1,10 @@
 import { Ability, AbilityBuilder, AbilityClass } from '@casl/ability';
 import { Injectable } from '@nestjs/common';
 import { PlansService } from '@gitroom/nestjs-libraries/database/prisma/tadween/plans.service';
+import {
+  AccessService,
+  OrganizationAccess,
+} from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
@@ -25,15 +29,16 @@ export class PermissionsService {
     private _postsService: PostsService,
     private _integrationService: IntegrationService,
     private _webhooksService: WebhooksService,
-    private _plans: PlansService
+    private _plans: PlansService,
+    private _access: AccessService
   ) {}
-  async getPackageOptions(orgId: string) {
+  // The limits of the workspace's tier (AccessService decides which: its
+  // plan, the free plan, or Postiz's FREE)
+  async getPackageOptions(orgId: string, access: OrganizationAccess) {
     const subscription =
       await this._subscriptionService.getSubscriptionByOrganizationId(orgId);
 
-    const tier =
-      subscription?.subscriptionTier ||
-      (!process.env.STRIPE_PUBLISHABLE_KEY ? 'PRO' : 'FREE');
+    const tier = access.tier;
 
     const { channel, ...all } = (await this._plans.getPricing())[tier];
     return {
@@ -43,6 +48,10 @@ export class PermissionsService {
         ...{ channel: tier === 'FREE' ? channel : -10 },
       },
     };
+  }
+
+  async isFreePlan(orgId: string) {
+    return (await this._access.forOrganizationId(orgId))?.mode === 'free';
   }
 
   async check(
@@ -56,10 +65,20 @@ export class PermissionsService {
       Ability<[AuthorizationActions, Sections]>
     >(Ability as AbilityClass<AppAbility>);
 
-    if (
-      requestedPermission.length === 0 ||
-      !process.env.STRIPE_PUBLISHABLE_KEY
-    ) {
+    const access = await this._access.forOrganizationId(orgId);
+
+    // A waitlisted workspace can do nothing yet (app, API keys and MCP)
+    if (!access || access.waitlisted) {
+      return build({
+        detectSubjectType: (item) =>
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          item.constructor,
+      });
+    }
+
+    // Early access (and servers that enforce no limits): everything
+    if (requestedPermission.length === 0 || access.mode === 'early') {
       for (const [action, section] of requestedPermission) {
         can(action, section);
       }
@@ -71,7 +90,10 @@ export class PermissionsService {
       });
     }
 
-    const { subscription, options } = await this.getPackageOptions(orgId);
+    const { subscription, options } = await this.getPackageOptions(
+      orgId,
+      access
+    );
     for (const [action, section] of requestedPermission) {
       // check for the amount of channels
       if (section === Sections.CHANNEL) {

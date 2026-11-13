@@ -2,6 +2,52 @@ import fs from 'fs';
 import { resolve } from 'path';
 import type { PluginOption } from 'vite';
 
+// Match patterns of the app pages allowed to talk to the extension
+// (externally_connectable). EXTENSION_ALLOWED_ORIGINS is a comma separated list
+// of match patterns (e.g. "https://app.example.com/*,https://*.example.com/*");
+// without it, the origin of FRONTEND_URL; without both, localhost only.
+export function allowedOrigins(): string[] {
+  const list = (process.env.EXTENSION_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((match) => match.trim())
+    .filter(Boolean);
+  if (list.length) {
+    return list;
+  }
+
+  try {
+    if (process.env.FRONTEND_URL) {
+      return [new URL(process.env.FRONTEND_URL).origin + '/*'];
+    }
+  } catch (e) {
+    // invalid FRONTEND_URL, fall back to localhost
+  }
+
+  return ['http://localhost/*', 'https://localhost/*'];
+}
+
+// plugin to write the store manifest (manifest.json + allowed origins +
+// package version) into the production build
+export function emitManifest(manifest: Record<string, any>): PluginOption {
+  return {
+    name: 'emit-manifest',
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'manifest.json',
+        source: JSON.stringify(
+          {
+            ...manifest,
+            externally_connectable: { matches: allowedOrigins() },
+          },
+          null,
+          2
+        ),
+      });
+    },
+  };
+}
+
 // plugin to remove dev icons from prod build
 export function stripDevIcons(isDev: boolean) {
   if (isDev) return null;

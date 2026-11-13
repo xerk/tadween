@@ -10,6 +10,11 @@ export class VideoStatusTool implements AgentToolInterface {
   constructor(private _mediaService: MediaService) {}
   name = 'videoStatusTool';
 
+  // only follows generateVideoTool, which the ChatGPT directory does not list
+  directory() {
+    return {};
+  }
+
   run() {
     return createTool({
       id: 'videoStatusTool',

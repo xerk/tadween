@@ -32,11 +32,13 @@ export class CreateOrgUserDto {
   @ValidateIf((o) => !o.providerToken)
   email: string;
 
+  // Tadween: sign-up asks only for the account; without it the workspace is
+  // named after the person (AuthService.workspaceName) and renamed later
+  @IsOptional()
   @IsString()
-  @IsDefined()
   @MinLength(3)
   @MaxLength(128)
-  company: string;
+  company?: string;
 
   datafast_visitor_id: string;
 

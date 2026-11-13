@@ -62,10 +62,11 @@
     &:disabled .tdw-ch-avatar, &:disabled .tdw-ag-ch-name, &:disabled .tdw-ag-check { opacity: 0.45; }
   }
   .tdw-ag-ch-copy { display: grid; min-width: 0; flex: 1; }
-  .tdw-ag-ch-name { font-size: 14px; line-height: 20px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  // dir="auto" names keep the list's alignment (match-parent) and truncate at their own end
+  .tdw-ag-ch-name { font-size: 14px; line-height: 20px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: match-parent; }
   .tdw-ag-ch-meta {
     font-size: 12px; line-height: 16px; color: var(--muted-foreground);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: match-parent;
   }
   .tdw-ag-ch-state {
     display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 12px; line-height: 16px; color: var(--muted-foreground);

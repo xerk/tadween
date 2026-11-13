@@ -494,6 +494,21 @@ export class SubscriptionRepository {
     });
   }
 
+  // Monthly usage only: rows paid (even in part) from purchased top-ups stay,
+  // so a reset never hands back credits that were bought
+  deleteCreditsFrom(organizationId: string, from: dayjs.Dayjs, type: string) {
+    return this._credits.model.credits.deleteMany({
+      where: {
+        organizationId,
+        type,
+        purchased: 0,
+        createdAt: {
+          gte: from.toDate(),
+        },
+      },
+    });
+  }
+
   setCustomerId(orgId: string, customerId: string) {
     return this._organization.model.organization.update({
       where: {

@@ -10,6 +10,7 @@ import {
   ValidateNested,
   IsOptional,
 } from 'class-validator';
+import { JSONSchema } from 'class-validator-jsonschema';
 
 export class Collaborators {
   @IsDefined()
@@ -54,6 +55,7 @@ export class InstagramDto {
   post_type: 'post' | 'story';
 
   @IsOptional()
+  @JSONSchema({ type: 'boolean' })
   is_trial_reel?: boolean;
 
   @IsIn(['MANUAL', 'SS_PERFORMANCE'])

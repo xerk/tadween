@@ -1,7 +1,8 @@
 'use client';
 
-// A calm line above the app while the workspace is on a free trial: days
-// left, and a way to add a card before Stripe ends the trial. When the last
+// The only place the app talks about the free trial: a calm floating card
+// above the page with the days left and the way to choose the plan (which
+// saves a card for the same trial) before Stripe ends it. When the last
 // renewal failed (Stripe past_due/unpaid) it asks for a new card instead:
 // that is not a trial, even though Organization.isTrailing is set for it.
 import React, { FC, useCallback, useState } from 'react';
@@ -12,7 +13,7 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { Icon, TadweenScope } from '@gitroom/frontend/components/tadween/ui';
 
-const useTrialInfo = (enabled: boolean) => {
+export const useTrialInfo = (enabled: boolean) => {
   const fetch = useFetch();
   const load = useCallback(async (path: string) => {
     const res = await fetch(path);
@@ -33,6 +34,11 @@ const useTrialInfo = (enabled: boolean) => {
 // Stripe statuses of a failed renewal (PAYMENT_FAILED_STATUSES on the server)
 export const isPaymentFailed = (status?: string | null) =>
   status === 'past_due' || status === 'unpaid';
+
+// A free trial running right now. Organization.isTrailing alone isn't
+// enough: it stays set after a trial ends and on a failed renewal.
+export const isOnFreeTrial = (user?: { subscriptionStatus?: string | null }) =>
+  user?.subscriptionStatus === 'trialing';
 
 const PaymentFailedBar: FC = () => {
   const t = useT();
@@ -110,11 +116,9 @@ export const TrialBanner: FC = () => {
       <div className="tdw-trial-bar" role="status">
         <Icon name="sparkles" size={16} />
         <span>
-          {days === 1
-            ? t('tdw_trial_days_left_one', '1 day left in your trial')
-            : t('tdw_trial_days_left', '{{n}} days left in your trial', {
-                n: days,
-              })}
+          {t('tdw_trial_days_left', '{{count}} days left in your trial', {
+            count: days,
+          })}
         </span>
         <span className="tdw-trial-sep" aria-hidden="true">
           ·
@@ -122,7 +126,7 @@ export const TrialBanner: FC = () => {
         <Link href="/billing" className="tdw-trial-link">
           {data.hasPaymentMethod
             ? t('tdw_manage_billing', 'Manage billing')
-            : t('tdw_add_payment_method', 'Add payment method')}
+            : t('tdw_choose_plan', 'Choose plan')}
         </Link>
       </div>
     </TadweenScope>

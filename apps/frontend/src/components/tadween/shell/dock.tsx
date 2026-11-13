@@ -25,7 +25,6 @@ import {
 } from '@gitroom/frontend/components/tadween/shell/sidebar.channels';
 import { WorkspaceSheetGroup } from '@gitroom/frontend/components/tadween/shell/sidebar';
 import { AccountSheetGroup } from '@gitroom/frontend/components/tadween/shell/account.menu';
-import { UpgradeTrialLine } from '@gitroom/frontend/components/tadween/billing/upgrade.link';
 import { Icon } from '@gitroom/frontend/components/tadween/ui';
 
 // Phones (below the `mobile` breakpoint): the sidebar becomes a floating dock
@@ -285,7 +284,6 @@ export const MobileDock: FC = () => {
             ))}
           </TadweenSheetGroup>
         ) : null}
-        <UpgradeTrialLine />
         <div className="tdw-sheet-group-wrap tdw-dock-channels">
           <SidebarChannels collapsed={false} />
         </div>

@@ -21,6 +21,10 @@ type ResendStatus = 'idle' | 'sent' | 'already_activated';
 
 const COOLDOWN_SECONDS = 60;
 
+// Tadween: the address an email sign-up used (register.tsx sets it), kept in
+// the tab's sessionStorage so it never lands in a URL or a log
+export const SIGNUP_EMAIL_KEY = 'tdw_signup_email';
+
 export function Activate() {
   const t = useT();
   const fetch = useFetch();
@@ -28,6 +32,20 @@ export function Activate() {
   const [status, setStatus] = useState<ResendStatus>('idle');
   const [cooldown, setCooldown] = useState(0);
   const form = useForm<ResendInputs>();
+  // Tadween: the address the sign-up just used (register.tsx), when this tab
+  // came from it; read after mount since sessionStorage is browser-only
+  const [email, setEmail] = useState('');
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(SIGNUP_EMAIL_KEY) || '';
+      setEmail(saved);
+      if (saved) {
+        form.setValue('email', saved);
+      }
+    } catch (e) {
+      // no storage: the page asks for the address
+    }
+  }, []);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -76,17 +94,41 @@ export function Activate() {
       <AuthHeading
         title={t('tdw_auth_activate_title', 'Check your email')}
         subtitle={
-          <>
-            {t('thank_you_for_registering', 'Thank you for registering!')}{' '}
-            {t(
-              'please_check_your_email_to_activate_your_account',
-              'Please check your email to activate your account.'
-            )}
-          </>
+          email ? (
+            <>
+              {t('tdw_auth_activate_sent_to', 'We sent an activation link to')}{' '}
+              <strong>
+                <bdi>{email}</bdi>
+              </strong>
+              {'. '}
+              {t(
+                'tdw_auth_activate_open_link',
+                'Open it to finish creating your account.'
+              )}
+            </>
+          ) : (
+            t(
+              'tdw_auth_activate_subtitle_unknown',
+              'Open the activation link we emailed you to finish creating your account.'
+            )
+          )
         }
       />
       <div className="tdw-auth-section">
         <h2>{t('didnt_receive_email', "Didn't receive the email?")}</h2>
+        {status === 'idle' && (
+          <p className="tdw-auth-section-hint">
+            {email
+              ? t(
+                  'tdw_auth_activate_resend_hint_known',
+                  'Check your spam folder, or send a new link.'
+                )
+              : t(
+                  'tdw_auth_activate_resend_hint',
+                  'Enter the address you signed up with and we’ll send a new link.'
+                )}
+          </p>
+        )}
         {status === 'sent' ? (
           <>
             <AuthNotice tone="success" icon="mail">
@@ -141,6 +183,13 @@ export function Activate() {
           </FormProvider>
         )}
       </div>
+      {status !== 'already_activated' && email && (
+        <AuthSwitch
+          prompt={t('tdw_auth_activate_wrong_email', 'Wrong address?')}
+          href="/auth"
+          action={t('tdw_auth_activate_different_email', 'Use a different email')}
+        />
+      )}
       {status !== 'already_activated' && (
         <AuthSwitch
           prompt={t('already_activated', 'Already activated?')}

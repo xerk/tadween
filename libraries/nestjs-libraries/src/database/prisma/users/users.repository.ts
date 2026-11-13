@@ -8,13 +8,18 @@ import { Provider, Role } from '@prisma/client';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
+import { DeviceDto } from '@gitroom/nestjs-libraries/dtos/users/device.dto';
+import { OnboardingAnswersDto } from '@gitroom/nestjs-libraries/dtos/users/onboarding.answers.dto';
+import { TimezoneDto } from '@gitroom/nestjs-libraries/dtos/users/timezone.dto';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 
 @Injectable()
 export class UsersRepository {
   constructor(
     private _user: PrismaRepository<'user'>,
-    private _transaction: PrismaTransaction
+    private _transaction: PrismaTransaction,
+    private _userDevice: PrismaRepository<'userDevice'>,
+    private _userOnboarding: PrismaRepository<'userOnboarding'>
   ) {}
 
   async switchUserCredentials(currentUserId: string, targetUserId: string) {
@@ -287,6 +292,60 @@ export class UsersRepository {
     });
   }
 
+  // Only for an account whose profile was never saved: Settings requires a
+  // name, so an empty name means the user never set (or removed) anything
+  async fillProfile(
+    userId: string,
+    profile: { name?: string; pictureId?: string }
+  ) {
+    const user = await this._user.model.user.findUnique({
+      where: { id: userId },
+      select: { name: true, pictureId: true },
+    });
+    if (!user || user.name) {
+      return;
+    }
+
+    const data = {
+      ...(profile.name ? { name: profile.name } : {}),
+      ...(!user.pictureId && profile.pictureId
+        ? { pictureId: profile.pictureId }
+        : {}),
+    };
+    if (!Object.keys(data).length) {
+      return;
+    }
+
+    await this._user.model.user.update({
+      where: { id: userId },
+      data,
+      select: { id: true },
+    });
+  }
+
+  // Tadween: the app language, for emails (select: nothing returned)
+  async setLanguage(userId: string, language: string) {
+    await this._user.model.user.update({
+      where: { id: userId },
+      data: { language },
+      select: { id: true },
+    });
+  }
+
+  // The language of the account that receives an email, by its address
+  async getLanguageByEmail(email: string) {
+    return (
+      await this._user.model.user.findFirst({
+        where: {
+          email: { equals: email, mode: 'insensitive' },
+          deletedAt: null,
+        },
+        orderBy: { lastOnline: 'desc' },
+        select: { language: true },
+      })
+    )?.language;
+  }
+
   async updateEmailNotifications(userId: string, body: EmailNotificationsDto) {
     await this._user.model.user.update({
       where: {
@@ -296,6 +355,65 @@ export class UsersRepository {
         sendSuccessEmails: body.sendSuccessEmails,
         sendFailureEmails: body.sendFailureEmails,
         sendStreakEmails: body.sendStreakEmails,
+      },
+    });
+  }
+
+  // Tadween: the phone the app runs on, for push. A token belongs to one
+  // account at a time: signing in as someone else on that phone moves it.
+  async saveDevice(userId: string, body: DeviceDto) {
+    await this._userDevice.model.userDevice.upsert({
+      where: { token: body.token },
+      create: { userId, token: body.token, platform: body.platform },
+      update: { userId, platform: body.platform },
+      select: { id: true },
+    });
+  }
+
+  async deleteDevice(userId: string, token: string) {
+    await this._userDevice.model.userDevice.deleteMany({
+      where: { userId, token },
+    });
+  }
+
+  // Tadween: the "About you" onboarding answers (select: nothing returned)
+  async saveOnboardingAnswers(
+    userId: string,
+    answers: Pick<OnboardingAnswersDto, 'source' | 'role' | 'goal'> & {
+      sourceOther: string | null;
+      roleOther: string | null;
+      goalOther: string | null;
+      company: string | null;
+      website: string | null;
+    }
+  ) {
+    await this._userOnboarding.model.userOnboarding.upsert({
+      where: { userId },
+      create: { userId, ...answers },
+      update: answers,
+      select: { id: true },
+    });
+  }
+
+  async getOnboardingAnsweredAt(userId: string) {
+    return (
+      await this._userOnboarding.model.userOnboarding.findUnique({
+        where: { userId },
+        select: { createdAt: true },
+      })
+    )?.createdAt;
+  }
+
+  async updateTimezone(userId: string, body: TimezoneDto) {
+    await this._user.model.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        timezoneName: body.timezoneName || null,
+      },
+      select: {
+        id: true,
       },
     });
   }

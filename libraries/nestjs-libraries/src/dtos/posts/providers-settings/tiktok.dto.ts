@@ -9,7 +9,7 @@ export class TikTokMusic {
   @IsString()
   @JSONSchema({
     description:
-      'The commercial music library track id, taken from the "id" returned by the musicSearch function.',
+      'The commercial music library track id, the "id" of a track found with the TikTok music search.',
   })
   id: string;
 
@@ -45,7 +45,7 @@ export class TikTokLocation {
   @IsString()
   @JSONSchema({
     description:
-      'The location tag id, taken from the "id" returned by the locationSearch function.',
+      'The location tag id, the "id" of a location found with the TikTok location search.',
   })
   id: string;
 
@@ -151,7 +151,7 @@ export class TikTokDto {
   @IsOptional()
   @JSONSchema({
     description:
-      'TikTok Business only, and only when content_posting_method=DIRECT_POST. Attaches a commercial music library track to the post (use the musicSearch function to find one). audio_volume / video_volume apply to video posts only. For photos, ignored when autoAddMusic is "yes" (a random track is attached instead).',
+      'TikTok Business only, and only when content_posting_method=DIRECT_POST. Attaches a commercial music library track to the post (find one with the TikTok music search). audio_volume / video_volume apply to video posts only. For photos, ignored when autoAddMusic is "yes" (a random track is attached instead).',
   })
   music?: TikTokMusic;
 
@@ -160,7 +160,7 @@ export class TikTokDto {
   @IsOptional()
   @JSONSchema({
     description:
-      'TikTok Business only, and only when content_posting_method=DIRECT_POST. Tags the post with a location (use the locationSearch function to find one).',
+      'TikTok Business only, and only when content_posting_method=DIRECT_POST. Tags the post with a location (find one with the TikTok location search).',
   })
   location?: TikTokLocation;
 

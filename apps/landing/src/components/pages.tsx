@@ -664,7 +664,7 @@ function NetIcon({ slug, size = 20, alt = '' }: { slug: string; size?: number; a
 }
 
 /** The channels floating around the chat in an AI client's hero. */
-const HERO_FLOAT = ['linkedin', 'linkedin-page', 'instagram', 'facebook', 'threads', 'youtube'];
+const HERO_FLOAT = CHANNELS.map((c) => c.slug);
 
 /** The orbit: the focus networks (the ones with a page) close in, the rest further out. */
 const ORBIT_INNER = CHANNELS.map((c) => c.slug);

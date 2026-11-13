@@ -8,7 +8,11 @@
 import React, { FC, ReactNode, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { IconButton, usePresence } from '@gitroom/frontend/components/tadween/ui';
+import {
+  IconButton,
+  useOverlayOpen,
+  usePresence,
+} from '@gitroom/frontend/components/tadween/ui';
 
 export const ChannelsSheet: FC<{
   open: boolean;
@@ -18,6 +22,7 @@ export const ChannelsSheet: FC<{
 }> = ({ open, onClose, anchor, children }) => {
   const t = useT();
   const { mounted, state } = usePresence(open, 320);
+  useOverlayOpen(open);
   const sheet = useRef<HTMLDivElement>(null);
   const drag = useRef<{ y: number; dy: number } | null>(null);
 

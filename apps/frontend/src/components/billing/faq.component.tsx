@@ -36,7 +36,7 @@ const useFaqList = () => {
       title: t('tdw_faq_channels', 'What are channels?'),
       description: t(
         'tdw_faq_channels_desc',
-        'A channel is an account you publish to, like your LinkedIn profile or a company page you admin. X, Facebook, Instagram and the other networks count as channels too.'
+        'A channel is an account you publish to, like a Facebook Page, an Instagram account, your LinkedIn profile or a company page you admin. Threads, YouTube, X and the other networks count as channels too.'
       ),
     },
     {

@@ -1,31 +1,60 @@
 import { FC, useCallback } from 'react';
-import { SignaturesComponent } from '@gitroom/frontend/components/settings/signatures.component';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
+import { SignaturesSettings } from '@gitroom/frontend/components/tadween/settings/signatures.settings';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
+// The editor (post or comment) the cursor was last in: the signature goes to
+// the toolbar's own editor, at the cursor when that is where the user was
+// writing, at the end otherwise (a never-focused editor's cursor is its start).
+let focusedEditor: any = null;
+export const rememberFocusedEditor = (editor: any) => {
+  focusedEditor = editor;
+};
+
+// Signatures are saved as HTML paragraphs; an older plain-text one becomes
+// paragraphs too, so it always starts on its own line
+const asParagraphs = (value: string) =>
+  /^\s*</.test(value)
+    ? value
+    : value
+        .split('\n')
+        .map(
+          (line) =>
+            `<p>${line
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')}</p>`
+        )
+        .join('');
+
 export const SignatureBox: FC<{
   editor: any;
 }> = ({ editor }) => {
   const modals = useModals();
+  const t = useT();
   const appendValue = (val: string) => {
-    editor?.commands?.insertContent('\n\n' + val);
-    editor?.commands?.focus();
+    editor
+      ?.chain()
+      .focus(focusedEditor === editor ? undefined : 'end')
+      .insertContent(asParagraphs(val))
+      .run();
   };
 
   const addSignature = useCallback(() => {
     modals.openModal({
-      title: 'Add Signature',
+      title: t('tdw_insert_signature', 'Insert a signature'),
       withCloseButton: true,
       children: (close) => (
         <SignatureModal appendSignature={appendValue} close={close} />
       ),
     });
-  }, [appendValue]);
+  }, [appendValue, t]);
 
   return (
     <>
       <div
         onClick={addSignature}
         data-tooltip-id="tooltip"
-        data-tooltip-content="Add Signature"
+        data-tooltip-content={t('tdw_insert_signature', 'Insert a signature')}
         className="select-none cursor-pointer rounded-[6px] mobile:rounded-[8px] w-[30px] h-[30px] mobile:w-[40px] mobile:h-[40px] bg-newColColor mobile:bg-newSettings flex justify-center items-center"
       >
         <svg
@@ -65,10 +94,11 @@ export const SignatureModal: FC<{
   appendSignature: (sign: string) => void;
 }> = (props) => {
   const { appendSignature, close } = props;
-  // using a signature is the end of this dialog, back to the post
+  // using a signature is the end of this dialog, back to the post. Tadween:
+  // the list of Settings → Signatures, where a row is used, edited or deleted
   return (
-    <SignaturesComponent
-      appendSignature={(sign) => {
+    <SignaturesSettings
+      onUse={(sign) => {
         appendSignature(sign);
         close();
       }}

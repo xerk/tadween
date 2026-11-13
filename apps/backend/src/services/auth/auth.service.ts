@@ -12,6 +12,10 @@ import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { NewsletterService } from '@gitroom/nestjs-libraries/newsletter/newsletter.service';
 import { PlatformSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/platform-settings.service';
 import { PartnersService } from '@gitroom/nestjs-libraries/database/prisma/partners/partners.service';
+import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
+import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
+import { FreeAccessVia } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 
 @Injectable()
 export class AuthService {
@@ -21,7 +25,10 @@ export class AuthService {
     private _emailService: EmailService,
     private _providerManager: AuthProviderManager,
     private _platformSettings: PlatformSettingsService,
-    private _partners: PartnersService
+    private _partners: PartnersService,
+    private _paymentService: PaymentService,
+    private _mediaService: MediaService,
+    private _access: AccessService
   ) {}
 
   // Tadween: the mode comes from the super-admin console, falling back to
@@ -50,7 +57,8 @@ export class AuthService {
     body: CreateOrgUserDto | LoginUserDto,
     ip: string,
     userAgent: string,
-    addToOrg?: boolean | { orgId: string; role: 'USER' | 'ADMIN'; id: string }
+    addToOrg?: boolean | { orgId: string; role: 'USER' | 'ADMIN'; id: string },
+    language?: string
   ) {
     if (provider === Provider.LOCAL) {
       if (process.env.DISALLOW_PLUS && body.email.includes('+')) {
@@ -75,9 +83,13 @@ export class AuthService {
         }
 
         const create = await this._organizationService.createOrgAndUser(
-          body,
+          { ...body, company: this.workspaceName(body.company, body.email) },
           ip,
-          userAgent
+          userAgent,
+          await this.freeSignup(
+            body.ref,
+            !!addToOrg && typeof addToOrg !== 'boolean'
+          )
         );
         // never fails the sign-up
         await this._partners.attributeSignup(
@@ -85,6 +97,15 @@ export class AuthService {
           create.users[0].user.id,
           body.ref
         );
+
+        // an invited teammate joins a workspace that has its own plan
+        if (!addToOrg || typeof addToOrg === 'boolean') {
+          await this.startSignupTrial(
+            create.id,
+            create.users[0].user.id,
+            body.email
+          );
+        }
 
         const addedOrg =
           addToOrg && typeof addToOrg !== 'boolean'
@@ -96,11 +117,13 @@ export class AuthService {
               )
             : false;
 
+        await this.saveLanguage(create.users[0].user.id, language);
         const obj = { addedOrg, jwt: await this.jwt(create.users[0].user) };
-        await this._emailService.sendEmailSync(
-          body.email,
-          'Activate your account',
-          `Click <a href="${process.env.FRONTEND_URL}/auth/activate/${obj.jwt}">here</a> to activate your account`
+        await this._emailService.sendTemplate(
+          { email: body.email, language: language || null },
+          'activateAccount',
+          { url: `${process.env.FRONTEND_URL}/auth/activate/${obj.jwt}` },
+          { sync: true }
         );
         return obj;
       }
@@ -109,11 +132,28 @@ export class AuthService {
         throw new Error('Invalid user name or password');
       }
 
+      // Existing user logging in with a valid team invite: join the inviting
+      // org. Done BEFORE the activation gate on purpose, so a not-yet-activated
+      // user still gets the membership recorded -- the same model as a brand-new
+      // signup via invite, which is also added to the org while still
+      // unactivated. Activation remains required to actually use it: the throw
+      // below (and the auth middleware) keep an unactivated user out until they
+      // verify their email.
+      const addedOrg =
+        addToOrg && typeof addToOrg !== 'boolean'
+          ? await this._organizationService.addUserToOrg(
+              user.id,
+              addToOrg.id,
+              addToOrg.orgId,
+              addToOrg.role
+            )
+          : false;
+
       if (!user.activated) {
         throw new Error('User is not activated');
       }
 
-      return { addedOrg: false, jwt: await this.jwt(user) };
+      return { addedOrg, jwt: await this.jwt(user) };
     }
 
     const user = await this.loginOrRegisterProvider(
@@ -121,7 +161,8 @@ export class AuthService {
       body as CreateOrgUserDto,
       ip,
       userAgent,
-      !!addToOrg && typeof addToOrg !== 'boolean'
+      !!addToOrg && typeof addToOrg !== 'boolean',
+      language
     );
 
     const addedOrg =
@@ -136,6 +177,161 @@ export class AuthService {
     return { addedOrg, jwt: await this.jwt(user) };
   }
 
+  // Tadween: how a new workspace gets in. A team invite (the teammate's own
+  // workspace) or a partner's referral code skips the line and doesn't
+  // count toward the free plan's cap; a normal sign-up counts and waits on
+  // the waitlist when the free plan is full. Never throws.
+  private async freeSignup(
+    ref: string | undefined,
+    invited: boolean
+  ): Promise<{ waitlisted: boolean; via: FreeAccessVia }> {
+    if (invited) {
+      return { waitlisted: false, via: 'invite' };
+    }
+    if (await this._partners.isActiveCode(ref)) {
+      return { waitlisted: false, via: 'referral' };
+    }
+    return { waitlisted: await this._access.shouldWaitlist(), via: 'signup' };
+  }
+
+  // A new workspace starts its free trial without a card at sign-up (the
+  // trial "Maybe later" starts), unless another account with this email
+  // already pays: the same rule that blocks its checkout. Never throws.
+  private async startSignupTrial(
+    organizationId: string,
+    userId: string,
+    email: string
+  ) {
+    try {
+      if (
+        await this._userService.getUserWithActiveSubscriptionByEmail(
+          email,
+          userId
+        )
+      ) {
+        return;
+      }
+      await this._paymentService.startSignupTrial(organizationId, userId);
+    } catch (err) {
+      console.error('signup_trial_not_started', {
+        organization_id: organizationId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  // Tadween: sign-up asks only for the account, so the first workspace takes
+  // the name the client sent (older clients still ask for it), else the
+  // person's name from the sign-in provider, else the email's local part
+  // ("sara.ali@…" → "Sara.ali"; the whole address when that is under 3
+  // characters). It can be renamed in onboarding or settings.
+  private workspaceName(
+    company: string | undefined,
+    email: string,
+    name?: string
+  ) {
+    const local = email.split('@')[0];
+    const fallback = name?.trim() || (local.length >= 3 ? local : email);
+    return (
+      company || fallback.charAt(0).toUpperCase() + fallback.slice(1)
+    ).slice(0, 128);
+  }
+
+  // Tadween: the app language at sign-up (the i18next cookie), for emails
+  private async saveLanguage(userId: string, language?: string) {
+    // a cookie or header: only a language code ("ar", "en-US") is kept
+    if (!language || !/^[a-z]{2}([-_][A-Za-z]{2,4})?$/.test(language)) {
+      return;
+    }
+    try {
+      await this._userService.setLanguage(userId, language);
+    } catch (err) {
+      // never fails the sign-up
+    }
+  }
+
+  // Takes the name and photo the sign-in provider shares, for an account whose
+  // profile was never saved (new, or created before providers shared them).
+  // The photo is copied into the user's own workspace media so it doesn't
+  // depend on the provider URL. Runs in the background (a slow photo host
+  // must not hold the sign-in) and never throws.
+  private async fillProfile(
+    user: { id: string; name?: string | null; pictureId?: string | null },
+    providerUser: { name?: string; picture?: string },
+    organizationId?: string
+  ) {
+    try {
+      if (user.name) {
+        return;
+      }
+
+      let pictureId: string | undefined;
+      if (!user.pictureId && providerUser.picture) {
+        // never a team the user was invited to
+        const orgId =
+          organizationId ||
+          (await this._organizationService.getOrgsByUserId(user.id)).find(
+            (org) => org.users[0]?.role === 'SUPERADMIN'
+          )?.id;
+        if (orgId) {
+          pictureId = (
+            await this._mediaService.uploadFromUrl(orgId, providerUser.picture)
+          ).id;
+        }
+      }
+
+      if (providerUser.name || pictureId) {
+        await this._userService.fillProfile(user.id, {
+          name: providerUser.name,
+          pictureId,
+        });
+      }
+    } catch (err) {
+      console.error('provider_profile_not_saved', {
+        user_id: user.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  // After activation, or right after a provider sign-up. A workspace that
+  // joined with an invite hears about its bonus; a waitlisted one hears its
+  // place in line instead (the welcome comes with "You're in"). Never throws.
+  private async sendWelcome(
+    user: { id: string; email: string; name?: string | null; language?: string | null },
+    organizationId?: string
+  ) {
+    try {
+      const orgId =
+        organizationId ||
+        (await this._organizationService.getOrgsByUserId(user.id))[0]?.id;
+      const position = orgId
+        ? await this._access.waitlistPositionOf(orgId)
+        : null;
+      if (position) {
+        await this._emailService.sendTemplate(
+          { email: user.email, language: user.language },
+          'waitlisted',
+          { name: user.name || '', position },
+          { dedupeKey: `waitlisted_${user.id}` }
+        );
+        return;
+      }
+      const referral = orgId ? await this._partners.welcomeOffer(orgId) : null;
+      await this._emailService.sendTemplate(
+        { email: user.email, language: user.language },
+        'welcome',
+        { name: user.name || '', ...(referral ? { referral } : {}) },
+        { dedupeKey: `welcome_${user.id}` }
+      );
+    } catch (err) {
+      console.error('welcome_email_not_sent', {
+        user_id: user.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   public getOrgFromCookie(cookie?: string) {
     if (!cookie) {
       return false;
@@ -143,7 +339,13 @@ export class AuthService {
 
     try {
       const getOrg: any = AuthChecker.verifyJWT(cookie);
-      if (dayjs(getOrg.timeLimit).isBefore(dayjs())) {
+      if (
+        typeof getOrg.orgId !== 'string' ||
+        typeof getOrg.id !== 'string' ||
+        !['USER', 'ADMIN'].includes(getOrg.role) ||
+        !getOrg.timeLimit ||
+        dayjs(getOrg.timeLimit).isBefore(dayjs())
+      ) {
         return false;
       }
 
@@ -163,7 +365,8 @@ export class AuthService {
     body: CreateOrgUserDto,
     ip: string,
     userAgent: string,
-    hasInvite = false
+    hasInvite = false,
+    language?: string
   ) {
     const providerInstance = this._providerManager.getProvider(provider);
     const providerUser = await providerInstance.getUser(body.providerToken);
@@ -177,6 +380,7 @@ export class AuthService {
       provider
     );
     if (user) {
+      this.fillProfile(user, providerUser);
       return user;
     }
 
@@ -186,7 +390,11 @@ export class AuthService {
 
     const create = await this._organizationService.createOrgAndUser(
       {
-        company: body.company,
+        company: this.workspaceName(
+          body.company,
+          providerUser.email,
+          providerUser.name
+        ),
         email: providerUser.email,
         password: '',
         provider,
@@ -194,7 +402,8 @@ export class AuthService {
         datafast_visitor_id: body.datafast_visitor_id,
       },
       ip,
-      userAgent
+      userAgent,
+      await this.freeSignup(body.ref, hasInvite)
     );
 
     // never fails the sign-up
@@ -203,6 +412,15 @@ export class AuthService {
       create.users[0].user.id,
       body.ref
     );
+
+    // an invited teammate joins a workspace that has its own plan
+    if (!hasInvite) {
+      await this.startSignupTrial(
+        create.id,
+        create.users[0].user.id,
+        providerUser.email
+      );
+    }
 
     this._track('register', providerUser.email, body.datafast_visitor_id).catch(
       (err) => {}
@@ -217,6 +435,15 @@ export class AuthService {
     } catch (err) {
       // Don't fail registration if postRegistration fails
     }
+
+    this.fillProfile(create.users[0].user, providerUser, create.id);
+
+    // a provider account is active right away: welcome now
+    await this.saveLanguage(create.users[0].user.id, language);
+    await this.sendWelcome(
+      { ...create.users[0].user, language: language || null },
+      create.id
+    );
 
     return create.users[0].user;
   }
@@ -257,10 +484,11 @@ export class AuthService {
       expires: dayjs().add(20, 'minutes').format('YYYY-MM-DD HH:mm:ss'),
     });
 
-    await this._emailService.sendEmailSync(
-      user.email,
-      'Reset your password',
-      `You have requested to reset your password. <br />Click <a href="${process.env.FRONTEND_URL}/auth/forgot/${resetValues}">here</a> to reset your password<br />The link will expire in 20 minutes`
+    await this._emailService.sendTemplate(
+      { email: user.email, language: user.language },
+      'resetPassword',
+      { url: `${process.env.FRONTEND_URL}/auth/forgot/${resetValues}` },
+      { sync: true }
     );
   }
 
@@ -269,7 +497,7 @@ export class AuthService {
       id: string;
       expires: string;
     };
-    if (dayjs(user.expires).isBefore(dayjs())) {
+    if (typeof user.id !== 'string' || dayjs(user.expires).isBefore(dayjs())) {
       return false;
     }
 
@@ -291,6 +519,7 @@ export class AuthService {
       user.activated = true;
       this._track('register', user.email, tracking).catch((err) => {});
       await NewsletterService.register(user.email);
+      await this.sendWelcome(getUserAgain);
       return this.jwt(user as any);
     }
 
@@ -310,10 +539,11 @@ export class AuthService {
 
     const jwt = await this.jwt(user);
 
-    await this._emailService.sendEmailSync(
-      user.email,
-      'Activate your account',
-      `Click <a href="${process.env.FRONTEND_URL}/auth/activate/${jwt}">here</a> to activate your account`
+    await this._emailService.sendTemplate(
+      { email: user.email, language: user.language },
+      'activateAccount',
+      { url: `${process.env.FRONTEND_URL}/auth/activate/${jwt}` },
+      { sync: true }
     );
 
     return true;
@@ -329,7 +559,8 @@ export class AuthService {
     code: string,
     redirectUri?: string,
     state?: string,
-    stateCookie?: string
+    stateCookie?: string,
+    addToOrg?: boolean | { orgId: string; role: 'USER' | 'ADMIN'; id: string }
   ) {
     // the mobile app passes redirect_uri and keeps no cookies, the web flow
     // never passes it, so the state nonce is only enforced for the web flow
@@ -352,7 +583,20 @@ export class AuthService {
       provider as Provider
     );
     if (checkExists) {
-      return { jwt: await this.jwt(checkExists) };
+      this.fillProfile(checkExists, user);
+      // Existing user signing in via OAuth while holding a valid team invite.
+      // This path bypasses routeAuth, so join the inviting org here too (OAuth
+      // accounts are always activated, so there is no activation gate to clear).
+      const addedOrg =
+        addToOrg && typeof addToOrg !== 'boolean'
+          ? await this._organizationService.addUserToOrg(
+              checkExists.id,
+              addToOrg.id,
+              addToOrg.orgId,
+              addToOrg.role
+            )
+          : false;
+      return { jwt: await this.jwt(checkExists), addedOrg };
     }
 
     return { token };

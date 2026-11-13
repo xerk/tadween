@@ -26,6 +26,7 @@ import { timer } from '@gitroom/helpers/utils/timer';
 import dayjs from 'dayjs';
 import {
   AuthorizationActions,
+  isFreePlanAiRefusal,
   Sections,
   SubscriptionException,
 } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
@@ -153,11 +154,20 @@ export class ClippingService {
     }
   }
 
-  // Minutes the organization can still spend. An install without billing has no
-  // plans to meter against, the same way image generation treats it
+  // Minutes the organization can still spend. A workspace with early access
+  // (or an install without billing) has no plan to meter against, the same
+  // way image generation treats it; the free plan has no AI
   private async balance(organizationId: string) {
-    if (!process.env.STRIPE_PUBLISHABLE_KEY) {
-      return MAX_SOURCE_MINUTES;
+    try {
+      if (!(await this._subscriptionService.meterAi(organizationId))) {
+        return MAX_SOURCE_MINUTES;
+      }
+    } catch (err) {
+      // the free plan (without AI): nothing to spend
+      if (isFreePlanAiRefusal(err)) {
+        return 0;
+      }
+      throw err;
     }
 
     // loaded here and not taken from the caller: the MCP organization comes
@@ -189,6 +199,9 @@ export class ClippingService {
     if (!this.isYoutubeUrl(body.url)) {
       throw new HttpException('Only YouTube videos can be clipped', 400);
     }
+
+    // the free plan has no AI: refused with that reason (402)
+    await this._subscriptionService.meterAi(org.id);
 
     if ((await this._subscriptionService.isOnTrial(org))) {
       throw new HttpException('Clipping is not available in trial mode', 406);

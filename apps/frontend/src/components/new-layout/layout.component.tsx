@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode, useCallback, useEffect } from 'react';
+import React, { ReactNode, useCallback, useEffect, useRef } from 'react';
 import { tadweenFont as jakartaSans } from '@gitroom/frontend/app/fonts';
 import {
   SidebarHeader,
@@ -42,18 +42,24 @@ import {
   Title,
 } from '@gitroom/frontend/components/layout/title';
 import { TrialBanner } from '@gitroom/frontend/components/tadween/billing/trial.banner';
+import { OfflineBanner } from '@gitroom/frontend/components/tadween/shell/offline.banner';
 import { PaywallModal } from '@gitroom/frontend/components/tadween/billing/paywall.modal';
 import { TopMenu } from '@gitroom/frontend/components/layout/top.menu';
 import NotificationComponent from '@gitroom/frontend/components/notifications/notification.component';
 import { StreakComponent } from '@gitroom/frontend/components/layout/streak.component';
-import {
-  UpgradeButton,
-  UpgradeTrialLine,
-} from '@gitroom/frontend/components/tadween/billing/upgrade.link';
+import { UpgradeButton } from '@gitroom/frontend/components/tadween/billing/upgrade.link';
+import { InviteEarnButton } from '@gitroom/frontend/components/tadween/referral/invite.earn.button';
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
-import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
+import {
+  FirstBillingComponent,
+  useFirstBilling,
+} from '@gitroom/frontend/components/billing/first.billing.component';
+import { Onboarding } from '@gitroom/frontend/components/onboarding/onboarding';
+import { BootScreen } from '@gitroom/frontend/components/tadween/shell/boot.screen';
+import { WaitlistScreen } from '@gitroom/frontend/components/tadween/shell/waitlist.screen';
 import { TrialTracker } from '@gitroom/frontend/components/layout/gtm.component';
 import { setSentryUser } from '@gitroom/react/sentry/initialize.sentry.client';
+import { useFeatureRouteGuard } from '@gitroom/frontend/components/tadween/instance/instance.settings';
 
 
 export const LayoutComponent = ({ children }: { children: ReactNode }) => {
@@ -65,9 +71,10 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
   // The Sentry feedback button lives in the account menu (tadween/shell/account.menu.tsx)
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const router = useRouter();
   const sidebar = useSidebarCollapsed();
   const phone = usePhoneLayout();
+  // a page whose feature the admin switched off goes to Today
+  useFeatureRouteGuard();
   const load = useCallback(async (path: string) => {
     return await (await fetch(path)).json();
   }, []);
@@ -79,27 +86,74 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
     refreshWhenHidden: false,
   });
 
+  // Tadween free launch: a workspace let in from the waitlist while the app
+  // is open goes straight into onboarding, which the waitlist skipped
+  const router = useRouter();
+  const wasWaitlisted = useRef(false);
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    if (user.waitlisted) {
+      wasWaitlisted.current = true;
+      return;
+    }
+    if (wasWaitlisted.current) {
+      wasWaitlisted.current = false;
+      router.replace('/launches?onboarding=true');
+    }
+  }, [user?.waitlisted]);
+
   useEffect(() => {
     setSentryUser(
       user ? { id: user.id, email: user.email, orgId: user.orgId } : null
     );
   }, [user]);
 
-  // A workspace without a plan lives on /billing (full screen, no app chrome),
-  // like Postiz's first-billing screen; super admins are never held there
+  // As Postiz: a workspace without a plan sees the first billing screen in
+  // place of the app; super admins never, and neither does a workspace on
+  // the free plan (Tadween: /user/self → freePlan)
   const needsPlan =
     !!user &&
     user.tier === 'FREE' &&
+    !user.freePlan &&
     isGeneral &&
     billingEnabled &&
     !user.billingExempt;
-  useEffect(() => {
-    if (needsPlan && pathname !== '/billing') {
-      router.replace('/billing');
-    }
-  }, [needsPlan, pathname]);
+  // ...and so does a new workspace right after sign-up while its free trial
+  // runs without a card (until it pays or picks "Maybe later")
+  const firstBilling = useFirstBilling(
+    billingEnabled && !user?.billingExempt && !user?.freePlan
+      ? user
+      : undefined,
+    needsPlan
+  );
 
-  if (!user) return null;
+  if (!user || !firstBilling.ready) {
+    return (
+      <BootScreen
+        variant={
+          firstBilling.show || (billingEnabled && firstBilling.requested)
+            ? 'billing'
+            : 'app'
+        }
+      />
+    );
+  }
+
+  // Tadween free launch: a waitlisted workspace sees its place in line in
+  // place of the app (the backend refuses everything else)
+  if (user.waitlisted && !user.billingExempt) {
+    return (
+      <ContextWrapper user={user}>
+        <MantineWrapper>
+          {/* a super admin impersonating it can still leave */}
+          {user.admin && user.impersonate ? <Impersonate /> : null}
+          <WaitlistScreen position={user.waitlistPosition} />
+        </MantineWrapper>
+      </ContextWrapper>
+    );
+  }
 
   return (
     <ContextWrapper user={user}>
@@ -123,24 +177,32 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
             <NewSubscription />
             <PaywallModal />
             <ContinueProvider />
+            {/* Postiz's onboarding modal (?onboarding=true), once the app shows */}
+            {firstBilling.show ? null : <Onboarding />}
             <div
               className={clsx(
                 'tdw-shell flex flex-col min-h-screen min-w-screen text-newTextColor p-[12px] mobile:p-[8px]',
+                user?.admin && user?.impersonate && 'is-impersonating',
                 jakartaSans.className
               )}
             >
               {/* Tadween: the full admin bar while impersonating; otherwise the
                   admin tools are one pill in the top bar (here only when the
                   billing screen replaces the top bar) */}
-              <div>
-                {user?.admin && (user?.impersonate || needsPlan) ? (
+              <div className="tdw-adminbar-slot">
+                {user?.admin && (user?.impersonate || firstBilling.show) ? (
                   <Impersonate />
                 ) : (
                   <div />
                 )}
               </div>
-              {needsPlan ? (
-                <FirstBillingComponent />
+              {firstBilling.show ? (
+                <FirstBillingComponent
+                  onDone={() => {
+                    firstBilling.dismiss();
+                    mutate();
+                  }}
+                />
               ) : (
                 <>
                   <AnnouncementBanner />
@@ -158,12 +220,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                       >
                         <div
                           id="left-menu"
-                          className={clsx(
-                            'tdw-side-inner fixed h-full flex flex-1 top-0',
-                            user?.admin &&
-                              user?.impersonate &&
-                              'pt-[60px] max-h-[1000px]:w-[500px]'
-                          )}
+                          className="tdw-side-inner fixed h-full flex flex-1 top-0"
                         >
                           <div className="tdw-side-body flex flex-col h-full gap-[32px] flex-1 py-[12px]">
                             <SidebarHeader
@@ -174,41 +231,45 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                             <TopMenu>
                               <SidebarChannels collapsed={sidebar.collapsed} />
                             </TopMenu>
-                            <UpgradeTrialLine />
                             <AccountMenu />
                           </div>
                         </div>
                       </div>
                     )}
-                    <div className="flex-1 min-w-0 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
-                      <div
-                        className={clsx(
-                          'tdw-topbar flex bg-newBgColorInner px-[20px] mobile:px-[12px] gap-[12px] items-center',
-                          isBareTopBar(pathname)
-                            ? 'is-bare h-[48px] mobile:h-[56px]'
-                            : 'h-[68px] mobile:h-[56px]'
-                        )}
-                      >
-                        <div className="tdw-topbar-title flex flex-1 min-w-0">
-                          <Title />
-                        </div>
-                        <div className="tdw-topbar-actions flex items-center gap-[6px] text-textItemBlur">
-                          {/* the admin tools pill only inside the admin console;
-                              elsewhere the sidebar's Admin item leads there */}
-                          {user?.admin &&
-                          !user?.impersonate &&
-                          /^\/admin(\/|$)/.test(pathname) ? (
-                            <Impersonate />
-                          ) : null}
-                          <UpgradeButton />
-                          <StreakComponent />
-                          <NotificationComponent />
-                        </div>
-                      </div>
-                      {/* inside the page card: above the shell it ran under the fixed sidebar */}
+                    <div className="tdw-main flex-1 min-w-0 flex flex-col gap-[8px]">
+                      {/* the trial / payment-failed bar floats as its own rounded
+                        card above the page card, like the sidebar beside it */}
+                      <OfflineBanner />
                       {billingEnabled && <TrialBanner />}
-                      <div className="flex flex-1 min-w-0 gap-[1px] mobile:flex-col">
-                        {children}
+                      <div className="flex-1 min-w-0 bg-newBgLineColor rounded-[12px] overflow-hidden flex flex-col gap-[1px] blurMe">
+                        <div
+                          className={clsx(
+                            'tdw-topbar flex bg-newBgColorInner px-[20px] mobile:px-[12px] gap-[12px] items-center',
+                            isBareTopBar(pathname)
+                              ? 'is-bare h-[48px] mobile:h-[56px]'
+                              : 'h-[68px] mobile:h-[56px]'
+                          )}
+                        >
+                          <div className="tdw-topbar-title flex flex-1 min-w-0">
+                            <Title />
+                          </div>
+                          <div className="tdw-topbar-actions flex items-center gap-[6px] text-textItemBlur">
+                            {/* the admin tools pill only inside the admin console;
+                              elsewhere the sidebar's Admin item leads there */}
+                            {user?.admin &&
+                            !user?.impersonate &&
+                            /^\/admin(\/|$)/.test(pathname) ? (
+                              <Impersonate />
+                            ) : null}
+                            <InviteEarnButton />
+                            <UpgradeButton />
+                            <StreakComponent />
+                            <NotificationComponent />
+                          </div>
+                        </div>
+                        <div className="flex flex-1 min-w-0 gap-[1px] mobile:flex-col">
+                          {children}
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -27,6 +27,7 @@ export function Login() {
   const t = useT();
   const [loading, setLoading] = useState(false);
   const [notActivated, setNotActivated] = useState(false);
+  const [loginError, setLoginError] = useState('');
   // Tadween: registration mode set in /admin (env DISABLE_REGISTRATION until
   // saved). Closed hides the sign-up link; invite-only explains how to join.
   const registrationMode = useInstanceSettings().data?.registration?.mode;
@@ -44,6 +45,7 @@ export function Login() {
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
     setLoading(true);
     setNotActivated(false);
+    setLoginError('');
     const login = await fetchData('/auth/login', {
       method: 'POST',
       body: JSON.stringify({
@@ -56,9 +58,14 @@ export function Login() {
       if (errorMessage === 'User is not activated') {
         setNotActivated(true);
       } else {
-        form.setError('email', {
-          message: errorMessage,
-        });
+        // Tadween: about the email and password together, under the form,
+        // in the reader's language
+        setLoginError(
+          errorMessage === 'Invalid user name or password'
+            ? t('tdw_auth_invalid_login', 'The email or password is incorrect.')
+            : errorMessage ||
+                t('tdw_auth_login_failed', 'Could not sign you in. Try again.')
+        );
       }
       setLoading(false);
     }
@@ -93,6 +100,9 @@ export function Login() {
               </AuthLink>
             }
           />
+          {!!loginError && (
+            <AuthNotice tone="warning">{loginError}</AuthNotice>
+          )}
           {notActivated && (
             <AuthNotice tone="warning">
               {t(

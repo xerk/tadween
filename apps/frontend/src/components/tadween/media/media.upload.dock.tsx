@@ -14,6 +14,7 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useUppyUploader } from '@gitroom/frontend/components/media/new.uploader';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { Icon, IconButton } from '@gitroom/frontend/components/tadween/ui';
+import { useOverlayOpen } from '@gitroom/frontend/components/tadween/ui/overlays';
 import {
   formatBytes,
   useMediaActions,
@@ -493,6 +494,9 @@ export const UploadDock: FC<{
   useEffect(() => {
     if (!shown) setCollapsed(false);
   }, [shown]);
+  // the support chat's launcher shares the bottom corner: it steps aside
+  // while the dock is up (layout/crisp.component.tsx)
+  useOverlayOpen(shown);
   const counts = useMemo(() => {
     const done = items.filter((p) => p.status === 'done').length;
     const failed = items.filter((p) => p.status === 'error').length;

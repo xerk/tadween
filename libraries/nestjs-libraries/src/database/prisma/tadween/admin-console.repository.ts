@@ -18,6 +18,20 @@ const USER_SELECT = {
   isSuperAdmin: true,
   createdAt: true,
   lastOnline: true,
+  // The "About you" onboarding answers (null when skipped or not asked yet)
+  onboarding: {
+    select: {
+      source: true,
+      sourceOther: true,
+      role: true,
+      roleOther: true,
+      goal: true,
+      goalOther: true,
+      company: true,
+      website: true,
+      createdAt: true,
+    },
+  },
   organizations: {
     where: { organization: { deletedAt: null as Date | null } },
     select: {
@@ -58,7 +72,8 @@ export class AdminConsoleRepository {
     private _organization: PrismaRepository<'organization'>,
     private _integration: PrismaRepository<'integration'>,
     private _post: PrismaRepository<'post'>,
-    private _subscription: PrismaRepository<'subscription'>
+    private _subscription: PrismaRepository<'subscription'>,
+    private _userOnboarding: PrismaRepository<'userOnboarding'>
   ) {}
 
   async overview(now: Date) {
@@ -136,6 +151,63 @@ export class AdminConsoleRepository {
         tier: t.subscriptionTier,
         count: t._count._all,
       })),
+    };
+  }
+
+  // "About you" answers: users per source, role and goal, and the latest
+  // answers that carry free text or a company
+  async onboarding(latest: number) {
+    const where = { user: { deletedAt: null as Date | null } };
+    const [answered, sources, roles, goals, recent] = await Promise.all([
+      this._userOnboarding.model.userOnboarding.count({ where }),
+      this._userOnboarding.model.userOnboarding.groupBy({
+        by: ['source'],
+        where,
+        _count: { _all: true },
+      }),
+      this._userOnboarding.model.userOnboarding.groupBy({
+        by: ['role'],
+        where,
+        _count: { _all: true },
+      }),
+      this._userOnboarding.model.userOnboarding.groupBy({
+        by: ['goal'],
+        where,
+        _count: { _all: true },
+      }),
+      this._userOnboarding.model.userOnboarding.findMany({
+        where: {
+          ...where,
+          OR: [
+            { sourceOther: { not: null } },
+            { roleOther: { not: null } },
+            { goalOther: { not: null } },
+            { company: { not: null } },
+            { website: { not: null } },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        take: latest,
+        select: {
+          id: true,
+          sourceOther: true,
+          roleOther: true,
+          goalOther: true,
+          company: true,
+          website: true,
+          role: true,
+          createdAt: true,
+          user: { select: { id: true, email: true, name: true } },
+        },
+      }),
+    ]);
+
+    return {
+      answered,
+      sources: sources.map((r) => ({ value: r.source, count: r._count._all })),
+      roles: roles.map((r) => ({ value: r.role, count: r._count._all })),
+      goals: goals.map((r) => ({ value: r.goal, count: r._count._all })),
+      recent,
     };
   }
 

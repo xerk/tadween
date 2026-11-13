@@ -6,6 +6,7 @@ import {
   HttpException,
   Param,
   Post,
+  Put,
 } from '@nestjs/common';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
@@ -15,6 +16,7 @@ import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/o
 import { AddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/add.team.member.dto';
 import { AdminAddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/admin.add.team.member.dto';
 import { ShortlinkPreferenceDto } from '@gitroom/nestjs-libraries/dtos/settings/shortlink-preference.dto';
+import { OrganizationNameDto } from '@gitroom/nestjs-libraries/dtos/settings/organization-name.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthorizationActions, Sections } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 
@@ -87,5 +89,15 @@ export class SettingsController {
       org.id,
       body.shortlink
     );
+  }
+
+  // Tadween: rename the current workspace (onboarding and settings)
+  @Put('/name')
+  @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
+  async updateName(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: OrganizationNameDto
+  ) {
+    return this._organizationService.updateName(org.id, body.name);
   }
 }

@@ -1,9 +1,12 @@
-import React, { FC, Fragment, useCallback, useMemo, useState } from 'react';
+import React, { FC, useCallback, useMemo, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { ChartSocial } from '@gitroom/frontend/components/analytics/chart-social';
-import { Select } from '@gitroom/react/form/select';
+import {
+  SegmentedControl,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
 import { MissingReleaseModal } from '@gitroom/frontend/components/launches/missing-release.modal';
 import { TadweenEmptyState } from '@gitroom/frontend/components/tadween/empty.state';
@@ -91,22 +94,18 @@ export const StatisticsModal: FC<{
                 <h3 className="text-[18px] font-[500]">
                   {t('post_analytics', 'Post Analytics')}
                 </h3>
-                <div className="max-w-[150px]">
-                  <Select
-                    label=""
-                    name="date"
-                    disableForm={true}
-                    hideErrors={true}
-                    value={dateRange}
-                    onChange={(e) => setDateRange(+e.target.value)}
-                  >
-                    {dateOptions.map((option) => (
-                      <option key={option.key} value={option.key}>
-                        {option.value}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
+                <TadweenScope>
+                  <SegmentedControl<string>
+                    size="sm"
+                    label={t('tdw_stats_range', 'Date range')}
+                    value={String(dateRange)}
+                    onChange={(value) => setDateRange(+value)}
+                    options={dateOptions.map((option) => ({
+                      value: String(option.key),
+                      label: option.value,
+                    }))}
+                  />
+                </TadweenScope>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[16px]">
                 {analyticsData.map((p: AnalyticsData, index: number) => {
@@ -114,15 +113,11 @@ export const StatisticsModal: FC<{
                   const color = colorVariants[index % colorVariants.length];
                   return (
                     <div key={`analytics-${index}`} className="group">
-                      <div className="flex flex-col h-full bg-newTableHeader border border-newTableBorder rounded-[12px] overflow-hidden transition-all duration-200 hover:border-[#612bd3]/50">
+                      <div className="tdw-stat-card flex flex-col h-full overflow-hidden">
                         <div className="flex items-center justify-between px-[16px] pt-[14px] pb-[8px]">
                           <div className="flex items-center gap-[10px]">
                             <div
-                              className={`w-[8px] h-[8px] rounded-full ${
-                                color === 'purple' ? 'bg-[#612bd3]' : ''
-                              } ${color === 'green' ? 'bg-[#32d583]' : ''} ${
-                                color === 'blue' ? 'bg-[#1d9bf0]' : ''
-                              }`}
+                              className={`tdw-stat-dot is-${color} w-[8px] h-[8px] rounded-full`}
                             />
                             <span className="text-[15px] font-medium text-newTableText">
                               {p.label}
@@ -135,7 +130,7 @@ export const StatisticsModal: FC<{
                           </div>
                         </div>
                         <div className="px-[16px] pb-[14px]">
-                          <div className="text-[36px] leading-[42px] font-semibold tracking-tight">
+                          <div className="metric text-[32px] leading-[40px] font-semibold tracking-tight">
                             {totals[index]}
                           </div>
                         </div>
@@ -157,30 +152,24 @@ export const StatisticsModal: FC<{
                 {t('no_short_link_results', 'No short link results')}
               </div>
             ) : (
-              <div className="grid grid-cols-3">
-                <div className="bg-forth p-[4px] rounded-tl-lg">
-                  {t('short_link', 'Short Link')}
-                </div>
-                <div className="bg-forth p-[4px]">
-                  {t('original_link', 'Original Link')}
-                </div>
-                <div className="bg-forth p-[4px] rounded-tr-lg">
-                  {t('clicks', 'Clicks')}
-                </div>
-                {statisticsData?.clicks?.map((p: any) => (
-                  <Fragment key={p.short}>
-                    <div className="p-[4px] py-[10px] bg-customColor6">
-                      {p.short}
-                    </div>
-                    <div className="p-[4px] py-[10px] bg-customColor6">
-                      {p.original}
-                    </div>
-                    <div className="p-[4px] py-[10px] bg-customColor6">
-                      {p.clicks}
-                    </div>
-                  </Fragment>
-                ))}
-              </div>
+              <table className="tdw-stat-table">
+                <thead>
+                  <tr>
+                    <th>{t('short_link', 'Short Link')}</th>
+                    <th>{t('original_link', 'Original Link')}</th>
+                    <th>{t('clicks', 'Clicks')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {statisticsData?.clicks?.map((p: any) => (
+                    <tr key={p.short}>
+                      <td dir="ltr">{p.short}</td>
+                      <td dir="ltr">{p.original}</td>
+                      <td className="time">{p.clicks}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
 

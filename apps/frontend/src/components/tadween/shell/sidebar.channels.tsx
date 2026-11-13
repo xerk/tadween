@@ -44,7 +44,7 @@ const useSidebarReload = () => {
         typeof key === 'string' &&
         (key === '/integrations/list' ||
           key.startsWith('/posts-') ||
-          key.startsWith('tdw-ws-month-') ||
+          key.startsWith('tdw-ws-') ||
           key.startsWith('today-'))
     );
   }, [mutate]);
@@ -101,9 +101,15 @@ const ChannelRow: FC<{
   const t = useT();
   const user = useUser();
   const fix = needsReconnect(integration);
+  // a channel whose connection stopped half-way (a page still to pick) is
+  // finished, not reconnected: the name and the pill reopen that step
+  const setup = !!integration.inBetweenSteps;
+  const fixLabel = setup
+    ? t('tdw_an_finish_setup', 'Finish setup')
+    : t('tdw_notif_reconnect_action', 'Reconnect');
   const tip = `${integration.name}${
     fix
-      ? ` · ${t('tdw_notif_reconnect_action', 'Reconnect')}`
+      ? ` · ${fixLabel}`
       : integration.disabled
       ? ` · ${t('tdw_channel_disabled', 'Disabled')}`
       : ''
@@ -118,8 +124,8 @@ const ChannelRow: FC<{
       data-tooltip-id="tdw-rail"
       data-tooltip-content={tip}
       // the rail has no Reconnect button: the avatar reconnects, like the
-      // calendar's channel list
-      {...(fix && collapsed
+      // calendar's channel list; a setup to finish opens from the whole row
+      {...(fix && (collapsed || setup)
         ? {
             role: 'button',
             tabIndex: 0,
@@ -143,7 +149,7 @@ const ChannelRow: FC<{
             onReconnect(integration)();
           }}
         >
-          {t('tdw_notif_reconnect_action', 'Reconnect')}
+          {fixLabel}
         </button>
       ) : null}
       <span

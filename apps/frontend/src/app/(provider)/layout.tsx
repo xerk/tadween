@@ -10,10 +10,13 @@ import { tadweenFont as jakartaSans } from '@gitroom/frontend/app/fonts';
 import clsx from 'clsx';
 import { VariableContextComponent } from '@gitroom/react/helpers/variable.context';
 import { isGenericOauth } from '@gitroom/helpers/utils/is.generic.oauth';
+import { paymentsEnabledServerSide } from '@gitroom/helpers/utils/payments.enabled.server.side';
 import UtmSaver from '@gitroom/helpers/utils/utm.saver';
 
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
+  // Tadween: Stripe keys and the payments switch in /admin
+  const billingEnabled = await paymentsEnabledServerSide();
   return (
     <html>
       <head>
@@ -33,7 +36,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           environment={process.env.NODE_ENV!}
           backendUrl={process.env.NEXT_PUBLIC_BACKEND_URL!}
           plontoKey={process.env.NEXT_PUBLIC_POLOTNO!}
-          billingEnabled={!!process.env.STRIPE_PUBLISHABLE_KEY}
+          billingEnabled={billingEnabled}
           discordUrl={process.env.NEXT_PUBLIC_DISCORD_SUPPORT!}
           frontEndUrl={process.env.FRONTEND_URL!}
           isGeneral={!!process.env.IS_GENERAL}

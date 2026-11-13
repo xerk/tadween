@@ -234,7 +234,9 @@ export const AdminStatsComponent: FC = () => {
         <div className="text-red-400">Failed to load stats.</div>
       ) : (
         <div className="overflow-x-auto pb-[8px] scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor flex flex-col gap-[16px]">
-          <div className="flex gap-[12px]">
+          {/* Tadween: the cards wrap onto more rows instead of running off
+              the side of the page */}
+          <div className="grid gap-[12px] [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
             <div className="flex-1 min-w-[220px] shrink-0">
               <SummaryCard
                 label="Total posts published"
@@ -303,7 +305,7 @@ export const AdminStatsComponent: FC = () => {
             )}
           </div>
 
-          <div className="flex gap-[12px] items-start">
+          <div className="grid gap-[12px] items-start [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
             <div className="flex-1 min-w-[220px] shrink-0">
               <PerSocialTable
                 title="Posts published per social"

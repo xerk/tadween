@@ -1,11 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Tadween",
-  "version": "2.0.0",
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqtH6qclAsfFf6qbUKfPmhBbfycGrt13+0h6ti/olniCGnjQjhkVVTnURfLFz+v+842Ee+pAS5HBEXo57dQ9xUtwFGXnavVR+myjN+Un9NIfFyYmYEBvLrinclsMJBwWMM8JkhxKuaOagxp1hqGgNAO4C0bzE3YN/SPoTjNpGU8TGm/ENZ/TDUneZyyVM5HEEmOTZEmjmy9FJaxbzGmZ2rixNO45pkjXMFp8+/XrFSNiCqNZt6LQNIqL5SfVIRUKGBjE3OG/gtahVToBdlXi5yzP1uYE0Qs4grJ/T1rUUzTXFAQa7heWA9mskf0xAMEtTSED4N9bZ4sF8cf5J+SGGlwIDAQAB",
-  "description": "Tadween browser extension for social media scheduling",
+  "name": "Tadween (dev)",
+  "version": "1.0.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3frkQY7iF1N7kj/z5eVk56KMoKLljOfeDMpBjkfydh2iaqJtUG+tCDRRUoaROgIKSdRtTFrpQGIjvSFuKva+AzISIDHBtOv3rOaTH6Fik5OnEbp8Yz5lezAngrxP+KZZ5eS+taWEUBJ+Uj7ns5Cg+vFfJtGfUDzPsRhNqnCXquFS0JGhWy0Wnq78FJL4kmzc4dElmXrI4Y7FHMtDQ8cqKo+S6YtmRXxrEnka0mErxiF4lVAcsX+MBeRR235kki0Nbc55MCxDGdyV1DsMaAgU5uVxg+oztvrYCLBFhXr4m7wm/6+L/6Lnw80iU5Kd1lDyriebXw6vaXSoqeN9AUYplQIDAQAB",
+  "description": "Connect your Skool account to Tadween, so you can schedule and publish posts to your Skool communities from Tadween.",
   "icons": {
+    "16": "icon-16.png",
     "32": "icon-32.png",
+    "48": "icon-48.png",
     "128": "icon-128.png"
   },
   "permissions": [

@@ -7,6 +7,7 @@ import {
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
 import dayjs from 'dayjs';
 import {
+  NotEnoughScopes,
   SocialAbstract,
   ValidityMedia,
 } from '@gitroom/nestjs-libraries/integrations/social.abstract';
@@ -26,6 +27,7 @@ export class InstagramStandaloneProvider
   implements SocialProvider
 {
   identifier = 'instagram-standalone';
+  directory = true;
   name = 'Instagram\n(Standalone)';
   isBetweenSteps = false;
   refreshCron = true;
@@ -53,6 +55,9 @@ export class InstagramStandaloneProvider
     if (!firstPost?.length) {
       return 'Should have at least one media';
     }
+    if (firstPost.length > 20) {
+      return 'Instagram carousel only supports up to 20 media attachments';
+    }
     if (this.assetBoolean(settings?.is_trial_reel)) {
       if ((firstPost?.length ?? 0) > 1) {
         return 'Trial Reels can only have one video';
@@ -63,6 +68,9 @@ export class InstagramStandaloneProvider
       if (!hasVideo) {
         return 'Trial Reels must be a video';
       }
+    }
+    if (firstPost?.some((f) => (f?.alt?.length ?? 0) > 1000)) {
+      return 'Instagram alt text can be up to 1000 characters';
     }
     return true;
   }
@@ -154,6 +162,16 @@ export class InstagramStandaloneProvider
       })
     ).json();
 
+    if (!getAccessToken.access_token) {
+      console.error(
+        'Instagram standalone token exchange failed:',
+        JSON.stringify(getAccessToken)
+      );
+      throw new Error(
+        getAccessToken.error_message || 'Instagram token exchange failed'
+      );
+    }
+
     const { access_token, expires_in, ...all } = await (
       await fetch(
         'https://graph.instagram.com/access_token' +
@@ -164,7 +182,29 @@ export class InstagramStandaloneProvider
       )
     ).json();
 
-    this.checkScopes(this.scopes, getAccessToken.permissions);
+    // Instagram answers an account it won't serve yet (no app role while the
+    // permissions only have standard access) with an error here, so pass its
+    // reason on instead of the generic "Invalid API key"
+    if (!access_token) {
+      throw new NotEnoughScopes(
+        `Instagram refused to connect this account: ${
+          all?.error?.message || getAccessToken?.error_message || 'unknown error'
+        }`
+      );
+    }
+
+    try {
+      this.checkScopes(this.scopes, getAccessToken.permissions);
+    } catch (err) {
+      console.error(
+        'Instagram standalone scope check failed:',
+        JSON.stringify({
+          user_id: getAccessToken.user_id,
+          permissions: getAccessToken.permissions,
+        })
+      );
+      throw err;
+    }
 
     const { user_id, name, username, profile_picture_url } = await (
       await fetch(

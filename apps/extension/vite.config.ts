@@ -1,7 +1,11 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
+import { emitManifest } from './custom-vite-plugins';
+import manifest from './manifest.json';
+import pkg from './package.json';
 
 export default defineConfig({
+  plugins: [emitManifest({ ...manifest, version: pkg.version })],
   build: {
     outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,

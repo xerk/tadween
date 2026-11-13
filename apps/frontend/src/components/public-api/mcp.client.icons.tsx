@@ -2,9 +2,10 @@
 
 import { FC } from 'react';
 
-// Logos for the MCP clients shown in Settings > Developers and in onboarding.
+// Logos for the MCP clients shown in Settings > Developers, Approved apps, the
+// consent screen and onboarding (keys are the `client` of mcpClientFromRequest).
 // Monochrome marks use currentColor so they follow the button text color,
-// brand marks (Claude, VS Code, Gemini) keep their colors.
+// brand marks (Claude, VS Code, Gemini, Perplexity, n8n, Make) keep their colors.
 const icons: Record<string, FC<{ size: number }>> = {
   Claude: ({ size }) => (
     <svg
@@ -395,6 +396,39 @@ const icons: Record<string, FC<{ size: number }>> = {
       </defs>
     </svg>
   ),
+  Perplexity: ({ size }) => (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="#1FB8CD"
+    >
+      <path d="M22.3977 7.0896h-2.3106V.0676l-7.5094 6.3542V.1577h-1.1554v6.1966L4.4904 0v7.0896H1.6023v10.3976h2.8882V24l6.932-6.3591v6.2005h1.1554v-6.0469l6.9318 6.1807v-6.4879h2.8882V7.0896zm-3.4657-4.531v4.531h-5.355l5.355-4.531zm-13.2862.0676 4.8691 4.4634H5.6458V2.6262zM2.7576 16.332V8.245h7.8476l-6.1149 6.1147v1.9723H2.7576zm2.8882 5.0404v-3.8852h.0001v-2.6488l5.7763-5.7764v7.0111l-5.7764 5.2993zm12.7086.0248-5.7766-5.1509V9.0618l5.7766 5.7766v6.5588zm2.8882-5.0652h-1.733v-1.9723L13.3948 8.245h7.8478v8.087z" />
+    </svg>
+  ),
+  n8n: ({ size }) => (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="#EA4B71"
+    >
+      <path d="M21.4737 5.6842c-1.1772 0-2.1663.8051-2.4468 1.8947h-2.8955c-1.235 0-2.289.893-2.492 2.111l-.1038.623a1.263 1.263 0 0 1-1.246 1.0555H11.289c-.2805-1.0896-1.2696-1.8947-2.4468-1.8947s-2.1663.8051-2.4467 1.8947H4.973c-.2805-1.0896-1.2696-1.8947-2.4468-1.8947C1.1311 9.4737 0 10.6047 0 12s1.131 2.5263 2.5263 2.5263c1.1772 0 2.1663-.8051 2.4468-1.8947h1.4223c.2804 1.0896 1.2696 1.8947 2.4467 1.8947 1.1772 0 2.1663-.8051 2.4468-1.8947h1.0008a1.263 1.263 0 0 1 1.2459 1.0555l.1038.623c.203 1.218 1.257 2.111 2.492 2.111h.3692c.2804 1.0895 1.2696 1.8947 2.4468 1.8947 1.3952 0 2.5263-1.131 2.5263-2.5263s-1.131-2.5263-2.5263-2.5263c-1.1772 0-2.1664.805-2.4468 1.8947h-.3692a1.263 1.263 0 0 1-1.246-1.0555l-.1037-.623A2.52 2.52 0 0 0 13.9607 12a2.52 2.52 0 0 0 .821-1.4794l.1038-.623a1.263 1.263 0 0 1 1.2459-1.0555h2.8955c.2805 1.0896 1.2696 1.8947 2.4468 1.8947 1.3952 0 2.5263-1.131 2.5263-2.5263s-1.131-2.5263-2.5263-2.5263m0 1.2632a1.263 1.263 0 0 1 1.2631 1.2631 1.263 1.263 0 0 1-1.2631 1.2632 1.263 1.263 0 0 1-1.2632-1.2632 1.263 1.263 0 0 1 1.2632-1.2631M2.5263 10.7368A1.263 1.263 0 0 1 3.7895 12a1.263 1.263 0 0 1-1.2632 1.2632A1.263 1.263 0 0 1 1.2632 12a1.263 1.263 0 0 1 1.2631-1.2632m6.3158 0A1.263 1.263 0 0 1 10.1053 12a1.263 1.263 0 0 1-1.2632 1.2632A1.263 1.263 0 0 1 7.579 12a1.263 1.263 0 0 1 1.2632-1.2632m10.1053 3.7895a1.263 1.263 0 0 1 1.2631 1.2632 1.263 1.263 0 0 1-1.2631 1.2631 1.263 1.263 0 0 1-1.2632-1.2631 1.263 1.263 0 0 1 1.2632-1.2632" />
+    </svg>
+  ),
+  Make: ({ size }) => (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="#6D00CC"
+    >
+      <path d="M13.38 3.498c-.27 0-.511.19-.566.465L9.85 18.986a.578.578 0 0 0 .453.678l4.095.826a.58.58 0 0 0 .682-.455l2.963-15.021a.578.578 0 0 0-.453-.678l-4.096-.826a.589.589 0 0 0-.113-.012zm-5.876.098a.576.576 0 0 0-.516.318L.062 17.697a.575.575 0 0 0 .256.774l3.733 1.877a.578.578 0 0 0 .775-.258l6.926-13.781a.577.577 0 0 0-.256-.776L7.762 3.658a.571.571 0 0 0-.258-.062zm11.74.115a.576.576 0 0 0-.576.576v15.426c0 .318.258.578.576.578h4.178a.58.58 0 0 0 .578-.578V4.287a.578.578 0 0 0-.578-.576Z" />
+    </svg>
+  ),
   Warp: ({ size }) => (
     <svg
       width={size}
@@ -538,103 +572,4 @@ export const McpClientIcon: FC<{ client: string; size?: number }> = ({
     return null;
   }
   return <Icon size={size} />;
-};
-
-// Which known client an OAuth request comes from (the consent screen). Only
-// picks a logo and a display name; the redirect itself is validated server
-// side. A web callback must be on the client's own domain (anyone can register
-// a client called "ChatGPT"); native callbacks (loopback, cursor://) can't be
-// verified anyway, so those match by registered name or scheme, and only
-// clients that have no web domain of their own.
-const clientMatchers: {
-  client: string;
-  label: string;
-  name: RegExp;
-  domains?: string[];
-  // a desktop app that also calls back natively (cursor://, vscode://)
-  native?: boolean;
-}[] = [
-  { client: 'Claude Code', label: 'Claude Code', name: /claude[\s-]?code/i },
-  {
-    client: 'Claude',
-    label: 'Claude',
-    name: /claude|anthropic/i,
-    domains: ['claude.ai', 'claude.com', 'anthropic.com'],
-  },
-  {
-    client: 'ChatGPT',
-    label: 'ChatGPT',
-    name: /chatgpt|openai/i,
-    domains: ['chatgpt.com', 'openai.com'],
-  },
-  { client: 'Codex', label: 'Codex', name: /codex/i },
-  {
-    client: 'Cursor',
-    label: 'Cursor',
-    name: /cursor/i,
-    domains: ['cursor.com', 'cursor.sh'],
-    native: true,
-  },
-  {
-    client: 'VS Code / Copilot',
-    label: 'VS Code',
-    name: /vscode|vs code|visual studio code|copilot/i,
-    domains: ['vscode.dev'],
-    native: true,
-  },
-  {
-    client: 'Windsurf',
-    label: 'Windsurf',
-    name: /windsurf|codeium/i,
-    domains: ['windsurf.com', 'codeium.com'],
-    native: true,
-  },
-  { client: 'Gemini CLI', label: 'Gemini', name: /gemini/i },
-  {
-    client: 'Grok Bot',
-    label: 'Grok',
-    name: /grok/i,
-    domains: ['grok.com', 'x.ai'],
-  },
-  { client: 'Warp', label: 'Warp', name: /warp/i, domains: ['warp.dev'] },
-  {
-    client: 'Amp',
-    label: 'Amp',
-    name: /^amp\b|ampcode/i,
-    domains: ['ampcode.com'],
-  },
-  { client: 'OpenClaw', label: 'OpenClaw', name: /openclaw/i },
-  { client: 'NanoClaw', label: 'NanoClaw', name: /nanoclaw/i },
-  { client: 'Hermes', label: 'Hermes', name: /hermes/i },
-];
-
-const onDomain = (host: string, domains: string[] = []) =>
-  domains.some((domain) => host === domain || host.endsWith('.' + domain));
-
-export const mcpClientFromRequest = (
-  name?: string | null,
-  redirectUri?: string | null
-) => {
-  let url: URL | undefined;
-  try {
-    url = new URL(redirectUri || '');
-  } catch (e) {
-    url = undefined;
-  }
-  const loopback =
-    url?.protocol === 'http:' &&
-    ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
-  if (url && ['http:', 'https:'].includes(url.protocol) && !loopback) {
-    const host = url.hostname.toLowerCase();
-    return clientMatchers.find((m) => onDomain(host, m.domains)) || null;
-  }
-  const scheme = url?.protocol.replace(/:$/, '') || '';
-  // a web-only client (ChatGPT, Claude…) is never recognised by name alone:
-  // anyone can register a native client called "ChatGPT"
-  const native = clientMatchers.filter((m) => !m.domains || m.native);
-  return (
-    native.find((m) => m.name.test(name || '')) ||
-    native.find((m) => !!scheme && m.name.test(scheme)) ||
-    null
-  );
 };

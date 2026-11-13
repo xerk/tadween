@@ -2,7 +2,8 @@
 //
 // Everything here describes what the instance does when the admin has not saved
 // anything yet. Most defaults equal current Postiz behaviour (all features on,
-// registration driven by env vars, LinkedIn first in Postiz's provider order).
+// registration driven by env vars, the focus networks first in Postiz's
+// provider order).
 // The exception is the channel list: only the focus networks (FOCUS_PROVIDERS)
 // can be added until the admin chooses otherwise. Channels a workspace already
 // connected are never affected by it.
@@ -67,7 +68,7 @@ export const FEATURES: FeatureDefinition[] = [
   { key: 'publicApi', group: 'Developers', label: 'Public API, MCP and CLI', description: 'API key, OAuth apps and the MCP server for each workspace.', hides: 'Settings → API & MCP, and the agent step of onboarding', applied: true },
   { key: 'webhooks', group: 'Developers', label: 'Webhooks', description: 'HTTP callbacks when posts publish or fail.', hides: 'Settings → Webhooks', applied: true },
   { key: 'affiliate', group: 'Growth', label: 'Invite & earn and partners', description: 'Referral links and rewards for every workspace, and the affiliate program (docs/tadween/partners.md). Off unless you switch it on. Switching it off hides the program and stops new referrals; referrals already made keep earning (and can be rejected in Admin → Referrals).', hides: 'Invite & earn in the sidebar and settings, /partners, new referrals', applied: true },
-  { key: 'ugc', group: 'Growth', label: 'UGC videos', description: 'The AgentMedia UGC video shortcut (a Postiz partner deal). Off unless you switch it on.', hides: 'Make UGC in the sidebar', applied: true },
+  { key: 'ugc', group: 'Growth', label: 'UGC videos', description: 'The AgentMedia UGC video shortcut, a partner offer that came with the upstream app. Off unless you switch it on.', hides: 'Make UGC in the sidebar', applied: true },
 ];
 
 // Env fallback: TADWEEN_DISABLED_FEATURES="plugs,ugc" turns features off until
@@ -210,25 +211,25 @@ export const PROVIDER_CREDENTIALS: Record<string, ProviderCredentials> = {
   tumblr: { required: ['TUMBLR_CLIENT_ID', 'TUMBLR_CLIENT_SECRET'] },
 };
 
-// Providers that sort to the top when nothing is saved: Tadween is LinkedIn first.
-export const PROVIDER_PRIORITY = ['linkedin', 'linkedin-page'];
-
-// The networks Tadween focuses on. Until the super admin saves Admin → Channels,
-// only these can be added (and only once their app keys are set). A saved
-// choice always wins; a provider without a saved row (e.g. one added upstream
-// later) falls back to this list.
+// The networks Tadween focuses on, as equals in alphabetical order (Facebook,
+// Instagram, LinkedIn, Threads, YouTube). They also sort to the top, in this
+// order, until the admin saves an order. Until the super admin saves Admin →
+// Channels, only these can be added (and only once their app keys are set). A
+// saved choice always wins; a provider without a saved row (e.g. one added
+// upstream later) falls back to this list.
 export const FOCUS_PROVIDERS = [
-  'linkedin',
-  'linkedin-page',
+  'facebook',
   'instagram',
   'instagram-standalone',
-  'facebook',
+  'linkedin',
+  'linkedin-page',
   'threads',
   'youtube',
 ];
 
-// Env override: TADWEEN_ENABLED_PROVIDERS="linkedin,linkedin-page,x" replaces
-// the focus list (same shape as HIDDEN_PROVIDERS).
+// Env override: TADWEEN_ENABLED_PROVIDERS="facebook,linkedin,x" replaces
+// the list of providers that are on (same shape as HIDDEN_PROVIDERS). It does
+// not change the order: FOCUS_PROVIDERS still sort first.
 export const focusProviders = (): string[] => {
   const fromEnv = (process.env.TADWEEN_ENABLED_PROVIDERS || '')
     .split(',')
@@ -276,6 +277,45 @@ export const credentialStatus = (identifier: string) => {
 // a tier with subscribers and reports it instead.
 export const DEFAULT_YEARLY_DISCOUNT_PERCENT = 17;
 export const DEFAULT_FOUNDER_CAP = 300;
+
+// ── Free launch (payments switch, free plan, waitlist) ────────────────────────
+// Payments stay off until a super admin switches them on in /admin, even when
+// Stripe keys are set. The free plan applies to workspaces without a plan
+// created after the early-access cutoff (stamped the first time the instance
+// boots with this setting); older workspaces keep full access. Once `cap` free
+// workspaces exist, new sign-ups wait on the waitlist (null = no cap).
+// Whether this server can talk to Stripe at all (keys set). Payments are only
+// on when the admin also switched them on (AccessService.paymentsEnabled).
+export const stripeConfigured = () => !!process.env.STRIPE_PUBLISHABLE_KEY;
+
+// How a new workspace got in: the normal free sign-up (counted toward the
+// cap), or one that skipped the line (a partner's referral code, or the
+// personal workspace of an invited teammate)
+export type FreeAccessVia = 'signup' | 'referral' | 'invite';
+
+export interface FreePlanLimits {
+  channels: number;
+  // Seats including the owner (1 = no team members)
+  members: number;
+  // Monthly AI credits (0 = no in-app AI)
+  aiCredits: number;
+}
+
+export interface AccessSettings {
+  payments: boolean;
+  freePlan: FreePlanLimits & { enabled: boolean };
+  cap: number | null;
+  // ISO date: workspaces created before it have early access (null = unknown,
+  // every workspace keeps full access)
+  cutoff: string | null;
+}
+
+export const DEFAULT_ACCESS: AccessSettings = {
+  payments: false,
+  freePlan: { enabled: true, channels: 2, members: 1, aiCredits: 0 },
+  cap: 100,
+  cutoff: null,
+};
 
 export interface DefaultPlan {
   key: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { HttpStatusCode } from 'axios';
 import { useRouter } from 'next/navigation';
 import { Redirect } from '@gitroom/frontend/components/layout/redirect';
@@ -11,6 +11,29 @@ import { continueProviderList } from '@gitroom/frontend/components/new-launch/pr
 import { IntegrationContext } from '@gitroom/frontend/components/launches/helpers/use.integration';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
+import {
+  EmptyState,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
+
+// Providers connected through the browser extension hand their cookies over in
+// this tab's sessionStorage instead of the URL (see AddProviderComponent). Read
+// once and removed right away; the in-memory copy is dropped after the connect
+// request.
+const extensionCodes = new Map<string, string>();
+const takeExtensionCode = (state: string) => {
+  const key = `extension-cookies:${state}`;
+  try {
+    const stored = sessionStorage.getItem(key);
+    if (stored) {
+      extensionCodes.set(state, stored);
+      sessionStorage.removeItem(key);
+    }
+  } catch {
+    // site storage blocked: nothing was handed over
+  }
+  return extensionCodes.get(state);
+};
 
 interface TwoStepState {
   integrationId: string;
@@ -22,6 +45,25 @@ interface TwoStepState {
 interface SuccessState {
   message: string;
 }
+
+// Tadween: connecting, connected or failed, on the continue step's page card
+// (app/tadween/continue.scss) with the kit's empty-state layout
+const ConnectState: FC<{
+  icon: string;
+  tone: 'success' | 'error' | 'busy';
+  title: ReactNode;
+  body: ReactNode;
+}> = ({ icon, tone, title, body }) => (
+  <TadweenScope className="tdw-continue-page">
+    <div
+      className={`tdw-continue-card tdw-continue-state is-${tone}`}
+      role={tone === 'error' ? 'alert' : 'status'}
+      aria-busy={tone === 'busy' || undefined}
+    >
+      <EmptyState icon={icon} title={title} body={body} />
+    </div>
+  </TadweenScope>
+);
 
 export const ContinueIntegration: FC<{
   provider: string;
@@ -100,6 +142,17 @@ export const ContinueIntegration: FC<{
       };
     }
 
+    if (
+      !searchParams.code &&
+      searchParams.state &&
+      typeof window !== 'undefined'
+    ) {
+      const code = takeExtensionCode(searchParams.state);
+      if (code) {
+        return { ...searchParams, code };
+      }
+    }
+
     return searchParams;
   }, []);
 
@@ -127,6 +180,9 @@ export const ContinueIntegration: FC<{
           });
         }
       }
+
+      // The connect request has the extension cookies now; drop our copy
+      extensionCodes.delete(modifiedParams.state);
 
       if (data.status === HttpStatusCode.PreconditionFailed) {
         const { returnURL } = await data.json().catch(() => ({}));
@@ -281,96 +337,57 @@ export const ContinueIntegration: FC<{
   // Success state for non-logged users without returnURL
   if (successState) {
     return (
-      <div className="flex flex-1 items-center justify-center text-white relative overflow-hidden">
-        {/* Background gradient decoration */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-[#612BD3] rounded-full blur-[120px]" />
-          <div className="absolute bottom-[20%] right-[10%] w-[250px] h-[250px] bg-[#FC69FF] rounded-full blur-[120px]" />
-        </div>
-
-        <div className="relative z-10 text-center">
-          <div className="w-[80px] h-[80px] mx-auto mb-[24px] rounded-full bg-green-500/20 flex items-center justify-center">
-            <svg
-              className="w-[40px] h-[40px] text-green-500"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="text-[28px] font-semibold mb-[12px]">
-            {t('channel_connected', 'Channel Connected!')}
-          </div>
-          <div className="text-[16px] text-gray-400 max-w-[400px]">
-            {successState.message ||
-              t(
-                'channel_connected_description',
-                `Your ${providerDisplayName} channel has been successfully connected. You can close this window now.`
-              )}
-          </div>
-        </div>
-      </div>
+      <ConnectState
+        icon="circle-check"
+        tone="success"
+        title={t('tdw_channel_connected', 'Channel connected')}
+        body={
+          successState.message ||
+          t(
+            'channel_connected_description',
+            'Your {{name}} channel is connected. You can close this window now.',
+            { name: providerDisplayName }
+          )
+        }
+      />
     );
   }
 
-  // Show the two-step selection UI
+  // Show the two-step selection UI (Tadween: the same step as the app's
+  // continue dialog, on a page card; styles in app/tadween/continue.scss)
   if (twoStepState && Provider) {
     return (
-      <div className="flex flex-1 items-center justify-center text-white relative overflow-hidden">
-        {/* Background gradient decoration */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-[#612BD3] rounded-full blur-[120px]" />
-          <div className="absolute bottom-[20%] right-[10%] w-[250px] h-[250px] bg-[#FC69FF] rounded-full blur-[120px]" />
-        </div>
-
-        {/* Content */}
-        <div className="relative z-10 w-full max-w-[550px] mx-auto px-[20px]">
-          <div className="bg-[#1A1919] rounded-[16px] p-[32px] flex flex-col gap-[24px]">
-            <div className="flex flex-col gap-[8px] text-center">
-              <h1 className="text-[24px] font-semibold">
-                {t('configure_your_channel', 'Configure Your Channel')}
-              </h1>
-              <p className="text-[14px] text-gray-400">
-                {t(
-                  'select_the_page_or_account',
-                  `Select the ${providerDisplayName} page or account you want to connect.`
-                )}
-              </p>
-            </div>
-
-            <IntegrationContext.Provider
-              value={{
-                date: newDayjs(),
-                value: [],
-                allIntegrations: [],
-                integration: {
-                  editor: 'normal',
-                  additionalSettings: '',
-                  display: '',
-                  time: [{ time: 0 }],
-                  id: twoStepState.integrationId,
-                  type: '',
-                  name: '',
-                  picture: '',
-                  inBetweenSteps: true,
-                  changeNickName: false,
-                  changeProfilePicture: false,
-                  identifier: provider,
-                },
-              }}
-            >
-              <Provider
-                onSave={onSave}
-                existingId={[]}
-                initialData={twoStepState.pages}
-                isSaving={isSaving}
-              />
-            </IntegrationContext.Provider>
-          </div>
+      <div className="tdw-continue-page">
+        <div className="tdw-continue-card">
+          <IntegrationContext.Provider
+            value={{
+              date: newDayjs(),
+              value: [],
+              allIntegrations: [],
+              integration: {
+                editor: 'normal',
+                additionalSettings: '',
+                display: '',
+                time: [{ time: 0 }],
+                id: twoStepState.integrationId,
+                type: '',
+                name: '',
+                picture: '',
+                inBetweenSteps: true,
+                changeNickName: false,
+                changeProfilePicture: false,
+                identifier: provider,
+              },
+            }}
+          >
+            <Provider
+              onSave={onSave}
+              existingId={[]}
+              initialData={twoStepState.pages}
+              isSaving={isSaving}
+              allowReconnect={logged}
+            />
+          </IntegrationContext.Provider>
         </div>
       </div>
     );
@@ -378,64 +395,31 @@ export const ContinueIntegration: FC<{
 
   if (error) {
     return (
-      <div className="flex flex-1 items-center justify-center text-white relative overflow-hidden">
-        {/* Background gradient decoration */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-[#612BD3] rounded-full blur-[120px]" />
-          <div className="absolute bottom-[20%] right-[10%] w-[250px] h-[250px] bg-[#FC69FF] rounded-full blur-[120px]" />
-        </div>
-
-        <div className="relative z-10 text-center">
-          <div className="w-[80px] h-[80px] mx-auto mb-[24px] rounded-full bg-red-500/20 flex items-center justify-center">
-            <svg
-              className="w-[40px] h-[40px] text-red-500"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="text-[28px] font-semibold mb-[12px]">
-            {t('could_not_add_provider', 'Could not add provider')}
-          </div>
-          <div className="text-[16px] text-gray-400 max-w-[400px]">
+      <ConnectState
+        icon="circle-x"
+        tone="error"
+        title={t('tdw_connect_failed', "We couldn't connect this channel")}
+        body={
+          <>
             {errorMessage ||
               t(
                 'you_are_being_redirected_back',
                 'An error occurred. Please try again.'
               )}
-          </div>
-          {logged && <Redirect url="/launches" delay={3000} />}
-        </div>
-      </div>
+            {logged && <Redirect url="/launches" delay={3000} />}
+          </>
+        }
+      />
     );
   }
 
   // Loading state
   return (
-    <div className="flex flex-1 items-center justify-center text-white relative overflow-hidden">
-      {/* Background gradient decoration */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-[#612BD3] rounded-full blur-[120px]" />
-        <div className="absolute bottom-[20%] right-[10%] w-[250px] h-[250px] bg-[#FC69FF] rounded-full blur-[120px]" />
-      </div>
-
-      <div className="relative z-10 text-center">
-        <div className="text-[28px] font-semibold mb-[12px]">
-          {t('adding_channel', 'Adding Channel')}
-        </div>
-        <div className="text-[16px] text-gray-400">
-          {t('please_wait', 'Please wait while we connect your account...')}
-        </div>
-        {/* Loading spinner */}
-        <div className="mt-[32px] flex justify-center">
-          <div className="w-[48px] h-[48px] border-[3px] border-[#612BD3] border-t-transparent rounded-full animate-spin" />
-        </div>
-      </div>
-    </div>
+    <ConnectState
+      icon="loader-circle"
+      tone="busy"
+      title={t('tdw_connecting_channel', 'Connecting your channel')}
+      body={t('please_wait', 'Please wait while we connect your account...')}
+    />
   );
 };

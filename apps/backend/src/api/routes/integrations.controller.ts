@@ -20,7 +20,7 @@ import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.reque
 import { Organization, User } from '@prisma/client';
 import { IntegrationFunctionDto } from '@gitroom/nestjs-libraries/dtos/integrations/integration.function.dto';
 import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
-import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
 import { ApiTags } from '@nestjs/swagger';
 import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
@@ -51,7 +51,8 @@ export class IntegrationsController {
     private _integrationService: IntegrationService,
     private _postService: PostsService,
     private _refreshIntegrationService: RefreshIntegrationService,
-    private _providerSettings: ProviderSettingsService
+    private _providerSettings: ProviderSettingsService,
+    private _access: AccessService
   ) {}
 
   @Post('/provider/:id/connect')
@@ -324,7 +325,9 @@ export class IntegrationsController {
 
     let newList: any[] | { none: true } = [];
     try {
-      newList = (await this.functionIntegration(org, body)) || [];
+      newList =
+        (await this.functionIntegration(org, { ...body, name: 'mention' })) ||
+        [];
     } catch (err) {
       console.log(err);
     }
@@ -385,8 +388,12 @@ export class IntegrationsController {
       throw new Error('Invalid provider');
     }
 
-    // @ts-ignore
-    if (integrationProvider[body.name]) {
+    if (
+      this._integrationManager.isDashboardCallable(
+        integrationProvider,
+        body.name
+      )
+    ) {
       try {
         // @ts-ignore
         const load = await integrationProvider[body.name](
@@ -444,14 +451,14 @@ export class IntegrationsController {
   }
 
   @Post('/enable')
-  enableChannel(
+  async enableChannel(
     @GetOrgFromRequest() org: Organization,
     @Body('id') id: string
   ) {
     return this._integrationService.enableChannel(
       org.id,
       // @ts-ignore
-      org?.subscription?.totalChannels || pricing.FREE.channel,
+      await this._access.channelLimit(org),
       id
     );
   }

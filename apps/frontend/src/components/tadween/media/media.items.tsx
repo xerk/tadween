@@ -360,17 +360,18 @@ export const FolderTile: FC<{
 export const useFormatDate = () => {
   const { i18n } = useTranslation();
   return useCallback(
-    (date: string) => {
+    (
+      date: string,
+      options: Intl.DateTimeFormatOptions = { dateStyle: 'medium' }
+    ) => {
       const lang = (i18n.resolvedLanguage || 'en').replace('_', '-');
       try {
         return new Intl.DateTimeFormat(
           lang === 'ar' ? 'ar-EG-u-nu-latn' : lang,
-          { dateStyle: 'medium' }
+          options
         ).format(new Date(date));
       } catch (err) {
-        return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(
-          new Date(date)
-        );
+        return new Intl.DateTimeFormat('en', options).format(new Date(date));
       }
     },
     [i18n.resolvedLanguage]

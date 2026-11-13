@@ -27,6 +27,7 @@ import {
   TadweenSheetGroup,
   TadweenSheetRow,
 } from '@gitroom/frontend/components/tadween/sheet/tadween.sheet';
+import { openSupportChat } from '@gitroom/frontend/components/layout/crisp.component';
 import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
 const ModeComponent = dynamic(
   () => import('@gitroom/frontend/components/layout/mode.component'),
@@ -117,7 +118,7 @@ const useAccount = () => {
 export const AccountMenu: FC = () => {
   const { user, name, showBilling, photo } = useAccount();
   const t = useT();
-  const { sentryDsn } = useVariables();
+  const { sentryDsn, crispWebsiteId } = useVariables();
   const [open, setOpen] = useState(false);
   const [style, setStyle] = useState<CSSProperties>({});
   const wrap = useRef<HTMLDivElement>(null);
@@ -246,6 +247,21 @@ export const AccountMenu: FC = () => {
               <span>{t('billing', 'Billing')}</span>
             </Link>
           )}
+          {!!crispWebsiteId && (
+            <button
+              type="button"
+              role="menuitem"
+              className="tdw-acct-item"
+              onClick={openSupportChat}
+            >
+              <span className="tdw-acct-ico">
+                <Icon>
+                  <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-5 4z" />
+                </Icon>
+              </span>
+              <span>{t('tdw_support_chat', 'Chat with support')}</span>
+            </button>
+          )}
           <div
             role="menuitem"
             tabIndex={0}
@@ -305,7 +321,7 @@ export const AccountSheetGroup: FC<{ onNavigate: () => void }> = ({
   const { user, name, showBilling, photo } = useAccount();
   const t = useT();
   const router = useRouter();
-  const { sentryDsn } = useVariables();
+  const { sentryDsn, crispWebsiteId } = useVariables();
 
   if (!user) {
     return null;
@@ -355,6 +371,20 @@ export const AccountSheetGroup: FC<{ onNavigate: () => void }> = ({
           onClick={() => {
             onNavigate();
             router.push('/billing');
+          }}
+        />
+      )}
+      {!!crispWebsiteId && (
+        <TadweenSheetRow
+          icon={
+            <Icon>
+              <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-5 4z" />
+            </Icon>
+          }
+          label={t('tdw_support_chat', 'Chat with support')}
+          onClick={() => {
+            onNavigate();
+            openSupportChat();
           }}
         />
       )}

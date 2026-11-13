@@ -191,7 +191,7 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
                   integration.disabled && 'opacity-50'
                 )}
               >
-                {integration.name}
+                <bdi>{integration.name}</bdi>
               </div>
             </div>
           ))}

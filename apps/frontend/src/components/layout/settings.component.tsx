@@ -140,7 +140,7 @@ export const SettingsPopup: FC<{
         keywords: [t('tdw_invite_people', 'Invite people')],
       });
     }
-    if (user?.tier.current !== 'FREE' && isOn('signatures')) {
+    if ((user?.tier.current !== 'FREE' || !!user?.freePlan) && isOn('signatures')) {
       arr.push({
         tab: 'signatures',
         group: 'workspace',
@@ -152,7 +152,7 @@ export const SettingsPopup: FC<{
         ),
       });
     }
-    if (user?.tier.current !== 'FREE' && isOn('sets')) {
+    if ((user?.tier.current !== 'FREE' || !!user?.freePlan) && isOn('sets')) {
       arr.push({
         tab: 'sets',
         group: 'workspace',
@@ -239,17 +239,23 @@ export const SettingsPopup: FC<{
         'Apps and agents you have allowed into this workspace.'
       ),
     });
-    // Tadween partners program, behind its switch
-    if (billingEnabled && isOn('affiliate')) {
+    // Tadween partners program, behind its switch (payments on or off)
+    if (isOn('affiliate')) {
       arr.push({
         tab: 'invite',
-        group: 'billing',
+        // without payments there is no Billing group: it sits with the workspace
+        group: billingEnabled ? 'billing' : 'workspace',
         icon: 'gift',
         label: t('tdw_invite_earn', 'Invite & earn'),
-        description: t(
-          'tdw_invite_earn_desc',
-          'Invite friends: they get AI credits, you climb the rewards ladder.'
-        ),
+        description: user?.paymentsEnabled
+          ? t(
+              'tdw_invite_earn_desc',
+              'Invite friends: they get AI credits, you climb the rewards ladder.'
+            )
+          : t(
+              'tdw_invite_earn_desc_prelaunch',
+              'Invite friends: they skip the waitlist and get started right away.'
+            ),
         keywords: ['referral', 'affiliate', t('tdw_ref_code', 'Code')],
       });
     }

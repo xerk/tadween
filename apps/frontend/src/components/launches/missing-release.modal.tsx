@@ -71,7 +71,7 @@ export const MissingReleaseModal: FC<{
 
   if (!data || data.length === 0) {
     return (
-      <div className="text-center text-textColor py-[20px]">
+      <div className="tdw-modal-lead text-center py-[20px]">
         {t(
           'no_missing_content',
           'No content found from this provider. The provider may not support this feature.'
@@ -81,21 +81,21 @@ export const MissingReleaseModal: FC<{
   }
 
   return (
-    <div className="flex flex-col gap-[16px]">
-      <div className="text-[14px] text-textColor/70">
+    <div className="tdw-modal-form">
+      <p className="tdw-modal-lead">
         {t(
           'select_matching_content',
           'Select the content that matches this post:'
         )}
-      </div>
+      </p>
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-[10px] max-h-[400px] overflow-y-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor p-[4px]">
         {data.map((item: { id: string; url: string }) => (
           <div
             key={item.id}
             onClick={() => setSelected(item.id)}
-            className={`cursor-pointer rounded-[8px] overflow-hidden border-2 transition-all ${
+            className={`cursor-pointer rounded-[10px] overflow-hidden border-2 transition-all ${
               selected === item.id
-                ? 'border-[#612BD3] scale-[1.02]'
+                ? 'border-[var(--tdw-primary)] scale-[1.02]'
                 : 'border-transparent hover:border-textColor/20'
             }`}
           >
@@ -107,11 +107,11 @@ export const MissingReleaseModal: FC<{
           </div>
         ))}
       </div>
-      <div className="flex justify-end gap-[10px] pt-[8px] border-t border-tableBorder">
+      <div className="tdw-modal-foot">
         <Button
           type="button"
           onClick={() => modal.closeAll()}
-          className="bg-transparent border border-tableBorder text-textColor"
+          className="bg-transparent"
         >
           {t('cancel', 'Cancel')}
         </Button>

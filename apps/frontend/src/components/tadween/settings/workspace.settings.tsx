@@ -13,14 +13,10 @@ import { useFeatures } from '@gitroom/frontend/components/tadween/instance/insta
 import { useShortlinkPreference } from '@gitroom/frontend/components/settings/shortlink-preference.component';
 import { AddOrEditWebhook } from '@gitroom/frontend/components/webhooks/webhooks';
 import { AddOrEditWebhook as AddOrEditAutopost } from '@gitroom/frontend/components/autopost/autopost';
-import { AddOrRemoveSignature } from '@gitroom/frontend/components/settings/signatures.component';
 import { SaveSetModal } from '@gitroom/frontend/components/sets/sets';
 import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.modal';
 import {
-  Button,
-  EmptyState,
-  IconButton,
-  IconName,
+  Input,
   Pill,
   Select,
   Skeleton,
@@ -34,6 +30,13 @@ import {
   SettingsSection,
   useSaveState,
 } from '@gitroom/frontend/components/tadween/settings/settings.nav';
+import {
+  RowActions,
+  SettingsList,
+} from '@gitroom/frontend/components/tadween/settings/settings.list';
+// Signatures has its own file so the composer's signature picker can use it
+// without loading this module (and the composer through AddEditModal)
+export { SignaturesSettings } from '@gitroom/frontend/components/tadween/settings/signatures.settings';
 
 // Tadween settings, Workspace group: General (workspace, short links) and the
 // saved lists — Signatures, Sets, Auto post, Webhooks. Each list reads the same
@@ -50,7 +53,7 @@ const swrOptions = {
 };
 
 // Same SWR key as OrganizationSelector and the sidebar, so they share a request.
-const useOrganizations = () => {
+export const useOrganizations = () => {
   const fetch = useFetch();
   const load = useCallback(async () => {
     return await (await fetch('/user/organizations')).json();
@@ -63,9 +66,12 @@ export const GeneralSettings: FC = () => {
   const user = useUser();
   const fetch = useFetch();
   const isOn = useFeatures();
-  const { data: organizations } = useOrganizations();
+  const { data: organizations, mutate: mutateOrganizations } =
+    useOrganizations();
   const { data: shortlink, isLoading, mutate } = useShortlinkPreference();
   const [status, save] = useSaveState();
+  const [nameStatus, saveName] = useSaveState();
+  const [name, setName] = useState<string | null>(null);
   const [value, setValue] = useState<'ASK' | 'YES' | 'NO'>('ASK');
   useEffect(() => {
     if (shortlink?.shortlink) {
@@ -83,6 +89,33 @@ export const GeneralSettings: FC = () => {
       : user?.role === 'ADMIN'
       ? t('tdw_role_admin', 'Admin')
       : t('tdw_role_member', 'Member');
+
+  // Tadween: owners and admins rename the workspace here (sign-up names it
+  // after the person); saved when the field loses focus or on Enter
+  const canRename = user?.role === 'SUPERADMIN' || user?.role === 'ADMIN';
+  const nextName = (name ?? workspace?.name ?? '').trim();
+  const nameTooShort = name !== null && nextName.length < 3;
+  const rename = useCallback(() => {
+    if (
+      !workspace ||
+      nameTooShort ||
+      nameStatus === 'saving' ||
+      nextName === workspace.name
+    ) {
+      return;
+    }
+    saveName(async () => {
+      const response = await fetch('/settings/name', {
+        method: 'PUT',
+        body: JSON.stringify({ name: nextName }),
+      });
+      if (!response.ok) {
+        return false;
+      }
+      await mutateOrganizations();
+      setName(null);
+    });
+  }, [workspace, nameTooShort, nameStatus, nextName, saveName]);
 
   const changeShortlink = useCallback(
     (next: 'ASK' | 'YES' | 'NO') => {
@@ -112,11 +145,34 @@ export const GeneralSettings: FC = () => {
             'tdw_general_name_desc',
             'Switch workspaces from the top of the sidebar.'
           )}
+          status={canRename ? <SaveState status={nameStatus} /> : undefined}
         >
-          {workspace ? (
-            <span className="tdw-set-value">{workspace.name}</span>
-          ) : (
+          {!workspace ? (
             <Skeleton width={120} />
+          ) : canRename ? (
+            <form
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                rename();
+              }}
+            >
+              <Input
+                aria-label={t('tdw_ob_workspace_name', 'Workspace name')}
+                maxLength={128}
+                autoComplete="organization"
+                value={name ?? workspace.name}
+                error={
+                  nameTooShort
+                    ? t('tdw_ob_workspace_name_short', 'Use at least 3 characters.')
+                    : undefined
+                }
+                onChange={(e) => setName(e.target.value)}
+                onBlur={rename}
+              />
+            </form>
+          ) : (
+            <span className="tdw-set-value">{workspace.name}</span>
           )}
         </SettingsRow>
         <SettingsRow
@@ -167,94 +223,6 @@ export const GeneralSettings: FC = () => {
         </SettingsSection>
       ) : null}
     </TadweenScope>
-  );
-};
-
-// One saved list: a card with the count and Add in its header, the rows, a
-// loading skeleton, and an empty state whose button is the next step.
-const SettingsList: FC<{
-  title: string;
-  description: string;
-  count?: string;
-  loading: boolean;
-  empty: boolean;
-  emptyIcon: IconName;
-  emptyTitle: string;
-  emptyBody: string;
-  addLabel: string;
-  onAdd: () => void;
-  children: React.ReactNode;
-}> = ({
-  title,
-  description,
-  count,
-  loading,
-  empty,
-  emptyIcon,
-  emptyTitle,
-  emptyBody,
-  addLabel,
-  onAdd,
-  children,
-}) => (
-  <TadweenScope className="tdw-set-page">
-    <SettingsSection
-      title={count ? `${title} · ${count}` : title}
-      description={description}
-      action={
-        !loading && !empty ? (
-          <Button variant="primary" icon="plus" onClick={onAdd}>
-            {addLabel}
-          </Button>
-        ) : null
-      }
-    >
-      {loading ? (
-        <div className="tdw-set-skeleton">
-          <Skeleton height={44} />
-          <Skeleton height={44} />
-        </div>
-      ) : empty ? (
-        <EmptyState
-          size="sm"
-          icon={emptyIcon}
-          title={emptyTitle}
-          body={emptyBody}
-          action={
-            <Button variant="primary" icon="plus" onClick={onAdd}>
-              {addLabel}
-            </Button>
-          }
-        />
-      ) : (
-        <ul className="tdw-set-list">{children}</ul>
-      )}
-    </SettingsSection>
-  </TadweenScope>
-);
-
-const RowActions: FC<{
-  name: string;
-  onEdit: () => void;
-  onDelete: () => void;
-}> = ({ name, onEdit, onDelete }) => {
-  const t = useT();
-  return (
-    <>
-      <IconButton
-        icon="pencil"
-        size="sm"
-        label={`${t('edit', 'Edit')} ${name}`}
-        onClick={onEdit}
-      />
-      <IconButton
-        icon="trash-2"
-        size="sm"
-        className="tdw-danger-icon"
-        label={`${t('delete', 'Delete')} ${name}`}
-        onClick={onDelete}
-      />
-    </>
   );
 };
 
@@ -496,111 +464,6 @@ export const AutopostSettings: FC = () => {
   );
 };
 
-// ── Signatures ──────────────────────────────────────────────────────────────
-const useSignatures = () => {
-  const fetch = useFetch();
-  const load = useCallback(async () => {
-    return (await fetch('/signatures')).json();
-  }, []);
-  return useSWR('signatures', load);
-};
-
-// signatures are stored as editor HTML; the list shows them as one line of text
-const plainText = (html: string) =>
-  (html || '')
-    .replace(/<br\s*\/?>|<\/p>/gi, ' ')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-export const SignaturesSettings: FC = () => {
-  const t = useT();
-  const fetch = useFetch();
-  const modal = useModals();
-  const toaster = useToaster();
-  const { data, mutate, isLoading } = useSignatures();
-
-  const open = useCallback(
-    (item?: any) => () => {
-      modal.openModal({
-        title: item
-          ? t('tdw_edit_signature', 'Edit signature')
-          : t('tdw_add_signature', 'Add signature'),
-        withCloseButton: true,
-        children: <AddOrRemoveSignature data={item} reload={mutate} />,
-      });
-    },
-    [t, mutate]
-  );
-  const remove = useCallback(
-    (item: any) => async () => {
-      if (
-        await deleteDialog(
-          t(
-            'are_you_sure_you_want_to_delete',
-            `Are you sure you want to delete?`,
-            { name: plainText(item.content).slice(0, 15) + '...' }
-          )
-        )
-      ) {
-        await fetch(`/signatures/${item.id}`, { method: 'DELETE' });
-        mutate();
-        toaster.show(t('tdw_signature_deleted', 'Signature deleted'), 'success');
-      }
-    },
-    [t, mutate]
-  );
-
-  const list: any[] = Array.isArray(data) ? data : [];
-  return (
-    <SettingsList
-      title={t('signatures', 'Signatures')}
-      description={t(
-        'you_can_add_signatures_to_your_account_to_be_used_in_your_posts',
-        'You can add signatures to your account to be used in your posts.'
-      )}
-      loading={isLoading}
-      empty={!list.length}
-      emptyIcon="signature"
-      emptyTitle={t('tdw_no_signatures', 'No signatures yet')}
-      emptyBody={t(
-        'tdw_no_signatures_body',
-        'Save a sign-off once and add it to any post from the composer.'
-      )}
-      addLabel={t('add_a_signature', 'Add a signature')}
-      onAdd={open()}
-    >
-      {list.map((item) => {
-        const text = plainText(item.content);
-        return (
-          <SettingsListRow
-            key={item.id}
-            icon="signature"
-            title={text || '—'}
-            badges={
-              item.autoAdd ? (
-                <Pill tone="brand" icon="check">
-                  {t('tdw_signature_auto', 'Added to new posts')}
-                </Pill>
-              ) : null
-            }
-            openLabel={t('edit', 'Edit')}
-            onOpen={open(item)}
-            actions={
-              <RowActions
-                name={text.slice(0, 24)}
-                onEdit={open(item)}
-                onDelete={remove(item)}
-              />
-            }
-          />
-        );
-      })}
-    </SettingsList>
-  );
-};
-
 // ── Sets ────────────────────────────────────────────────────────────────────
 const useSetChannels = () => {
   const fetch = useFetch();
@@ -669,9 +532,15 @@ export const SetsSettings: FC = () => {
                         });
                         modal.closeAll();
                         mutate();
-                        toaster.show('Set saved successfully', 'success');
+                        toaster.show(
+                          t('tdw_set_saved', 'Set saved'),
+                          'success'
+                        );
                       } catch (error) {
-                        toaster.show('Failed to save set', 'warning');
+                        toaster.show(
+                          t('tdw_set_save_failed', "Couldn't save the set"),
+                          'warning'
+                        );
                       }
                     }}
                     onCancel={() => modal.closeAll()}

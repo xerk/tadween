@@ -49,7 +49,10 @@ export const ApiModal: FC<{
       });
 
       if (add.ok) {
-        toaster.show('Integration added successfully', 'success');
+        toaster.show(
+          t('tdw_integration_added', 'Integration added'),
+          'success'
+        );
         if (closePopup) {
           closePopup();
         } else {
@@ -77,13 +80,16 @@ export const ApiModal: FC<{
     <div className="relative">
       <FormProvider {...methods}>
         <form
-          className="gap-[8px] flex flex-col"
+          className="tdw-modal-form"
           onSubmit={methods.handleSubmit(submit)}
         >
-          <div className="pt-[10px]">
-            <Input label="API Key" name="api" />
-          </div>
           <div>
+            <Input label="API Key" translationKey="tdw_api_key" name="api" />
+          </div>
+          <div className="tdw-modal-foot">
+            <Button className="bg-transparent" onClick={close}>
+              {t('cancel', 'Cancel')}
+            </Button>
             <Button loading={loading} type="submit">
               {t('add_integration', 'Add Integration')}
             </Button>
@@ -97,6 +103,7 @@ export const ApiModal: FC<{
 export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
   const fetch = useFetch();
   const modals = useModals();
+  const t = useT();
   const { reload } = props;
 
   const integrationsList = useCallback(async () => {
@@ -115,12 +122,23 @@ export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
   const addApiKey = useCallback(
     (title: string, identifier: string) => () => {
       modals.openModal({
-        title: `Add API key for ${title}`,
-        withCloseButton: false,
+        title: t('tdw_add_api_key_for', 'Add an API key for {{name}}', {
+          name: title,
+        }),
+        withCloseButton: true,
         children: (
           <ApiModal identifier={identifier} title={title} update={reload} />
         ),
       });
+    },
+    [t]
+  );
+
+  // Installed on the other platform, not connected here with an API key.
+  // noopener: the page it ends on closes itself when it has an opener
+  const install = useCallback(
+    (installUrl: string) => () => {
+      window.open(installUrl, '_blank', 'noopener,noreferrer');
     },
     []
   );
@@ -129,7 +147,11 @@ export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
     <div className="grid grid-cols-4 tablet:grid-cols-3 mobile:!grid-cols-2 gap-[10px] justify-items-center justify-center">
       {data?.map((p: any) => (
         <div
-          onClick={addApiKey(p.title, p.identifier)}
+          onClick={
+            p.installUrl
+              ? install(p.installUrl)
+              : addApiKey(p.title, p.identifier)
+          }
           key={p.identifier}
           className="tdw-tile w-full h-full p-[20px] mobile:p-[14px] min-h-[100px] text-[14px] bg-newTableHeader hover:bg-newTableBorder rounded-[8px] transition-all text-textColor relative flex flex-col gap-[15px] cursor-pointer"
         >
@@ -142,7 +164,7 @@ export const ThirdPartyListComponent: FC<{ reload: () => void }> = (props) => {
           <div className="tdw-tile-title whitespace-pre-wrap text-left text-lg">{p.title}</div>
           <div className="tdw-tile-desc whitespace-pre-wrap text-left">{p.description}</div>
           <div className="w-full flex">
-            <Button className="w-full">Add</Button>
+            <Button className="w-full">{t('add', 'Add')}</Button>
           </div>
         </div>
       ))}

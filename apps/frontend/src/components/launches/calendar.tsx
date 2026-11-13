@@ -38,6 +38,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { Integration, Post, State, Tags } from '@prisma/client';
 import { useAddProvider } from '@gitroom/frontend/components/launches/add.provider.component';
 import { useToaster } from '@gitroom/react/toaster/toaster';
+import { timer } from '@gitroom/helpers/utils/timer';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
@@ -58,9 +59,14 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import copy from 'copy-to-clipboard';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
-import { Button } from '@gitroom/react/form/button';
 import { ChipMoreMenu } from '@gitroom/frontend/components/tadween/workspace/chip.more.menu';
+import {
+  Button as TdwButton,
+  Icon,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
 import { ChipPreview } from '@gitroom/frontend/components/tadween/workspace/chip.preview';
+import { TadweenAvatarImage } from '@gitroom/frontend/components/tadween/editor/channel.avatar';
 
 // Extend dayjs with necessary plugins
 extend(isSameOrAfter);
@@ -81,13 +87,14 @@ i18next.on('languageChanged', () => {
 // Initial setup
 updateDayjsLocale();
 
-const convertTimeFormatBasedOnLocality = (time: number) => {
-  if (isUSCitizen()) {
-    return `${time === 12 ? 12 : time % 12}:00 ${time >= 12 ? 'PM' : 'AM'}`;
-  } else {
-    return `${time}:00`;
-  }
-};
+// The hour labels of the week view: 12:00 AM (not 0:00 AM) at midnight, and
+// AM / PM in the reader's language (dayjs locale). A fixed UTC day, so a
+// daylight-saving switch today can't shift a label.
+const convertTimeFormatBasedOnLocality = (time: number) =>
+  dayjs
+    .utc('2000-01-01')
+    .hour(time)
+    .format(isUSCitizen() ? 'h:mm A' : 'H:mm');
 
 export const hours = Array.from(
   {
@@ -170,6 +177,8 @@ export const usePostActions = (onMutate?: () => void) => {
                         content,
                       })
                     ),
+                    // the copy starts on the same channel, ready to schedule
+                    selectedChannels: [data.integration],
                   }
                 : {})}
               allIntegrations={integrations.map((p) => ({ ...p }))}
@@ -288,17 +297,55 @@ export const usePostActions = (onMutate?: () => void) => {
         return;
       }
       tab.opener = null;
-      let releaseURL = post.releaseURL;
+      let release = {
+        releaseURL: '',
+        pending: true,
+        unavailable: false,
+        reconnect: false,
+      };
       try {
-        releaseURL =
-          (await (await fetch(`/posts/${post.id}/release-url`)).json())
-            .releaseURL || releaseURL;
+        release = await Promise.race([
+          fetch(`/posts/${post.id}/release-url`).then((r) => r.json()),
+          timer(5000).then(() => release),
+        ]);
       } catch (e) {}
+      if (release.unavailable) {
+        tab.close();
+        toaster.show(
+          t('post_has_no_public_link', 'This post has no public link'),
+          'warning'
+        );
+        return;
+      }
+      if (release.reconnect) {
+        tab.close();
+        toaster.show(
+          t(
+            'post_link_reconnect_channel',
+            'Reconnect this channel to open the post link'
+          ),
+          'warning'
+        );
+        return;
+      }
+      // the platform has not released the post link yet, or the request
+      // failed or took too long
+      if (release.pending) {
+        tab.close();
+        toaster.show(
+          t(
+            'post_link_not_ready',
+            'The post link is not available yet, please try again in a minute'
+          ),
+          'warning'
+        );
+        return;
+      }
       // multi-target posts (several subreddits / communities / channels)
       // join their URLs with commas: open the first one
-      tab.location.href = releaseURL.split(',')[0];
+      tab.location.href = (release.releaseURL || post.releaseURL).split(',')[0];
     },
-    [fetch]
+    [fetch, toaster, t]
   );
 
   return { editPost, deletePost, copyDebugJson, openStatistics, openMissingRelease, openPost };
@@ -335,7 +382,7 @@ export const DayView = () => {
 
   const options = useMemo(() => {
     const createdPosts = posts.map((post) => ({
-      integration: [integrations.find((i) => i.id === post.integration.id)!],
+      integration: integrations.filter((i) => i.id === post.integration.id),
       image: post?.integration?.picture || '',
       identifier: post?.integration?.providerIdentifier || '',
       id: post?.integration?.id || '',
@@ -723,50 +770,44 @@ export const CalendarColumn: FC<{
             modal.openModal({
               title: t('what_do_you_want_to_do', 'What do you want to do?'),
               children: (
-                <div className="flex flex-col">
-                  <div className="text-[20px] mb-[20px]">
+                <TadweenScope className="tdw-modal-form">
+                  <p className="tdw-modal-lead">
                     {t(
                       'post_already_published_republish_warning',
                       'This post was already published. Republishing will publish it again to'
                     )}{' '}
                     {post.integration?.name}{' '}
                     {t('republish_at', 'at')} {getDate.format('DD/MM/YYYY HH:mm')}.
-                    {(!!item.interval || !!post.intervalInDays) && (
-                      <div className="mt-[10px]">
-                        {t(
-                          'republish_recurring_note',
-                          'This is a recurring post: your changes apply to all future recurrences starting now.'
-                        )}
-                      </div>
-                    )}
+                  </p>
+                  {(!!item.interval || !!post.intervalInDays) && (
+                    <p className="tdw-modal-note">
+                      <Icon name="repeat" size={16} />
+                      {t(
+                        'republish_recurring_note',
+                        'This is a recurring post: your changes apply to all future recurrences starting now.'
+                      )}
+                    </p>
+                  )}
+                  <div className="tdw-modal-foot">
+                    <TdwButton
+                      onClick={() => {
+                        modal.closeAll();
+                        resolve('update');
+                      }}
+                    >
+                      {t('just_update_post_details', 'Just update the post details')}
+                    </TdwButton>
+                    <TdwButton
+                      variant="primary"
+                      onClick={() => {
+                        modal.closeAll();
+                        resolve('schedule');
+                      }}
+                    >
+                      {t('reschedule_post', 'Reschedule the post')}
+                    </TdwButton>
                   </div>
-                  <div className="flex w-full gap-[10px]">
-                    <div className="flex-1 flex">
-                      <Button
-                        type="button"
-                        className="flex-1"
-                        onClick={() => {
-                          modal.closeAll();
-                          resolve('update');
-                        }}
-                      >
-                        {t('just_update_post_details', 'Just update the post details')}
-                      </Button>
-                    </div>
-                    <div className="flex-1 flex">
-                      <Button
-                        type="button"
-                        className="flex-1"
-                        onClick={() => {
-                          modal.closeAll();
-                          resolve('schedule');
-                        }}
-                      >
-                        {t('reschedule_post', 'Reschedule the post')}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                </TadweenScope>
               ),
               onClose: () => resolve('cancel'),
             });
@@ -995,21 +1036,17 @@ export const CalendarColumn: FC<{
                   {integrations.map((selectedIntegrations) => (
                     <div
                       className="relative"
-                      key={selectedIntegrations.identifier}
+                      key={selectedIntegrations.id}
                     >
                       <div
                         className={clsx(
                           'relative w-[34px] h-[34px] rounded-[8px] flex justify-center items-center filter transition-all duration-500'
                         )}
                       >
-                        <SafeImage
-                          src={
-                            selectedIntegrations.picture || '/no-picture.jpg'
-                          }
-                          className="rounded-[8px]"
-                          alt={selectedIntegrations.identifier}
-                          width={32}
-                          height={32}
+                        <TadweenAvatarImage
+                          src={selectedIntegrations.picture}
+                          name={selectedIntegrations.name}
+                          className="rounded-[8px] w-[32px] h-[32px]"
                         />
                         {selectedIntegrations.identifier === 'youtube' ? (
                           <img
@@ -1194,7 +1231,10 @@ const CalendarItem: FC<{
       )}
       <div onClick={editPost} className="tdw-chip-body">
         <div className="tdw-chip-avatar">
-          <img src={post.integration.picture! || '/no-picture.jpg'} alt="" />
+          <TadweenAvatarImage
+            src={post.integration.picture}
+            name={post.integration.name}
+          />
           <img
             className="tdw-chip-network"
             src={`/icons/platforms/${post.integration?.providerIdentifier}.png`}
@@ -1276,19 +1316,40 @@ const DebugJsonModal: FC<{ post: any }> = ({ post }) => {
   }, [fetch, post, toaster, t, closeCurrent]);
 
   return (
-    <div className="flex flex-col gap-[16px] p-[16px]">
-      <div className="text-textColor text-[14px]">
+    <TadweenScope className="tdw-modal-form">
+      <p className="tdw-modal-lead">
         {t('debug_choose_copy', 'Choose what you want to copy')}
-      </div>
-      <div className="flex gap-[10px]">
-        <Button onClick={copyPostId}>
-          {t('copy_post_id', 'Copy post id')}
-        </Button>
-        <Button secondary onClick={copyJson}>
-          {t('copy_debug_json', 'Copy Debug JSON')}
-        </Button>
-      </div>
-    </div>
+      </p>
+      <ul className="tdw-pick-list">
+        <li>
+          <button type="button" className="tdw-pick" onClick={copyPostId}>
+            <span className="tdw-pick-ico" aria-hidden="true">
+              <Icon name="hash" size={16} />
+            </span>
+            <span className="tdw-pick-text">
+              <span className="tdw-pick-title">
+                {t('copy_post_id', 'Copy post id')}
+              </span>
+              <span className="tdw-pick-desc time">{post.id}</span>
+            </span>
+            <Icon name="copy" size={16} className="tdw-pick-go" />
+          </button>
+        </li>
+        <li>
+          <button type="button" className="tdw-pick" onClick={copyJson}>
+            <span className="tdw-pick-ico" aria-hidden="true">
+              <Icon name="code" size={16} />
+            </span>
+            <span className="tdw-pick-text">
+              <span className="tdw-pick-title">
+                {t('copy_debug_json', 'Copy Debug JSON')}
+              </span>
+            </span>
+            <Icon name="copy" size={16} className="tdw-pick-go" />
+          </button>
+        </li>
+      </ul>
+    </TadweenScope>
   );
 };
 const CopyDebug = () => {
@@ -1416,37 +1477,47 @@ export const SetSelectionModal: FC<{
 }> = ({ sets, onSelect, onContinueWithoutSet }) => {
   const t = useT();
 
+  // Tadween: each set is an option row; "without a set" is the quiet way out
   return (
-    <div className="flex flex-col gap-4">
-      <div className="text-lg font-medium">
+    <TadweenScope className="tdw-modal-form">
+      <p className="tdw-modal-lead">
         {t('choose_set_or_continue', 'Choose a set or continue without one')}
-      </div>
-
-      <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+      </p>
+      <ul className="tdw-pick-list">
         {sets.map((set) => (
-          <div
-            key={set.id}
-            onClick={() => onSelect(set)}
-            className="p-3 border border-tableBorder rounded-lg cursor-pointer hover:transition-colors"
-          >
-            <div className="font-medium">{set.name}</div>
-            {set.description && (
-              <div className="text-sm text-gray-400 mt-1">
-                {set.description}
-              </div>
-            )}
-          </div>
+          <li key={set.id}>
+            <button
+              type="button"
+              className="tdw-pick"
+              onClick={() => onSelect(set)}
+            >
+              <span className="tdw-pick-ico" aria-hidden="true">
+                <Icon name="layers" size={16} />
+              </span>
+              <span className="tdw-pick-text">
+                <span className="tdw-pick-title" dir="auto">
+                  {set.name}
+                </span>
+                {set.description && (
+                  <span className="tdw-pick-desc" dir="auto">
+                    {set.description}
+                  </span>
+                )}
+              </span>
+              <Icon
+                name="chevron-right"
+                size={16}
+                className="tdw-pick-go tdw-flip"
+              />
+            </button>
+          </li>
         ))}
-      </div>
-
-      <div className="flex gap-2 pt-2 border-t border-tableBorder">
-        <button
-          onClick={onContinueWithoutSet}
-          className="flex-1 px-4 py-2 text-textColor rounded-lg hover:transition-colors"
-        >
+      </ul>
+      <div className="tdw-modal-foot">
+        <TdwButton variant="ghost" onClick={onContinueWithoutSet}>
           {t('continue_without_set', 'Continue without set')}
-        </button>
+        </TdwButton>
       </div>
-    </div>
+    </TadweenScope>
   );
 };

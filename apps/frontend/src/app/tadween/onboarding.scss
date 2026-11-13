@@ -1,0 +1,266 @@
+// Tadween onboarding and first load. Loaded from global.scss.
+//
+//   · First billing: components/billing/first.billing.component.tsx, the
+//     one-page plan picker and payment that replaces the app (Postiz's).
+//   · Onboarding modal: components/onboarding/onboarding.modal.tsx (Postiz's
+//     three steps). The channel tiles, agent chips and panels are the design
+//     system's Onboarding pieces in billing.scss.
+//   · Boot screen: components/tadween/shell/boot.screen.tsx, the Loading
+//     pattern shown while the app's first request is on its way.
+// Everything sits inside `.tdw-ui`, so the kit's tokens (--card, --primary…)
+// and motion variables apply. Reduced motion: steps cross-fade,
+// the progress line and shimmer stop (below and in the kit).
+
+$phone: '(max-width: 1025px)';
+
+// ── First billing screen (components/billing/first.billing.component.tsx) ──
+// Postiz's first billing: it replaces the app shell, edge to edge. One page:
+// the plan picker beside Stripe's payment form; phones stack them, plan
+// first, with a bar that leads to the payment while it is out of view.
+.tdw-shell:has(> .tdw-fb) {
+  padding: 0 !important;
+}
+.tdw-shell > .tdw-fb {
+  flex: 1;
+}
+
+.tdw-ui {
+  &.tdw-fb { display: flex; flex-direction: column; min-height: 100dvh; background: var(--background); color: var(--foreground); }
+  .tdw-fb-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4) var(--space-10, 40px); border-bottom: 1px solid var(--border); }
+  .tdw-fb-tools { display: flex; align-items: center; gap: var(--space-2); min-width: 0; color: var(--muted-foreground); }
+  .tdw-fb-icon { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; color: var(--muted-foreground); }
+  .tdw-fb-icon:hover { color: var(--foreground); }
+
+  .tdw-fb-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 480px); gap: var(--space-12); align-items: start; width: 100%; box-sizing: border-box; }
+  // the full screen; on Billing the page has its own padding
+  &.tdw-fb .tdw-fb-body { max-width: 1280px; margin: 0 auto; padding: var(--space-10, 40px) var(--space-10, 40px) 64px; }
+  .tdw-fb-plans { display: grid; gap: var(--space-6); align-content: start; min-width: 0; }
+  .tdw-fb-pay { position: sticky; top: var(--space-6); display: grid; gap: var(--space-3); min-width: 0; scroll-margin-top: var(--space-4); }
+
+  .tdw-fb-intro { display: grid; gap: var(--space-3); justify-items: start; }
+  .tdw-fb-title { margin: 0; font-size: 36px; line-height: 44px; font-weight: 600; letter-spacing: -0.025em; text-wrap: balance; }
+  .tdw-fb-lead { margin: 0; max-width: 620px; font-size: 16px; line-height: 24px; color: var(--muted-foreground); text-wrap: pretty; }
+  .tdw-fb-video { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; font: inherit; font-size: 14px; font-weight: 500; color: var(--primary); cursor: pointer; border-radius: var(--radius-sm); }
+  .tdw-fb-video:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .tdw-fb-video:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .tdw-fb-checks { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: var(--space-1) 0 0; padding: 0; list-style: none; font-size: 14px; line-height: 20px; font-weight: 500; }
+  .tdw-fb-checks li { display: flex; align-items: center; gap: 8px; }
+  .tdw-fb-checks .pz-icon { flex: none; color: var(--success); }
+
+  .tdw-fb-choose { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-2); }
+  .tdw-fb-h2 { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -0.02em; }
+
+  // Tier cards (Postiz's plan boxes): a radio group, one tap each
+  .tdw-tiers { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: var(--space-3); }
+  .tdw-tiers[data-count='1'] { --cols: 1; }
+  .tdw-tiers[data-count='2'] { --cols: 2; }
+  .tdw-tiers[data-count='4'] { --cols: 4; }
+  .tdw-tier { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; min-height: 104px; margin: 0; padding: var(--space-4) var(--space-5); border: 0; border-radius: var(--radius-xl); background: var(--card); box-shadow: 0 0 0 1px var(--border), var(--shadow-sm); color: var(--foreground); font: inherit; text-align: start; cursor: pointer; transition: box-shadow var(--duration-fast) ease, background-color var(--duration-fast) ease, transform var(--duration-instant) ease-out; }
+  .tdw-tier:hover { box-shadow: 0 0 0 1px var(--input), var(--shadow-md); }
+  .tdw-tier:active { transform: scale(0.98); }
+  .tdw-tier:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .tdw-tier.is-on { background: color-mix(in oklab, var(--primary-soft) 65%, var(--card)); box-shadow: 0 0 0 2px var(--primary), var(--shadow-md); }
+  .tdw-tier:disabled { cursor: default; transform: none; }
+  .tdw-tier:disabled:not(.is-on) { opacity: 0.6; }
+  .tdw-tier-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; }
+  .tdw-tier-name { font-size: 16px; line-height: 22px; font-weight: 600; }
+  .tdw-tier-flag { padding: 2px 8px; border-radius: var(--radius-full); background: var(--primary); color: var(--primary-foreground); font-size: 11px; line-height: 16px; font-weight: 600; white-space: nowrap; }
+  .tdw-tier-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
+  .tdw-tier-amount { font-family: var(--font-mono); font-size: 32px; line-height: 36px; font-weight: 500; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
+  .tdw-tier-per { font-size: 13px; color: var(--muted-foreground); }
+  .tdw-tier .tdw-founder { margin: 0; }
+  // the tile keeps the tag; the regular price is under Features
+  .tdw-tier .tdw-founder-regular { display: none; }
+
+  .tdw-fb-features { display: grid; gap: var(--space-4); margin-top: var(--space-4); }
+  .tdw-fb-features .tdw-plan-features { margin: 0; padding: 0; border: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-8); }
+  .tdw-fb-faq { margin-top: var(--space-6); }
+  .tdw-fb-pay .tdw-plan-later { padding-top: var(--space-1); }
+  .tdw-fb-bar { display: none; }
+
+  &.is-ar .tdw-fb-title { font-size: 32px; line-height: 48px; letter-spacing: 0; }
+  &.is-ar .tdw-fb-lead { line-height: 28px; }
+
+  @media #{$phone} {
+    .tdw-fb-head { padding: var(--space-3) var(--space-4); gap: var(--space-2); }
+    .tdw-fb-tools { gap: 2px; }
+    .tdw-fb-body { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
+    &.tdw-fb .tdw-fb-body { padding: var(--space-6) var(--space-4) 112px; }
+    .tdw-fb-pay { position: static; }
+    .tdw-fb-title { font-size: 28px; line-height: 34px; }
+    &.is-ar .tdw-fb-title { font-size: 26px; line-height: 40px; }
+    .tdw-fb-checks { flex-direction: column; gap: var(--space-2); }
+    // as Postiz: the questions stay on wide screens, the payment comes sooner
+    .tdw-fb-faq { display: none; }
+    .tdw-fb-features { margin-top: var(--space-2); }
+    .tdw-fb-features .tdw-plan-features { grid-template-columns: minmax(0, 1fr); }
+    // one row per plan: name and tags at the start, the price at the end
+    .tdw-tiers { --cols: 1 !important; gap: var(--space-2); }
+    .tdw-tier { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px var(--space-3); min-height: 72px; padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); }
+    .tdw-tier-top { grid-column: 1; justify-content: flex-start; }
+    .tdw-tier-price { grid-column: 2; grid-row: 1 / span 2; flex-wrap: nowrap; }
+    .tdw-tier .tdw-founder { grid-column: 1; }
+    .tdw-tier-amount { font-size: 26px; line-height: 30px; }
+    .tdw-fb-bar { position: fixed; z-index: 50; inset-inline: 0; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); background: var(--card); border-top: 1px solid var(--border); box-shadow: 0 -8px 24px -16px rgb(0 0 0 / 0.35); animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
+    .tdw-fb-bar-text { display: grid; min-width: 0; font-size: 13px; line-height: 18px; color: var(--muted-foreground); }
+    .tdw-fb-bar-text strong { color: var(--foreground); font-size: 15px; line-height: 20px; font-weight: 600; }
+    .tdw-fb-bar .pz-btn { height: 48px; flex: none; }
+  }
+  @media #{$phone} and (max-width: 560px) {
+    .pz-ob-logo-word { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tdw-tier, .tdw-tier-amount, .tdw-fb-bar { animation: none !important; transition: none; transform: none !important; }
+  }
+  @media (prefers-contrast: more) {
+    .tdw-tier { box-shadow: 0 0 0 1px var(--input); }
+  }
+}
+
+// ── Waitlist screen (components/tadween/shell/waitlist.screen.tsx) ─────────
+// The first billing screen's frame (.tdw-fb head) with one centred card: the
+// workspace's place in line and what happens next.
+.tdw-ui {
+  .tdw-wl-body { flex: 1; display: flex; align-items: center; justify-content: center; padding: var(--space-10, 40px) var(--space-6); box-sizing: border-box; }
+  .tdw-wl-card { display: grid; justify-items: center; gap: var(--space-4); width: 100%; max-width: 520px; padding: var(--space-10, 40px) var(--space-8); border-radius: var(--radius-xl); background: var(--card); box-shadow: 0 0 0 1px var(--border), var(--shadow-sm); text-align: center; box-sizing: border-box; }
+  .tdw-wl-mark { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
+  .tdw-wl-title { margin: 0; font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.02em; text-wrap: balance; }
+  .tdw-wl-lead { margin: 0; font-size: 16px; line-height: 24px; color: var(--muted-foreground); text-wrap: pretty; }
+  .tdw-wl-position { display: grid; gap: 2px; justify-items: center; margin-top: var(--space-2); padding: var(--space-4) var(--space-8); border-radius: var(--radius-lg); background: var(--muted); }
+  .tdw-wl-position-label { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--muted-foreground); }
+  .tdw-wl-position-value { font-size: 40px; line-height: 48px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .tdw-wl-steps { display: grid; gap: var(--space-2); margin: var(--space-2) 0 0; padding: 0; list-style: none; font-size: 14px; line-height: 20px; text-align: start; }
+  .tdw-wl-steps li { display: flex; align-items: flex-start; gap: 8px; }
+  .tdw-wl-steps .pz-icon { flex: none; margin-top: 2px; color: var(--success); }
+  &.is-ar .tdw-wl-title { letter-spacing: 0; line-height: 44px; }
+  &.is-ar .tdw-wl-lead { line-height: 28px; }
+
+  @media #{$phone} {
+    .tdw-wl-body { align-items: flex-start; padding: var(--space-6) var(--space-4); }
+    .tdw-wl-card { padding: var(--space-8) var(--space-5); }
+    .tdw-wl-title { font-size: 24px; line-height: 32px; }
+  }
+}
+
+// ── Onboarding modal (components/onboarding/onboarding.modal.tsx) ─────────────
+// Postiz's full-screen onboarding modal (Connect Channels → Connect Agents →
+// Watch Tutorial) in the kit: a rounded card over the page; on phones a
+// full-screen sheet whose actions stay at the bottom.
+.tdw-ui {
+  &.tdw-obm { display: flex; width: 100%; min-height: 100%; padding: var(--space-6); box-sizing: border-box; color: var(--foreground); }
+  .tdw-obm-card { position: relative; flex: 1; display: flex; flex-direction: column; min-width: 0; border-radius: 20px; background: var(--background); box-shadow: 0 0 0 1px var(--border), var(--shadow-lg, var(--shadow-md)); }
+  .tdw-obm-close { position: absolute; top: var(--space-4); inset-inline-end: var(--space-4); z-index: 3; width: 40px; height: 40px; }
+  .tdw-obm-body { flex: 1; display: flex; flex-direction: column; gap: var(--space-6); padding: var(--space-8); min-width: 0; }
+
+  .tdw-obm-steps { display: flex; align-items: center; justify-content: center; gap: var(--space-4); margin: 0; padding: 0 48px; list-style: none; }
+  .tdw-obm-step { display: flex; align-items: center; gap: 8px; color: var(--muted-foreground); font-size: 14px; line-height: 20px; }
+  .tdw-obm-num { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--muted); color: var(--muted-foreground); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; transition: background-color var(--duration-base) ease, color var(--duration-base) ease; }
+  .tdw-obm-step.is-current { color: var(--foreground); font-weight: 500; }
+  .tdw-obm-step.is-current .tdw-obm-num { background: var(--primary); color: var(--primary-foreground); }
+  .tdw-obm-step.is-done .tdw-obm-num { background: var(--primary-soft); color: var(--primary); }
+  .tdw-obm-line { width: 40px; height: 2px; flex: none; border-radius: 1px; background: var(--border); }
+
+  .tdw-obm-content { flex: 1; display: flex; flex-direction: column; gap: var(--space-6); width: 100%; max-width: 1100px; margin: 0 auto; min-width: 0; animation: pz-rise var(--duration-spring) var(--ease-spring) both; }
+  .tdw-obm-title { display: grid; gap: 4px; text-align: center; }
+  .tdw-obm-title h2 { margin: 0; font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.02em; text-wrap: balance; }
+  .tdw-obm-title p { margin: 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); text-wrap: pretty; }
+  .tdw-obm-connected { display: grid; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--card); box-shadow: 0 0 0 1px var(--border); }
+  .tdw-obm-section { display: grid; gap: var(--space-3); }
+  .tdw-obm-label-row { font-size: 14px; line-height: 20px; font-weight: 500; }
+  .tdw-obm-note { width: 100%; max-width: 860px; margin: 0 auto; padding: var(--space-4); border-radius: var(--radius-lg); background: var(--muted); color: var(--muted-foreground); font-size: 14px; line-height: 20px; text-align: center; }
+  .tdw-obm-agents { width: 100%; }
+  // "About you": three chip questions, a calm column
+  .tdw-obm-about { display: grid; gap: var(--space-6); width: 100%; max-width: 720px; margin: 0 auto; }
+  .tdw-obm-about .pz-ob-agent { height: 40px; padding: 0 14px; font-size: 14px; }
+  .tdw-obm-about-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+  .pz-ob-chips.is-start { justify-content: flex-start; }
+
+  .tdw-obm-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-top: auto; padding-top: var(--space-4); }
+  .tdw-obm-actions.is-end { justify-content: flex-end; }
+  .tdw-obm-actions-note { flex: 1; font-size: 13px; line-height: 18px; color: var(--muted-foreground); text-align: center; }
+
+  &.is-ar .tdw-obm-title h2 { letter-spacing: 0; line-height: 38px; }
+
+  @media #{$phone} {
+    &.tdw-obm { padding: 0; min-height: 100dvh; }
+    .tdw-obm-card { border-radius: 0; box-shadow: none; }
+    .tdw-obm-close { top: var(--space-2); inset-inline-end: var(--space-2); width: 44px; height: 44px; }
+    .tdw-obm-body { gap: var(--space-5); padding: var(--space-4) var(--space-4) 0; }
+    .tdw-obm-steps { justify-content: flex-start; gap: var(--space-2); padding: 6px 0 0; padding-inline-end: 48px; }
+    .tdw-obm-line { width: 16px; }
+    .tdw-obm-about { gap: var(--space-5); }
+    .tdw-obm-about-pair { grid-template-columns: minmax(0, 1fr); }
+    // the step names don't fit: the numbers carry the progress, the current one keeps its name
+    .tdw-obm-step:not(.is-current) .tdw-obm-label { display: none; }
+    .tdw-obm-title { text-align: start; }
+    .tdw-obm-title h2 { font-size: 22px; line-height: 28px; }
+    .tdw-obm-agents .pz-ob-chips:first-child { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; margin-inline: calc(var(--space-4) * -1); padding-inline: var(--space-4); scrollbar-width: none; }
+    .tdw-obm-agents .pz-ob-chips:first-child .pz-ob-agent { flex: none; height: 40px; }
+    .pz-ob-panel.is-row { flex-direction: column; align-items: stretch; }
+    .tdw-obm-actions { position: sticky; bottom: 0; z-index: 2; margin-inline: calc(var(--space-4) * -1); padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); background: var(--background); border-top: 1px solid var(--border); }
+    .tdw-obm-actions-note { display: none; }
+    .tdw-obm-actions .pz-btn { height: 48px; }
+    .tdw-obm-actions.is-end .pz-btn, .tdw-obm-actions .pz-btn-primary { flex: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tdw-obm-content { animation: pz-fade 150ms ease both !important; }
+  }
+}
+
+// AI assistant guides (tadween/settings/api.settings.tsx AgentConnect): the
+// guide bar stays inside the screen on phones
+.tdw-ui {
+  .pz-ob-agents > *, .pz-ob-panel, .pz-ob-panel-body { min-width: 0; }
+  .pz-ob-agents .tdw-api-guide-bar { overflow-x: auto; scrollbar-width: none; }
+  .pz-ob-agents .tdw-api-guide-bar .pz-seg { flex: none; }
+}
+
+// ── Boot screen (first load) ─────────────────────────────────────────────────
+@keyframes tdw-boot-line {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+@keyframes tdw-boot-line-rtl {
+  from { transform: translateX(100%); }
+  to { transform: translateX(-250%); }
+}
+.tdw-ui.tdw-boot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--background);
+  animation: pz-fade var(--duration-base) ease 150ms both;
+
+  // calm progress along the top edge
+  .tdw-boot-line { position: fixed; z-index: 10; inset-inline: 0; top: 0; height: 2px; overflow: hidden; background: color-mix(in oklab, var(--primary) 14%, transparent); }
+  .tdw-boot-line::after { content: ''; position: absolute; inset-block: 0; inset-inline-start: 0; width: 40%; border-radius: 2px; background: var(--primary); animation: tdw-boot-line 1.6s var(--ease-spring) infinite; }
+  [dir='rtl'] & .tdw-boot-line::after, &[dir='rtl'] .tdw-boot-line::after { animation-name: tdw-boot-line-rtl; }
+
+  > .tdw-fb { flex: 1; }
+
+  .tdw-boot-shell { flex: 1; display: flex; gap: 8px; padding: 12px; }
+  .tdw-boot-side { display: grid; align-content: start; gap: 24px; width: 256px; flex: none; padding: 16px 14px; border-radius: 12px; background: var(--card); }
+  .tdw-boot-brand { display: flex; align-items: center; gap: 10px; }
+  .tdw-boot-brand svg, .tdw-boot-phone-mark svg { margin: 0 !important; width: 32px !important; height: 32px !important; min-width: 32px !important; min-height: 32px !important; }
+  .tdw-boot-nav { display: grid; gap: 18px; padding-top: 8px; }
+  .tdw-boot-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; border-radius: 12px; overflow: hidden; background: var(--border); }
+  .tdw-boot-top { display: flex; align-items: center; gap: 12px; height: 68px; padding: 0 20px; background: var(--card); }
+  .tdw-boot-phone-mark { display: none; }
+  .tdw-boot-body { flex: 1; display: grid; align-content: start; gap: 16px; padding: 28px; background: var(--background); }
+  .tdw-boot-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding-top: 8px; }
+
+  @media #{$phone} {
+    .tdw-boot-shell { padding: 8px; }
+    .tdw-boot-side { display: none; }
+    .tdw-boot-top { height: 56px; padding: 0 12px; }
+    .tdw-boot-phone-mark { display: inline-flex; }
+    .tdw-boot-body { padding: 20px 16px; }
+    .tdw-boot-cards { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    .tdw-boot-line::after { animation: none !important; width: 100%; opacity: 0.5; }
+  }
+}

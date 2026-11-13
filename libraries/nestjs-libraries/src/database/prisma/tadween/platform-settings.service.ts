@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PlatformSettingsRepository } from '@gitroom/nestjs-libraries/database/prisma/tadween/platform-settings.repository';
 import {
+  AccessSettings,
   BRAND_LINK_KEYS,
   Branding,
   brandingDefaults,
+  DEFAULT_ACCESS,
   DEFAULT_FOUNDER_CAP,
   DEFAULT_YEARLY_DISCOUNT_PERCENT,
   FEATURE_KEYS,
@@ -19,6 +21,7 @@ const KEYS = {
   features: 'features',
   branding: 'branding',
   billing: 'billing',
+  access: 'access',
 } as const;
 
 // Settings are read on hot paths (sign-up, every page load), so they are kept
@@ -141,6 +144,76 @@ export class PlatformSettingsService {
       },
       userId
     );
+  }
+
+  // Payments switch, free plan, cap and early-access cutoff, with defaults for
+  // anything not saved. Values that don't parse fall back to the default.
+  async getAccess(): Promise<AccessSettings> {
+    const stored = (await this.values())[KEYS.access] || {};
+    const free = stored.freePlan || {};
+    const count = (value: unknown, fallback: number, min = 0) =>
+      Number.isInteger(value) && (value as number) >= min
+        ? (value as number)
+        : fallback;
+    return {
+      payments:
+        typeof stored.payments === 'boolean'
+          ? stored.payments
+          : DEFAULT_ACCESS.payments,
+      freePlan: {
+        enabled:
+          typeof free.enabled === 'boolean'
+            ? free.enabled
+            : DEFAULT_ACCESS.freePlan.enabled,
+        channels: count(free.channels, DEFAULT_ACCESS.freePlan.channels),
+        members: count(free.members, DEFAULT_ACCESS.freePlan.members, 1),
+        aiCredits: count(free.aiCredits, DEFAULT_ACCESS.freePlan.aiCredits),
+      },
+      cap:
+        stored.cap === null
+          ? null
+          : count(stored.cap, DEFAULT_ACCESS.cap as number),
+      cutoff:
+        typeof stored.cutoff === 'string' && !isNaN(Date.parse(stored.cutoff))
+          ? stored.cutoff
+          : null,
+    };
+  }
+
+  async setAccess(access: AccessSettings, userId: string) {
+    return this.save(
+      KEYS.access,
+      {
+        ...((await this.values())[KEYS.access] || {}),
+        payments: access.payments,
+        freePlan: {
+          enabled: access.freePlan.enabled,
+          channels: access.freePlan.channels,
+          members: access.freePlan.members,
+          aiCredits: access.freePlan.aiCredits,
+        },
+        cap: access.cap,
+        cutoff: access.cutoff,
+      },
+      userId
+    );
+  }
+
+  // Stamps the early-access cutoff the first time any process boots with this
+  // setting, so every workspace that exists at deploy time keeps full access.
+  // Never overwrites a saved setting (several processes boot at once).
+  async ensureAccessCutoff() {
+    const stored = (await this.values())[KEYS.access];
+    if (stored?.cutoff) {
+      return;
+    }
+    const cutoff = new Date().toISOString();
+    if (stored) {
+      // saved from /admin before any boot stamped it
+      return this.save(KEYS.access, { ...stored, cutoff }, 'system');
+    }
+    await this._repository.createIfMissing(KEYS.access, { cutoff }, 'system');
+    this._cache = null;
   }
 
   // What any visitor may read: no secrets, nothing per-user. `ai.available`

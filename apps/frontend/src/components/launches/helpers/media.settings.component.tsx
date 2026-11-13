@@ -7,6 +7,11 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import {
+  Button as TdwButton,
+  TadweenScope,
+} from '@gitroom/frontend/components/tadween/ui';
 const postUrlEmitter = new EventEmitter();
 
 export const MediaSettingsLayout = () => {
@@ -99,6 +104,7 @@ export const CreateThumbnail: FC<{
   altText?: string;
   onAltTextChange?: (altText: string) => void;
 }> = (props) => {
+  const t = useT();
   const { onSelect, media } = props;
   const { backendUrl } = useVariables();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -239,9 +245,9 @@ export const CreateThumbnail: FC<{
               onChange={handleSeek}
               className="w-full h-2 bg-fifth rounded-lg appearance-none cursor-pointer slider"
               style={{
-                background: `linear-gradient(to right, #4f46e5 0%, #4f46e5 ${
+                background: `linear-gradient(to right, var(--tdw-primary) 0%, var(--tdw-primary) ${
                   (currentTime / duration) * 100
-                }%, #374151 ${(currentTime / duration) * 100}%, #374151 100%)`,
+                }%, var(--tdw-muted) ${(currentTime / duration) * 100}%, var(--tdw-muted) 100%)`,
               }}
             />
             <div className="flex justify-between text-sm text-textColor">
@@ -251,13 +257,14 @@ export const CreateThumbnail: FC<{
           </div>
 
           <div className="flex justify-center">
-            <button
+            <TdwButton
+              variant="primary"
               onClick={captureFrame}
-              disabled={isCapturing}
-              className="bg-forth text-white px-6 py-2 rounded-lg hover:bg-opacity-80 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              loading={isCapturing}
+              loadingLabel={t('tdw_capturing', 'Capturing…')}
             >
-              {isCapturing ? 'Capturing...' : 'Select This Frame'}
-            </button>
+              {t('tdw_select_frame', 'Use this frame')}
+            </TdwButton>
           </div>
         </>
       )}
@@ -309,6 +316,7 @@ export const MediaComponentInner: FC<{
     | undefined;
 }> = (props) => {
   const { onClose, onSelect, media } = props;
+  const t = useT();
   const setActivateExitButton = useLaunchStore((e) => e.setActivateExitButton);
   const newFetch = useFetch();
   const [newThumbnail, setNewThumbnail] = useState<string | null>(null);
@@ -363,17 +371,22 @@ export const MediaComponentInner: FC<{
   }, [altText, newThumbnail, thumbnail, thumbnailTimestamp]);
 
   return (
-    <div className="mt-[10px] flex flex-col gap-[20px]">
-      <div className="flex flex-col space-y-2">
-        <label className="text-sm text-textColor font-medium">
-          Alt Text (for accessibility)
+    <TadweenScope className="tdw-modal-form">
+      <div className="pz-field">
+        <label htmlFor="media-alt-text" className="pz-label">
+          {t('tdw_alt_text', 'Alt text (for accessibility)')}
         </label>
         <input
+          id="media-alt-text"
           type="text"
+          autoFocus
           value={altText}
           onChange={(e) => setAltText(e.target.value)}
-          placeholder="Describe the image/video content..."
-          className="w-full px-3 py-2 bg-fifth border border-tableBorder rounded-lg text-textColor placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forth focus:border-transparent"
+          placeholder={t(
+            'tdw_alt_text_placeholder',
+            'Describe the image or video'
+          )}
+          className="pz-input"
         />
       </div>
       {hasExtension(media?.path, 'mp4') && (
@@ -385,8 +398,8 @@ export const MediaComponentInner: FC<{
                 {/* Show existing thumbnail if it exists */}
                 {(newThumbnail || thumbnail) && (
                   <div className="flex flex-col space-y-2">
-                    <span className="text-sm text-textColor">
-                      Current Thumbnail:
+                    <span className="pz-label">
+                      {t('tdw_current_thumbnail', 'Current thumbnail')}
                     </span>
                     <img
                       src={newThumbnail || thumbnail}
@@ -397,27 +410,28 @@ export const MediaComponentInner: FC<{
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex space-x-2">
-                  <button
+                <div className="flex gap-[8px] mt-[12px]">
+                  <TdwButton
+                    className="flex-1"
                     disabled={loading}
                     onClick={() => setIsEditingThumbnail(true)}
-                    className="bg-third text-textColor px-6 py-2 rounded-lg hover:bg-opacity-80 transition-all flex-1 border border-tableBorder"
                   >
                     {media.thumbnail || newThumbnail
-                      ? 'Edit Thumbnail'
-                      : 'Create Thumbnail'}
-                  </button>
+                      ? t('tdw_edit_thumbnail', 'Edit thumbnail')
+                      : t('tdw_create_thumbnail', 'Create thumbnail')}
+                  </TdwButton>
                   {(thumbnail || newThumbnail) && (
-                    <button
+                    <TdwButton
+                      variant="ghost"
+                      className="flex-1 tdw-danger-text"
                       disabled={loading}
                       onClick={() => {
                         setNewThumbnail(null);
                         setThumbnail(null);
                       }}
-                      className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-opacity-80 transition-all flex-1 border border-red-700"
                     >
-                      Clear Thumbnail
-                    </button>
+                      {t('tdw_clear_thumbnail', 'Clear thumbnail')}
+                    </TdwButton>
                   )}
                 </div>
               </div>
@@ -427,7 +441,7 @@ export const MediaComponentInner: FC<{
                 <div className="flex justify-start">
                   <button
                     onClick={() => setIsEditingThumbnail(false)}
-                    className="text-textColor hover:text-white transition-colors flex items-center space-x-2"
+                    className="pz-btn pz-btn-ghost pz-btn-sm"
                   >
                     <svg
                       width="16"
@@ -444,7 +458,7 @@ export const MediaComponentInner: FC<{
                         strokeLinejoin="round"
                       />
                     </svg>
-                    <span>Back</span>
+                    <span>{t('back', 'Back')}</span>
                   </button>
                 </div>
 
@@ -473,22 +487,15 @@ export const MediaComponentInner: FC<{
       )}
 
       {!isEditingThumbnail && (
-        <div className="flex space-x-2 !mt-[20px]">
-          <button
-            disabled={loading}
-            onClick={onClose}
-            className="flex-1 bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-opacity-80 transition-all"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={save}
-            className="flex-1 bg-forth text-white px-6 py-2 rounded-lg hover:bg-opacity-80 transition-all"
-          >
-            Save Changes
-          </button>
+        <div className="tdw-modal-foot">
+          <TdwButton variant="ghost" disabled={loading} onClick={onClose}>
+            {t('cancel', 'Cancel')}
+          </TdwButton>
+          <TdwButton variant="primary" onClick={save}>
+            {t('save_changes', 'Save Changes')}
+          </TdwButton>
         </div>
       )}
-    </div>
+    </TadweenScope>
   );
 };

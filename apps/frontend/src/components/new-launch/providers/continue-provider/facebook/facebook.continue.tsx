@@ -16,32 +16,28 @@ interface FacebookItem {
 export const FacebookContinue = withContinueProvider<FacebookItem, string>({
   endpoint: 'pages',
   swrKey: 'load-facebook-pages',
-  titleKey: 'select_page',
-  titleDefault: 'Select Page:',
-  emptyStateMessages: [
-    {
-      key: 'we_couldn_t_find_any_business_connected_to_the_selected_pages',
-      text: "We couldn't find any business connected to the selected pages.",
+  title: { key: 'tdw_continue_facebook_title', text: 'Choose a Facebook Page' },
+  empty: {
+    title: {
+      key: 'tdw_continue_facebook_empty_title',
+      text: 'No Facebook Pages to connect',
     },
-    {
-      key: 'we_recommend_you_to_connect_all_the_pages_and_all_the_businesses',
-      text: 'We recommend you to connect all the pages and all the businesses.',
+    body: {
+      key: 'tdw_continue_facebook_empty_body',
+      text: "We couldn't find a Page you manage, or Tadween wasn't given access to it. Reconnect and select all your Pages and businesses when Facebook asks.",
     },
-    {
-      key: 'please_close_this_dialog_delete_your_integration_and_add_a_new_channel_again',
-      text: 'Please close this dialog, delete your integration and add a new channel again.',
+    helpUrl: 'https://www.facebook.com/help/405094243235242',
+    helpLabel: {
+      key: 'tdw_continue_facebook_help',
+      text: 'Check Page access on Facebook',
     },
-  ],
+  },
+  getItemName: (item) => item.name,
+  getItemPicture: (item) => item.picture?.data?.url,
+  getItemDescription: (item) =>
+    item.username ? `@${item.username}` : undefined,
   getItemId: (item) => item.id,
   getSelectionValue: (item) => item.id,
   transformSaveData: (selection) => ({ page: selection }),
   isSelected: (item, selection) => selection === item.id,
-  renderItem: (item) => (
-    <>
-      <div>
-        <img className="w-full" src={item.picture.data.url} alt="profile" />
-      </div>
-      <div>{item.name}</div>
-    </>
-  ),
 });

@@ -1,3 +1,7 @@
+import {
+  FREE_PLAN_AI_MESSAGE,
+  isFreePlanAiRefusal,
+} from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 import { AgentToolInterface } from '@gitroom/nestjs-libraries/chat/agent.tool.interface';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
@@ -16,9 +20,9 @@ export class GenerateImageTool implements AgentToolInterface {
   run() {
     return createTool({
       id: 'generateImageTool',
-      description: `Generate image to use in a post,
-                    in case the user specified a platform that requires attachment and attachment was not provided,
-                    ask if they want to generate a picture of a video.
+      description: `Generate an image with AI from a prompt and save it to the media library, to attach to a post.
+                    When the user picked a platform that requires an attachment and gave none, ask if they want an image generated.
+                    It uses the workspace's AI credits. Returns the saved media { id, path }, or { error }.
       `,
       mcp: {
         annotations: {
@@ -64,8 +68,9 @@ export class GenerateImageTool implements AgentToolInterface {
         } catch (err) {
           // SubscriptionException (402) carries { section, action } and its
           // message is just "Subscription Exception", so translate it
-          const message =
-            err instanceof HttpException && err.getStatus() === 402
+          const message = isFreePlanAiRefusal(err)
+            ? FREE_PLAN_AI_MESSAGE
+            : err instanceof HttpException && err.getStatus() === 402
               ? "The workspace has used its AI credits this month. They can buy more credits or upgrade in Billing."
               : err instanceof Error
               ? err.message

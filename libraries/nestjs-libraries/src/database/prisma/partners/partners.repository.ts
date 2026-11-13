@@ -229,7 +229,14 @@ export class PartnersRepository {
   getUsers(ids: string[]) {
     return this._user.model.user.findMany({
       where: { id: { in: ids } },
-      select: { id: true, email: true, name: true, ip: true, agent: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        ip: true,
+        agent: true,
+        language: true,
+      },
     });
   }
 
@@ -544,6 +551,28 @@ export class PartnersRepository {
       where: { partnerId, status: 'APPLYING', updatedAt: { lte: before } },
       select: REWARD_SELECT,
     });
+  }
+
+  // Held commission whose hold is over
+  dueHolds(partnerId: string, now: Date) {
+    return this._reward.model.referralReward.findMany({
+      where: {
+        partnerId,
+        type: 'COMMISSION',
+        status: 'PENDING',
+        availableAt: { lte: now },
+      },
+      select: { id: true, amountCents: true },
+    });
+  }
+
+  // One held commission → AVAILABLE; true only for the call that moved it
+  async releaseHold(id: string) {
+    const { count } = await this._reward.model.referralReward.updateMany({
+      where: { id, status: 'PENDING' },
+      data: { status: 'AVAILABLE' },
+    });
+    return count === 1;
   }
 
   // Holds that ended: PENDING → AVAILABLE

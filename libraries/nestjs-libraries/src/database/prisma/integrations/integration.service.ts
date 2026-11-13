@@ -28,6 +28,12 @@ import utc from 'dayjs/plugin/utc';
 import { AutopostRepository } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.repository';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 import { TemporalService } from 'nestjs-temporal-core';
+import { randomBytes } from 'crypto';
+import { ApplicationFailure } from '@temporalio/common';
+import {
+  EncryptionService,
+  integrationEncryptedFields,
+} from '@gitroom/nestjs-libraries/services/encryption.service';
 
 dayjs.extend(utc);
 
@@ -41,7 +47,8 @@ export class IntegrationService {
     private _notificationService: NotificationService,
     @Inject(forwardRef(() => RefreshIntegrationService))
     private _refreshIntegrationService: RefreshIntegrationService,
-    private _temporalService: TemporalService
+    private _temporalService: TemporalService,
+    private _encryptionService: EncryptionService
   ) {}
 
   async changeActiveCron(orgId: string) {
@@ -320,7 +327,7 @@ export class IntegrationService {
   ) {
     await this._notificationService.inAppNotification(
       orgId,
-      `Could not refresh your ${integration.providerIdentifier} channel ${err}`,
+      `Could not refresh your ${integration.providerIdentifier} channel`,
       `Could not refresh your ${integration.providerIdentifier} channel ${err}. Please go back to the system and connect it again ${process.env.FRONTEND_URL}/launches`,
       true,
       false,
@@ -346,15 +353,17 @@ export class IntegrationService {
       const data = await this.refreshToken(provider, integration.refreshToken!);
 
       if (!data) {
-        await this.informAboutRefreshError(
-          integration.organizationId,
-          integration
-        );
-        await this._integrationRepository.refreshNeeded(
+        const flagged = await this._integrationRepository.refreshNeeded(
           integration.organizationId,
           integration.id
         );
-        return;
+        if (flagged) {
+          await this.informAboutRefreshError(
+            integration.organizationId,
+            integration
+          );
+        }
+        continue;
       }
 
       const { refreshToken, accessToken, expiresIn } = data;
@@ -379,14 +388,12 @@ export class IntegrationService {
     return this._integrationRepository.disableChannel(org, id);
   }
 
-  async enableChannel(org: string, totalChannels: number, id: string) {
+  // `totalChannels` null: no channel limit (AccessService.channelLimit)
+  async enableChannel(org: string, totalChannels: number | null, id: string) {
     const integrations = (
       await this._integrationRepository.getIntegrationsList(org)
     ).filter((f) => !f.disabled);
-    if (
-      !!process.env.STRIPE_PUBLISHABLE_KEY &&
-      integrations.length >= totalChannels
-    ) {
+    if (totalChannels !== null && integrations.length >= totalChannels) {
       throw new Error('You have reached the maximum number of channels');
     }
 
@@ -693,6 +700,64 @@ export class IntegrationService {
     );
     const loadOnlyIds = exisingData.map((p) => p.value);
     return difference(id, loadOnlyIds);
+  }
+
+  // The tokens of a channel that came from a workflow. A workflow carries the
+  // channel from one activity to the next, so an activity can get its tokens
+  // encrypted (an activity handed them out that way) or plain (the workflow
+  // started before the tokens were encrypted, or the install has no
+  // encryption), and even one of each. Every activity that uses a token of a
+  // channel it got from a workflow goes through here first; a plain token is
+  // used as it is.
+  async decryptTokens<T extends Partial<Integration>>(integration: T) {
+    return integration
+      ? this._encryptionService.decryptFields(
+          integration,
+          integrationEncryptedFields
+        )
+      : integration;
+  }
+
+  // One page of the encryptTokensWorkflow: encrypts the tokens that are still
+  // stored plain. New tokens are already stored encrypted, this is for the
+  // ones that were stored before the encryption.
+  async encryptStoredTokens(afterId?: string) {
+    if (!this._encryptionService.canEncrypt()) {
+      // a configuration that has to change first, no retry will fix it
+      throw ApplicationFailure.nonRetryable(
+        'The encryption is off, set ENCRYPTION_PROVIDER and remove ENCRYPTION_READ_ONLY'
+      );
+    }
+
+    const integrations = await this._integrationRepository.getPlainTokens(
+      afterId
+    );
+
+    // A channel that cannot be encrypted is counted and skipped, it must not
+    // stop all the channels after it
+    let changed = 0;
+    let failed = 0;
+    for (const integration of integrations) {
+      try {
+        if (
+          await this._integrationRepository.encryptStoredTokens(integration)
+        ) {
+          changed++;
+        }
+      } catch (err) {
+        failed++;
+        console.error(
+          `Could not encrypt the stored tokens of integration ${integration.id}:`,
+          (err as Error)?.message
+        );
+      }
+    }
+
+    return {
+      changed,
+      failed,
+      lastId: integrations[integrations.length - 1]?.id,
+    };
   }
 
   async findFreeDateTime(

@@ -20,12 +20,19 @@ import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { PaymentService } from '@gitroom/nestjs-libraries/services/payment/payment.service';
 import { BillingSyncDto } from '@gitroom/nestjs-libraries/dtos/billing/billing.sync.dto';
+import { BillingTrialPlanDto } from '@gitroom/nestjs-libraries/dtos/billing/billing.trial.plan.dto';
 import { BillingAiCreditsDto } from '@gitroom/nestjs-libraries/dtos/billing/billing.ai.credits.dto';
 import {
   aiCreditCost,
   aiCreditPacks,
   imageCreditAction,
 } from '@gitroom/nestjs-libraries/openai/ai.config';
+import { CheckPolicies } from '@gitroom/backend/services/auth/permissions/permissions.ability';
+import { AccessService } from '@gitroom/nestjs-libraries/database/prisma/tadween/access.service';
+import {
+  AuthorizationActions,
+  Sections,
+} from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 
 @ApiTags('Billing')
 @Controller('/billing')
@@ -34,8 +41,16 @@ export class BillingController {
     private _subscriptionService: SubscriptionService,
     private _notificationService: NotificationService,
     private _usersService: UsersService,
-    private _paymentService: PaymentService
+    private _paymentService: PaymentService,
+    private _access: AccessService
   ) {}
+
+  // Tadween: nothing is sold while payments are off in /admin
+  private async assertPaymentsEnabled() {
+    if (!(await this._access.paymentsEnabled())) {
+      throw new HttpException('Payments are not available yet.', 400);
+    }
+  }
 
   // Billing routes are the web platform; the org's own provider (or the web
   // default when it has none) handles the action.
@@ -79,11 +94,15 @@ export class BillingController {
   async finishTrial(@GetOrgFromRequest() org: Organization) {
     const provider = await this.provider(org);
     try {
-      await provider.finishTrial(org);
-    } catch (err) {}
-    return {
-      finish: true,
-    };
+      const action = await provider.finishTrial(org);
+      if (action.requiresAction) {
+        return { finish: false, ...action };
+      }
+      return { finish: true };
+    } catch (err) {
+      console.error('finishTrial failed', err);
+      return { finish: false };
+    }
   }
 
   @Get('/is-trial-finished')
@@ -100,6 +119,7 @@ export class BillingController {
     @Body() body: BillingSubscribeDto,
     @Req() req: Request
   ) {
+    await this.assertPaymentsEnabled();
     if (await this.assertNoOtherSubscribedAccount(user)) {
       return { blocked: true };
     }
@@ -122,6 +142,7 @@ export class BillingController {
     @Body() body: BillingSubscribeDto,
     @Req() req: Request
   ) {
+    await this.assertPaymentsEnabled();
     if (await this.assertNoOtherSubscribedAccount(user)) {
       return { blocked: true };
     }
@@ -134,6 +155,16 @@ export class BillingController {
       body,
       org.allowTrial
     );
+  }
+
+  // The plan chosen during the card-less trial, after its card was saved in
+  // the embedded checkout (setup mode): kept on the same trial
+  @Post('/trial/plan')
+  async applyTrialPlan(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: BillingTrialPlanDto
+  ) {
+    return (await this.provider(org)).applyTrialPlan(org.id, body.session);
   }
 
   @Get('/trial')
@@ -153,6 +184,7 @@ export class BillingController {
     @Body() body: BillingSubscribeDto,
     @Req() req: Request
   ) {
+    await this.assertPaymentsEnabled();
     if (await this.assertNoOtherSubscribedAccount(user)) {
       return { blocked: true };
     }
@@ -210,6 +242,7 @@ export class BillingController {
     @GetUserFromRequest() user: User,
     @Body() body: BillingAiCreditsDto
   ) {
+    await this.assertPaymentsEnabled();
     return (await this.provider(org)).embeddedAiCredits(
       org.id,
       user.id,
@@ -236,6 +269,17 @@ export class BillingController {
     };
   }
 
+  @Get('/invoices')
+  @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
+  async getInvoices(@GetOrgFromRequest() org: Organization) {
+    return (await this.provider(org)).getInvoices(org.id);
+  }
+
+  @Get('/renewal')
+  async getRenewal(@GetOrgFromRequest() org: Organization) {
+    return (await this.provider(org)).getRenewalDate(org.id);
+  }
+
   @Get('/')
   getCurrentBilling(@GetOrgFromRequest() org: Organization) {
     return this._paymentService.getSubscription(org.id);
@@ -250,10 +294,10 @@ export class BillingController {
     const result = await (await this.provider(org)).setToCancel(org.id);
 
     if (result.cancel_at) {
-      await this._notificationService.sendEmail(
-        process.env.EMAIL_FROM_ADDRESS,
-        'Subscription Cancelled',
-        `Organization ${org.name} has cancelled their subscription because: ${body.feedback}`,
+      // Tadween: to the team's inbox (never no-reply); replies reach the customer
+      await this._notificationService.sendSupportTemplate(
+        'subscriptionCancelled',
+        { workspace: org.name, email: user.email, feedback: body.feedback },
         user.email
       );
     }

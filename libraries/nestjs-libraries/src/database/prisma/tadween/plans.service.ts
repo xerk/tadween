@@ -11,6 +11,7 @@ import {
   DEFAULT_PLANS,
   DEFAULT_YEARLY_DISCOUNT_PERCENT,
   FeatureKey,
+  FreePlanLimits,
 } from '@gitroom/nestjs-libraries/database/prisma/tadween/tadween.defaults';
 import { PlatformSettingsService } from '@gitroom/nestjs-libraries/database/prisma/tadween/platform-settings.service';
 
@@ -163,6 +164,24 @@ const overlay = (
       : plan.webhooks,
 });
 
+// The FREE tier while the free plan is on: its limits from /admin, unlimited
+// posts, RSS auto-post and the public API (MCP); AI only with AI credits.
+export const freePlanValues = (
+  base: PricingInnerInterface,
+  limits: FreePlanLimits
+): PricingInnerInterface => ({
+  ...base,
+  channel: limits.channels,
+  team_members: limits.members > 1,
+  team_members_count: limits.members - 1,
+  posts_per_month: UNLIMITED,
+  ai: limits.aiCredits !== 0,
+  image_generator: limits.aiCredits !== 0,
+  image_generation_count: limits.aiCredits,
+  public_api: true,
+  autoPost: true,
+});
+
 // The founder price when the window is open and the plan has one below its
 // list price, else the list price
 const chargedMonthly = (
@@ -268,8 +287,10 @@ export class PlansService {
   // The pricing map every consumer used to import statically, with active DB
   // plans overlaid per tier. No plans → exactly the static map. Prices are
   // what checkout charges now (founder prices while the window is open).
+  // The FREE tier carries the free plan's limits while it is on.
   async getPricing(): Promise<PricingInterface> {
     const plans = await this.activePlans();
+    const { freePlan } = await this._settings.getAccess();
     const [founder, discount] = plans.some(
       (p) => p.founderMonthlyPriceUsd !== null
     )
@@ -280,6 +301,9 @@ export class PlansService {
       : [null, 0];
     return Object.keys(pricing).reduce((all, tier) => {
       const plan = plans.find((p) => p.tier === tier);
+      if (tier === 'FREE' && freePlan.enabled) {
+        return { ...all, [tier]: freePlanValues(pricing[tier], freePlan) };
+      }
       if (!plan) {
         return { ...all, [tier]: pricing[tier] };
       }
@@ -352,6 +376,13 @@ export class PlansService {
   // The active plan selling a tier (none: the tier is not for sale)
   async getActivePlan(tier: string) {
     return (await this.activePlans()).find((p) => p.tier === tier);
+  }
+
+  // The plan a new workspace tries from sign-up: the highlighted plan on
+  // sale with a trial, else the first one (none: no trial to start)
+  async getSignupTrialTier() {
+    const plans = (await this.activePlans()).filter((p) => p.trialDays > 0);
+    return (plans.find((p) => p.mostPopular) || plans[0])?.tier;
   }
 
   // Free trial length for a tier's checkout: the plan's, else Postiz's 7 days.

@@ -1,20 +1,28 @@
-# Postiz NodeJS SDK
+# Tadween Node.js SDK
 
-This is the NodeJS SDK for the Tadween public API (built on the Postiz SDK).
-
-You can start by installing the package:
+The Node.js SDK for the [Tadween](https://tadween.app) public API.
 
 ```bash
-npm install @postiz/node
+npm install @tadween/node
 ```
 
 ## Usage
+
 ```typescript
-import Postiz from '@postiz/node';
-const postiz = new Postiz('your api key', 'https://your-instance/api'); // or set POSTIZ_API_URL
+import Tadween from '@tadween/node';
+
+const tadween = new Tadween('your api key');
+
+const channels = await tadween.integrations();
 ```
 
-The API URL is your instance's backend URL (the `NEXT_PUBLIC_BACKEND_URL` of the deployment, shown in Settings → API & MCP). There is no hosted default: without a URL argument or `POSTIZ_API_URL`, `new Postiz(key)` still constructs, and the first request throws an error that says what to set. Nothing is ever sent to api.postiz.com.
+Your API key is in Tadween → Settings → API & MCP.
+
+Requests go to `https://studio.tadween.app/api` by default. For a self-hosted instance, pass its API URL (the backend URL, without `/public/v1`) as the second argument, or set `TADWEEN_API_URL`:
+
+```typescript
+const tadween = new Tadween('your api key', 'https://your-instance.com/api');
+```
 
 The available methods are:
 - `post(posts: CreatePostDto)` - Schedule a post
@@ -24,3 +32,7 @@ The available methods are:
 - `deletePost(id: string)` - Delete a post by ID
 
 Alternatively you can call the public API directly (`{API_URL}/public/v1/...`) with your API key in the `Authorization` header.
+
+## Credits and license
+
+Based on the Postiz Node.js SDK ([`@postiz/node`](https://www.npmjs.com/package/@postiz/node), [gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app)). AGPL-3.0, see [LICENSE](LICENSE).

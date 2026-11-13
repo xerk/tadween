@@ -12,21 +12,20 @@ function toQueryString(obj: Record<string, any>): string {
   return params.toString();
 }
 
-export default class Postiz {
-  // Tadween: there is no hosted default (it used to be api.postiz.com, which
-  // would send your key to Postiz's cloud). Pass your instance's API URL, or
-  // set POSTIZ_API_URL. Constructing without one still works; the first request
-  // fails with a clear error instead.
+// Tadween's public API. The URL is the backend URL with no /public/v1:
+// Tadween's own (the default), or a self-hosted instance's, passed as the
+// second argument or set as TADWEEN_API_URL.
+const DEFAULT_API_URL = 'https://studio.tadween.app/api';
+
+export default class Tadween {
   constructor(private _apiKey: string, private _url?: string) {}
 
   private get _path() {
-    const url = this._url || process.env.POSTIZ_API_URL || '';
-    if (!url) {
-      throw new Error(
-        'No API URL: pass it as the second argument (new Postiz(key, "https://your-instance/api")) or set POSTIZ_API_URL'
-      );
-    }
-    return url.replace(/\/+$/, '');
+    return (
+      this._url ||
+      process.env.TADWEEN_API_URL ||
+      DEFAULT_API_URL
+    ).replace(/\/+$/, '');
   }
 
   async post(posts: CreatePostDto) {

@@ -1,0 +1,70 @@
+name: Publish SDK
+
+# Publishes apps/sdk (@tadween/node) to npm with provenance.
+#
+#   - Push a tag `sdk-v1.0.1` (must match `version` in apps/sdk/package.json), or
+#   - run it by hand from the Actions tab; `dry_run` prints the tarball
+#     without publishing.
+#
+# Needs the repository secret NPM_TOKEN (npm automation / granular token with
+# publish rights on the @tadween scope).
+
+on:
+  push:
+    tags:
+      - 'sdk-v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Dry run (no publish)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Check the tag matches package.json
+        if: github.event_name == 'push'
+        working-directory: apps/sdk
+        run: |
+          actual=$(node -p "require('./package.json').version")
+          if [ "$actual" != "${GITHUB_REF_NAME#sdk-v}" ]; then
+            echo "Tag says ${GITHUB_REF_NAME#sdk-v} but apps/sdk/package.json says $actual"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        working-directory: apps/sdk
+        run: pnpm run build
+
+      - name: Publish
+        working-directory: apps/sdk
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --access public --dry-run
+          else
+            npm publish --access public --provenance
+          fi

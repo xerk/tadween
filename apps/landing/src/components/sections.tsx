@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { ChatDemo, Dict, Faq } from '@/content/types';
 import { AI_CLIENTS, WORKS_WITH } from '@/lib/aiClients';
 import { CHANNELS, FOCUS_NETS, networkBySlug } from '@/lib/channels';
-import { LEGAL, SIGN_IN_URL, SIGN_UP_URL } from '@/lib/config';
+import { LEGAL, LEGAL_PHONE, SIGN_IN_URL, SIGN_UP_URL } from '@/lib/config';
 import { FEATURE_MENU, featureRefIcon, featureRefPath, type FeatureRef } from '@/lib/features';
 import { PATHS, channelPath, clientPath, localePath } from '@/lib/routes';
 import type { ShotId } from '@/lib/shots';
@@ -535,6 +535,9 @@ export function Footer({ t }: { t: Dict }) {
         </div>
         <p className="pz-foot-legal">
           <span>{t.footer.copyright.replaceAll('{company}', LEGAL.company || 'Tadween')}</span>
+          {LEGAL.address ? <bdi>{LEGAL.address}</bdi> : null}
+          {LEGAL.email ? <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a> : null}
+          {LEGAL_PHONE ? <bdi dir="ltr">{LEGAL_PHONE}</bdi> : null}
         </p>
       </div>
     </footer>
